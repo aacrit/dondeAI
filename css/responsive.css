@@ -52,8 +52,13 @@
     padding: 0 var(--space-xl);
   }
 
-  .header__logo {
-    font-size: var(--text-xl);
+  .header__logo .logo-wordmark {
+    font-size: var(--text-md);
+  }
+
+  .header__logo .logo-mark {
+    width: 24px;
+    height: 36px;
   }
 
   .ambient__blob--1 {
@@ -76,8 +81,8 @@
 
 /* ---- Virtual Keyboard Adaptation ---- */
 @media (max-height: 500px) {
-  .header__logo {
-    font-size: var(--text-base);
+  .header__logo .logo-wordmark {
+    font-size: var(--text-xs);
   }
 
   .step {

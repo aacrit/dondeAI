@@ -112,9 +112,9 @@
 }
 
 .header__logo {
-  font-family: var(--font-emotional);
-  font-style: italic;
-  font-size: var(--text-lg);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
   color: var(--fg);
   cursor: pointer;
   user-select: none;
@@ -122,7 +122,7 @@
 }
 
 .header__logo:hover {
-  opacity: 0.7;
+  opacity: 0.85;
 }
 
 .header__actions {
@@ -311,6 +311,9 @@
   bottom: var(--space-xl);
   left: 50%;
   transform: translateX(-50%) translateY(120%);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
   padding: var(--space-sm) var(--space-lg);
   background: var(--glass-toast);
   backdrop-filter: blur(var(--glass-blur)) saturate(180%);
@@ -329,6 +332,32 @@
 
 .toast--error {
   border-color: var(--rose);
+  background: hsl(0 70% 50% / 0.08);
+}
+
+.toast--error .toast__text {
+  color: var(--rose);
+}
+
+.toast__dismiss {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: var(--fg3);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color var(--dur-fast) var(--ease-out),
+              background var(--dur-fast) var(--ease-out);
+}
+
+.toast__dismiss:hover {
+  color: var(--fg);
+  background: var(--bg3);
 }
 
 /* ---- Cursor Glow ---- */

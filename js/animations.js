@@ -303,16 +303,77 @@ export function chaosToOrderReveal(element, text) {
   });
 }
 
-/* ---- Logo Animation Init ---- */
+/* ---- Logo Animation Init (Pin-Fork) ---- */
 export function initLogoAnimation() {
-  const logoPaths = document.querySelectorAll('.logo-svg--loading .logo-ring');
-  logoPaths.forEach(p => {
-    if (p.getTotalLength) {
-      const len = p.getTotalLength();
-      p.style.strokeDasharray = len;
-      p.style.strokeDashoffset = len;
+  const pin = document.querySelector('.logo-mark--loading .logo-mark__pin--draw');
+  if (pin && pin.getTotalLength) {
+    const len = pin.getTotalLength();
+    pin.style.strokeDasharray = len;
+    pin.style.strokeDashoffset = len;
+  }
+
+  const tines = document.querySelectorAll('.logo-mark--loading .logo-mark__tine--draw');
+  tines.forEach(t => {
+    if (t.getTotalLength) {
+      const len = t.getTotalLength();
+      t.style.strokeDasharray = len;
+      t.style.strokeDashoffset = len;
     }
   });
+}
+
+/* ---- Logo Loading Transition (Header -> Center -> Header) ---- */
+export function animateLogoToCenter() {
+  if (REDUCED.matches) return { returnToHeader: () => {} };
+
+  const headerLogo = document.querySelector('.header__logo');
+  if (!headerLogo) return { returnToHeader: () => {} };
+
+  // Capture header logo's current position
+  const startRect = headerLogo.getBoundingClientRect();
+
+  // Set header logo to fixed position at its current location
+  headerLogo.style.position = 'fixed';
+  headerLogo.style.left = startRect.left + 'px';
+  headerLogo.style.top = startRect.top + 'px';
+  headerLogo.style.zIndex = '9999';
+  headerLogo.style.pointerEvents = 'none';
+
+  // Calculate center of viewport
+  const centerX = window.innerWidth / 2 - startRect.width / 2;
+  const centerY = window.innerHeight / 2 - startRect.height / 2;
+
+  // Animate to center using transform for GPU compositing
+  requestAnimationFrame(() => {
+    headerLogo.style.transition = 'transform 500ms cubic-bezier(0.34, 1.56, 0.64, 1)';
+    const dx = centerX - startRect.left;
+    const dy = centerY - startRect.top;
+    headerLogo.style.transform = `translate(${dx}px, ${dy}px) scale(2)`;
+  });
+
+  return {
+    returnToHeader: () => {
+      // Animate back
+      headerLogo.style.transition = 'transform 400ms cubic-bezier(0.4, 0, 0.2, 1)';
+      headerLogo.style.transform = 'translate(0, 0) scale(1)';
+
+      // After transition, reset inline styles
+      const cleanup = () => {
+        headerLogo.style.position = '';
+        headerLogo.style.left = '';
+        headerLogo.style.top = '';
+        headerLogo.style.zIndex = '';
+        headerLogo.style.pointerEvents = '';
+        headerLogo.style.transition = '';
+        headerLogo.style.transform = '';
+        headerLogo.removeEventListener('transitionend', cleanup);
+      };
+      headerLogo.addEventListener('transitionend', cleanup, { once: true });
+
+      // Fallback cleanup after 500ms
+      setTimeout(cleanup, 500);
+    }
+  };
 }
 
 /* ---- Particle System ---- */

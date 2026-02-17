@@ -373,6 +373,8 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
+  transform-origin: top center;
+  animation: drawerOpen 350ms var(--spring) forwards;
 }
 
 .filter-content[hidden] {
@@ -1410,44 +1412,209 @@
   background: hsl(var(--cuisine-hue, 250) 65% 55% / 0.12);
 }
 
-/* ---- Logo SVG ---- */
-.logo-svg {
+/* ---- Logo Mark (Pin-Fork Symbol) ---- */
+.logo-mark {
   display: block;
+  flex-shrink: 0;
   overflow: visible;
 }
 
-.header__logo:hover .logo-needle {
-  animation: needlePulse 2s ease-in-out infinite;
-  transform-origin: 20px 20px;
+.logo-mark__pin {
+  transition: transform var(--dur-fast) var(--spring);
+  transform-origin: 12px 12px;
 }
 
-.logo-svg--loading .logo-ring {
-  stroke-dasharray: 88;
-  stroke-dashoffset: 88;
-  animation: logoDraw 1.2s cubic-bezier(0.2, 1, 0.4, 1) forwards;
+.logo-mark__tine {
+  opacity: 0.9;
 }
 
-.logo-svg--loading .logo-petal {
-  opacity: 0;
-  animation: contentFadeIn 300ms ease-out forwards;
+.logo-mark__dot {
+  transition: transform var(--dur-fast) var(--spring);
+  transform-origin: 12px 18px;
 }
 
-.logo-svg--loading .logo-petal:nth-child(2) { animation-delay: 200ms; }
-.logo-svg--loading .logo-petal:nth-child(3) { animation-delay: 300ms; }
-.logo-svg--loading .logo-petal:nth-child(4) { animation-delay: 400ms; }
-.logo-svg--loading .logo-petal:nth-child(5) { animation-delay: 500ms; }
-
-.logo-svg--loading .logo-needle {
-  animation: needleRotate 1.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-  transform-origin: 20px 20px;
+/* ---- Header Logo Hover ---- */
+.header__logo:hover .logo-mark__pin {
+  animation: pinSeek 1.6s var(--ease-out) infinite;
+  transform-origin: 12px 18px;
 }
 
+.header__logo:hover .logo-mark__dot {
+  animation: dotPulse 1.6s var(--ease-out) infinite;
+}
+
+/* ---- Wordmark Typography ---- */
+.logo-wordmark {
+  font-family: var(--font-emotional);
+  font-style: italic;
+  font-weight: 700;
+  font-size: var(--text-sm);
+  letter-spacing: 0.04em;
+  color: var(--fg);
+  line-height: 1;
+}
+
+.logo-wordmark__ai {
+  font-family: var(--font-data);
+  font-style: normal;
+  font-weight: 600;
+  font-size: 0.55em;
+  color: var(--ac);
+  vertical-align: super;
+  letter-spacing: 0.02em;
+  margin-left: 0.05em;
+}
+
+/* ---- Loading Logo ---- */
 .loading-logo {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: var(--space-sm);
   padding: var(--space-xl) 0;
   z-index: var(--z-above);
+}
+
+.loading-logo__text {
+  font-family: var(--font-emotional);
+  font-style: italic;
+  font-weight: 700;
+  font-size: var(--text-lg);
+  color: var(--fg);
+  opacity: 0;
+  animation: contentFadeIn 400ms ease-out 600ms forwards;
+}
+
+/* ---- Loading Logo: Draw-In ---- */
+.logo-mark--loading .logo-mark__pin--draw {
+  stroke-dasharray: 80;
+  stroke-dashoffset: 80;
+  animation: pinDraw 1s cubic-bezier(0.2, 1, 0.4, 1) forwards;
+}
+
+.logo-mark--loading .logo-mark__tine--draw {
+  stroke-dasharray: 9;
+  stroke-dashoffset: 9;
+  animation: tineDraw 400ms cubic-bezier(0.2, 1, 0.4, 1) forwards;
+}
+
+.logo-mark--loading .logo-mark__tine--draw:nth-child(2) {
+  animation-delay: 400ms;
+}
+
+.logo-mark--loading .logo-mark__tine--draw:nth-child(3) {
+  animation-delay: 550ms;
+}
+
+.logo-mark--loading .logo-mark__dot--pulse {
+  opacity: 0;
+  animation: dotReveal 300ms ease-out 700ms forwards,
+             dotPulseLoading 1.5s ease-in-out 1000ms infinite;
+}
+
+/* ---- Custom Focus Rings (Spring-animated) ---- */
+.filter-pill:focus-visible,
+.smart-chip:focus-visible,
+.cta-btn:focus-visible,
+.action-btn:focus-visible,
+.theme-card:focus-visible,
+.share-btn:focus-visible,
+.header__btn:focus-visible,
+.back-btn:focus-visible,
+.taste-memory__item:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--ac);
+  animation: focusRingIn 300ms var(--spring) forwards;
+}
+
+.craving-input:focus-visible {
+  outline: none;
+  border-color: var(--ac);
+  box-shadow: 0 2px 0 0 var(--ac);
+}
+
+.filter-pill:focus:not(:focus-visible),
+.smart-chip:focus:not(:focus-visible),
+.cta-btn:focus:not(:focus-visible),
+.action-btn:focus:not(:focus-visible) {
+  outline: none;
+  box-shadow: none;
+}
+
+/* ---- CTA Disabled Hint ---- */
+.cta-hint {
+  font-size: var(--text-xs);
+  color: var(--fg3);
+  text-align: center;
+  max-width: 320px;
+  height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: height var(--dur-fast) var(--ease-out),
+              opacity var(--dur-fast) var(--ease-out);
+}
+
+.cta-hint--visible {
+  height: auto;
+  overflow: visible;
+  opacity: 1;
+  padding-top: var(--space-xs);
+}
+
+/* ---- CTA Disabled Nudge ---- */
+.cta-btn:disabled.cta-btn--nudge {
+  animation: ctaNudge 400ms var(--spring);
+}
+
+/* ---- Progressive Result Card Reveal ---- */
+.result-card--revealing > * {
+  opacity: 0;
+  transform: translateY(12px);
+}
+
+.result-card--revealing .result-cuisine-badge {
+  animation: resultSectionIn 350ms var(--ease-out) 0ms forwards;
+}
+
+.result-card--revealing .result-header {
+  animation: resultSectionIn 350ms var(--ease-out) 80ms forwards;
+}
+
+.result-card--revealing .score-radar-row {
+  animation: resultSectionIn 400ms var(--ease-out) 180ms forwards;
+}
+
+.result-card--revealing .result-recommendation {
+  animation: resultSectionIn 350ms var(--ease-out) 320ms forwards;
+}
+
+.result-card--revealing .insider-tip {
+  animation: resultSectionIn 350ms var(--ease-out) 420ms forwards;
+}
+
+.result-card--revealing .info-grid {
+  animation: resultSectionIn 350ms var(--ease-out) 500ms forwards;
+}
+
+.result-card--revealing .atmosphere-tags {
+  animation: resultSectionIn 300ms var(--ease-out) 580ms forwards;
+}
+
+.result-card--revealing .tags-cloud {
+  animation: resultSectionIn 300ms var(--ease-out) 620ms forwards;
+}
+
+.result-card--revealing #sentiment-section {
+  animation: resultSectionIn 300ms var(--ease-out) 660ms forwards;
+}
+
+.result-card--revealing .action-btns {
+  animation: resultSectionIn 350ms var(--ease-out) 720ms forwards;
+}
+
+.result-card--revealing .result-actions {
+  animation: resultSectionIn 350ms var(--ease-out) 800ms forwards;
 }
 
 /* ---- Filter Pill Ink Ripple ---- */

@@ -48,19 +48,21 @@
     <!-- Header -->
     <header class="header">
       <button class="header__logo" data-action="reset" aria-label="DondeAI — start over">
-        <svg class="logo-svg" viewBox="0 0 40 40" width="32" height="32" aria-hidden="true">
-          <!-- Compass ring -->
-          <circle class="logo-ring" cx="20" cy="20" r="14" fill="none" stroke="currentColor" stroke-width="1.5"/>
-          <!-- Rangoli petals (4 cardinal) -->
-          <path class="logo-petal" d="M20 6 Q23 12 20 14 Q17 12 20 6Z" fill="currentColor" opacity="0.25"/>
-          <path class="logo-petal" d="M34 20 Q28 23 26 20 Q28 17 34 20Z" fill="currentColor" opacity="0.25"/>
-          <path class="logo-petal" d="M20 34 Q17 28 20 26 Q23 28 20 34Z" fill="currentColor" opacity="0.25"/>
-          <path class="logo-petal" d="M6 20 Q12 17 14 20 Q12 23 6 20Z" fill="currentColor" opacity="0.25"/>
-          <!-- Needle -->
-          <line class="logo-needle" x1="20" y1="20" x2="20" y2="9" stroke="var(--ac)" stroke-width="2" stroke-linecap="round"/>
-          <circle cx="20" cy="20" r="2" fill="var(--ac)"/>
+        <svg class="logo-mark" viewBox="0 0 24 36" width="20" height="30" aria-hidden="true">
+          <!-- Pin-fork: pin silhouette with fork-tine negative spaces -->
+          <path class="logo-mark__pin"
+                d="M12 0C6.48 0 2 4.48 2 10c0 8.4 9.2 15.17 9.6 15.47a.75.75 0 0 0 .8 0C12.8 25.17 22 18.4 22 10 22 4.48 17.52 0 12 0Z"
+                fill="currentColor"/>
+          <!-- Left tine (negative space) -->
+          <line class="logo-mark__tine" x1="9" y1="5" x2="9" y2="14"
+                stroke="var(--bg)" stroke-width="1.5" stroke-linecap="round"/>
+          <!-- Right tine (negative space) -->
+          <line class="logo-mark__tine" x1="15" y1="5" x2="15" y2="14"
+                stroke="var(--bg)" stroke-width="1.5" stroke-linecap="round"/>
+          <!-- Accent dot at pin tip -->
+          <circle class="logo-mark__dot" cx="12" cy="18" r="1.5" fill="var(--ac)"/>
         </svg>
-        <span class="type-structural" style="font-weight:700;font-size:var(--text-sm);letter-spacing:0.04em;">DondeAI</span>
+        <span class="logo-wordmark type-emotional">Donde<sup class="logo-wordmark__ai">AI</sup></span>
       </button>
       <div class="header__actions">
         <button class="header__btn" data-action="toggle-sound" aria-label="Toggle sound" title="Sound">
@@ -227,9 +229,12 @@
             </div>
 
             <!-- CTA Button -->
-            <button class="cta-btn type-structural--bold" data-action="submit" data-label="cta" disabled>
+            <button class="cta-btn type-structural--bold" data-action="submit" data-label="cta" disabled aria-disabled="true">
               Find My Spot
             </button>
+            <p class="cta-hint type-data--sm" id="cta-hint" aria-live="polite">
+              Type what you're craving to get started
+            </p>
 
             <!-- Taste Memory (Recent Searches) -->
             <div class="taste-memory" id="taste-memory" style="display: none;">
@@ -248,16 +253,18 @@
             <div class="loading-state" id="loading-state" style="display: none;">
               <canvas class="particle-canvas" id="particle-canvas" aria-hidden="true"></canvas>
               <!-- Animated loading logo -->
-              <div class="loading-logo" aria-hidden="true">
-                <svg class="logo-svg logo-svg--loading" viewBox="0 0 40 40" width="64" height="64">
-                  <circle class="logo-ring" cx="20" cy="20" r="14" fill="none" stroke="currentColor" stroke-width="1.5"/>
-                  <path class="logo-petal" d="M20 6 Q23 12 20 14 Q17 12 20 6Z" fill="currentColor" opacity="0.25"/>
-                  <path class="logo-petal" d="M34 20 Q28 23 26 20 Q28 17 34 20Z" fill="currentColor" opacity="0.25"/>
-                  <path class="logo-petal" d="M20 34 Q17 28 20 26 Q23 28 20 34Z" fill="currentColor" opacity="0.25"/>
-                  <path class="logo-petal" d="M6 20 Q12 17 14 20 Q12 23 6 20Z" fill="currentColor" opacity="0.25"/>
-                  <line class="logo-needle" x1="20" y1="20" x2="20" y2="9" stroke="var(--ac)" stroke-width="2" stroke-linecap="round"/>
-                  <circle cx="20" cy="20" r="2" fill="var(--ac)"/>
+              <div class="loading-logo" id="loading-logo" aria-hidden="true">
+                <svg class="logo-mark logo-mark--loading" viewBox="0 0 24 36" width="48" height="72">
+                  <path class="logo-mark__pin logo-mark__pin--draw"
+                        d="M12 0C6.48 0 2 4.48 2 10c0 8.4 9.2 15.17 9.6 15.47a.75.75 0 0 0 .8 0C12.8 25.17 22 18.4 22 10 22 4.48 17.52 0 12 0Z"
+                        fill="none" stroke="currentColor" stroke-width="1"/>
+                  <line class="logo-mark__tine logo-mark__tine--draw" x1="9" y1="5" x2="9" y2="14"
+                        stroke="var(--ac)" stroke-width="1.5" stroke-linecap="round"/>
+                  <line class="logo-mark__tine logo-mark__tine--draw" x1="15" y1="5" x2="15" y2="14"
+                        stroke="var(--ac)" stroke-width="1.5" stroke-linecap="round"/>
+                  <circle class="logo-mark__dot logo-mark__dot--pulse" cx="12" cy="18" r="1.5" fill="var(--ac)"/>
                 </svg>
+                <span class="loading-logo__text type-emotional">Donde<sup class="logo-wordmark__ai">AI</sup></span>
               </div>
               <div class="skeleton-card" id="skeleton-card">
                 <div class="skel skel--badge"></div>
@@ -525,8 +532,14 @@
     <div class="theme-wash" id="theme-wash" aria-hidden="true"></div>
 
     <!-- Toast Notification -->
-    <div class="toast" id="toast" role="status" aria-live="polite">
+    <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true">
       <span class="toast__text type-structural" id="toast-text"></span>
+      <button class="toast__dismiss" id="toast-dismiss" aria-label="Dismiss notification" style="display: none;">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
     </div>
 
     <!-- Cursor Glow (desktop only, hidden on touch) -->

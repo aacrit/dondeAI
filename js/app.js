@@ -14,7 +14,7 @@ import { initShare, shareResult, closeShareSheet, handleShareChannel } from './s
 import { initOffline, isOnline } from './offline.js';
 import { initAccessibility, announce } from './accessibility.js';
 import { fetchRecommendation } from './api.js';
-import { animateScoreRing, renderRadar, startParticles, stopParticles, chaosToOrderReveal, initLogoAnimation } from './animations.js';
+import { animateScoreRing, renderRadar, startParticles, stopParticles, chaosToOrderReveal, initLogoAnimation, animateLogoToCenter } from './animations.js';
 import {
   getGreeting, getCuisineFromResult, svgIcon,
   getScoreTier, getScoreColor, buildGoogleStars, buildMapsUrl, relativeTime, matchCuisine
@@ -75,6 +75,19 @@ function init() {
 
   // Wire swipe gestures
   wireSwipe();
+
+  // Wire disabled CTA nudge (pointerdown fires even on disabled buttons)
+  document.addEventListener('pointerdown', (e) => {
+    const btn = e.target.closest('.cta-btn:disabled');
+    if (btn && btn.dataset.action === 'submit') {
+      btn.classList.add('cta-btn--nudge');
+      btn.addEventListener('animationend', () => btn.classList.remove('cta-btn--nudge'), { once: true });
+      $cravingInput?.focus();
+    }
+  });
+
+  // Wire toast dismiss button
+  document.getElementById('toast-dismiss')?.addEventListener('click', dismissToast);
 
   // Init cursor glow (desktop only)
   initCursorGlow();
@@ -327,8 +340,15 @@ function wireCravingInput() {
 
 function updateCtaState() {
   const $cta = document.querySelector('.cta-btn[data-action="submit"]');
+  const $hint = document.getElementById('cta-hint');
+  const isEmpty = !$cravingInput?.value.trim();
+
   if ($cta) {
-    $cta.disabled = !$cravingInput?.value.trim();
+    $cta.disabled = isEmpty;
+    $cta.setAttribute('aria-disabled', String(isEmpty));
+  }
+  if ($hint) {
+    $hint.classList.toggle('cta-hint--visible', isEmpty);
   }
 }
 
@@ -336,6 +356,12 @@ function updateCtaState() {
 function selectFilter(field, btn) {
   const group = btn.closest('[role="radiogroup"]') || btn.closest('.filter-pills');
   if (!group) return;
+
+  // Create ink ripple BEFORE state change for visible contrast
+  const ripple = document.createElement('span');
+  ripple.className = 'filter-pill__ripple';
+  btn.appendChild(ripple);
+  ripple.addEventListener('animationend', () => ripple.remove(), { once: true });
 
   // Deselect siblings
   group.querySelectorAll('.filter-pill').forEach(c => {
@@ -346,12 +372,6 @@ function selectFilter(field, btn) {
   btn.setAttribute('aria-checked', 'true');
   btn.classList.add('chip-pop');
   btn.addEventListener('animationend', () => btn.classList.remove('chip-pop'), { once: true });
-
-  // Ink ripple effect
-  const ripple = document.createElement('span');
-  ripple.className = 'filter-pill__ripple';
-  btn.appendChild(ripple);
-  ripple.addEventListener('animationend', () => ripple.remove(), { once: true });
 
   setState({ [field]: btn.dataset.value });
   updateFilterSummary();
@@ -454,6 +474,8 @@ async function handleSubmit() {
 }
 
 /* ---- Loading Toggle ---- */
+let logoTransition = null;
+
 function toggleLoading(loading) {
   if ($loadingState) $loadingState.style.display = loading ? 'flex' : 'none';
   if ($resultCard) $resultCard.style.display = loading ? 'none' : 'flex';
@@ -461,8 +483,13 @@ function toggleLoading(loading) {
   if (loading && $particleCanvas) {
     startParticles($particleCanvas);
     initLogoAnimation();
+    logoTransition = animateLogoToCenter();
   } else {
     stopParticles();
+    if (logoTransition) {
+      logoTransition.returnToHeader();
+      logoTransition = null;
+    }
   }
 }
 
@@ -679,12 +706,21 @@ function renderResult(data) {
   // Init scroll-linked parallax on result step
   initResultParallax();
 
-  // Show the card
+  // Show the card with progressive reveal
   if ($resultCard) {
     $resultCard.style.display = 'flex';
-    $resultCard.classList.remove('card-enter');
+    $resultCard.classList.remove('card-enter', 'result-card--revealing');
     void $resultCard.offsetWidth;
-    $resultCard.classList.add('card-enter');
+    $resultCard.classList.add('card-enter', 'result-card--revealing');
+
+    // Clean up reveal class after all sections have animated
+    setTimeout(() => {
+      $resultCard.classList.remove('result-card--revealing');
+      $resultCard.querySelectorAll(':scope > *').forEach(child => {
+        child.style.opacity = '';
+        child.style.transform = '';
+      });
+    }, 1200);
   }
   if ($loadingState) $loadingState.style.display = 'none';
 }
@@ -700,12 +736,41 @@ function createActionBtn(iconSvg, label, href) {
 }
 
 /* ---- Toast ---- */
+let toastTimer = null;
+
 function showToast(message, isError = false) {
   if (!$toast || !$toastText) return;
+
+  // Clear any pending dismiss
+  if (toastTimer) clearTimeout(toastTimer);
+
   $toastText.textContent = message;
   $toast.classList.toggle('toast--error', isError);
+
+  // Switch aria-live based on severity
+  $toast.setAttribute('aria-live', isError ? 'assertive' : 'polite');
+  $toast.setAttribute('role', isError ? 'alert' : 'status');
+
+  // Show/hide dismiss button for errors (they linger longer)
+  const $dismiss = document.getElementById('toast-dismiss');
+  if ($dismiss) {
+    $dismiss.style.display = isError ? 'flex' : 'none';
+  }
+
   $toast.classList.add('toast--visible');
-  setTimeout(() => $toast.classList.remove('toast--visible'), 3500);
+
+  // Auto-dismiss: errors stay longer
+  const duration = isError ? 6000 : 3500;
+  toastTimer = setTimeout(() => dismissToast(), duration);
+}
+
+function dismissToast() {
+  if (!$toast) return;
+  $toast.classList.remove('toast--visible');
+  if (toastTimer) {
+    clearTimeout(toastTimer);
+    toastTimer = null;
+  }
 }
 
 /* ---- Swipe Gestures ---- */
