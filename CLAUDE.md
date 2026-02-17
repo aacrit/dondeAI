@@ -9,10 +9,23 @@
 
 ---
 
+## Available Skills
+
+### `/frontenddesign`
+Elite motion designer + front-end engineer skill. Use when designing, building, reviewing, or refining any UI component, animation, theme, layout, or interaction pattern. Located at `.claude/skills/frontenddesign/SKILL.md`.
+
+Invoke with `/frontenddesign` or it auto-activates on design/UI/animation/layout tasks. Enforces the "Ink & Momentum" design system, three-voice typography, spring motion grammar, 12-variant theme compatibility, WCAG AA accessibility, and mobile-first responsive patterns.
+
+---
+
 ## Architecture & File Structure
 
 ```
 dondeAI/
+├── .claude/
+│   └── skills/
+│       └── frontenddesign/
+│           └── SKILL.md        # /frontenddesign skill — design system enforcement
 ├── index.html                  # Single entry point — entire SPA lives here
 ├── css/
 │   ├── reset.css               # Minimal reset (box-sizing, margin, safe-area)
