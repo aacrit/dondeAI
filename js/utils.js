@@ -1,40 +1,84 @@
 /* ============================================
    DondeAI — Utilities
-   Cuisine emoji mapping, time-of-day, helpers
+   SVG icon system, cuisine mapping, scores, helpers
    ============================================ */
 
+/* ---- SVG Icon Registry (Phosphor-compatible 256x256 viewBox) ---- */
+export const ICON_SVG = {
+  // Cuisine icons
+  sushi:         '<path fill="currentColor" d="M224,104a16,16,0,0,0-16-16H48a16,16,0,0,0-16,16v8a40,40,0,0,0,40,40h112a40,40,0,0,0,40-40Zm-8,8a32,32,0,0,1-32,32H72a32,32,0,0,1-32-32v-8a8,8,0,0,1,8-8H208a8,8,0,0,1,8,8ZM200,160H56a8,8,0,0,0,0,16H200a8,8,0,0,0,0-16Z"/>',
+  taco:          '<path fill="currentColor" d="M229.06,124.07c-1.08-27.67-12.25-53.63-31.44-73.14A111.22,111.22,0,0,0,128,16,111.22,111.22,0,0,0,58.38,50.93C39.19,70.44,28,96.4,26.94,124.07A40,40,0,0,0,56,168H200a40,40,0,0,0,29.06-43.93ZM128,32a95.34,95.34,0,0,1,59.46,30H68.54A95.34,95.34,0,0,1,128,32ZM200,152H56a24,24,0,0,1,0-48l.35,0A95.06,95.06,0,0,0,128,136a95.06,95.06,0,0,0,71.65-31.95l.35,0a24,24,0,0,1,0,48Z"/>',
+  pasta:         '<path fill="currentColor" d="M224,80a8,8,0,0,1-8,8H196.26a57.42,57.42,0,0,1-4.18,17.54c6.85,8.34,12,19.33,12,34.46a72,72,0,0,1-144,0c0-15.13,5.17-26.12,12-34.46A57.42,57.42,0,0,1,67.74,88H40a8,8,0,0,1,0-16h80V48H88a8,8,0,0,1,0-16h80a8,8,0,0,1,0,16H136V72h80A8,8,0,0,1,224,80Zm-96,128a56.06,56.06,0,0,0,56-56c0-24-16-40-32-48H104c-16,8-32,24-32,48A56.06,56.06,0,0,0,128,208Z"/>',
+  curry:         '<path fill="currentColor" d="M224,112H207.37a80.11,80.11,0,0,0-158.74,0H32a8,8,0,0,0,0,16H48.81A96.19,96.19,0,0,0,80,183.55V192a32,32,0,0,0,32,32h32a32,32,0,0,0,32-32v-8.45A96.19,96.19,0,0,0,207.19,128H224a8,8,0,0,0,0-16Zm-96-64a64.07,64.07,0,0,1,63.48,56H64.52A64.07,64.07,0,0,1,128,48Z"/>',
+  noodles:       '<path fill="currentColor" d="M224,112H207.37a80.11,80.11,0,0,0-158.74,0H32a8,8,0,0,0,0,16H48.81A96.19,96.19,0,0,0,80,183.55V192a32,32,0,0,0,32,32h32a32,32,0,0,0,32-32v-8.45A96.19,96.19,0,0,0,207.19,128H224a8,8,0,0,0,0-16ZM80,72V48a8,8,0,0,1,16,0v64a8,8,0,0,1-16,0Zm32,0V48a8,8,0,0,1,16,0v64a8,8,0,0,1-16,0Zm32,0V48a8,8,0,0,1,16,0v64a8,8,0,0,1-16,0Z"/>',
+  dumpling:      '<path fill="currentColor" d="M128,24C70.65,24,24,60.86,24,106c0,25.84,14.6,49.13,40,64.71V200a16,16,0,0,0,16,16H176a16,16,0,0,0,16-16V170.71c25.4-15.58,40-38.87,40-64.71C232,60.86,185.35,24,128,24Zm48,176H80V176h96Zm-1.51-40H81.51C56.29,145.44,40,126.58,40,106c0-36.94,39.53-66,88-66s88,29.06,88,66C216,126.58,199.71,145.44,174.49,160Z"/>',
+  meat:          '<path fill="currentColor" d="M212,88a27.86,27.86,0,0,0-19.81,8.19l-6.43-6.43a44,44,0,0,0-19.81-47.85A28,28,0,0,0,124.2,28.2a28,28,0,0,0-13.71,41.74A44,44,0,0,0,62.64,89.75l-6.43,6.43A28,28,0,1,0,44,136a27.86,27.86,0,0,0,19.81-8.19L176.19,15.43A28,28,0,0,0,212,88ZM68,184a8,8,0,1,1-8-8A8,8,0,0,1,68,184Zm28-24a8,8,0,1,1-8-8A8,8,0,0,1,96,160Zm32,16a8,8,0,1,1-8-8A8,8,0,0,1,128,176Z"/>',
+  croissant:     '<path fill="currentColor" d="M200,80H136V56h24a8,8,0,0,0,7.35-4.82l16-37.33A8,8,0,0,0,176,3.52L148.05,56H107.95L80,3.52a8,8,0,0,0-7.35-4.82,8,8,0,0,0-7.35,11.48l16,37.33A8,8,0,0,0,88.66,52H120V80H56A56,56,0,0,0,56,192h144a56,56,0,0,0,0-112Z"/>',
+  seafood:       '<path fill="currentColor" d="M168,76a12,12,0,1,1-12-12A12,12,0,0,1,168,76Zm-8,52a8,8,0,0,0-8,8,24,24,0,0,1-48,0V80.47c27.2-4.77,48-28.6,48-57.47a8,8,0,0,0-13.17-6.13L110.93,40.6,82.29,17A8,8,0,0,0,68.54,18l-6.7,21.39L30.29,17A8,8,0,0,0,16,24V136a80,80,0,0,0,160,0A8,8,0,0,0,160,128Z"/>',
+  burger:        '<path fill="currentColor" d="M48,104H208a8,8,0,0,0,0-16c0-40-33.6-72-80-72S48,48,48,88a8,8,0,0,0,0,16Zm80-72c35.64,0,62.27,22.52,63.92,56H64.08C65.73,54.52,92.36,32,128,32ZM232,168a8,8,0,0,1-8,8H32a8,8,0,0,1,0-16H224A8,8,0,0,1,232,168Zm-16,24H40a8,8,0,0,0,0,16H216a8,8,0,0,0,0-16ZM28,144H228a8,8,0,0,0,3.35-15.25c-.08,0-6.28-2.75-6.28-2.75H30.93s-6.2,2.71-6.28,2.75A8,8,0,0,0,28,144Z"/>',
+  coffee:        '<path fill="currentColor" d="M80,56V24a8,8,0,0,1,16,0V56a8,8,0,0,1-16,0Zm40,8a8,8,0,0,0,8-8V24a8,8,0,0,0-16,0V56A8,8,0,0,0,120,64Zm32,0a8,8,0,0,0,8-8V24a8,8,0,0,0-16,0V56A8,8,0,0,0,152,64Zm96,56a40,40,0,0,1-40,40H196.65A72.08,72.08,0,0,1,136,215.54V232h24a8,8,0,0,1,0,16H96a8,8,0,0,1,0-16h24V215.54A72.08,72.08,0,0,1,48,144V88a8,8,0,0,1,8-8H200a8,8,0,0,1,8,8v8h0A40,40,0,0,1,248,120Zm-16,0a24,24,0,0,0-16-22.62V144a72.3,72.3,0,0,1-2.54,19.21A24,24,0,0,0,232,120Z"/>',
+  cocktail:      '<path fill="currentColor" d="M237.66,45.66A8,8,0,0,0,232,32H24a8,8,0,0,0-5.66,13.66L120,147.31V216H88a8,8,0,0,0,0,16h80a8,8,0,0,0,0-16H136V147.31ZM59.31,48H196.69l-16,16H75.31Z"/>',
+  salad:         '<path fill="currentColor" d="M224,112H207.37a80.11,80.11,0,0,0-158.74,0H32a8,8,0,0,0,0,16H48.81A96.19,96.19,0,0,0,80,183.55V192a32,32,0,0,0,32,32h32a32,32,0,0,0,32-32v-8.45A96.19,96.19,0,0,0,207.19,128H224a8,8,0,0,0,0-16ZM128,48a64.07,64.07,0,0,1,63.48,56H64.52A64.07,64.07,0,0,1,128,48Z"/>',
+  brunch:        '<path fill="currentColor" d="M200,48H136V32h8a8,8,0,0,0,0-16H112a8,8,0,0,0,0,16h8V48H56A32,32,0,0,0,24,80v8a72.08,72.08,0,0,0,56,70.21V176H56a8,8,0,0,0,0,16H200a8,8,0,0,0,0-16H176V158.21A72.08,72.08,0,0,0,232,88V80A32,32,0,0,0,200,48Zm16,40a56.06,56.06,0,0,1-56,56H96a56.06,56.06,0,0,1-56-56V80A16,16,0,0,1,56,64H200a16,16,0,0,1,16,16Z"/>',
+  mediterranean: '<path fill="currentColor" d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm48-88a48,48,0,1,1-48-48A48.05,48.05,0,0,1,176,128Z"/>',
+  stew:          '<path fill="currentColor" d="M224,112H207.37a80.11,80.11,0,0,0-158.74,0H32a8,8,0,0,0,0,16H48.81A96.19,96.19,0,0,0,80,183.55V192a32,32,0,0,0,32,32h32a32,32,0,0,0,32-32v-8.45A96.19,96.19,0,0,0,207.19,128H224a8,8,0,0,0,0-16Z"/>',
+  ceviche:       '<path fill="currentColor" d="M168,76a12,12,0,1,1-12-12A12,12,0,0,1,168,76Zm-8,52a8,8,0,0,0-8,8,24,24,0,0,1-48,0V80.47c27.2-4.77,48-28.6,48-57.47a8,8,0,0,0-13.17-6.13L110.93,40.6,82.29,17A8,8,0,0,0,68.54,18l-6.7,21.39L30.29,17A8,8,0,0,0,16,24V136a80,80,0,0,0,160,0A8,8,0,0,0,160,128Z"/>',
+  plate:         '<path fill="currentColor" d="M224,112H207.37a80.11,80.11,0,0,0-158.74,0H32a8,8,0,0,0,0,16H48.81A96.19,96.19,0,0,0,80,183.55V192a32,32,0,0,0,32,32h32a32,32,0,0,0,32-32v-8.45A96.19,96.19,0,0,0,207.19,128H224a8,8,0,0,0,0-16Zm-16,16A80.09,80.09,0,0,1,128,208a80.09,80.09,0,0,1-80-80V120H208Z"/>',
+
+  // Atmosphere icons
+  patio:         '<path fill="currentColor" d="M128,24a8,8,0,0,1,8,8V64l31-31a8,8,0,0,1,11.31,11.31L136,86.62V152a8,8,0,0,1-16,0V86.62L77.66,44.28A8,8,0,0,1,89,33L120,64V32A8,8,0,0,1,128,24Zm72,168H136V176a8,8,0,0,0-16,0v16H56a8,8,0,0,0,0,16H200a8,8,0,0,0,0-16Z"/>',
+  music:         '<path fill="currentColor" d="M212.92,17.69a8,8,0,0,0-6.86-1.45l-128,32A8,8,0,0,0,72,56V166.08A36,36,0,1,0,88,196V62.32l112-28v99.76A36,36,0,1,0,216,168V24A8,8,0,0,0,212.92,17.69ZM52,216a20,20,0,1,1,20-20A20,20,0,0,1,52,216Zm128-32a20,20,0,1,1,20-20A20,20,0,0,1,180,184Z"/>',
+  pet:           '<path fill="currentColor" d="M212,80a28,28,0,1,0-28,28A28,28,0,0,0,212,80Zm-28,12a12,12,0,1,1,12-12A12,12,0,0,1,184,92ZM72,108A28,28,0,1,0,44,80,28,28,0,0,0,72,108Zm-28-12a12,12,0,1,1,12-12A12,12,0,0,1,72,96ZM92,60A28,28,0,1,0,64,32,28,28,0,0,0,92,60Zm0-40A12,12,0,1,1,80,32,12,12,0,0,1,92,20Zm72,40a28,28,0,1,0-28-28A28,28,0,0,0,164,60Zm0-40a12,12,0,1,1-12,12A12,12,0,0,1,164,20Zm36.77,143.25a44,44,0,0,1-73.54,0C115.08,145.49,100.36,120,128,120S140.92,145.49,200.77,163.25Z"/>',
+
+  // Star icons for Google rating
+  starFull:      '<path fill="currentColor" d="M234.29,114.85l-45,38.83L203,211.75a16.4,16.4,0,0,1-24.5,17.82L128,198.49,77.47,229.57A16.4,16.4,0,0,1,53,211.75l13.76-58.07-45-38.83A16.46,16.46,0,0,1,31.08,92l59.46-5.15,23.21-55.36a16.4,16.4,0,0,1,30.5,0l23.21,55.36L226.92,92a16.46,16.46,0,0,1,7.37,22.83Z"/>',
+  starHalf:      '<path fill="currentColor" d="M234.29,114.85l-45,38.83L203,211.75a16.4,16.4,0,0,1-24.5,17.82L128,198.49V31.51a16.41,16.41,0,0,1,15.25,10l23.21,55.36L226.92,92a16.46,16.46,0,0,1,7.37,22.83ZM128,198.49,77.47,229.57A16.4,16.4,0,0,1,53,211.75l13.76-58.07-45-38.83A16.46,16.46,0,0,1,31.08,92l59.46-5.15,23.21-55.36A16.41,16.41,0,0,1,128,31.51Z" opacity="0.3"/>',
+  starEmpty:     '<path fill="currentColor" d="M243,96.05a16.41,16.41,0,0,0-16.07-11.2l-59.46,5.15L144.26,34.64a16.4,16.4,0,0,0-30.5,0L90.54,90,31.08,84.85A16.46,16.46,0,0,0,21.74,114.85l45,38.83L53,211.75a16.4,16.4,0,0,0,24.5,17.82L128,198.49l50.53,31.08A16.4,16.4,0,0,0,203,211.75l-13.76-58.07,45-38.83A16.41,16.41,0,0,0,243,96.05Zm-57.58,48.79a8,8,0,0,0-2.56,7.91l14.41,60.83L146.1,183.12a8,8,0,0,0-8.2,0L86.73,213.58l14.41-60.83a8,8,0,0,0-2.56-7.91L49.48,102.76l62.24-5.39a8,8,0,0,0,6.7-4.89L128,33.15l9.58,59.33a8,8,0,0,0,6.7,4.89l62.24,5.39Z"/>',
+
+  // Utility icons
+  pin:           '<path fill="currentColor" d="M128,16a88.1,88.1,0,0,0-88,88c0,75.3,80,132.17,83.41,134.55a8,8,0,0,0,9.18,0C136,236.17,216,179.3,216,104A88.1,88.1,0,0,0,128,16Zm0,56a32,32,0,1,1-32,32A32,32,0,0,1,128,72Z"/>',
+  refresh:       '<path fill="currentColor" d="M197.67,186.37a8,8,0,0,1,0,11.29C196.58,198.73,170.82,224,128,224c-37.39,0-64-24.36-80-48V200a8,8,0,0,1-16,0V160a8,8,0,0,1,8-8H80a8,8,0,0,1,0,16H54.29C67.84,190.3,90.78,208,128,208c36.27,0,58.13-21.44,58.36-21.68A8,8,0,0,1,197.67,186.37ZM216,40a8,8,0,0,0-8,8V72c-16-23.64-42.61-48-80-48-42.82,0-68.58,25.27-69.66,26.34a8,8,0,0,0,11.3,11.34C69.87,61.44,91.73,40,128,40c37.22,0,60.16,17.7,73.71,40H176a8,8,0,0,0,0,16h40a8,8,0,0,0,8-8V48A8,8,0,0,0,216,40Z"/>',
+  chevronRight:  '<path fill="currentColor" d="M181.66,133.66l-80,80a8,8,0,0,1-11.32-11.32L164.69,128,90.34,53.66a8,8,0,0,1,11.32-11.32l80,80A8,8,0,0,1,181.66,133.66Z"/>',
+};
+
+export function svgIcon(name, size = 16) {
+  const path = ICON_SVG[name] || ICON_SVG.plate;
+  return `<svg viewBox="0 0 256 256" width="${size}" height="${size}" fill="currentColor" aria-hidden="true">${path}</svg>`;
+}
+
+/* ---- Cuisine Mapping (icon-based, no emoji) ---- */
 const CUISINE_MAP = [
-  { keywords: ['sushi', 'japanese', 'ramen', 'izakaya', 'udon', 'soba'], hue: 210, emoji: '🍣' },
-  { keywords: ['mexican', 'taco', 'burrito', 'enchilada', 'quesadilla'], hue: 28, emoji: '🌮' },
-  { keywords: ['italian', 'pasta', 'pizza', 'risotto', 'trattoria'], hue: 97, emoji: '🍝' },
-  { keywords: ['indian', 'curry', 'tandoori', 'biryani', 'masala', 'naan'], hue: 37, emoji: '🍛' },
-  { keywords: ['thai', 'vietnamese', 'pho', 'pad thai', 'banh mi'], hue: 145, emoji: '🍜' },
-  { keywords: ['chinese', 'dim sum', 'dumpling', 'wok', 'szechuan', 'cantonese'], hue: 5, emoji: '🥟' },
-  { keywords: ['korean', 'bbq', 'bibimbap', 'kimchi', 'bulgogi'], hue: 350, emoji: '🥩' },
-  { keywords: ['french', 'bistro', 'brasserie', 'croissant', 'patisserie'], hue: 45, emoji: '🥐' },
-  { keywords: ['seafood', 'fish', 'lobster', 'crab', 'oyster', 'shrimp'], hue: 195, emoji: '🦞' },
-  { keywords: ['steak', 'steakhouse', 'ribeye', 'filet'], hue: 10, emoji: '🥩' },
-  { keywords: ['burger', 'american', 'diner', 'wings', 'bbq'], hue: 35, emoji: '🍔' },
-  { keywords: ['coffee', 'cafe', 'espresso', 'latte', 'cappuccino'], hue: 30, emoji: '☕' },
-  { keywords: ['cocktail', 'bar', 'speakeasy', 'lounge', 'mixology'], hue: 280, emoji: '🍸' },
-  { keywords: ['vegan', 'vegetarian', 'plant-based', 'plant based'], hue: 130, emoji: '🥗' },
-  { keywords: ['brunch', 'breakfast', 'pancake', 'waffle', 'eggs'], hue: 40, emoji: '🥞' },
-  { keywords: ['mediterranean', 'greek', 'falafel', 'hummus', 'shawarma'], hue: 50, emoji: '🧆' },
-  { keywords: ['ethiopian', 'african', 'jollof', 'injera'], hue: 25, emoji: '🍲' },
-  { keywords: ['peruvian', 'ceviche', 'empanada'], hue: 15, emoji: '🐟' },
+  { keywords: ['sushi', 'japanese', 'ramen', 'izakaya', 'udon', 'soba'], hue: 210, icon: 'sushi' },
+  { keywords: ['mexican', 'taco', 'burrito', 'enchilada', 'quesadilla'], hue: 28, icon: 'taco' },
+  { keywords: ['italian', 'pasta', 'pizza', 'risotto', 'trattoria'], hue: 97, icon: 'pasta' },
+  { keywords: ['indian', 'curry', 'tandoori', 'biryani', 'masala', 'naan'], hue: 37, icon: 'curry' },
+  { keywords: ['thai', 'vietnamese', 'pho', 'pad thai', 'banh mi'], hue: 145, icon: 'noodles' },
+  { keywords: ['chinese', 'dim sum', 'dumpling', 'wok', 'szechuan', 'cantonese'], hue: 5, icon: 'dumpling' },
+  { keywords: ['korean', 'bbq', 'bibimbap', 'kimchi', 'bulgogi'], hue: 350, icon: 'meat' },
+  { keywords: ['french', 'bistro', 'brasserie', 'croissant', 'patisserie'], hue: 45, icon: 'croissant' },
+  { keywords: ['seafood', 'fish', 'lobster', 'crab', 'oyster', 'shrimp'], hue: 195, icon: 'seafood' },
+  { keywords: ['steak', 'steakhouse', 'ribeye', 'filet'], hue: 10, icon: 'meat' },
+  { keywords: ['burger', 'american', 'diner', 'wings', 'bbq'], hue: 35, icon: 'burger' },
+  { keywords: ['coffee', 'cafe', 'espresso', 'latte', 'cappuccino'], hue: 30, icon: 'coffee' },
+  { keywords: ['cocktail', 'bar', 'speakeasy', 'lounge', 'mixology'], hue: 280, icon: 'cocktail' },
+  { keywords: ['vegan', 'vegetarian', 'plant-based', 'plant based'], hue: 130, icon: 'salad' },
+  { keywords: ['brunch', 'breakfast', 'pancake', 'waffle', 'eggs'], hue: 40, icon: 'brunch' },
+  { keywords: ['mediterranean', 'greek', 'falafel', 'hummus', 'shawarma'], hue: 50, icon: 'mediterranean' },
+  { keywords: ['ethiopian', 'african', 'jollof', 'injera'], hue: 25, icon: 'stew' },
+  { keywords: ['peruvian', 'ceviche', 'empanada'], hue: 15, icon: 'ceviche' },
 ];
 
 export function matchCuisine(text) {
-  if (!text) return { emoji: '🍽️', hue: null, label: '' };
+  if (!text) return { icon: 'plate', hue: null, label: '' };
   const lower = text.toLowerCase();
   for (const entry of CUISINE_MAP) {
     for (const kw of entry.keywords) {
       if (lower.includes(kw)) {
-        return { emoji: entry.emoji, hue: entry.hue, label: kw };
+        return { icon: entry.icon, hue: entry.hue, label: kw };
       }
     }
   }
-  return { emoji: '🍽️', hue: null, label: '' };
+  return { icon: 'plate', hue: null, label: '' };
 }
 
 export function getCuisineFromResult(result) {
@@ -49,6 +93,7 @@ export function getCuisineFromResult(result) {
   return matchCuisine(searchText);
 }
 
+/* ---- Time of Day ---- */
 export function getTimePeriod() {
   const h = new Date().getHours();
   if (h >= 5 && h < 11) return 'morning';
@@ -70,66 +115,64 @@ export function getGreeting() {
   return greetings[period];
 }
 
+// Quick picks data retained for potential future use (smart chips, etc.)
+// Not currently rendered in the UI after quick-picks tile removal.
 const QUICK_PICKS = {
   morning:   [
-    { emoji: '🥞', label: 'Brunch', value: 'Brunch spot' },
-    { emoji: '☕', label: 'Coffee', value: 'Great coffee shop' },
-    { emoji: '🥐', label: 'Bakery', value: 'Fresh bakery' },
-    { emoji: '🥗', label: 'Healthy', value: 'Healthy breakfast' },
+    { icon: 'brunch', label: 'Brunch', value: 'Brunch spot' },
+    { icon: 'coffee', label: 'Coffee', value: 'Great coffee shop' },
+    { icon: 'croissant', label: 'Bakery', value: 'Fresh bakery' },
+    { icon: 'salad', label: 'Healthy', value: 'Healthy breakfast' },
   ],
   lunch: [
-    { emoji: '🌮', label: 'Quick Bite', value: 'Quick lunch' },
-    { emoji: '🥗', label: 'Healthy', value: 'Healthy lunch' },
-    { emoji: '🍜', label: 'Noodles', value: 'Noodle soup' },
-    { emoji: '🌮', label: 'Tacos', value: 'Great tacos' },
+    { icon: 'taco', label: 'Quick Bite', value: 'Quick lunch' },
+    { icon: 'salad', label: 'Healthy', value: 'Healthy lunch' },
+    { icon: 'noodles', label: 'Noodles', value: 'Noodle soup' },
+    { icon: 'taco', label: 'Tacos', value: 'Great tacos' },
   ],
   afternoon: [
-    { emoji: '☕', label: 'Coffee', value: 'Best coffee' },
-    { emoji: '🍰', label: 'Snacks', value: 'Good snacks and pastries' },
-    { emoji: '🍸', label: 'Happy Hour', value: 'Happy hour drinks' },
-    { emoji: '🍵', label: 'Tea', value: 'Tea house' },
+    { icon: 'coffee', label: 'Coffee', value: 'Best coffee' },
+    { icon: 'croissant', label: 'Snacks', value: 'Good snacks and pastries' },
+    { icon: 'cocktail', label: 'Happy Hour', value: 'Happy hour drinks' },
+    { icon: 'coffee', label: 'Tea', value: 'Tea house' },
   ],
   dinner: [
-    { emoji: '🕯️', label: 'Date Night', value: 'Romantic date night' },
-    { emoji: '🍸', label: 'Drinks', value: 'Great cocktails and drinks' },
-    { emoji: '🔥', label: 'Trendy', value: 'Trendy new restaurant' },
-    { emoji: '👨‍👩‍👧‍👦', label: 'Family', value: 'Family friendly dinner' },
+    { icon: 'cocktail', label: 'Date Night', value: 'Romantic date night' },
+    { icon: 'cocktail', label: 'Drinks', value: 'Great cocktails and drinks' },
+    { icon: 'plate', label: 'Trendy', value: 'Trendy new restaurant' },
+    { icon: 'plate', label: 'Family', value: 'Family friendly dinner' },
   ],
   latenight: [
-    { emoji: '🌙', label: 'Late Night', value: 'Late night food' },
-    { emoji: '🍸', label: 'Cocktails', value: 'Late night cocktail bar' },
-    { emoji: '🍕', label: 'Comfort', value: 'Comfort food late night' },
-    { emoji: '🍕', label: 'Pizza', value: 'Late night pizza' },
+    { icon: 'plate', label: 'Late Night', value: 'Late night food' },
+    { icon: 'cocktail', label: 'Cocktails', value: 'Late night cocktail bar' },
+    { icon: 'burger', label: 'Comfort', value: 'Comfort food late night' },
+    { icon: 'pasta', label: 'Pizza', value: 'Late night pizza' },
   ],
 };
 
-export function getQuickPicks(history) {
-  const period = getTimePeriod();
-  const picks = [...QUICK_PICKS[period]];
-  if (history && history.length > 0) {
-    const recent = history[0];
-    picks[picks.length - 1] = {
-      emoji: '🔄',
-      label: recent.label || 'Last Search',
-      value: recent.payload?.special_request || recent.label,
-    };
-  }
-  return picks;
-}
+/* ---- Score System (Integer-only, word labels) ---- */
+const SCORE_WORDS = {
+  10: 'Legendary', 9: 'Outstanding', 8: 'Excellent',
+  7: 'Great', 6: 'Solid', 5: 'Decent',
+  4: 'Fair', 3: 'Meh', 2: 'Rough',
+  1: 'Yikes', 0: 'Run',
+};
 
 export function getScoreTier(score) {
-  const n = parseFloat(score);
-  if (n >= 9)  return { tier: 'high', verdict: 'Outstanding', cssClass: 'score-verdict--high' };
-  if (n >= 8)  return { tier: 'high', verdict: 'Excellent', cssClass: 'score-verdict--high' };
-  if (n >= 6)  return { tier: 'mid',  verdict: 'Solid Pick', cssClass: 'score-verdict--mid' };
-  if (n >= 4)  return { tier: 'mid',  verdict: 'Worth a Try', cssClass: 'score-verdict--mid' };
-  return { tier: 'low', verdict: 'Adventurous', cssClass: 'score-verdict--low' };
+  const n = Math.round(parseFloat(score) || 8); // default 8 if missing/NaN
+  const clamped = Math.max(0, Math.min(10, n));
+  const verdict = SCORE_WORDS[clamped];
+  let tier, cssClass;
+  if (clamped >= 8) { tier = 'high'; cssClass = 'score-verdict--high'; }
+  else if (clamped >= 5) { tier = 'mid'; cssClass = 'score-verdict--mid'; }
+  else { tier = 'low'; cssClass = 'score-verdict--low'; }
+  return { tier, verdict, cssClass, integer: clamped };
 }
 
 export function getScoreColor(score) {
-  const n = parseFloat(score);
-  if (n >= 8)  return 'var(--green)';
-  if (n >= 4)  return 'var(--ac)';
+  const n = Math.round(parseFloat(score) || 8);
+  if (n >= 8) return 'var(--green)';
+  if (n >= 5) return 'var(--ac)';
   return 'var(--rose)';
 }
 
@@ -138,7 +181,11 @@ export function buildGoogleStars(rating) {
   const full = Math.floor(n);
   const half = n - full >= 0.5 ? 1 : 0;
   const empty = 5 - full - half;
-  return '★'.repeat(full) + (half ? '½' : '') + '☆'.repeat(empty);
+  let html = '';
+  for (let i = 0; i < full; i++) html += svgIcon('starFull', 14);
+  if (half) html += svgIcon('starHalf', 14);
+  for (let i = 0; i < empty; i++) html += svgIcon('starEmpty', 14);
+  return html;
 }
 
 export function buildMapsUrl(address) {
@@ -164,13 +211,24 @@ export function buildShareText(result) {
   if (!result?.restaurant) return '';
   const r = result.restaurant;
   const parts = [
-    `🍽️ ${r.name}`,
+    r.name,
     r.best_for_oneliner ? `"${r.best_for_oneliner}"` : '',
     result.recommendation ? `\n${result.recommendation}` : '',
-    result.insider_tip ? `\n💡 ${result.insider_tip}` : '',
-    r.address ? `\n📍 ${r.address}` : '',
-    r.website ? `🌐 ${r.website}` : '',
+    result.insider_tip ? `\nTip: ${result.insider_tip}` : '',
+    r.address ? `\n${r.address}` : '',
+    r.website || '',
     '\n— via DondeAI',
   ];
   return parts.filter(Boolean).join('\n');
+}
+
+/* ---- Noise Level Normalization ---- */
+export function normalizeNoiseLevel(noiseStr) {
+  if (!noiseStr) return null;
+  const lower = noiseStr.toLowerCase();
+  if (lower.includes('quiet') || lower.includes('soft') || lower.includes('whisper')) return 2;
+  if (lower.includes('very loud') || lower.includes('boisterous') || lower.includes('roaring')) return 9;
+  if (lower.includes('loud') || lower.includes('lively') || lower.includes('energetic')) return 7;
+  if (lower.includes('moderate') || lower.includes('normal') || lower.includes('average')) return 5;
+  return 5; // default moderate
 }

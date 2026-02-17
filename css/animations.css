@@ -188,6 +188,37 @@
   }
 }
 
+/* ---- Logo Draw-In ---- */
+@keyframes logoDraw {
+  from { stroke-dashoffset: 88; }
+  to   { stroke-dashoffset: 0; }
+}
+
+/* ---- Compass Needle Rotate (loading) ---- */
+@keyframes needleRotate {
+  0%   { transform: rotate(0deg); }
+  40%  { transform: rotate(360deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ---- Compass Needle Pulse (header hover) ---- */
+@keyframes needlePulse {
+  0%, 100% { transform: rotate(0deg); }
+  50%      { transform: rotate(15deg); }
+}
+
+/* ---- Ink Ripple (filter pill selection) ---- */
+@keyframes inkRipple {
+  from {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0.4;
+  }
+  to {
+    transform: translate(-50%, -50%) scale(2.5);
+    opacity: 0;
+  }
+}
+
 /* ---- Reduced Motion: Gentle fallback (100ms linear, not 0ms) ---- */
 @media (prefers-reduced-motion: reduce) {
   .stagger-in > *,

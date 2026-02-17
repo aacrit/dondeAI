@@ -54,6 +54,21 @@ export function playChime() {
     osc.start(now + i * 0.08);
     osc.stop(now + i * 0.08 + profile.decay + 0.1);
   });
+
+  // Pulse ambient blobs in sync with chime
+  pulseBlobs();
+}
+
+function pulseBlobs() {
+  const blobs = document.querySelectorAll('.ambient__blob');
+  if (!blobs.length) return;
+  blobs.forEach((blob, i) => {
+    blob.style.transition = 'transform 600ms cubic-bezier(0.2, 1, 0.4, 1)';
+    blob.style.transform = 'scale(1.12)';
+    setTimeout(() => {
+      blob.style.transform = '';
+    }, 600 + i * 100);
+  });
 }
 
 export function initAudio() {

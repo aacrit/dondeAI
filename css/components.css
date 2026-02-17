@@ -128,44 +128,7 @@
   transform: scale(0.95);
 }
 
-/* ---- Quick Picks Grid ---- */
-.quick-picks {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: var(--space-sm);
-  width: 100%;
-  max-width: 400px;
-}
-
-.quick-pick {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-xs);
-  padding: var(--space-md) var(--space-sm);
-  background: var(--glass);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  transition: transform var(--dur-fast) var(--spring),
-              border-color var(--dur-fast) var(--ease-out),
-              box-shadow var(--dur-fast) var(--ease-out);
-}
-
-.quick-pick:active {
-  transform: scale(0.96);
-}
-
-.quick-pick__emoji {
-  font-size: var(--text-xl);
-  line-height: 1;
-}
-
-.quick-pick__label {
-  font-size: var(--text-sm);
-  color: var(--fg2);
-}
+/* (Quick picks removed — redundant with smart chips) */
 
 /* ---- Surprise Me Button ---- */
 .surprise-btn {
@@ -533,8 +496,9 @@
 }
 
 .result-name {
-  font-size: var(--text-xl);
+  font-size: var(--text-2xl);
   color: var(--fg);
+  text-wrap: balance;
 }
 
 .result-oneliner {
@@ -555,7 +519,7 @@
 .result-recommendation {
   font-size: var(--text-base);
   color: var(--fg);
-  line-height: 1.65;
+  line-height: 1.75;
   max-width: 600px;
 }
 
@@ -623,9 +587,9 @@
 .score-verdict--mid  { color: var(--ac); }
 .score-verdict--low  { color: var(--rose); }
 
-.score-section[data-tier="high"] { background: var(--green-soft); border-radius: var(--radius); padding: var(--space-md); }
-.score-section[data-tier="mid"]  { background: var(--ac-soft); border-radius: var(--radius); padding: var(--space-md); }
-.score-section[data-tier="low"]  { background: var(--rose-soft); border-radius: var(--radius); padding: var(--space-md); }
+.score-section[data-tier="high"] { background: var(--green-soft); backdrop-filter: blur(calc(var(--glass-blur) * 0.5)); -webkit-backdrop-filter: blur(calc(var(--glass-blur) * 0.5)); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--space-md); }
+.score-section[data-tier="mid"]  { background: var(--ac-soft); backdrop-filter: blur(calc(var(--glass-blur) * 0.5)); -webkit-backdrop-filter: blur(calc(var(--glass-blur) * 0.5)); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--space-md); }
+.score-section[data-tier="low"]  { background: var(--rose-soft); backdrop-filter: blur(calc(var(--glass-blur) * 0.5)); -webkit-backdrop-filter: blur(calc(var(--glass-blur) * 0.5)); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--space-md); }
 
 .score-percentile {
   font-size: var(--text-sm);
@@ -666,7 +630,10 @@
   flex-direction: column;
   gap: var(--space-2xs);
   padding: var(--space-sm);
-  background: var(--bg3);
+  background: var(--glass-info);
+  backdrop-filter: blur(calc(var(--glass-blur) * 0.5));
+  -webkit-backdrop-filter: blur(calc(var(--glass-blur) * 0.5));
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
 }
 
@@ -685,7 +652,10 @@
 /* ---- Insider Tip ---- */
 .insider-tip {
   padding: var(--space-md);
-  background: var(--amber-soft);
+  background: var(--glass-tip);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--border);
   border-left: 3px solid var(--amber);
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
 }
@@ -873,7 +843,10 @@
   max-width: 480px;
   max-height: 80vh;
   overflow-y: auto;
-  background: var(--bg2);
+  background: var(--glass);
+  backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  border: 1px solid var(--border);
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   padding: var(--space-lg);
   transform: translateY(100%);
@@ -1039,7 +1012,10 @@
   position: relative;
   width: 100%;
   max-width: 400px;
-  background: var(--bg2);
+  background: var(--glass);
+  backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  border: 1px solid var(--border);
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   padding: var(--space-lg);
   transform: translateY(100%);
@@ -1297,4 +1273,235 @@
 
 .theme-wash--active {
   clip-path: circle(150% at var(--wash-x, 50%) var(--wash-y, 50%));
+}
+
+/* ---- Score + Radar Row ---- */
+.score-radar-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.score-radar-row .radar-wrap {
+  width: 180px;
+  height: 180px;
+  flex-shrink: 0;
+  margin: 0;
+}
+
+@media (max-width: 480px) {
+  .score-radar-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .score-radar-row .radar-wrap {
+    width: 100%;
+    max-width: 200px;
+    margin: 0 auto;
+  }
+}
+
+/* ---- Navigation Tile ---- */
+.nav-tile {
+  grid-column: 1 / -1;
+}
+
+.nav-tile__link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  background: var(--glass);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  text-decoration: none;
+  color: var(--fg);
+  transition: border-color var(--dur-fast) var(--ease-out),
+              transform var(--dur-fast) var(--spring);
+}
+
+.nav-tile__link:hover {
+  border-color: var(--ac);
+}
+
+.nav-tile__link:active {
+  transform: scale(0.98);
+}
+
+.nav-tile__icon {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ac-soft);
+  border-radius: var(--radius-sm);
+  color: var(--ac);
+  flex-shrink: 0;
+}
+
+.nav-tile__content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  min-width: 0;
+}
+
+.nav-tile__label {
+  color: var(--fg3);
+}
+
+.nav-tile__address {
+  font-size: var(--text-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nav-tile__arrow {
+  color: var(--fg3);
+  flex-shrink: 0;
+}
+
+/* ---- Compact Details Row ---- */
+.compact-details-row {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+}
+
+.compact-detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--bg3);
+  border-radius: var(--radius-sm);
+  flex: 1;
+  min-width: 60px;
+  cursor: default;
+}
+
+.compact-detail[title] {
+  cursor: help;
+}
+
+.compact-detail__label {
+  color: var(--fg3);
+}
+
+.compact-detail__value {
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+/* ---- Cuisine Color Accent ---- */
+.result-card--cuisine-accent {
+  border-color: hsl(var(--cuisine-hue, 250) 50% 50% / 0.2);
+}
+
+.result-card--cuisine-accent .result-cuisine-badge {
+  background: hsl(var(--cuisine-hue, 250) 65% 55% / 0.12);
+}
+
+/* ---- Logo SVG ---- */
+.logo-svg {
+  display: block;
+  overflow: visible;
+}
+
+.header__logo:hover .logo-needle {
+  animation: needlePulse 2s ease-in-out infinite;
+  transform-origin: 20px 20px;
+}
+
+.logo-svg--loading .logo-ring {
+  stroke-dasharray: 88;
+  stroke-dashoffset: 88;
+  animation: logoDraw 1.2s cubic-bezier(0.2, 1, 0.4, 1) forwards;
+}
+
+.logo-svg--loading .logo-petal {
+  opacity: 0;
+  animation: contentFadeIn 300ms ease-out forwards;
+}
+
+.logo-svg--loading .logo-petal:nth-child(2) { animation-delay: 200ms; }
+.logo-svg--loading .logo-petal:nth-child(3) { animation-delay: 300ms; }
+.logo-svg--loading .logo-petal:nth-child(4) { animation-delay: 400ms; }
+.logo-svg--loading .logo-petal:nth-child(5) { animation-delay: 500ms; }
+
+.logo-svg--loading .logo-needle {
+  animation: needleRotate 1.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  transform-origin: 20px 20px;
+}
+
+.loading-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xl) 0;
+  z-index: var(--z-above);
+}
+
+/* ---- Filter Pill Ink Ripple ---- */
+.filter-pill {
+  position: relative;
+  overflow: hidden;
+}
+
+.filter-pill__ripple {
+  position: absolute;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--ac);
+  pointer-events: none;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  animation: inkRipple 500ms cubic-bezier(0.2, 1, 0.4, 1) forwards;
+}
+
+/* ---- Glass Fallback ---- */
+@supports not (backdrop-filter: blur(1px)) {
+  .result-card,
+  .nav-tile__link,
+  .info-item,
+  .insider-tip,
+  .theme-picker__sheet,
+  .share-sheet__panel {
+    background: var(--bg2);
+  }
+}
+
+/* ---- Cuisine Icon in Badge ---- */
+.result-cuisine-badge svg {
+  flex-shrink: 0;
+}
+
+/* ---- Google Stars SVG ---- */
+.google-stars {
+  display: flex;
+  gap: 1px;
+  align-items: center;
+  color: var(--amber);
+}
+
+.google-stars svg {
+  flex-shrink: 0;
+}
+
+/* ---- Taste Memory Icon ---- */
+.taste-memory__emoji {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fg2);
 }

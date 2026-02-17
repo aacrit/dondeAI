@@ -33,6 +33,11 @@
   --blob-2:      hsl(150 40% 40% / 0.07);
   --blob-3:      hsl(0 60% 48% / 0.06);
   --grain-opacity: 0.04;
+  --glass-header: hsl(30 14% 98% / 0.68);
+  --glass-toast:  hsl(30 12% 97% / 0.86);
+  --glass-info:   hsl(35 20% 96% / 0.54);
+  --glass-tip:    hsl(40 35% 96% / 0.62);
+  --glass-score:  var(--glass);
 }
 
 /* ---- Dark Mode ---- */
@@ -65,4 +70,9 @@
   --blob-2:      hsl(150 35% 40% / 0.08);
   --blob-3:      hsl(0 55% 48% / 0.07);
   --grain-opacity: 0.05;
+  --glass-header: hsl(20 12% 11% / 0.74);
+  --glass-toast:  hsl(20 10% 13% / 0.9);
+  --glass-info:   hsl(35 12% 13% / 0.56);
+  --glass-tip:    hsl(40 18% 13% / 0.64);
+  --glass-score:  var(--glass);
 }

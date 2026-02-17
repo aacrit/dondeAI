@@ -93,7 +93,6 @@
     font-size: var(--text-lg) !important;
   }
 
-  .quick-picks,
   .smart-chips {
     display: none;
   }

@@ -101,6 +101,10 @@
   padding: 0 var(--space-md);
   z-index: var(--z-nav);
   pointer-events: none;
+  background: var(--glass-header);
+  backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  border-bottom: 1px solid var(--border);
 }
 
 .header > * {
@@ -308,7 +312,9 @@
   left: 50%;
   transform: translateX(-50%) translateY(120%);
   padding: var(--space-sm) var(--space-lg);
-  background: var(--bg2);
+  background: var(--glass-toast);
+  backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: 0 8px 32px var(--shadow-lg);
@@ -323,6 +329,28 @@
 
 .toast--error {
   border-color: var(--rose);
+}
+
+/* ---- Cursor Glow ---- */
+.cursor-glow {
+  position: fixed;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--ac-soft) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0;
+  will-change: transform;
+  transition: opacity 300ms ease;
+}
+
+@media (hover: none) {
+  .cursor-glow { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cursor-glow { display: none; }
 }
 
 /* ---- Screen Reader Only ---- */

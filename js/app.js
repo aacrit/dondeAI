@@ -14,9 +14,9 @@ import { initShare, shareResult, closeShareSheet, handleShareChannel } from './s
 import { initOffline, isOnline } from './offline.js';
 import { initAccessibility, announce } from './accessibility.js';
 import { fetchRecommendation } from './api.js';
-import { animateScoreRing, renderRadar, startParticles, stopParticles } from './animations.js';
+import { animateScoreRing, renderRadar, startParticles, stopParticles, chaosToOrderReveal, initLogoAnimation } from './animations.js';
 import {
-  getGreeting, getQuickPicks, getCuisineFromResult,
+  getGreeting, getCuisineFromResult, svgIcon,
   getScoreTier, getScoreColor, buildGoogleStars, buildMapsUrl, relativeTime, matchCuisine
 } from './utils.js';
 
@@ -37,6 +37,7 @@ const $resultCard = document.getElementById('result-card');
 const $particleCanvas = document.getElementById('particle-canvas');
 const $toast = document.getElementById('toast');
 const $toastText = document.getElementById('toast-text');
+const $cursorGlow = document.querySelector('.cursor-glow');
 
 /* ---- AbortController for fetch cancellation ---- */
 let currentAbort = null;
@@ -63,7 +64,7 @@ function init() {
   initOffline();
   initAccessibility();
 
-  // Set up greeting and quick picks
+  // Set up greeting
   setupLanding();
 
   // Wire event delegation
@@ -74,6 +75,9 @@ function init() {
 
   // Wire swipe gestures
   wireSwipe();
+
+  // Init cursor glow (desktop only)
+  initCursorGlow();
 
   // Subscribe to result changes
   subscribe((state, prev) => {
@@ -101,19 +105,6 @@ function setupLanding() {
   const greeting = document.querySelector('[data-step="0"] .step__title');
   if (greeting) greeting.textContent = getGreeting();
 
-  const picks = getQuickPicks(state.history);
-  const $pickContainer = document.querySelector('.quick-picks');
-  if ($pickContainer) {
-    const buttons = $pickContainer.querySelectorAll('.quick-pick');
-    picks.forEach((pick, i) => {
-      if (buttons[i]) {
-        buttons[i].querySelector('.quick-pick__emoji').textContent = pick.emoji;
-        buttons[i].querySelector('.quick-pick__label').textContent = pick.label;
-        buttons[i].dataset.value = pick.value;
-      }
-    });
-  }
-
   // Render taste memory (recent searches)
   renderTasteMemory(state.history);
 }
@@ -138,10 +129,12 @@ function renderTasteMemory(history) {
     item.setAttribute('data-action', 'taste-memory');
     item.setAttribute('data-value', entry.payload?.special_request || entry.label);
 
-    const emoji = document.createElement('span');
-    emoji.className = 'taste-memory__emoji';
-    emoji.textContent = entry.cuisineEmoji || '🍽️';
-    item.appendChild(emoji);
+    const iconEl = document.createElement('span');
+    iconEl.className = 'taste-memory__emoji';
+    // Backward compat: old entries may have cuisineEmoji but no cuisineIcon
+    const iconName = entry.cuisineIcon || 'plate';
+    iconEl.innerHTML = svgIcon(iconName, 18);
+    item.appendChild(iconEl);
 
     const text = document.createElement('span');
     text.className = 'taste-memory__text type-structural';
@@ -196,18 +189,6 @@ function wireEvents() {
           setState({ craving: $cravingInput.value });
           updateCtaState();
         }
-        break;
-      }
-
-      case 'quick-pick': {
-        const val = btn.dataset.value;
-        if ($cravingInput) $cravingInput.value = val;
-        setState({ craving: val });
-        if (val === 'Surprise me!') {
-          handleSubmit();
-        }
-        // Otherwise just sets the text, user can submit or add filters
-        updateCtaState();
         break;
       }
 
@@ -351,7 +332,7 @@ function updateCtaState() {
   }
 }
 
-/* ---- Filter Selection ---- */
+/* ---- Filter Selection (with ink ripple) ---- */
 function selectFilter(field, btn) {
   const group = btn.closest('[role="radiogroup"]') || btn.closest('.filter-pills');
   if (!group) return;
@@ -365,6 +346,12 @@ function selectFilter(field, btn) {
   btn.setAttribute('aria-checked', 'true');
   btn.classList.add('chip-pop');
   btn.addEventListener('animationend', () => btn.classList.remove('chip-pop'), { once: true });
+
+  // Ink ripple effect
+  const ripple = document.createElement('span');
+  ripple.className = 'filter-pill__ripple';
+  btn.appendChild(ripple);
+  ripple.addEventListener('animationend', () => ripple.remove(), { once: true });
 
   setState({ [field]: btn.dataset.value });
   updateFilterSummary();
@@ -438,7 +425,7 @@ async function handleSubmit() {
       price_level: s.priceLevel,
     });
 
-    // Save to history with cuisine emoji
+    // Save to history with cuisine icon
     const cuisine = getCuisineFromResult(data);
     const label = s.craving.slice(0, 30);
     const hist = addToHistory(label, {
@@ -446,7 +433,7 @@ async function handleSubmit() {
       occasion: s.occasion,
       neighborhood: s.neighborhood,
       price_level: s.priceLevel,
-    }, cuisine.emoji);
+    }, cuisine.icon);
 
     setState({ result: data, loading: false, history: hist });
     playChime();
@@ -473,6 +460,7 @@ function toggleLoading(loading) {
 
   if (loading && $particleCanvas) {
     startParticles($particleCanvas);
+    initLogoAnimation();
   } else {
     stopParticles();
   }
@@ -483,12 +471,20 @@ function renderResult(data) {
   if (!data?.restaurant) return;
   const r = data.restaurant;
 
-  // Cuisine badge
+  // Cuisine badge (SVG icon, no emoji)
   const cuisine = getCuisineFromResult(data);
-  const $emoji = document.getElementById('result-emoji');
+  const $emojiEl = document.getElementById('result-emoji');
   const $cuisineLabel = document.getElementById('result-cuisine-label');
-  if ($emoji) $emoji.textContent = cuisine.emoji;
+  if ($emojiEl) $emojiEl.innerHTML = svgIcon(cuisine.icon, 20);
   if ($cuisineLabel) $cuisineLabel.textContent = r.cuisine_type || cuisine.label || '';
+
+  // Cuisine accent color on card
+  if ($resultCard && cuisine.hue !== null) {
+    $resultCard.classList.add('result-card--cuisine-accent');
+    $resultCard.style.setProperty('--cuisine-hue', cuisine.hue);
+  } else if ($resultCard) {
+    $resultCard.classList.remove('result-card--cuisine-accent');
+  }
 
   // Name and oneliner
   const $name = document.getElementById('result-name');
@@ -496,13 +492,14 @@ function renderResult(data) {
   if ($name) $name.textContent = r.name || '';
   if ($oneliner) $oneliner.textContent = r.best_for_oneliner || '';
 
-  // Recommendation
+  // Recommendation (chaos-to-order text reveal)
   const $rec = document.getElementById('result-recommendation');
-  if ($rec) $rec.textContent = data.recommendation || '';
+  if ($rec) {
+    chaosToOrderReveal($rec, data.recommendation || '');
+  }
 
-  // Score
-  const score = parseFloat(data.donde_score) || 0;
-  const tier = getScoreTier(score);
+  // Score (integer)
+  const tier = getScoreTier(data.donde_score);
   const $verdict = document.getElementById('score-verdict');
   const $scoreSection = document.querySelector('.score-section');
   const $percentile = document.getElementById('score-percentile');
@@ -511,15 +508,15 @@ function renderResult(data) {
     $verdict.className = `score-verdict type-structural--bold ${tier.cssClass}`;
   }
   if ($scoreSection) $scoreSection.setAttribute('data-tier', tier.tier);
-  if ($percentile) $percentile.textContent = `Top ${Math.round((score / 10) * 100)}%`;
-  animateScoreRing(score);
+  if ($percentile) $percentile.textContent = `Top ${Math.round((tier.integer / 10) * 100)}%`;
+  animateScoreRing(data.donde_score);
 
-  // Google rating
+  // Google rating (SVG stars)
   const $googleStars = document.getElementById('google-stars');
   const $googleNum = document.getElementById('google-rating-num');
   const $googleCount = document.getElementById('google-count');
   if (r.google_rating) {
-    if ($googleStars) $googleStars.textContent = buildGoogleStars(r.google_rating);
+    if ($googleStars) $googleStars.innerHTML = buildGoogleStars(r.google_rating);
     if ($googleNum) $googleNum.textContent = parseFloat(r.google_rating).toFixed(1);
     if ($googleCount) $googleCount.textContent = r.google_review_count ? `(${r.google_review_count})` : '';
   }
@@ -534,67 +531,93 @@ function renderResult(data) {
     $tip.style.display = 'none';
   }
 
-  // Radar chart
+  // Radar chart (pass restaurantData for extended dimensions)
   if (data.scores) {
-    renderRadar(data.scores);
+    renderRadar(data.scores, r);
   }
 
-  // Info grid
+  // Info grid — restructured: Navigation tile + Compact details + remaining items
   const $infoGrid = document.getElementById('info-grid');
   if ($infoGrid) {
     $infoGrid.innerHTML = '';
-    const items = [];
 
+    // 1. Navigation tile (full-width, replaces address info-item)
     if (r.address) {
-      items.push({ label: 'Address', value: r.address, href: buildMapsUrl(r.address) });
+      const navTile = document.createElement('div');
+      navTile.className = 'nav-tile';
+      const mapsUrl = buildMapsUrl(r.address);
+      navTile.innerHTML = `
+        <a class="nav-tile__link" href="${mapsUrl}" target="_blank" rel="noopener noreferrer">
+          <span class="nav-tile__icon">${svgIcon('pin', 24)}</span>
+          <span class="nav-tile__content">
+            <span class="nav-tile__label type-data--sm">Navigation</span>
+            <span class="nav-tile__address type-structural">${r.address}</span>
+          </span>
+          <span class="nav-tile__arrow">${svgIcon('chevronRight', 20)}</span>
+        </a>`;
+      $infoGrid.appendChild(navTile);
     }
-    if (r.price_level) items.push({ label: 'Price', value: r.price_level });
-    if (r.noise_level) items.push({ label: 'Noise', value: r.noise_level });
-    if (r.parking_availability) items.push({ label: 'Parking', value: r.parking_availability });
-    if (r.lighting_ambiance) items.push({ label: 'Ambiance', value: r.lighting_ambiance });
-    if (r.dress_code) items.push({ label: 'Dress Code', value: r.dress_code });
 
-    items.forEach(item => {
+    // 2. Compact details row (Price | Noise | Parking)
+    const compactItems = [];
+    if (r.price_level) compactItems.push({ label: 'Price', value: r.price_level });
+    if (r.noise_level) {
+      const firstWord = r.noise_level.split(/[\s,]+/)[0];
+      compactItems.push({ label: 'Noise', value: firstWord });
+    }
+    if (r.parking_availability) {
+      const shortParking = r.parking_availability.split(/\s+/).slice(0, 2).join(' ');
+      compactItems.push({ label: 'Parking', value: shortParking, title: r.parking_availability });
+    }
+
+    if (compactItems.length > 0) {
+      const compactRow = document.createElement('div');
+      compactRow.className = 'compact-details-row';
+      compactItems.forEach(item => {
+        const detail = document.createElement('div');
+        detail.className = 'compact-detail';
+        if (item.title) detail.setAttribute('title', item.title);
+        detail.innerHTML = `
+          <span class="compact-detail__label type-data--sm">${item.label}</span>
+          <span class="compact-detail__value type-structural">${item.value}</span>`;
+        compactRow.appendChild(detail);
+      });
+      $infoGrid.appendChild(compactRow);
+    }
+
+    // 3. Remaining items (standard 2-col grid)
+    const remainingItems = [];
+    if (r.lighting_ambiance) remainingItems.push({ label: 'Ambiance', value: r.lighting_ambiance });
+    if (r.dress_code) remainingItems.push({ label: 'Dress Code', value: r.dress_code });
+
+    remainingItems.forEach(item => {
       const div = document.createElement('div');
       div.className = 'info-item';
-
       const label = document.createElement('span');
       label.className = 'info-item__label type-data--sm';
       label.textContent = item.label;
       div.appendChild(label);
-
       const val = document.createElement('span');
       val.className = 'info-item__value type-structural';
-      if (item.href) {
-        const a = document.createElement('a');
-        a.href = item.href;
-        a.target = '_blank';
-        a.rel = 'noopener noreferrer';
-        a.style.cssText = 'color: var(--ac); text-decoration: underline;';
-        a.textContent = item.value;
-        val.appendChild(a);
-      } else {
-        val.textContent = item.value;
-      }
+      val.textContent = item.value;
       div.appendChild(val);
-
       $infoGrid.appendChild(div);
     });
   }
 
-  // Atmosphere tags
+  // Atmosphere tags (SVG icons instead of emoji)
   const $atmoTags = document.getElementById('atmosphere-tags');
   if ($atmoTags) {
     $atmoTags.innerHTML = '';
     const atmoItems = [];
-    if (r.outdoor_seating) atmoItems.push({ icon: '\u{1F33F}', label: 'Patio' });
-    if (r.live_music) atmoItems.push({ icon: '\u{1F3B5}', label: 'Live Music' });
-    if (r.pet_friendly) atmoItems.push({ icon: '\u{1F43E}', label: 'Pet Friendly' });
+    if (r.outdoor_seating) atmoItems.push({ icon: 'patio', label: 'Patio' });
+    if (r.live_music) atmoItems.push({ icon: 'music', label: 'Live Music' });
+    if (r.pet_friendly) atmoItems.push({ icon: 'pet', label: 'Pet Friendly' });
 
     atmoItems.forEach(a => {
       const span = document.createElement('span');
       span.className = 'atmo-tag';
-      span.innerHTML = `<span class="atmo-tag__icon">${a.icon}</span><span class="type-data--sm">${a.label}</span>`;
+      span.innerHTML = `<span class="atmo-tag__icon">${svgIcon(a.icon, 14)}</span><span class="type-data--sm">${a.label}</span>`;
       $atmoTags.appendChild(span);
     });
   }
@@ -652,6 +675,9 @@ function renderResult(data) {
     shareBtn.innerHTML = `<svg viewBox="0 0 256 256" width="18" height="18">${ICONS.shareNetwork}</svg> <span data-label="share">Share</span>`;
     $actionBtns.appendChild(shareBtn);
   }
+
+  // Init scroll-linked parallax on result step
+  initResultParallax();
 
   // Show the card
   if ($resultCard) {
@@ -713,7 +739,57 @@ function wireSwipe() {
   }, { passive: true });
 }
 
-/* ---- Share Canvas Rendering (Enhancement 10) ---- */
+/* ---- Cursor Glow (Desktop only) ---- */
+function initCursorGlow() {
+  if (!$cursorGlow) return;
+  // Skip on touch devices and reduced motion
+  if (matchMedia('(hover: none)').matches || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  let targetX = 0, targetY = 0, currentX = 0, currentY = 0;
+  let active = false;
+
+  document.addEventListener('mousemove', (e) => {
+    targetX = e.clientX;
+    targetY = e.clientY;
+    if (!active) {
+      active = true;
+      $cursorGlow.style.opacity = '0.2';
+      lerpGlow();
+    }
+  }, { passive: true });
+
+  document.addEventListener('mouseleave', () => {
+    active = false;
+    $cursorGlow.style.opacity = '0';
+  });
+
+  function lerpGlow() {
+    if (!active) return;
+    currentX += (targetX - currentX) * 0.15;
+    currentY += (targetY - currentY) * 0.15;
+    $cursorGlow.style.transform = `translate(${currentX - 100}px, ${currentY - 100}px)`;
+    requestAnimationFrame(lerpGlow);
+  }
+}
+
+/* ---- Scroll-Linked Parallax (Result step) ---- */
+function initResultParallax() {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  const resultStep = document.querySelector('[data-step="1"]');
+  const scoreSection = resultStep?.querySelector('.score-section');
+  if (!resultStep || !scoreSection) return;
+
+  // Remove any previous listener by replacing element listener strategy
+  const handler = () => {
+    const scrollTop = resultStep.scrollTop;
+    scoreSection.style.transform = `translateY(${scrollTop * 0.3}px)`;
+  };
+
+  resultStep.addEventListener('scroll', handler, { passive: true });
+}
+
+/* ---- Share Canvas Rendering ---- */
 function renderShareCanvas(format = 'post') {
   const canvas = document.getElementById('share-canvas');
   if (!canvas) return;
@@ -746,7 +822,7 @@ function renderShareCanvas(format = 'post') {
   ctx.fillRect(0, 0, w, 6);
 
   const r = result.restaurant;
-  const score = parseFloat(result.donde_score) || 0;
+  const score = Math.round(parseFloat(result.donde_score) || 8);
   const pad = 40;
   let y = isStory ? 120 : 80;
 
@@ -780,7 +856,7 @@ function renderShareCanvas(format = 'post') {
     y += 28;
   }
 
-  // Score circle
+  // Score circle (integer)
   y += 20;
   const scoreX = pad + 36;
   const scoreY = y + 20;
@@ -794,7 +870,7 @@ function renderShareCanvas(format = 'post') {
   ctx.fillStyle = fg;
   ctx.font = `700 28px "JetBrains Mono", monospace`;
   ctx.textAlign = 'center';
-  ctx.fillText(score.toFixed(1), scoreX, scoreY + 10);
+  ctx.fillText(String(score), scoreX, scoreY + 10);
 
   // Score label
   ctx.textAlign = 'left';

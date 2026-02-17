@@ -53,6 +53,13 @@
   --z-toast:    400;
   --z-particle: 500;
 
+  /* ---- Glass Tokens (Extended) ---- */
+  --glass-header:   var(--glass);
+  --glass-toast:    var(--glass);
+  --glass-info:     var(--glass);
+  --glass-tip:      var(--glass);
+  --glass-score:    var(--glass);
+
   /* ---- Layout ---- */
   --content-max: 640px;
   --header-h:    56px;

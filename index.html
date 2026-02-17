@@ -48,7 +48,19 @@
     <!-- Header -->
     <header class="header">
       <button class="header__logo" data-action="reset" aria-label="DondeAI — start over">
-        DondeAI
+        <svg class="logo-svg" viewBox="0 0 40 40" width="32" height="32" aria-hidden="true">
+          <!-- Compass ring -->
+          <circle class="logo-ring" cx="20" cy="20" r="14" fill="none" stroke="currentColor" stroke-width="1.5"/>
+          <!-- Rangoli petals (4 cardinal) -->
+          <path class="logo-petal" d="M20 6 Q23 12 20 14 Q17 12 20 6Z" fill="currentColor" opacity="0.25"/>
+          <path class="logo-petal" d="M34 20 Q28 23 26 20 Q28 17 34 20Z" fill="currentColor" opacity="0.25"/>
+          <path class="logo-petal" d="M20 34 Q17 28 20 26 Q23 28 20 34Z" fill="currentColor" opacity="0.25"/>
+          <path class="logo-petal" d="M6 20 Q12 17 14 20 Q12 23 6 20Z" fill="currentColor" opacity="0.25"/>
+          <!-- Needle -->
+          <line class="logo-needle" x1="20" y1="20" x2="20" y2="9" stroke="var(--ac)" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="20" cy="20" r="2" fill="var(--ac)"/>
+        </svg>
+        <span class="type-structural" style="font-weight:700;font-size:var(--text-sm);letter-spacing:0.04em;">DondeAI</span>
       </button>
       <div class="header__actions">
         <button class="header__btn" data-action="toggle-sound" aria-label="Toggle sound" title="Sound">
@@ -225,25 +237,7 @@
               <div class="taste-memory__list" id="taste-memory-list"></div>
             </div>
 
-            <!-- Quick Picks -->
-            <div class="quick-picks" aria-label="Quick picks">
-              <button class="quick-pick" data-action="quick-pick" data-value="Brunch">
-                <span class="quick-pick__emoji">🥞</span>
-                <span class="quick-pick__label type-structural">Brunch</span>
-              </button>
-              <button class="quick-pick" data-action="quick-pick" data-value="Coffee">
-                <span class="quick-pick__emoji">☕</span>
-                <span class="quick-pick__label type-structural">Coffee</span>
-              </button>
-              <button class="quick-pick" data-action="quick-pick" data-value="Date Night">
-                <span class="quick-pick__emoji">🕯️</span>
-                <span class="quick-pick__label type-structural">Date Night</span>
-              </button>
-              <button class="quick-pick" data-action="quick-pick" data-value="Surprise me!">
-                <span class="quick-pick__emoji">🎲</span>
-                <span class="quick-pick__label type-structural">Surprise Me</span>
-              </button>
-            </div>
+            <!-- Quick picks removed — redundant with smart chips + filters -->
           </div>
         </section>
 
@@ -253,6 +247,18 @@
             <!-- Loading State: Skeleton-First -->
             <div class="loading-state" id="loading-state" style="display: none;">
               <canvas class="particle-canvas" id="particle-canvas" aria-hidden="true"></canvas>
+              <!-- Animated loading logo -->
+              <div class="loading-logo" aria-hidden="true">
+                <svg class="logo-svg logo-svg--loading" viewBox="0 0 40 40" width="64" height="64">
+                  <circle class="logo-ring" cx="20" cy="20" r="14" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                  <path class="logo-petal" d="M20 6 Q23 12 20 14 Q17 12 20 6Z" fill="currentColor" opacity="0.25"/>
+                  <path class="logo-petal" d="M34 20 Q28 23 26 20 Q28 17 34 20Z" fill="currentColor" opacity="0.25"/>
+                  <path class="logo-petal" d="M20 34 Q17 28 20 26 Q23 28 20 34Z" fill="currentColor" opacity="0.25"/>
+                  <path class="logo-petal" d="M6 20 Q12 17 14 20 Q12 23 6 20Z" fill="currentColor" opacity="0.25"/>
+                  <line class="logo-needle" x1="20" y1="20" x2="20" y2="9" stroke="var(--ac)" stroke-width="2" stroke-linecap="round"/>
+                  <circle cx="20" cy="20" r="2" fill="var(--ac)"/>
+                </svg>
+              </div>
               <div class="skeleton-card" id="skeleton-card">
                 <div class="skel skel--badge"></div>
                 <div style="display: flex; flex-direction: column; gap: var(--space-xs);">
@@ -276,7 +282,7 @@
             <div class="result-card card-enter" id="result-card" style="display: none;">
               <!-- Cuisine Badge -->
               <div class="result-cuisine-badge type-data" id="result-cuisine-badge">
-                <span id="result-emoji">🍽️</span>
+                <span id="result-emoji"></span>
                 <span id="result-cuisine-label"></span>
               </div>
 
@@ -286,26 +292,34 @@
                 <p class="result-oneliner type-structural" id="result-oneliner"></p>
               </div>
 
-              <!-- Score Section -->
-              <div class="score-section">
-                <div class="score-ring-wrap">
-                  <svg class="score-ring" viewBox="0 0 100 100">
-                    <circle class="score-ring__bg" cx="50" cy="50" r="45"></circle>
-                    <circle class="score-ring__fill" id="score-ring-fill" cx="50" cy="50" r="45"></circle>
-                  </svg>
-                  <div class="score-ring__number">
-                    <span class="type-data--lg" id="score-number">0</span>
+              <!-- Score + Radar Row -->
+              <div class="score-radar-row">
+                <!-- Score Section -->
+                <div class="score-section">
+                  <div class="score-ring-wrap">
+                    <svg class="score-ring" viewBox="0 0 100 100">
+                      <circle class="score-ring__bg" cx="50" cy="50" r="45"></circle>
+                      <circle class="score-ring__fill" id="score-ring-fill" cx="50" cy="50" r="45"></circle>
+                    </svg>
+                    <div class="score-ring__number">
+                      <span class="type-data--lg" id="score-number">0</span>
+                    </div>
+                  </div>
+                  <div class="score-meta">
+                    <span class="score-verdict type-structural--bold" id="score-verdict"></span>
+                    <span class="score-percentile type-data--sm" id="score-percentile"></span>
+                    <span class="type-data--sm">DondeAI Score</span>
+                    <div class="google-rating" id="google-rating">
+                      <div class="google-stars" id="google-stars"></div>
+                      <span class="type-data" id="google-rating-num"></span>
+                      <span class="google-count type-data--sm" id="google-count"></span>
+                    </div>
                   </div>
                 </div>
-                <div class="score-meta">
-                  <span class="score-verdict type-structural--bold" id="score-verdict"></span>
-                  <span class="score-percentile type-data--sm" id="score-percentile"></span>
-                  <span class="type-data--sm">DondeAI Score</span>
-                  <div class="google-rating" id="google-rating">
-                    <div class="google-stars" id="google-stars"></div>
-                    <span class="type-data" id="google-rating-num"></span>
-                    <span class="google-count type-data--sm" id="google-count"></span>
-                  </div>
+
+                <!-- Radar Chart -->
+                <div class="radar-wrap" id="radar-wrap" style="display: none;">
+                  <svg id="radar-svg" viewBox="0 0 200 200"></svg>
                 </div>
               </div>
 
@@ -316,11 +330,6 @@
               <div class="insider-tip" id="insider-tip" style="display: none;">
                 <div class="insider-tip__label type-data--sm">Insider Tip</div>
                 <p class="insider-tip__text type-structural" id="insider-tip-text"></p>
-              </div>
-
-              <!-- Radar Chart -->
-              <div class="radar-wrap" id="radar-wrap" style="display: none;">
-                <svg id="radar-svg" viewBox="0 0 200 200"></svg>
               </div>
 
               <!-- Info Grid -->
@@ -519,6 +528,9 @@
     <div class="toast" id="toast" role="status" aria-live="polite">
       <span class="toast__text type-structural" id="toast-text"></span>
     </div>
+
+    <!-- Cursor Glow (desktop only, hidden on touch) -->
+    <div class="cursor-glow" aria-hidden="true"></div>
 
   </div><!-- /app -->
 

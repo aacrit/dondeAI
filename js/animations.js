@@ -1,13 +1,16 @@
 /* ============================================
    DondeAI — Animations Engine
-   Score ring, radar chart, particle system.
+   Score ring, radar chart, particle system,
+   chaos-to-order text, logo animation.
    ============================================ */
+
+import { normalizeNoiseLevel } from './utils.js';
 
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)');
 
-/* ---- Score Ring Animation ---- */
-export function animateScoreRing(score) {
-  const n = parseFloat(score) || 0;
+/* ---- Score Ring Animation (Integer-only) ---- */
+export function animateScoreRing(rawScore) {
+  const n = Math.round(parseFloat(rawScore) || 8); // default 8
   const fill = document.getElementById('score-ring-fill');
   const numEl = document.getElementById('score-number');
   const verdictEl = document.getElementById('score-verdict');
@@ -16,56 +19,54 @@ export function animateScoreRing(score) {
   const circumference = 2 * Math.PI * 45; // r=45
   const target = circumference - (n / 10) * circumference;
 
-  // Color
+  // Color based on integer tier
   let color = 'var(--ac)';
   if (n >= 8) color = 'var(--green)';
-  else if (n < 4) color = 'var(--rose)';
+  else if (n < 5) color = 'var(--rose)';
   fill.style.stroke = color;
 
   if (REDUCED.matches) {
     fill.style.strokeDashoffset = target;
-    numEl.textContent = n.toFixed(1);
+    numEl.textContent = n;
     return;
   }
 
-  // Animate
+  // Animate ring fill
   fill.style.strokeDasharray = circumference;
   fill.style.strokeDashoffset = circumference;
 
   requestAnimationFrame(() => {
-    // Critically-damped spring (no overshoot) — system-initiated motion
     fill.style.transition = `stroke-dashoffset 1200ms cubic-bezier(0.2, 1, 0.4, 1)`;
     fill.style.strokeDashoffset = target;
   });
 
-  // Count-up
+  // Count-up to integer
   const duration = 1200;
   const start = performance.now();
   function tick(now) {
     const elapsed = now - start;
     const progress = Math.min(elapsed / duration, 1);
-    // Spring-like ease
     const eased = 1 - Math.pow(1 - progress, 3);
-    const current = n * eased;
-    numEl.textContent = current.toFixed(1);
+    numEl.textContent = Math.round(n * eased);
     if (progress < 1) requestAnimationFrame(tick);
+    else numEl.textContent = n; // ensure final integer
   }
   requestAnimationFrame(tick);
 
-  // Verdict appears with ring animation (no separate timeout)
+  // Verdict word label animates in after number settles
   if (verdictEl) {
     verdictEl.style.opacity = '0';
     verdictEl.style.transform = 'translateY(6px)';
     requestAnimationFrame(() => {
-      verdictEl.style.transition = 'opacity 400ms ease-out 200ms, transform 400ms ease-out 200ms';
+      verdictEl.style.transition = 'opacity 400ms ease-out 800ms, transform 400ms ease-out 800ms';
       verdictEl.style.opacity = '1';
       verdictEl.style.transform = 'translateY(0)';
     });
   }
 }
 
-/* ---- Radar Chart ---- */
-export function renderRadar(scores) {
+/* ---- Radar Chart (Extended dimensions, morph-from-center animation) ---- */
+export function renderRadar(scores, restaurantData = null) {
   const dimensions = [
     { key: 'date_friendly_score', short: 'DT', full: 'Date' },
     { key: 'group_friendly_score', short: 'GR', full: 'Group' },
@@ -75,8 +76,26 @@ export function renderRadar(scores) {
     { key: 'hole_in_wall_factor', short: 'GM', full: 'Gem' },
   ];
 
+  // Extend with normalized extra fields
+  const extendedScores = { ...scores };
+  if (restaurantData) {
+    const noiseNorm = normalizeNoiseLevel(restaurantData.noise_level);
+    if (noiseNorm !== null) {
+      extendedScores._noise = String(noiseNorm);
+      dimensions.push({ key: '_noise', short: 'NS', full: 'Noise' });
+    }
+    if (restaurantData.sentiment_score) {
+      extendedScores._sentiment = String((parseFloat(restaurantData.sentiment_score) * 10).toFixed(1));
+      dimensions.push({ key: '_sentiment', short: 'SN', full: 'Sentiment' });
+    }
+    if (restaurantData.google_rating) {
+      extendedScores._google = String(((parseFloat(restaurantData.google_rating) / 5) * 10).toFixed(1));
+      dimensions.push({ key: '_google', short: 'GL', full: 'Google' });
+    }
+  }
+
   const available = dimensions.filter(d => {
-    const v = scores[d.key];
+    const v = extendedScores[d.key];
     return v != null && v !== '' && !isNaN(parseFloat(v));
   });
 
@@ -94,6 +113,7 @@ export function renderRadar(scores) {
 
   const cx = 100, cy = 100, maxR = 70;
   const n = available.length;
+  const fontSize = n > 7 ? '8' : '10';
 
   // Grid rings
   for (let ring = 1; ring <= 3; ring++) {
@@ -124,57 +144,61 @@ export function renderRadar(scores) {
     svg.appendChild(line);
   }
 
-  // Data polygon with edge-by-edge draw-in
+  // Compute final data coordinates
   const dataCoords = [];
   for (let i = 0; i < n; i++) {
     const angle = (Math.PI * 2 * i) / n - Math.PI / 2;
-    const val = Math.min(parseFloat(scores[available[i].key]) || 0, 10) / 10;
+    const val = Math.min(parseFloat(extendedScores[available[i].key]) || 0, 10) / 10;
     const r = val * maxR;
     dataCoords.push({ x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) });
   }
 
-  // Build path string for polygon
-  let pathD = `M ${dataCoords[0].x} ${dataCoords[0].y}`;
-  for (let i = 1; i < n; i++) {
-    pathD += ` L ${dataCoords[i].x} ${dataCoords[i].y}`;
-  }
-  pathD += ' Z';
+  // Build final path
+  let finalD = `M ${dataCoords[0].x} ${dataCoords[0].y}`;
+  for (let i = 1; i < n; i++) finalD += ` L ${dataCoords[i].x} ${dataCoords[i].y}`;
+  finalD += ' Z';
 
-  // Fill polygon (no animation)
+  // Fill polygon
   const fillPoly = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  fillPoly.setAttribute('d', pathD);
   fillPoly.setAttribute('fill', 'var(--ac-soft)');
   fillPoly.setAttribute('stroke', 'none');
   svg.appendChild(fillPoly);
 
-  // Stroke polygon with draw-in animation
+  // Stroke polygon
   const strokePoly = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  strokePoly.setAttribute('d', pathD);
   strokePoly.setAttribute('fill', 'none');
   strokePoly.setAttribute('stroke', 'var(--ac)');
   strokePoly.setAttribute('stroke-width', '2');
   strokePoly.setAttribute('stroke-linejoin', 'round');
   svg.appendChild(strokePoly);
 
-  // Calculate total path length for animation
+  // Morph from center to final positions
   if (!REDUCED.matches) {
-    requestAnimationFrame(() => {
-      const totalLen = strokePoly.getTotalLength();
-      strokePoly.style.strokeDasharray = totalLen;
-      strokePoly.style.strokeDashoffset = totalLen;
-      requestAnimationFrame(() => {
-        strokePoly.style.transition = `stroke-dashoffset 800ms cubic-bezier(0.2, 1, 0.4, 1)`;
-        strokePoly.style.strokeDashoffset = '0';
-      });
-    });
+    const duration = 800;
+    const start = performance.now();
+    function morphTick(now) {
+      const progress = Math.min((now - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      let d = `M ${cx + (dataCoords[0].x - cx) * eased} ${cy + (dataCoords[0].y - cy) * eased}`;
+      for (let i = 1; i < n; i++) {
+        d += ` L ${cx + (dataCoords[i].x - cx) * eased} ${cy + (dataCoords[i].y - cy) * eased}`;
+      }
+      d += ' Z';
+      fillPoly.setAttribute('d', d);
+      strokePoly.setAttribute('d', d);
+      if (progress < 1) requestAnimationFrame(morphTick);
+    }
+    requestAnimationFrame(morphTick);
+  } else {
+    fillPoly.setAttribute('d', finalD);
+    strokePoly.setAttribute('d', finalD);
   }
 
   // Interactive vertex dots with tooltips
   for (let i = 0; i < n; i++) {
-    const val = Math.min(parseFloat(scores[available[i].key]) || 0, 10) / 10;
+    const val = Math.min(parseFloat(extendedScores[available[i].key]) || 0, 10) / 10;
     const scoreVal = (val * 10).toFixed(1);
 
-    // Dot
     const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
     dot.setAttribute('cx', dataCoords[i].x);
     dot.setAttribute('cy', dataCoords[i].y);
@@ -183,7 +207,6 @@ export function renderRadar(scores) {
     dot.style.cursor = 'pointer';
     svg.appendChild(dot);
 
-    // Tooltip group (hidden initially)
     const tooltip = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     tooltip.style.opacity = '0';
     tooltip.style.transition = 'opacity 150ms ease';
@@ -213,14 +236,13 @@ export function renderRadar(scores) {
 
     svg.appendChild(tooltip);
 
-    // Hover/touch handlers
     dot.addEventListener('mouseenter', () => { tooltip.style.opacity = '1'; });
     dot.addEventListener('mouseleave', () => { tooltip.style.opacity = '0'; });
     dot.addEventListener('touchstart', (e) => { e.preventDefault(); tooltip.style.opacity = '1'; }, { passive: false });
     dot.addEventListener('touchend', () => { setTimeout(() => { tooltip.style.opacity = '0'; }, 1500); });
   }
 
-  // Full labels (not abbreviated)
+  // Labels
   for (let i = 0; i < n; i++) {
     const angle = (Math.PI * 2 * i) / n - Math.PI / 2;
     const labelR = maxR + 18;
@@ -230,15 +252,72 @@ export function renderRadar(scores) {
     text.setAttribute('text-anchor', 'middle');
     text.setAttribute('dominant-baseline', 'middle');
     text.setAttribute('fill', 'var(--fg2)');
-    text.setAttribute('font-size', '10');
+    text.setAttribute('font-size', fontSize);
     text.setAttribute('font-family', 'var(--font-data)');
     text.textContent = available[i].full;
     svg.appendChild(text);
   }
 }
 
+/* ---- Chaos-to-Order Text Reveal ---- */
+export function chaosToOrderReveal(element, text) {
+  if (!text) { element.textContent = ''; return; }
+
+  if (REDUCED.matches) {
+    element.textContent = text;
+    return;
+  }
+
+  element.innerHTML = '';
+  element.style.position = 'relative';
+
+  // Batch characters into groups of 3 for performance
+  const groupSize = 3;
+  const groups = [];
+  for (let i = 0; i < text.length; i += groupSize) {
+    groups.push(text.slice(i, i + groupSize));
+  }
+
+  const spans = groups.map((group, i) => {
+    const span = document.createElement('span');
+    span.textContent = group;
+    span.style.display = 'inline';
+    span.style.opacity = '0';
+    const dx = (Math.random() - 0.5) * 60;
+    const dy = (Math.random() - 0.5) * 40;
+    const rotate = (Math.random() - 0.5) * 30;
+    span.style.transform = `translate(${dx}px, ${dy}px) rotate(${rotate}deg)`;
+    span.style.transition = `transform 800ms cubic-bezier(0.2, 1, 0.4, 1) ${i * 3}ms, opacity 400ms ease ${i * 3}ms`;
+    element.appendChild(span);
+    return span;
+  });
+
+  // Trigger settle animation
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      spans.forEach(span => {
+        span.style.opacity = '1';
+        span.style.transform = 'translate(0, 0) rotate(0deg)';
+      });
+    });
+  });
+}
+
+/* ---- Logo Animation Init ---- */
+export function initLogoAnimation() {
+  const logoPaths = document.querySelectorAll('.logo-svg--loading .logo-ring');
+  logoPaths.forEach(p => {
+    if (p.getTotalLength) {
+      const len = p.getTotalLength();
+      p.style.strokeDasharray = len;
+      p.style.strokeDashoffset = len;
+    }
+  });
+}
+
 /* ---- Particle System ---- */
 let particleAnimId = null;
+let particleResizeObs = null;
 
 export function startParticles(canvasEl) {
   if (!canvasEl || REDUCED.matches) return;
@@ -255,7 +334,6 @@ export function startParticles(canvasEl) {
   let centerX = w / 2;
   let centerY = h / 2;
 
-  // Resize canvas with parent
   if (particleResizeObs) particleResizeObs.disconnect();
   particleResizeObs = new ResizeObserver(entries => {
     for (const entry of entries) {
@@ -281,7 +359,6 @@ export function startParticles(canvasEl) {
       targetY: centerY + (Math.random() - 0.5) * 40,
       size: Math.random() * 2.5 + 0.5,
       speed: Math.random() * 0.5 + 0.3,
-      phase: 0, // 0=drift, 1=converge, 2=hold, 3=disperse
     });
   }
 
@@ -300,23 +377,19 @@ export function startParticles(canvasEl) {
       let alpha = 0.3;
 
       if (elapsed < DRIFT) {
-        // Brownian drift
         p.x += (Math.random() - 0.5) * 2;
         p.y += (Math.random() - 0.5) * 2;
       } else if (elapsed < DRIFT + CONVERGE) {
-        // Converge to center
         const t = (elapsed - DRIFT) / CONVERGE;
         const eased = t * t * (3 - 2 * t);
         p.x += (p.targetX - p.x) * eased * 0.08;
         p.y += (p.targetY - p.y) * eased * 0.08;
         alpha = 0.3 + t * 0.2;
       } else if (elapsed < DRIFT + CONVERGE + HOLD) {
-        // Hold
         p.x += (p.targetX - p.x) * 0.05;
         p.y += (p.targetY - p.y) * 0.05;
         alpha = 0.5;
       } else {
-        // Disperse
         const t = (elapsed - DRIFT - CONVERGE - HOLD) / 600;
         p.x += (p.x - centerX) * 0.03;
         p.y += (p.y - centerY) * 0.03;
@@ -340,8 +413,6 @@ export function startParticles(canvasEl) {
 
   particleAnimId = requestAnimationFrame(draw);
 }
-
-let particleResizeObs = null;
 
 export function stopParticles() {
   if (particleAnimId) {
