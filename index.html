@@ -210,6 +210,7 @@
                     <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-budget" data-value="$$$$">$$$$</button>
                   </div>
                 </div>
+                <button class="randomize-link type-structural" data-action="randomize">&#8635; Randomize</button>
               </div>
             </div>
 
@@ -217,6 +218,12 @@
             <button class="cta-btn type-structural--bold" data-action="submit" data-label="cta" disabled>
               Find My Spot
             </button>
+
+            <!-- Taste Memory (Recent Searches) -->
+            <div class="taste-memory" id="taste-memory" style="display: none;">
+              <h3 class="taste-memory__title type-data--sm">Recent</h3>
+              <div class="taste-memory__list" id="taste-memory-list"></div>
+            </div>
 
             <!-- Quick Picks -->
             <div class="quick-picks" aria-label="Quick picks">
@@ -243,11 +250,26 @@
         <!-- ========== VIEW 1: Result ========== -->
         <section class="step" data-step="1" aria-hidden="true" aria-label="Your recommendation">
           <div class="step__inner" id="result-container">
-            <!-- Loading State -->
-            <div class="loading-state" id="loading-state" style="display: flex; flex-direction: column; align-items: center; gap: var(--space-lg);">
+            <!-- Loading State: Skeleton-First -->
+            <div class="loading-state" id="loading-state" style="display: none;">
               <canvas class="particle-canvas" id="particle-canvas" aria-hidden="true"></canvas>
-              <div class="spinner"></div>
-              <p class="type-emotional" style="color: var(--fg2);">Finding your perfect spot...</p>
+              <div class="skeleton-card" id="skeleton-card">
+                <div class="skel skel--badge"></div>
+                <div style="display: flex; flex-direction: column; gap: var(--space-xs);">
+                  <div class="skel skel--name"></div>
+                  <div class="skel skel--text-sm"></div>
+                </div>
+                <div class="skel-row">
+                  <div class="skel skel--ring"></div>
+                  <div class="skel-lines">
+                    <div class="skel skel--text" style="width: 40%;"></div>
+                    <div class="skel skel--text-sm" style="width: 60%;"></div>
+                  </div>
+                </div>
+                <div class="skel skel--text"></div>
+                <div class="skel skel--text" style="width: 90%;"></div>
+                <div class="skel skel--text" style="width: 75%;"></div>
+              </div>
             </div>
 
             <!-- Result Card (populated by JS) -->
@@ -277,6 +299,7 @@
                 </div>
                 <div class="score-meta">
                   <span class="score-verdict type-structural--bold" id="score-verdict"></span>
+                  <span class="score-percentile type-data--sm" id="score-percentile"></span>
                   <span class="type-data--sm">DondeAI Score</span>
                   <div class="google-rating" id="google-rating">
                     <div class="google-stars" id="google-stars"></div>
@@ -430,6 +453,14 @@
       <div class="share-sheet__backdrop" data-action="close-share"></div>
       <div class="share-sheet__panel">
         <h3 class="type-emotional" style="margin-bottom: var(--space-md);">Share This Spot</h3>
+        <!-- Canvas Share Preview -->
+        <div class="share-preview" id="share-preview">
+          <canvas id="share-canvas"></canvas>
+        </div>
+        <div class="share-format-toggle">
+          <button class="share-format-btn share-format-btn--active type-structural" data-action="share-format" data-format="post">Post (1:1)</button>
+          <button class="share-format-btn type-structural" data-action="share-format" data-format="story">Story (9:16)</button>
+        </div>
         <div class="share-grid">
           <button class="share-btn" data-action="share-channel" data-channel="clipboard">
             <span class="share-btn__icon" style="background: var(--bg3);">
@@ -480,6 +511,9 @@
         </div>
       </div>
     </div>
+
+    <!-- Theme Wash (radial clip-path transition) -->
+    <div class="theme-wash" id="theme-wash" aria-hidden="true"></div>
 
     <!-- Toast Notification -->
     <div class="toast" id="toast" role="status" aria-live="polite">

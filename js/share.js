@@ -36,6 +36,10 @@ export async function shareResult() {
 export function openShareSheet() {
   if ($sheet) {
     $sheet.classList.add('share-sheet--open');
+    // Render share canvas preview
+    if (typeof window.renderShareCanvas === 'function') {
+      window.renderShareCanvas('post');
+    }
     // Focus first button
     const first = $sheet.querySelector('.share-btn');
     if (first) first.focus();
@@ -58,10 +62,13 @@ export function handleShareChannel(channel) {
 
   switch (channel) {
     case 'clipboard':
-      navigator.clipboard?.writeText(text).then(() => {
-        showToast('Copied to clipboard!');
-      }).catch(() => {
-        showToast('Could not copy — try long-press.');
+      copyShareImage().catch(() => {
+        // Fallback to text copy
+        navigator.clipboard?.writeText(text).then(() => {
+          showToast('Copied to clipboard!');
+        }).catch(() => {
+          showToast('Could not copy — try long-press.');
+        });
       });
       break;
     case 'whatsapp':
@@ -88,6 +95,31 @@ export function handleShareChannel(channel) {
   }
 
   closeShareSheet();
+}
+
+async function copyShareImage() {
+  const canvas = document.getElementById('share-canvas');
+  if (!canvas || !canvas.width) throw new Error('No canvas');
+
+  const blob = await new Promise((resolve, reject) => {
+    canvas.toBlob(b => b ? resolve(b) : reject(new Error('toBlob failed')), 'image/png');
+  });
+
+  if (navigator.clipboard?.write) {
+    await navigator.clipboard.write([
+      new ClipboardItem({ 'image/png': blob })
+    ]);
+    showToast('Image copied to clipboard!');
+  } else {
+    // Fallback: download
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'dondeai-share.png';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('Image downloaded!');
+  }
 }
 
 function showToast(message) {

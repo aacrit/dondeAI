@@ -51,10 +51,10 @@ export function saveHistory(history) {
   safeSet(KEYS.history, history);
 }
 
-export function addToHistory(label, payload) {
+export function addToHistory(label, payload, cuisineEmoji = '') {
   const hist = loadHistory();
   const deduped = hist.filter(h => h.label !== label);
-  deduped.unshift({ label, payload });
+  deduped.unshift({ label, payload, cuisineEmoji, timestamp: Date.now() });
   const trimmed = deduped.slice(0, 3);
   saveHistory(trimmed);
   return trimmed;

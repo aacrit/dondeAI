@@ -140,6 +140,42 @@
   animation: shimmer 1.5s ease-in-out infinite;
 }
 
+/* ---- Chip Reveal (staggered smart chips) ---- */
+@keyframes chipReveal {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ---- Section Reveal (filter drawer stagger) ---- */
+@keyframes sectionReveal {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ---- Progress Slide (CTA loading bar) ---- */
+@keyframes progressSlide {
+  0%   { left: -30%; }
+  100% { left: 100%; }
+}
+
+/* ---- Skeleton Pulse (loading skeleton) ---- */
+@keyframes skelPulse {
+  0%, 100% { opacity: 0.06; }
+  50%      { opacity: 0.12; }
+}
+
+/* ---- Content Fade In (result name, sections) ---- */
+@keyframes contentFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ---- Tooltip In (radar vertex tooltips) ---- */
+@keyframes tooltipIn {
+  from { opacity: 0; transform: scaleY(0.95); }
+  to   { opacity: 1; transform: scaleY(1); }
+}
+
 /* ---- Toast Entrance ---- */
 @keyframes toastIn {
   from {
@@ -152,13 +188,17 @@
   }
 }
 
-/* ---- Reduced Motion: Kill everything ---- */
+/* ---- Reduced Motion: Gentle fallback (100ms linear, not 0ms) ---- */
 @media (prefers-reduced-motion: reduce) {
   .stagger-in > *,
   .chip-pop,
   .card-enter,
-  .shimmer {
-    animation: none;
+  .shimmer,
+  .smart-chip,
+  .filter-section,
+  .skel {
+    animation-duration: 100ms !important;
+    animation-timing-function: linear !important;
     opacity: 1;
     transform: none;
   }

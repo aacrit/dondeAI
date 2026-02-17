@@ -27,9 +27,14 @@
 .ambient__blob {
   position: absolute;
   border-radius: 50%;
-  filter: blur(80px);
+  filter: blur(80px) saturate(0.6);
   opacity: 0.6;
   animation: blobDrift 20s ease-in-out infinite alternate;
+  transition: filter 600ms ease;
+}
+
+.app:has(:focus-within) .ambient__blob {
+  filter: blur(80px) saturate(1);
 }
 
 .ambient__blob--1 {
@@ -204,7 +209,7 @@
 
 /* ---- Back Button ---- */
 .back-btn {
-  position: absolute;
+  position: fixed;
   top: calc(var(--header-h) + var(--space-sm));
   left: var(--space-md);
   z-index: var(--z-above);

@@ -37,17 +37,13 @@ export function startVoice() {
   recognition.onresult = (event) => {
     const result = event.results[0][0];
     const text = result.transcript;
-    const confidence = result.confidence;
 
     if (input) input.value = text;
     setState({ craving: text });
 
-    // Auto-submit if confident enough
-    if (confidence > 0.7 && text.length > 5) {
-      setTimeout(() => {
-        document.querySelector('[data-action="submit"]')?.click();
-      }, 300);
-    }
+    // Update CTA state (no auto-submit — let user decide)
+    const ctaBtn = document.querySelector('[data-action="submit"]');
+    if (ctaBtn) ctaBtn.disabled = !text.trim();
   };
 
   recognition.onerror = () => {

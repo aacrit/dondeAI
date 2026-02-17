@@ -17,7 +17,7 @@ import { fetchRecommendation } from './api.js';
 import { animateScoreRing, renderRadar, startParticles, stopParticles } from './animations.js';
 import {
   getGreeting, getQuickPicks, getCuisineFromResult,
-  getScoreTier, getScoreColor, buildGoogleStars, buildMapsUrl
+  getScoreTier, getScoreColor, buildGoogleStars, buildMapsUrl, relativeTime, matchCuisine
 } from './utils.js';
 
 /* ---- SVG Icon Templates ---- */
@@ -37,6 +37,9 @@ const $resultCard = document.getElementById('result-card');
 const $particleCanvas = document.getElementById('particle-canvas');
 const $toast = document.getElementById('toast');
 const $toastText = document.getElementById('toast-text');
+
+/* ---- AbortController for fetch cancellation ---- */
+let currentAbort = null;
 
 /* ---- Initialize ---- */
 function init() {
@@ -110,6 +113,48 @@ function setupLanding() {
       }
     });
   }
+
+  // Render taste memory (recent searches)
+  renderTasteMemory(state.history);
+}
+
+/* ---- Taste Memory Rendering ---- */
+function renderTasteMemory(history) {
+  const $mem = document.getElementById('taste-memory');
+  const $list = document.getElementById('taste-memory-list');
+  if (!$mem || !$list) return;
+
+  if (!history || history.length === 0) {
+    $mem.style.display = 'none';
+    return;
+  }
+
+  $mem.style.display = 'block';
+  $list.innerHTML = '';
+
+  history.forEach(entry => {
+    const item = document.createElement('div');
+    item.className = 'taste-memory__item';
+    item.setAttribute('data-action', 'taste-memory');
+    item.setAttribute('data-value', entry.payload?.special_request || entry.label);
+
+    const emoji = document.createElement('span');
+    emoji.className = 'taste-memory__emoji';
+    emoji.textContent = entry.cuisineEmoji || '🍽️';
+    item.appendChild(emoji);
+
+    const text = document.createElement('span');
+    text.className = 'taste-memory__text type-structural';
+    text.textContent = entry.label;
+    item.appendChild(text);
+
+    const time = document.createElement('span');
+    time.className = 'taste-memory__time type-data--sm';
+    time.textContent = relativeTime(entry.timestamp);
+    item.appendChild(time);
+
+    $list.appendChild(item);
+  });
 }
 
 /* ---- Event Delegation ---- */
@@ -134,6 +179,8 @@ function wireEvents() {
         break;
 
       case 'back':
+        if (currentAbort) currentAbort.abort();
+        if (getState().loading) setState({ loading: false });
         goToStep(getState().step - 1);
         break;
 
@@ -244,6 +291,38 @@ function wireEvents() {
       case 'share-channel':
         handleShareChannel(btn.dataset.channel);
         break;
+
+      case 'taste-memory': {
+        const val = btn.dataset.value;
+        if ($cravingInput) $cravingInput.value = val;
+        setState({ craving: val });
+        updateCtaState();
+        break;
+      }
+
+      case 'randomize': {
+        // Pick random occasion, neighborhood, budget
+        const occasions = ['Date Night', 'Group Hangout', 'Family Dinner', 'Business Lunch', 'Solo Dining', 'Special Occasion', 'Treat Myself', 'Adventure', 'Chill Hangout'];
+        const hoods = ['Pilsen', 'Wicker Park', 'Logan Square', 'Lincoln Park', 'West Loop', 'Bucktown', 'Hyde Park', 'Chinatown', 'Little Italy', 'Andersonville', 'River North', 'Old Town', 'Lakeview', 'Fulton Market'];
+        const budgets = ['$', '$$', '$$$', '$$$$'];
+        setState({
+          occasion: occasions[Math.floor(Math.random() * occasions.length)],
+          neighborhood: hoods[Math.floor(Math.random() * hoods.length)],
+          priceLevel: budgets[Math.floor(Math.random() * budgets.length)],
+        });
+        updateFilterSummary();
+        showToast('Filters randomized!');
+        break;
+      }
+
+      case 'share-format': {
+        const format = btn.dataset.format;
+        document.querySelectorAll('.share-format-btn').forEach(b => {
+          b.classList.toggle('share-format-btn--active', b.dataset.format === format);
+        });
+        renderShareCanvas(format);
+        break;
+      }
     }
   });
 }
@@ -321,6 +400,9 @@ function updateFilterSummary() {
 async function handleSubmit() {
   const s = getState();
 
+  // Block resubmission while loading
+  if (s.loading) return;
+
   if (!s.craving.trim()) {
     $cravingInput?.classList.add('shake');
     $cravingInput?.addEventListener('animationend', () => $cravingInput.classList.remove('shake'), { once: true });
@@ -334,6 +416,17 @@ async function handleSubmit() {
     return;
   }
 
+  // Cancel any in-flight request
+  if (currentAbort) currentAbort.abort();
+  currentAbort = new AbortController();
+
+  // Set CTA to loading state
+  const $cta = document.querySelector('.cta-btn[data-action="submit"]');
+  if ($cta) {
+    $cta.classList.add('cta-btn--loading');
+    $cta.textContent = 'Searching';
+  }
+
   setState({ loading: true, error: null, result: null });
   goToStep(1);
 
@@ -345,21 +438,31 @@ async function handleSubmit() {
       price_level: s.priceLevel,
     });
 
-    // Save to history
+    // Save to history with cuisine emoji
+    const cuisine = getCuisineFromResult(data);
     const label = s.craving.slice(0, 30);
     const hist = addToHistory(label, {
       special_request: s.craving,
       occasion: s.occasion,
       neighborhood: s.neighborhood,
       price_level: s.priceLevel,
-    });
+    }, cuisine.emoji);
 
     setState({ result: data, loading: false, history: hist });
     playChime();
     announce(`Recommendation: ${data.restaurant?.name || 'found'}`);
   } catch (err) {
+    if (err.name === 'AbortError') return; // user navigated away
     setState({ loading: false, error: err.message });
     goToStep(0);
+  } finally {
+    // Reset CTA state
+    if ($cta) {
+      $cta.classList.remove('cta-btn--loading');
+      const labels = getLabels(getState().theme.culture);
+      $cta.textContent = labels.cta;
+    }
+    currentAbort = null;
   }
 }
 
@@ -401,10 +504,14 @@ function renderResult(data) {
   const score = parseFloat(data.donde_score) || 0;
   const tier = getScoreTier(score);
   const $verdict = document.getElementById('score-verdict');
+  const $scoreSection = document.querySelector('.score-section');
+  const $percentile = document.getElementById('score-percentile');
   if ($verdict) {
     $verdict.textContent = tier.verdict;
     $verdict.className = `score-verdict type-structural--bold ${tier.cssClass}`;
   }
+  if ($scoreSection) $scoreSection.setAttribute('data-tier', tier.tier);
+  if ($percentile) $percentile.textContent = `Top ${Math.round((score / 10) * 100)}%`;
   animateScoreRing(score);
 
   // Google rating
@@ -439,10 +546,7 @@ function renderResult(data) {
     const items = [];
 
     if (r.address) {
-      items.push({
-        label: 'Address',
-        value: `<a href="${buildMapsUrl(r.address)}" target="_blank" rel="noopener" style="color: var(--ac); text-decoration: underline;">${r.address}</a>`,
-      });
+      items.push({ label: 'Address', value: r.address, href: buildMapsUrl(r.address) });
     }
     if (r.price_level) items.push({ label: 'Price', value: r.price_level });
     if (r.noise_level) items.push({ label: 'Noise', value: r.noise_level });
@@ -453,10 +557,27 @@ function renderResult(data) {
     items.forEach(item => {
       const div = document.createElement('div');
       div.className = 'info-item';
-      div.innerHTML = `
-        <span class="info-item__label type-data--sm">${item.label}</span>
-        <span class="info-item__value type-structural">${item.value}</span>
-      `;
+
+      const label = document.createElement('span');
+      label.className = 'info-item__label type-data--sm';
+      label.textContent = item.label;
+      div.appendChild(label);
+
+      const val = document.createElement('span');
+      val.className = 'info-item__value type-structural';
+      if (item.href) {
+        const a = document.createElement('a');
+        a.href = item.href;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.style.cssText = 'color: var(--ac); text-decoration: underline;';
+        a.textContent = item.value;
+        val.appendChild(a);
+      } else {
+        val.textContent = item.value;
+      }
+      div.appendChild(val);
+
       $infoGrid.appendChild(div);
     });
   }
@@ -591,6 +712,107 @@ function wireSwipe() {
     }
   }, { passive: true });
 }
+
+/* ---- Share Canvas Rendering (Enhancement 10) ---- */
+function renderShareCanvas(format = 'post') {
+  const canvas = document.getElementById('share-canvas');
+  if (!canvas) return;
+
+  const { result } = getState();
+  if (!result?.restaurant) return;
+
+  const isStory = format === 'story';
+  const w = isStory ? 540 : 600;
+  const h = isStory ? 960 : 600;
+  canvas.width = w;
+  canvas.height = h;
+
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  // Get theme colors from computed styles
+  const styles = getComputedStyle(document.documentElement);
+  const bg = styles.getPropertyValue('--bg').trim() || '#fafafa';
+  const fg = styles.getPropertyValue('--fg').trim() || '#1a1a1a';
+  const ac = styles.getPropertyValue('--ac').trim() || '#6c5ce7';
+  const fg2 = styles.getPropertyValue('--fg2').trim() || '#666';
+
+  // Background
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, w, h);
+
+  // Accent gradient bar at top
+  ctx.fillStyle = ac;
+  ctx.fillRect(0, 0, w, 6);
+
+  const r = result.restaurant;
+  const score = parseFloat(result.donde_score) || 0;
+  const pad = 40;
+  let y = isStory ? 120 : 80;
+
+  // Restaurant name (large serif)
+  ctx.fillStyle = fg;
+  ctx.font = `700 ${isStory ? 36 : 32}px "Playfair Display", serif`;
+  ctx.textAlign = 'left';
+
+  // Word wrap name
+  const nameWords = (r.name || 'Restaurant').split(' ');
+  let nameLine = '';
+  for (const word of nameWords) {
+    const test = nameLine ? `${nameLine} ${word}` : word;
+    if (ctx.measureText(test).width > w - pad * 2) {
+      ctx.fillText(nameLine, pad, y);
+      y += isStory ? 44 : 40;
+      nameLine = word;
+    } else {
+      nameLine = test;
+    }
+  }
+  ctx.fillText(nameLine, pad, y);
+  y += isStory ? 32 : 28;
+
+  // One-liner
+  if (r.best_for_oneliner) {
+    ctx.font = `italic 400 ${isStory ? 18 : 16}px "Playfair Display", serif`;
+    ctx.fillStyle = fg2;
+    y += 12;
+    ctx.fillText(r.best_for_oneliner.slice(0, 60), pad, y);
+    y += 28;
+  }
+
+  // Score circle
+  y += 20;
+  const scoreX = pad + 36;
+  const scoreY = y + 20;
+  ctx.beginPath();
+  ctx.arc(scoreX, scoreY, 32, 0, Math.PI * 2);
+  ctx.fillStyle = ac;
+  ctx.globalAlpha = 0.12;
+  ctx.fill();
+  ctx.globalAlpha = 1;
+
+  ctx.fillStyle = fg;
+  ctx.font = `700 28px "JetBrains Mono", monospace`;
+  ctx.textAlign = 'center';
+  ctx.fillText(score.toFixed(1), scoreX, scoreY + 10);
+
+  // Score label
+  ctx.textAlign = 'left';
+  ctx.font = `600 14px "Inter", sans-serif`;
+  ctx.fillStyle = fg2;
+  ctx.fillText('DondeAI Score', scoreX + 44, scoreY + 4);
+
+  y += 80;
+
+  // Branding
+  ctx.fillStyle = fg2;
+  ctx.font = `italic 500 14px "Playfair Display", serif`;
+  ctx.textAlign = 'right';
+  ctx.fillText('via DondeAI', w - pad, h - pad);
+}
+
+// Expose for share module
+window.renderShareCanvas = renderShareCanvas;
 
 /* ---- Boot ---- */
 init();

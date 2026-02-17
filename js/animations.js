@@ -33,7 +33,8 @@ export function animateScoreRing(score) {
   fill.style.strokeDashoffset = circumference;
 
   requestAnimationFrame(() => {
-    fill.style.transition = `stroke-dashoffset 1200ms cubic-bezier(0.34, 1.56, 0.64, 1)`;
+    // Critically-damped spring (no overshoot) — system-initiated motion
+    fill.style.transition = `stroke-dashoffset 1200ms cubic-bezier(0.2, 1, 0.4, 1)`;
     fill.style.strokeDashoffset = target;
   });
 
@@ -51,15 +52,15 @@ export function animateScoreRing(score) {
   }
   requestAnimationFrame(tick);
 
-  // Verdict delay
+  // Verdict appears with ring animation (no separate timeout)
   if (verdictEl) {
     verdictEl.style.opacity = '0';
     verdictEl.style.transform = 'translateY(6px)';
-    setTimeout(() => {
-      verdictEl.style.transition = 'opacity 400ms ease-out, transform 400ms ease-out';
+    requestAnimationFrame(() => {
+      verdictEl.style.transition = 'opacity 400ms ease-out 200ms, transform 400ms ease-out 200ms';
       verdictEl.style.opacity = '1';
       verdictEl.style.transform = 'translateY(0)';
-    }, 900);
+    });
   }
 }
 
@@ -123,38 +124,106 @@ export function renderRadar(scores) {
     svg.appendChild(line);
   }
 
-  // Data polygon
-  const dataPoints = [];
+  // Data polygon with edge-by-edge draw-in
+  const dataCoords = [];
   for (let i = 0; i < n; i++) {
     const angle = (Math.PI * 2 * i) / n - Math.PI / 2;
     const val = Math.min(parseFloat(scores[available[i].key]) || 0, 10) / 10;
     const r = val * maxR;
-    dataPoints.push(`${cx + r * Math.cos(angle)},${cy + r * Math.sin(angle)}`);
+    dataCoords.push({ x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) });
   }
-  const dataPoly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-  dataPoly.setAttribute('points', dataPoints.join(' '));
-  dataPoly.setAttribute('fill', 'var(--ac-soft)');
-  dataPoly.setAttribute('stroke', 'var(--ac)');
-  dataPoly.setAttribute('stroke-width', '2');
-  svg.appendChild(dataPoly);
 
-  // Data points (dots)
+  // Build path string for polygon
+  let pathD = `M ${dataCoords[0].x} ${dataCoords[0].y}`;
+  for (let i = 1; i < n; i++) {
+    pathD += ` L ${dataCoords[i].x} ${dataCoords[i].y}`;
+  }
+  pathD += ' Z';
+
+  // Fill polygon (no animation)
+  const fillPoly = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  fillPoly.setAttribute('d', pathD);
+  fillPoly.setAttribute('fill', 'var(--ac-soft)');
+  fillPoly.setAttribute('stroke', 'none');
+  svg.appendChild(fillPoly);
+
+  // Stroke polygon with draw-in animation
+  const strokePoly = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  strokePoly.setAttribute('d', pathD);
+  strokePoly.setAttribute('fill', 'none');
+  strokePoly.setAttribute('stroke', 'var(--ac)');
+  strokePoly.setAttribute('stroke-width', '2');
+  strokePoly.setAttribute('stroke-linejoin', 'round');
+  svg.appendChild(strokePoly);
+
+  // Calculate total path length for animation
+  if (!REDUCED.matches) {
+    requestAnimationFrame(() => {
+      const totalLen = strokePoly.getTotalLength();
+      strokePoly.style.strokeDasharray = totalLen;
+      strokePoly.style.strokeDashoffset = totalLen;
+      requestAnimationFrame(() => {
+        strokePoly.style.transition = `stroke-dashoffset 800ms cubic-bezier(0.2, 1, 0.4, 1)`;
+        strokePoly.style.strokeDashoffset = '0';
+      });
+    });
+  }
+
+  // Interactive vertex dots with tooltips
   for (let i = 0; i < n; i++) {
-    const angle = (Math.PI * 2 * i) / n - Math.PI / 2;
     const val = Math.min(parseFloat(scores[available[i].key]) || 0, 10) / 10;
-    const r = val * maxR;
+    const scoreVal = (val * 10).toFixed(1);
+
+    // Dot
     const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    dot.setAttribute('cx', cx + r * Math.cos(angle));
-    dot.setAttribute('cy', cy + r * Math.sin(angle));
-    dot.setAttribute('r', '3');
+    dot.setAttribute('cx', dataCoords[i].x);
+    dot.setAttribute('cy', dataCoords[i].y);
+    dot.setAttribute('r', '4');
     dot.setAttribute('fill', 'var(--ac)');
+    dot.style.cursor = 'pointer';
     svg.appendChild(dot);
+
+    // Tooltip group (hidden initially)
+    const tooltip = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    tooltip.style.opacity = '0';
+    tooltip.style.transition = 'opacity 150ms ease';
+
+    const tooltipBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    const tipX = dataCoords[i].x - 28;
+    const tipY = dataCoords[i].y - 28;
+    tooltipBg.setAttribute('x', tipX);
+    tooltipBg.setAttribute('y', tipY);
+    tooltipBg.setAttribute('width', '56');
+    tooltipBg.setAttribute('height', '20');
+    tooltipBg.setAttribute('rx', '4');
+    tooltipBg.setAttribute('fill', 'var(--bg2)');
+    tooltipBg.setAttribute('stroke', 'var(--border)');
+    tooltipBg.setAttribute('stroke-width', '0.5');
+    tooltip.appendChild(tooltipBg);
+
+    const tipText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    tipText.setAttribute('x', dataCoords[i].x);
+    tipText.setAttribute('y', tipY + 14);
+    tipText.setAttribute('text-anchor', 'middle');
+    tipText.setAttribute('fill', 'var(--fg)');
+    tipText.setAttribute('font-size', '9');
+    tipText.setAttribute('font-family', 'var(--font-data)');
+    tipText.textContent = `${available[i].full}: ${scoreVal}`;
+    tooltip.appendChild(tipText);
+
+    svg.appendChild(tooltip);
+
+    // Hover/touch handlers
+    dot.addEventListener('mouseenter', () => { tooltip.style.opacity = '1'; });
+    dot.addEventListener('mouseleave', () => { tooltip.style.opacity = '0'; });
+    dot.addEventListener('touchstart', (e) => { e.preventDefault(); tooltip.style.opacity = '1'; }, { passive: false });
+    dot.addEventListener('touchend', () => { setTimeout(() => { tooltip.style.opacity = '0'; }, 1500); });
   }
 
-  // Labels
+  // Full labels (not abbreviated)
   for (let i = 0; i < n; i++) {
     const angle = (Math.PI * 2 * i) / n - Math.PI / 2;
-    const labelR = maxR + 16;
+    const labelR = maxR + 18;
     const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     text.setAttribute('x', cx + labelR * Math.cos(angle));
     text.setAttribute('y', cy + labelR * Math.sin(angle));
@@ -163,7 +232,7 @@ export function renderRadar(scores) {
     text.setAttribute('fill', 'var(--fg2)');
     text.setAttribute('font-size', '10');
     text.setAttribute('font-family', 'var(--font-data)');
-    text.textContent = available[i].short;
+    text.textContent = available[i].full;
     svg.appendChild(text);
   }
 }
@@ -177,15 +246,31 @@ export function startParticles(canvasEl) {
   const ctx = canvasEl.getContext('2d');
   if (!ctx) return;
 
-  const rect = canvasEl.parentElement.getBoundingClientRect();
+  const parent = canvasEl.parentElement;
+  const rect = parent.getBoundingClientRect();
   canvasEl.width = rect.width;
   canvasEl.height = rect.height;
-  const w = canvasEl.width;
-  const h = canvasEl.height;
-  const centerX = w / 2;
-  const centerY = h / 2;
+  let w = canvasEl.width;
+  let h = canvasEl.height;
+  let centerX = w / 2;
+  let centerY = h / 2;
 
-  const PARTICLE_COUNT = 150;
+  // Resize canvas with parent
+  if (particleResizeObs) particleResizeObs.disconnect();
+  particleResizeObs = new ResizeObserver(entries => {
+    for (const entry of entries) {
+      const cr = entry.contentRect;
+      canvasEl.width = cr.width;
+      canvasEl.height = cr.height;
+      w = cr.width;
+      h = cr.height;
+      centerX = w / 2;
+      centerY = h / 2;
+    }
+  });
+  particleResizeObs.observe(parent);
+
+  const PARTICLE_COUNT = 60;
   const particles = [];
 
   for (let i = 0; i < PARTICLE_COUNT; i++) {
@@ -212,7 +297,7 @@ export function startParticles(canvasEl) {
     const accentColor = getComputedStyle(canvasEl).getPropertyValue('--ac').trim() || '#6c5ce7';
 
     for (const p of particles) {
-      let alpha = 0.6;
+      let alpha = 0.3;
 
       if (elapsed < DRIFT) {
         // Brownian drift
@@ -224,12 +309,12 @@ export function startParticles(canvasEl) {
         const eased = t * t * (3 - 2 * t);
         p.x += (p.targetX - p.x) * eased * 0.08;
         p.y += (p.targetY - p.y) * eased * 0.08;
-        alpha = 0.6 + t * 0.4;
+        alpha = 0.3 + t * 0.2;
       } else if (elapsed < DRIFT + CONVERGE + HOLD) {
         // Hold
         p.x += (p.targetX - p.x) * 0.05;
         p.y += (p.targetY - p.y) * 0.05;
-        alpha = 1;
+        alpha = 0.5;
       } else {
         // Disperse
         const t = (elapsed - DRIFT - CONVERGE - HOLD) / 600;
@@ -256,9 +341,15 @@ export function startParticles(canvasEl) {
   particleAnimId = requestAnimationFrame(draw);
 }
 
+let particleResizeObs = null;
+
 export function stopParticles() {
   if (particleAnimId) {
     cancelAnimationFrame(particleAnimId);
     particleAnimId = null;
+  }
+  if (particleResizeObs) {
+    particleResizeObs.disconnect();
+    particleResizeObs = null;
   }
 }

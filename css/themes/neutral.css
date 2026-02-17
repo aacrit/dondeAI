@@ -55,8 +55,8 @@
   --glass:       hsl(0 0% 11% / 0.78);
   --glass-blur:  24px;
   --border:      hsl(0 0% 20%);
-  --shadow:      hsl(0 0% 0% / 0.2);
-  --shadow-lg:   hsl(0 0% 0% / 0.35);
+  --shadow:      transparent;
+  --shadow-lg:   transparent;
   --radius:      12px;
   --radius-sm:   8px;
   --radius-lg:   20px;
