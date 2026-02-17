@@ -6,6 +6,17 @@
 import { getState, setState, subscribe } from './state.js';
 import { saveTheme } from './persistence.js';
 
+export const CULTURES = ['neutral', 'indian', 'nepalese', 'japanese', 'african', 'southamerican'];
+
+export const CULTURE_DISPLAY_NAMES = {
+  neutral: 'Studio',
+  indian: 'Saffron',
+  nepalese: 'Summit',
+  japanese: 'Inkwell',
+  african: 'Kente',
+  southamerican: 'Fiesta',
+};
+
 const THEME_LABELS = {
   neutral: {
     vibe: "What's the vibe?",
@@ -75,15 +86,26 @@ export function getLabels(culture) {
 
 export function initTheme() {
   const { theme } = getState();
-  applyTheme(theme.culture, theme.mode);
+  let culture = theme.culture;
+  let mode = theme.mode;
 
-  // Auto-detect system dark mode
+  // If no persisted theme, respect system dark mode preference
   const darkQuery = matchMedia('(prefers-color-scheme: dark)');
   if (!localStorage.getItem('dondeai-theme')) {
-    const mode = darkQuery.matches ? 'dark' : 'light';
-    setState({ theme: { ...getState().theme, mode } });
-    applyTheme(getState().theme.culture, mode);
+    mode = darkQuery.matches ? 'dark' : 'light';
+    setState({ theme: { culture, mode } });
   }
+
+  // Single apply on init
+  applyTheme(culture, mode);
+
+  // Listen for system theme changes (when no user preference saved)
+  darkQuery.addEventListener('change', (e) => {
+    if (!localStorage.getItem('dondeai-theme')) {
+      const newMode = e.matches ? 'dark' : 'light';
+      setTheme(getState().theme.culture, newMode);
+    }
+  });
 
   subscribe((state, prev) => {
     if (state.theme.culture !== prev.theme.culture || state.theme.mode !== prev.theme.mode) {
@@ -113,29 +135,32 @@ function applyTheme(culture, mode) {
     card.classList.toggle('theme-card--active', isActive);
   });
 
-  // Update mode toggle
+  // Update mode toggle in theme picker
   document.querySelectorAll('.mode-toggle__btn').forEach(btn => {
     const isActive = btn.dataset.mode === mode;
     btn.classList.toggle('mode-toggle__btn--active', isActive);
   });
+
+  // Update meta theme-color for mobile browser chrome
+  requestAnimationFrame(() => {
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    if (metaTheme) {
+      const bgColor = getComputedStyle(root).getPropertyValue('--bg').trim();
+      if (bgColor) metaTheme.setAttribute('content', bgColor);
+    }
+  });
 }
 
 function applyLabels(labels) {
-  // Greeting/prompt on step 0
-  const greeting = document.querySelector('[data-step="0"] .step__title');
-  if (greeting) greeting.textContent = labels.prompt;
-
   // Craving input placeholder
   const input = document.getElementById('craving-input');
   if (input) input.placeholder = labels.placeholder;
 
-  // Step 1 heading (vibe)
-  const vibeTitle = document.querySelector('[data-step="1"] .step__title');
-  if (vibeTitle) vibeTitle.textContent = labels.vibe;
-
-  // Step 2 heading (hood)
-  const hoodTitle = document.querySelector('[data-step="2"] .step__title');
-  if (hoodTitle) hoodTitle.textContent = labels.hood;
+  // Filter section headings (vibe, hood) in the filter drawer
+  document.querySelectorAll('.filter-section__title[data-label]').forEach(el => {
+    const key = el.dataset.label;
+    if (key && labels[key]) el.textContent = labels[key];
+  });
 
   // CTA buttons
   document.querySelectorAll('[data-label="cta"]').forEach(el => {

@@ -332,33 +332,143 @@
   transform: none;
 }
 
-/* ---- Craving Advance Button ---- */
-.advance-btn {
-  padding: var(--space-sm) var(--space-xl);
-  font-size: var(--text-base);
-  font-weight: 600;
-  color: var(--bg);
-  background: var(--ac);
+/* ---- Filter Drawer ---- */
+.filter-drawer {
+  width: 100%;
+}
+
+.filter-drawer__toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  width: 100%;
+  color: var(--fg2);
+  background: var(--glass);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  transition: background var(--dur-fast) var(--ease-out),
+              border-color var(--dur-fast) var(--ease-out);
+  cursor: pointer;
+}
+
+.filter-drawer__toggle:hover {
+  border-color: var(--ac);
+}
+
+.filter-drawer__toggle[aria-expanded="true"] {
+  border-color: var(--ac);
+  background: var(--ac-soft);
+}
+
+.filter-drawer__toggle svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.filter-drawer__summary {
+  margin-left: auto;
+  color: var(--ac);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.filter-content {
+  padding: var(--space-md) 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  animation: fadeInUp var(--dur-normal) var(--ease-out);
+}
+
+.filter-content[hidden] {
+  display: none;
+}
+
+/* ---- Filter Section ---- */
+.filter-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.filter-section__title {
+  color: var(--fg3);
+  padding-left: var(--space-2xs);
+}
+
+/* ---- Filter Pills (compact inline) ---- */
+.filter-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs);
+}
+
+.filter-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  padding: var(--space-2xs) var(--space-sm);
+  font-size: var(--text-sm);
+  color: var(--fg2);
+  background: var(--glass);
+  border: 1px solid var(--border);
   border-radius: var(--radius-pill);
-  box-shadow: 0 4px 16px var(--ac-soft);
-  transition: transform var(--dur-fast) var(--spring),
-              background var(--dur-fast) var(--ease-out);
-  opacity: 0;
-  pointer-events: none;
+  transition: all var(--dur-fast) var(--ease-out);
+  white-space: nowrap;
+  cursor: pointer;
 }
 
-.advance-btn--visible {
-  opacity: 1;
-  pointer-events: auto;
+.filter-pill:hover {
+  border-color: var(--ac);
 }
 
-.advance-btn:hover {
-  background: var(--ac2);
-  transform: translateY(-1px);
+.filter-pill[aria-checked="true"] {
+  background: var(--ac);
+  color: var(--bg);
+  border-color: var(--ac);
 }
 
-.advance-btn:active {
-  transform: scale(0.97);
+.filter-pill svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+/* ---- Canvas Layout ---- */
+.canvas-layout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+  width: 100%;
+  max-width: var(--content-max);
+  padding: var(--space-lg);
+}
+
+/* ---- Header Mode Toggle Icon Visibility ---- */
+[data-mode="light"] .mode-icon--sun { display: none; }
+[data-mode="light"] .mode-icon--moon { display: block; }
+[data-mode="dark"] .mode-icon--sun { display: block; }
+[data-mode="dark"] .mode-icon--moon { display: none; }
+
+/* ---- SVG Icon Styling in Chips ---- */
+.chip__icon svg,
+.filter-pill svg,
+.share-btn__icon svg {
+  stroke: currentColor;
+  fill: currentColor;
+  stroke-width: 0;
+}
+
+.action-btn svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
 }
 
 /* ---- Result Card ---- */

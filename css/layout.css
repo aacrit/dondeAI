@@ -184,6 +184,11 @@
   -webkit-overflow-scrolling: touch;
 }
 
+.step[data-step="0"] {
+  justify-content: flex-start;
+  padding-top: calc(var(--header-h) + var(--space-xl));
+}
+
 .step[aria-hidden="true"] {
   visibility: hidden;
 }

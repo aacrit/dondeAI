@@ -4,7 +4,6 @@
    ============================================ */
 
 import { setState } from './state.js';
-import { goToStep } from './router.js';
 
 let recognition = null;
 let isListening = false;
@@ -43,9 +42,11 @@ export function startVoice() {
     if (input) input.value = text;
     setState({ craving: text });
 
-    // Auto-advance if confident enough
+    // Auto-submit if confident enough
     if (confidence > 0.7 && text.length > 5) {
-      setTimeout(() => goToStep(4), 300); // Skip to review
+      setTimeout(() => {
+        document.querySelector('[data-action="submit"]')?.click();
+      }, 300);
     }
   };
 
