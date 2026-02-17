@@ -25,6 +25,10 @@
     padding: var(--header-h) var(--space-lg) var(--space-xl);
   }
 
+  .step[data-step="1"] {
+    padding-top: calc(var(--header-h) + var(--space-xl));
+  }
+
   .step__inner {
     padding: 0;
   }

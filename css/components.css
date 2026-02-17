@@ -691,6 +691,13 @@
   font-weight: 600;
 }
 
+/* Stacked badges — second badge flows without redundant separator */
+.score-tile__badge + .score-tile__badge {
+  margin-top: 0;
+  border-top: none;
+  padding-top: 0;
+}
+
 /* ---- Score Tiles Responsive ---- */
 @media (max-width: 479px) {
   .score-tiles,
@@ -703,11 +710,8 @@
   .score-tiles {
     grid-template-columns: repeat(2, 1fr);
   }
-  .score-tile--radar {
+  .score-tile--google {
     grid-column: 1 / -1;
-  }
-  .score-tiles--two-col {
-    grid-template-columns: repeat(2, 1fr);
   }
 }
 
@@ -1530,6 +1534,7 @@
 
 /* ---- Loading Logo ---- */
 .loading-logo {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1538,6 +1543,26 @@
   padding: var(--space-xl) 0;
   z-index: var(--z-above);
 }
+
+/* ---- Loading Orbit Dots ---- */
+.loading-logo__orbit {
+  position: absolute;
+  inset: -24px;
+  animation: loadingOrbit 3s linear infinite;
+}
+
+.loading-logo__orbit-dot {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ac);
+}
+
+.loading-logo__orbit-dot:nth-child(1) { top: 0; left: 50%; transform: translateX(-50%); animation: loadingDotPulse 1.5s ease-in-out infinite 0ms; }
+.loading-logo__orbit-dot:nth-child(2) { top: 50%; right: 0; transform: translateY(-50%); animation: loadingDotPulse 1.5s ease-in-out infinite 375ms; }
+.loading-logo__orbit-dot:nth-child(3) { bottom: 0; left: 50%; transform: translateX(-50%); animation: loadingDotPulse 1.5s ease-in-out infinite 750ms; }
+.loading-logo__orbit-dot:nth-child(4) { top: 50%; left: 0; transform: translateY(-50%); animation: loadingDotPulse 1.5s ease-in-out infinite 1125ms; }
 
 .loading-logo__text {
   font-family: var(--font-emotional);

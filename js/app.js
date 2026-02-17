@@ -14,7 +14,7 @@ import { initShare, shareResult, closeShareSheet, handleShareChannel } from './s
 import { initOffline, isOnline } from './offline.js';
 import { initAccessibility, announce } from './accessibility.js';
 import { fetchRecommendation } from './api.js';
-import { animateScoreRing, renderRadar, animateGoogleRating, animateBadge, startParticles, stopParticles, chaosToOrderReveal, initLogoAnimation, animateLogoToCenter } from './animations.js';
+import { animateScoreRing, renderRadar, animateGoogleRating, animateBadge, startParticles, stopParticles, chaosToOrderReveal, initLogoAnimation } from './animations.js';
 import {
   getGreeting, getCuisineFromResult, svgIcon,
   getScoreTier, getScoreColor, buildGoogleStars, buildMapsUrl, relativeTime, matchCuisine
@@ -474,22 +474,20 @@ async function handleSubmit() {
 }
 
 /* ---- Loading Toggle ---- */
-let logoTransition = null;
-
 function toggleLoading(loading) {
+  const $header = document.querySelector('.header');
   if ($loadingState) $loadingState.style.display = loading ? 'flex' : 'none';
   if ($resultCard) $resultCard.style.display = loading ? 'none' : 'flex';
 
   if (loading && $particleCanvas) {
     startParticles($particleCanvas);
     initLogoAnimation();
-    logoTransition = animateLogoToCenter();
+    // Hide header so only the centered loading-logo is visible
+    if ($header) $header.style.opacity = '0';
   } else {
     stopParticles();
-    if (logoTransition) {
-      logoTransition.returnToHeader();
-      logoTransition = null;
-    }
+    // Restore header
+    if ($header) $header.style.opacity = '';
   }
 }
 
@@ -556,28 +554,14 @@ function renderResult(data) {
 
   // ---- Radar Tile ----
   const $scoreTileRadar = document.getElementById('score-tile-radar');
-  if (data.scores) {
-    renderRadar(data.scores, r);
-    // Show tile if radar rendered (renderRadar sets radar-wrap display)
-    const radarWrap = document.getElementById('radar-wrap');
-    if (radarWrap && radarWrap.style.display !== 'none') {
-      if ($scoreTileRadar) $scoreTileRadar.style.display = '';
-    } else {
-      if ($scoreTileRadar) $scoreTileRadar.style.display = 'none';
-    }
-  } else {
-    if ($scoreTileRadar) $scoreTileRadar.style.display = 'none';
-  }
+  // Radar tile is always visible (mock data fallback if <3 real dimensions)
+  if ($scoreTileRadar) $scoreTileRadar.style.display = '';
+  renderRadar(data.scores || {}, r);
 
-  // ---- Grid column count based on visible tiles ----
+  // Grid is always 3-col when radar is present
   const $scoreTiles = document.getElementById('score-tiles');
-  const visibleTiles = [
-    $scoreTileDonde,
-    $scoreTileRadar?.style.display !== 'none' ? $scoreTileRadar : null,
-    $scoreTileGoogle?.style.display !== 'none' ? $scoreTileGoogle : null,
-  ].filter(Boolean).length;
   if ($scoreTiles) {
-    $scoreTiles.classList.toggle('score-tiles--two-col', visibleTiles === 2);
+    $scoreTiles.classList.remove('score-tiles--two-col');
   }
 
   // ---- Price Badge (inside DondeAI Score tile) ----
@@ -599,6 +583,18 @@ function renderResult(data) {
     if ($noiseIcon) $noiseIcon.innerHTML = svgIcon('speakerWave', 14);
     if ($noiseValue) $noiseValue.textContent = firstWord;
     animateBadge($noiseBadge, 650);
+  }
+
+  // ---- Parking Badge (inside Google Rating tile) ----
+  if (r.parking_availability) {
+    const $parkingBadge = document.getElementById('parking-badge');
+    const $parkingIcon = document.getElementById('parking-icon');
+    const $parkingValue = document.getElementById('parking-value');
+    const shortParking = r.parking_availability.split(/\s+/).slice(0, 2).join(' ');
+    if ($parkingIcon) $parkingIcon.innerHTML = svgIcon('car', 14);
+    if ($parkingValue) $parkingValue.textContent = shortParking;
+    if ($parkingBadge) $parkingBadge.setAttribute('title', r.parking_availability);
+    animateBadge($parkingBadge, 700);
   }
 
   // Insider tip
@@ -633,29 +629,7 @@ function renderResult(data) {
       $infoGrid.appendChild(navTile);
     }
 
-    // 2. Compact details row (Parking only — Price/Noise moved to score tiles)
-    const compactItems = [];
-    if (r.parking_availability) {
-      const shortParking = r.parking_availability.split(/\s+/).slice(0, 2).join(' ');
-      compactItems.push({ label: 'Parking', value: shortParking, title: r.parking_availability });
-    }
-
-    if (compactItems.length > 0) {
-      const compactRow = document.createElement('div');
-      compactRow.className = 'compact-details-row';
-      compactItems.forEach(item => {
-        const detail = document.createElement('div');
-        detail.className = 'compact-detail';
-        if (item.title) detail.setAttribute('title', item.title);
-        detail.innerHTML = `
-          <span class="compact-detail__label type-data--sm">${item.label}</span>
-          <span class="compact-detail__value type-structural">${item.value}</span>`;
-        compactRow.appendChild(detail);
-      });
-      $infoGrid.appendChild(compactRow);
-    }
-
-    // 3. Remaining items (standard 2-col grid)
+    // 2. Remaining items (standard 2-col grid — Parking/Price/Noise moved to score tiles)
     const remainingItems = [];
     if (r.lighting_ambiance) remainingItems.push({ label: 'Ambiance', value: r.lighting_ambiance });
     if (r.dress_code) remainingItems.push({ label: 'Dress Code', value: r.dress_code });

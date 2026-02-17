@@ -324,6 +324,17 @@
   to   { border-image: linear-gradient(to bottom, var(--amber) 100%, transparent 100%) 1; }
 }
 
+/* ---- Loading Orbit (dots circling the centered loading logo) ---- */
+@keyframes loadingOrbit {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes loadingDotPulse {
+  0%, 100% { opacity: 0.3; transform: scale(0.6); }
+  50%      { opacity: 1;   transform: scale(1); }
+}
+
 /* ---- Reduced Motion: Gentle fallback (100ms linear, not 0ms) ---- */
 @media (prefers-reduced-motion: reduce) {
   .stagger-in > *,
@@ -338,6 +349,8 @@
   .logo-mark--loading .logo-mark__dot--pulse,
   .logo-mark__dot,
   .loading-logo__text,
+  .loading-logo__orbit,
+  .loading-logo__orbit-dot,
   .result-card--revealing > *,
   .result-card--revealing .score-tile,
   .result-card--revealing .result-name,

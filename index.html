@@ -265,6 +265,12 @@
                   <circle class="logo-mark__dot logo-mark__dot--pulse" cx="12" cy="18" r="1.5" fill="var(--ac)"/>
                 </svg>
                 <span class="loading-logo__text type-emotional">Donde<sup class="logo-wordmark__ai">AI</sup></span>
+                <div class="loading-logo__orbit" aria-hidden="true">
+                  <span class="loading-logo__orbit-dot"></span>
+                  <span class="loading-logo__orbit-dot"></span>
+                  <span class="loading-logo__orbit-dot"></span>
+                  <span class="loading-logo__orbit-dot"></span>
+                </div>
               </div>
               <div class="skeleton-card" id="skeleton-card">
                 <div class="skel skel--badge"></div>
@@ -322,7 +328,7 @@
                 </div>
 
                 <!-- Tile 2: Radar Chart -->
-                <div class="score-tile score-tile--radar" id="score-tile-radar" role="group" aria-label="Vibe Profile" style="display:none">
+                <div class="score-tile score-tile--radar" id="score-tile-radar" role="group" aria-label="Vibe Profile">
                   <span class="score-tile__label type-data--sm">Vibe Profile</span>
                   <div class="radar-wrap" id="radar-wrap">
                     <svg id="radar-svg" viewBox="0 0 200 200"></svg>
@@ -340,6 +346,10 @@
                   <div class="score-tile__badge" id="noise-badge" style="display:none">
                     <span class="score-tile__badge-icon" id="noise-icon"></span>
                     <span class="score-tile__badge-value type-data--sm" id="noise-value"></span>
+                  </div>
+                  <div class="score-tile__badge" id="parking-badge" style="display:none">
+                    <span class="score-tile__badge-icon" id="parking-icon"></span>
+                    <span class="score-tile__badge-value type-data--sm" id="parking-value"></span>
                   </div>
                 </div>
               </div>

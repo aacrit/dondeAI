@@ -105,6 +105,7 @@
   backdrop-filter: blur(var(--glass-blur)) saturate(180%);
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
   border-bottom: 1px solid var(--border);
+  transition: opacity var(--dur-normal) var(--ease-out);
 }
 
 .header > * {
@@ -199,6 +200,12 @@
 .step[data-step="0"] {
   justify-content: flex-start;
   padding-top: calc(var(--header-h) + var(--space-xl));
+}
+
+.step[data-step="1"] {
+  justify-content: flex-start;
+  padding-top: calc(var(--header-h) + var(--space-lg));
+  scroll-padding-top: calc(var(--header-h) + var(--space-md));
 }
 
 .step[aria-hidden="true"] {
