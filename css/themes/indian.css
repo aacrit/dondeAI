@@ -1,0 +1,68 @@
+/* ============================================
+   Indian / Middle Eastern Theme
+   Warm golds, marigold, ornate patterns
+   ============================================ */
+
+/* ---- Light Mode ---- */
+[data-theme="indian"][data-mode="light"] {
+  --bg:          hsl(35 30% 96%);
+  --bg2:         hsl(35 25% 99%);
+  --bg3:         hsl(35 20% 93%);
+  --fg:          hsl(20 30% 12%);
+  --fg2:         hsl(20 15% 40%);
+  --fg3:         hsl(20 10% 60%);
+  --ac:          hsl(38 85% 50%);
+  --ac2:         hsl(38 85% 42%);
+  --ac-soft:     hsl(38 85% 50% / 0.14);
+  --green:       hsl(150 50% 38%);
+  --green-soft:  hsl(150 50% 38% / 0.12);
+  --rose:        hsl(350 70% 50%);
+  --rose-soft:   hsl(350 70% 50% / 0.12);
+  --amber:       hsl(25 90% 48%);
+  --amber-soft:  hsl(25 90% 48% / 0.12);
+  --glass:       hsl(35 25% 99% / 0.78);
+  --glass-blur:  18px;
+  --border:      hsl(35 20% 85%);
+  --shadow:      hsl(25 30% 20% / 0.08);
+  --shadow-lg:   hsl(25 30% 20% / 0.14);
+  --radius:      16px;
+  --radius-sm:   10px;
+  --radius-lg:   24px;
+  --radius-pill: 100px;
+  --blob-1:      hsl(38 85% 50% / 0.1);
+  --blob-2:      hsl(350 70% 50% / 0.07);
+  --blob-3:      hsl(25 90% 50% / 0.06);
+  --grain-opacity: 0.04;
+}
+
+/* ---- Dark Mode ---- */
+[data-theme="indian"][data-mode="dark"] {
+  --bg:          hsl(25 20% 8%);
+  --bg2:         hsl(25 18% 12%);
+  --bg3:         hsl(25 15% 16%);
+  --fg:          hsl(35 20% 90%);
+  --fg2:         hsl(35 12% 62%);
+  --fg3:         hsl(35 8% 45%);
+  --ac:          hsl(38 80% 58%);
+  --ac2:         hsl(38 80% 68%);
+  --ac-soft:     hsl(38 80% 58% / 0.18);
+  --green:       hsl(150 45% 50%);
+  --green-soft:  hsl(150 45% 50% / 0.15);
+  --rose:        hsl(350 65% 58%);
+  --rose-soft:   hsl(350 65% 58% / 0.15);
+  --amber:       hsl(25 85% 58%);
+  --amber-soft:  hsl(25 85% 58% / 0.15);
+  --glass:       hsl(25 18% 12% / 0.82);
+  --glass-blur:  22px;
+  --border:      hsl(25 15% 22%);
+  --shadow:      hsl(0 0% 0% / 0.25);
+  --shadow-lg:   hsl(0 0% 0% / 0.4);
+  --radius:      16px;
+  --radius-sm:   10px;
+  --radius-lg:   24px;
+  --radius-pill: 100px;
+  --blob-1:      hsl(38 80% 50% / 0.12);
+  --blob-2:      hsl(350 60% 50% / 0.08);
+  --blob-3:      hsl(25 80% 50% / 0.07);
+  --grain-opacity: 0.05;
+}

@@ -1,0 +1,69 @@
+/* ============================================
+   Neutral Theme — Clean, minimal, universal
+   ============================================ */
+
+/* ---- Light Mode ---- */
+[data-theme="neutral"][data-mode="light"] {
+  --bg:          hsl(0 0% 98%);
+  --bg2:         hsl(0 0% 100%);
+  --bg3:         hsl(0 0% 96%);
+  --fg:          hsl(0 0% 10%);
+  --fg2:         hsl(0 0% 40%);
+  --fg3:         hsl(0 0% 60%);
+  --ac:          hsl(250 65% 55%);
+  --ac2:         hsl(250 65% 45%);
+  --ac-soft:     hsl(250 65% 55% / 0.12);
+  --green:       hsl(152 60% 40%);
+  --green-soft:  hsl(152 60% 40% / 0.12);
+  --rose:        hsl(350 70% 55%);
+  --rose-soft:   hsl(350 70% 55% / 0.12);
+  --amber:       hsl(38 90% 50%);
+  --amber-soft:  hsl(38 90% 50% / 0.12);
+  --glass:       hsl(0 0% 100% / 0.72);
+  --glass-blur:  20px;
+  --border:      hsl(0 0% 88%);
+  --shadow:      hsl(0 0% 0% / 0.06);
+  --shadow-lg:   hsl(0 0% 0% / 0.1);
+  --radius:      12px;
+  --radius-sm:   8px;
+  --radius-lg:   20px;
+  --radius-pill: 100px;
+  --blob-1:      hsl(250 65% 55% / 0.08);
+  --blob-2:      hsl(340 60% 55% / 0.06);
+  --blob-3:      hsl(180 50% 50% / 0.05);
+  --grain-opacity: 0.03;
+  --texture-url: none;
+}
+
+/* ---- Dark Mode ---- */
+[data-theme="neutral"][data-mode="dark"] {
+  --bg:          hsl(0 0% 7%);
+  --bg2:         hsl(0 0% 11%);
+  --bg3:         hsl(0 0% 14%);
+  --fg:          hsl(0 0% 92%);
+  --fg2:         hsl(0 0% 65%);
+  --fg3:         hsl(0 0% 45%);
+  --ac:          hsl(250 65% 68%);
+  --ac2:         hsl(250 65% 78%);
+  --ac-soft:     hsl(250 65% 68% / 0.15);
+  --green:       hsl(152 55% 55%);
+  --green-soft:  hsl(152 55% 55% / 0.15);
+  --rose:        hsl(350 65% 62%);
+  --rose-soft:   hsl(350 65% 62% / 0.15);
+  --amber:       hsl(38 85% 60%);
+  --amber-soft:  hsl(38 85% 60% / 0.15);
+  --glass:       hsl(0 0% 11% / 0.78);
+  --glass-blur:  24px;
+  --border:      hsl(0 0% 20%);
+  --shadow:      hsl(0 0% 0% / 0.2);
+  --shadow-lg:   hsl(0 0% 0% / 0.35);
+  --radius:      12px;
+  --radius-sm:   8px;
+  --radius-lg:   20px;
+  --radius-pill: 100px;
+  --blob-1:      hsl(250 65% 55% / 0.1);
+  --blob-2:      hsl(340 60% 55% / 0.08);
+  --blob-3:      hsl(180 50% 50% / 0.06);
+  --grain-opacity: 0.04;
+  --texture-url: none;
+}

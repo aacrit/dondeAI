@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="neutral" data-mode="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="description" content="DondeAI — AI-powered restaurant recommendations for Chicago. Tell us what you're craving.">
+  <meta name="theme-color" content="#6c5ce7">
+  <title>DondeAI — Find Your Spot</title>
+
+  <!-- CSS: Load order matters -->
+  <link rel="stylesheet" href="css/reset.css">
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/themes/neutral.css">
+  <link rel="stylesheet" href="css/themes/indian.css">
+  <link rel="stylesheet" href="css/themes/nepalese.css">
+  <link rel="stylesheet" href="css/themes/japanese.css">
+  <link rel="stylesheet" href="css/themes/african.css">
+  <link rel="stylesheet" href="css/themes/southamerican.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/typography.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/animations.css">
+  <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+  <!-- Skip Navigation -->
+  <a href="#main-content" class="skip-nav type-structural">Skip to main content</a>
+
+  <!-- Offline Banner -->
+  <div class="offline-banner" role="alert" aria-live="assertive">
+    You're offline — reconnect to get recommendations.
+  </div>
+
+  <div class="app">
+    <!-- Ambient Background Layer -->
+    <div class="ambient" aria-hidden="true">
+      <div class="ambient__blob ambient__blob--1"></div>
+      <div class="ambient__blob ambient__blob--2"></div>
+      <div class="ambient__blob ambient__blob--3"></div>
+      <div class="ambient__grain"></div>
+    </div>
+
+    <!-- Header -->
+    <header class="header">
+      <button class="header__logo" data-action="reset" aria-label="DondeAI — start over">
+        DondeAI
+      </button>
+      <div class="header__actions">
+        <button class="header__btn" data-action="toggle-sound" aria-label="Toggle sound" title="Sound">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <path class="sound-wave" d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+          </svg>
+        </button>
+        <button class="header__btn" data-action="open-themes" aria-label="Change theme" title="Themes">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Back Button -->
+    <button class="back-btn" data-action="back" aria-label="Go back">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="19" y1="12" x2="5" y2="12"></line>
+        <polyline points="12 19 5 12 12 5"></polyline>
+      </svg>
+    </button>
+
+    <!-- Main Sliding Cockpit -->
+    <main id="main-content" class="cockpit" role="main">
+      <!-- Screen reader step announcements -->
+      <div class="sr-only" aria-live="polite" id="step-announce"></div>
+
+      <div class="step-track">
+
+        <!-- ========== STEP 0: Landing ========== -->
+        <section class="step" data-step="0" aria-label="What are you craving?">
+          <div class="step__inner stagger-in">
+            <h1 class="step__title type-emotional--xl" data-label="greeting">
+              Good evening, what sounds good?
+            </h1>
+
+            <div class="craving-wrap">
+              <input
+                type="text"
+                class="craving-input"
+                id="craving-input"
+                data-label="placeholder"
+                placeholder="cozy ramen with killer sake..."
+                autocomplete="off"
+                aria-label="What are you craving?"
+              >
+              <button class="craving-voice-btn" data-action="voice" aria-label="Voice input" hidden>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                  <line x1="12" y1="19" x2="12" y2="23"></line>
+                  <line x1="8" y1="23" x2="16" y2="23"></line>
+                </svg>
+              </button>
+            </div>
+
+            <button class="advance-btn type-structural" data-action="advance-craving" data-label="cta">
+              Next
+            </button>
+
+            <div class="smart-chips" aria-label="Quick suggestions">
+              <button class="smart-chip type-structural" data-action="smart-chip" data-value="outdoor seating">outdoor seating</button>
+              <button class="smart-chip type-structural" data-action="smart-chip" data-value="live music">live music</button>
+              <button class="smart-chip type-structural" data-action="smart-chip" data-value="pet friendly">pet friendly</button>
+              <button class="smart-chip type-structural" data-action="smart-chip" data-value="great cocktails">great cocktails</button>
+              <button class="smart-chip type-structural" data-action="smart-chip" data-value="hidden gem">hidden gem</button>
+            </div>
+
+            <div class="quick-picks" aria-label="Quick picks">
+              <button class="quick-pick" data-action="quick-pick" data-value="Brunch">
+                <span class="quick-pick__emoji">🥞</span>
+                <span class="quick-pick__label type-structural">Brunch</span>
+              </button>
+              <button class="quick-pick" data-action="quick-pick" data-value="Coffee">
+                <span class="quick-pick__emoji">☕</span>
+                <span class="quick-pick__label type-structural">Coffee</span>
+              </button>
+              <button class="quick-pick" data-action="quick-pick" data-value="Date Night">
+                <span class="quick-pick__emoji">🕯️</span>
+                <span class="quick-pick__label type-structural">Date Night</span>
+              </button>
+              <button class="quick-pick" data-action="quick-pick" data-value="Surprise me!">
+                <span class="quick-pick__emoji">🎲</span>
+                <span class="quick-pick__label type-structural">Surprise Me</span>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ========== STEP 1: Occasion / Vibe ========== -->
+        <section class="step" data-step="1" aria-hidden="true" aria-label="Choose the vibe">
+          <div class="step__inner stagger-in">
+            <h2 class="step__title type-emotional--lg" data-label="vibe">
+              What's the vibe?
+            </h2>
+            <p class="step__subtitle type-structural">Pick one or skip — your call.</p>
+
+            <div class="chip-grid" role="radiogroup" aria-label="Occasion">
+              <button class="chip type-structural" role="radio" aria-checked="false" data-action="select-occasion" data-value="Date Night">
+                <span class="chip__icon">🕯️</span> Date Night
+              </button>
+              <button class="chip type-structural" role="radio" aria-checked="false" data-action="select-occasion" data-value="Group Hangout">
+                <span class="chip__icon">👯</span> Group Hangout
+              </button>
+              <button class="chip type-structural" role="radio" aria-checked="false" data-action="select-occasion" data-value="Family Dinner">
+                <span class="chip__icon">👨‍👩‍👧‍👦</span> Family Dinner
+              </button>
+              <button class="chip type-structural" role="radio" aria-checked="false" data-action="select-occasion" data-value="Business Lunch">
+                <span class="chip__icon">💼</span> Business Lunch
+              </button>
+              <button class="chip type-structural" role="radio" aria-checked="false" data-action="select-occasion" data-value="Solo Dining">
+                <span class="chip__icon">🧘</span> Solo Dining
+              </button>
+              <button class="chip type-structural" role="radio" aria-checked="false" data-action="select-occasion" data-value="Special Occasion">
+                <span class="chip__icon">🎉</span> Special Occasion
+              </button>
+              <button class="chip type-structural" role="radio" aria-checked="false" data-action="select-occasion" data-value="Treat Myself">
+                <span class="chip__icon">💅</span> Treat Myself
+              </button>
+              <button class="chip type-structural" role="radio" aria-checked="false" data-action="select-occasion" data-value="Adventure">
+                <span class="chip__icon">🗺️</span> Adventure
+              </button>
+              <button class="chip type-structural" role="radio" aria-checked="false" data-action="select-occasion" data-value="Chill Hangout">
+                <span class="chip__icon">😌</span> Chill Hangout
+              </button>
+            </div>
+
+            <button class="skip-btn type-structural" data-action="skip" aria-label="Skip occasion selection">
+              Skip →
+            </button>
+          </div>
+        </section>
+
+        <!-- ========== STEP 2: Neighborhood ========== -->
+        <section class="step" data-step="2" aria-hidden="true" aria-label="Choose a neighborhood">
+          <div class="step__inner stagger-in">
+            <h2 class="step__title type-emotional--lg" data-label="hood">
+              Where are you headed?
+            </h2>
+            <p class="step__subtitle type-structural">Pick a hood or keep it open.</p>
+
+            <div class="chip-grid" role="radiogroup" aria-label="Neighborhood">
+              <button class="chip type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Anywhere">
+                <span class="chip__icon">🌍</span> Anywhere
+              </button>
+              <button class="chip type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Pilsen">
+                <span class="chip__icon">🎨</span> Pilsen
+              </button>
+              <button class="chip type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Wicker Park">
+                <span class="chip__icon">🎸</span> Wicker Park
+              </button>
+              <button class="chip type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Logan Square">
+                <span class="chip__icon">🍻</span> Logan Square
+              </button>
+              <button class="chip type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Lincoln Park">
+                <span class="chip__icon">🌳</span> Lincoln Park
+              </button>
+              <button class="chip type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="West Loop">
+                <span class="chip__icon">🍽️</span> West Loop
+              </button>
+              <button class="chip type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Bucktown">
+                <span class="chip__icon">🏘️</span> Bucktown
+              </button>
+              <button class="chip type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Hyde Park">
+                <span class="chip__icon">📚</span> Hyde Park
+              </button>
+              <button class="chip type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Chinatown">
+                <span class="chip__icon">🏮</span> Chinatown
+              </button>
+              <button class="chip type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Little Italy">
+                <span class="chip__icon">🍝</span> Little Italy
+              </button>
+              <button class="chip type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Andersonville">
+                <span class="chip__icon">☕</span> Andersonville
+              </button>
+              <button class="chip type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="River North">
+                <span class="chip__icon">🌃</span> River North
+              </button>
+              <button class="chip type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Old Town">
+                <span class="chip__icon">🎭</span> Old Town
+              </button>
+              <button class="chip type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Lakeview">
+                <span class="chip__icon">🌅</span> Lakeview
+              </button>
+              <button class="chip type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Fulton Market">
+                <span class="chip__icon">🏗️</span> Fulton Market
+              </button>
+            </div>
+
+            <button class="skip-btn type-structural" data-action="skip" aria-label="Skip neighborhood selection">
+              Skip →
+            </button>
+          </div>
+        </section>
+
+        <!-- ========== STEP 3: Budget ========== -->
+        <section class="step" data-step="3" aria-hidden="true" aria-label="Choose your budget">
+          <div class="step__inner stagger-in">
+            <h2 class="step__title type-emotional--lg">
+              What's the budget?
+            </h2>
+            <p class="step__subtitle type-structural">No wrong answer here.</p>
+
+            <div class="chip-grid" role="radiogroup" aria-label="Budget" style="max-width: 400px;">
+              <button class="chip type-structural" role="radio" aria-checked="false" data-action="select-budget" data-value="Any">
+                🤷 Any
+              </button>
+              <button class="chip type-structural" role="radio" aria-checked="false" data-action="select-budget" data-value="$">
+                💵 Budget
+              </button>
+              <button class="chip type-structural" role="radio" aria-checked="false" data-action="select-budget" data-value="$$">
+                💰 Mid
+              </button>
+              <button class="chip type-structural" role="radio" aria-checked="false" data-action="select-budget" data-value="$$$">
+                💎 Upscale
+              </button>
+              <button class="chip type-structural" role="radio" aria-checked="false" data-action="select-budget" data-value="$$$$">
+                👑 Splurge
+              </button>
+            </div>
+
+            <button class="skip-btn type-structural" data-action="skip" aria-label="Skip budget selection">
+              Skip →
+            </button>
+          </div>
+        </section>
+
+        <!-- ========== STEP 4: Review ========== -->
+        <section class="step" data-step="4" aria-hidden="true" aria-label="Review your selections">
+          <div class="step__inner stagger-in">
+            <h2 class="step__title type-emotional--lg">
+              Looking good?
+            </h2>
+            <p class="step__subtitle type-structural">Tap any to change. Hit go when ready.</p>
+
+            <div class="review-list">
+              <button class="review-item" data-action="review-edit" data-target="0">
+                <div>
+                  <div class="review-item__label type-data--sm">Craving</div>
+                  <div class="review-item__value type-structural" id="review-craving">—</div>
+                </div>
+                <span class="review-item__arrow">→</span>
+              </button>
+              <button class="review-item" data-action="review-edit" data-target="1">
+                <div>
+                  <div class="review-item__label type-data--sm">Vibe</div>
+                  <div class="review-item__value type-structural" id="review-occasion">Any</div>
+                </div>
+                <span class="review-item__arrow">→</span>
+              </button>
+              <button class="review-item" data-action="review-edit" data-target="2">
+                <div>
+                  <div class="review-item__label type-data--sm">Hood</div>
+                  <div class="review-item__value type-structural" id="review-neighborhood">Anywhere</div>
+                </div>
+                <span class="review-item__arrow">→</span>
+              </button>
+              <button class="review-item" data-action="review-edit" data-target="3">
+                <div>
+                  <div class="review-item__label type-data--sm">Budget</div>
+                  <div class="review-item__value type-structural" id="review-budget">Any</div>
+                </div>
+                <span class="review-item__arrow">→</span>
+              </button>
+            </div>
+
+            <p class="hint type-structural" id="review-hint">Tell us what you're craving first!</p>
+
+            <button class="cta-btn type-structural--bold" data-action="submit" data-label="cta">
+              Find My Spot
+            </button>
+          </div>
+        </section>
+
+        <!-- ========== STEP 5: Result ========== -->
+        <section class="step" data-step="5" aria-hidden="true" aria-label="Your recommendation">
+          <div class="step__inner" id="result-container">
+            <!-- Loading State -->
+            <div class="loading-state" id="loading-state" style="display: flex; flex-direction: column; align-items: center; gap: var(--space-lg);">
+              <canvas class="particle-canvas" id="particle-canvas" aria-hidden="true"></canvas>
+              <div class="spinner"></div>
+              <p class="type-emotional" style="color: var(--fg2);">Finding your perfect spot...</p>
+            </div>
+
+            <!-- Result Card (populated by JS) -->
+            <div class="result-card card-enter" id="result-card" style="display: none;">
+              <!-- Cuisine Badge -->
+              <div class="result-cuisine-badge type-data" id="result-cuisine-badge">
+                <span id="result-emoji">🍽️</span>
+                <span id="result-cuisine-label"></span>
+              </div>
+
+              <!-- Header -->
+              <div class="result-header">
+                <h2 class="result-name type-emotional--lg" id="result-name"></h2>
+                <p class="result-oneliner type-structural" id="result-oneliner"></p>
+              </div>
+
+              <!-- Score Section -->
+              <div class="score-section">
+                <div class="score-ring-wrap">
+                  <svg class="score-ring" viewBox="0 0 100 100">
+                    <circle class="score-ring__bg" cx="50" cy="50" r="45"></circle>
+                    <circle class="score-ring__fill" id="score-ring-fill" cx="50" cy="50" r="45"></circle>
+                  </svg>
+                  <div class="score-ring__number">
+                    <span class="type-data--lg" id="score-number">0</span>
+                  </div>
+                </div>
+                <div class="score-meta">
+                  <span class="score-verdict type-structural--bold" id="score-verdict"></span>
+                  <span class="type-data--sm">DondeAI Score</span>
+                  <div class="google-rating" id="google-rating">
+                    <div class="google-stars" id="google-stars"></div>
+                    <span class="type-data" id="google-rating-num"></span>
+                    <span class="google-count type-data--sm" id="google-count"></span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Recommendation -->
+              <p class="result-recommendation type-structural" id="result-recommendation"></p>
+
+              <!-- Insider Tip -->
+              <div class="insider-tip" id="insider-tip" style="display: none;">
+                <div class="insider-tip__label type-data--sm">Insider Tip</div>
+                <p class="insider-tip__text type-structural" id="insider-tip-text"></p>
+              </div>
+
+              <!-- Radar Chart -->
+              <div class="radar-wrap" id="radar-wrap" style="display: none;">
+                <svg id="radar-svg" viewBox="0 0 200 200"></svg>
+              </div>
+
+              <!-- Info Grid -->
+              <div class="info-grid" id="info-grid"></div>
+
+              <!-- Atmosphere Tags -->
+              <div class="atmosphere-tags" id="atmosphere-tags"></div>
+
+              <!-- Tags Cloud -->
+              <div class="tags-cloud" id="tags-cloud"></div>
+
+              <!-- Sentiment Bar -->
+              <div id="sentiment-section" style="display: none;">
+                <div class="type-data--sm" style="margin-bottom: var(--space-xs);">Sentiment</div>
+                <div class="sentiment-bar">
+                  <div class="sentiment-bar__pos" id="sentiment-pos"></div>
+                  <div class="sentiment-bar__neu" id="sentiment-neu"></div>
+                  <div class="sentiment-bar__neg" id="sentiment-neg"></div>
+                </div>
+              </div>
+
+              <!-- Action Buttons -->
+              <div class="action-btns" id="action-btns"></div>
+
+              <!-- Result Footer: Try Again / Start Over -->
+              <div class="result-actions">
+                <button class="cta-btn type-structural--bold" data-action="try-again" data-label="again">
+                  Try Another
+                </button>
+                <button class="cta-btn cta-btn--secondary type-structural" data-action="reset">
+                  Start Over
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div><!-- /step-track -->
+    </main>
+
+    <!-- Theme Picker Modal -->
+    <div class="theme-picker" id="theme-picker" role="dialog" aria-label="Choose a theme" aria-modal="true">
+      <div class="theme-picker__backdrop" data-action="close-themes"></div>
+      <div class="theme-picker__sheet">
+        <div class="theme-picker__header">
+          <h3 class="theme-picker__title type-emotional">Choose Your Vibe</h3>
+          <button class="theme-picker__close" data-action="close-themes" aria-label="Close theme picker">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+
+        <div class="theme-grid" role="radiogroup" aria-label="Cultural theme">
+          <button class="theme-card" role="radio" aria-checked="true" data-action="select-theme" data-theme="neutral">
+            <div class="theme-card__swatches">
+              <span class="theme-card__swatch" style="background: hsl(250 65% 55%)"></span>
+              <span class="theme-card__swatch" style="background: hsl(0 0% 98%)"></span>
+              <span class="theme-card__swatch" style="background: hsl(0 0% 10%)"></span>
+            </div>
+            <span class="theme-card__name type-structural">Neutral</span>
+            <span class="theme-card__desc type-data--sm">Clean &amp; universal</span>
+          </button>
+
+          <button class="theme-card" role="radio" aria-checked="false" data-action="select-theme" data-theme="indian">
+            <div class="theme-card__swatches">
+              <span class="theme-card__swatch" style="background: hsl(38 85% 55%)"></span>
+              <span class="theme-card__swatch" style="background: hsl(350 70% 50%)"></span>
+              <span class="theme-card__swatch" style="background: hsl(25 90% 45%)"></span>
+            </div>
+            <span class="theme-card__name type-structural">Indian</span>
+            <span class="theme-card__desc type-data--sm">Marigold warmth</span>
+          </button>
+
+          <button class="theme-card" role="radio" aria-checked="false" data-action="select-theme" data-theme="nepalese">
+            <div class="theme-card__swatches">
+              <span class="theme-card__swatch" style="background: hsl(210 50% 50%)"></span>
+              <span class="theme-card__swatch" style="background: hsl(350 60% 50%)"></span>
+              <span class="theme-card__swatch" style="background: hsl(45 70% 55%)"></span>
+            </div>
+            <span class="theme-card__name type-structural">Nepalese</span>
+            <span class="theme-card__desc type-data--sm">Mountain earth</span>
+          </button>
+
+          <button class="theme-card" role="radio" aria-checked="false" data-action="select-theme" data-theme="japanese">
+            <div class="theme-card__swatches">
+              <span class="theme-card__swatch" style="background: hsl(340 45% 55%)"></span>
+              <span class="theme-card__swatch" style="background: hsl(40 20% 96%)"></span>
+              <span class="theme-card__swatch" style="background: hsl(200 15% 25%)"></span>
+            </div>
+            <span class="theme-card__name type-structural">Japanese</span>
+            <span class="theme-card__desc type-data--sm">Ink wash restraint</span>
+          </button>
+
+          <button class="theme-card" role="radio" aria-checked="false" data-action="select-theme" data-theme="african">
+            <div class="theme-card__swatches">
+              <span class="theme-card__swatch" style="background: hsl(35 80% 50%)"></span>
+              <span class="theme-card__swatch" style="background: hsl(150 45% 35%)"></span>
+              <span class="theme-card__swatch" style="background: hsl(0 65% 45%)"></span>
+            </div>
+            <span class="theme-card__name type-structural">African</span>
+            <span class="theme-card__desc type-data--sm">Bold earth tones</span>
+          </button>
+
+          <button class="theme-card" role="radio" aria-checked="false" data-action="select-theme" data-theme="southamerican">
+            <div class="theme-card__swatches">
+              <span class="theme-card__swatch" style="background: hsl(350 80% 55%)"></span>
+              <span class="theme-card__swatch" style="background: hsl(170 65% 45%)"></span>
+              <span class="theme-card__swatch" style="background: hsl(45 90% 55%)"></span>
+            </div>
+            <span class="theme-card__name type-structural">Latin</span>
+            <span class="theme-card__desc type-data--sm">Tropical fiesta</span>
+          </button>
+        </div>
+
+        <div class="mode-toggle">
+          <button class="mode-toggle__btn mode-toggle__btn--active type-structural" data-action="set-mode" data-mode="light">
+            ☀️ Light
+          </button>
+          <button class="mode-toggle__btn type-structural" data-action="set-mode" data-mode="dark">
+            🌙 Dark
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Share Sheet Modal -->
+    <div class="share-sheet" id="share-sheet" role="dialog" aria-label="Share recommendation" aria-modal="true">
+      <div class="share-sheet__backdrop" data-action="close-share"></div>
+      <div class="share-sheet__panel">
+        <h3 class="type-emotional" style="margin-bottom: var(--space-md);">Share This Spot</h3>
+        <div class="share-grid">
+          <button class="share-btn" data-action="share-channel" data-channel="clipboard">
+            <span class="share-btn__icon" style="background: var(--bg3);">📋</span>
+            <span class="share-btn__label type-structural">Copy</span>
+          </button>
+          <button class="share-btn" data-action="share-channel" data-channel="whatsapp">
+            <span class="share-btn__icon" style="background: hsl(142 70% 49% / 0.15);">💬</span>
+            <span class="share-btn__label type-structural">WhatsApp</span>
+          </button>
+          <button class="share-btn" data-action="share-channel" data-channel="sms">
+            <span class="share-btn__icon" style="background: hsl(210 60% 50% / 0.15);">💌</span>
+            <span class="share-btn__label type-structural">SMS</span>
+          </button>
+          <button class="share-btn" data-action="share-channel" data-channel="x">
+            <span class="share-btn__icon" style="background: var(--bg3);">𝕏</span>
+            <span class="share-btn__label type-structural">X</span>
+          </button>
+          <button class="share-btn" data-action="share-channel" data-channel="email">
+            <span class="share-btn__icon" style="background: hsl(210 50% 50% / 0.15);">✉️</span>
+            <span class="share-btn__label type-structural">Email</span>
+          </button>
+          <button class="share-btn" data-action="share-channel" data-channel="telegram">
+            <span class="share-btn__icon" style="background: hsl(200 70% 50% / 0.15);">✈️</span>
+            <span class="share-btn__label type-structural">Telegram</span>
+          </button>
+          <button class="share-btn" data-action="share-channel" data-channel="facebook">
+            <span class="share-btn__icon" style="background: hsl(220 60% 50% / 0.15);">👤</span>
+            <span class="share-btn__label type-structural">Facebook</span>
+          </button>
+          <button class="share-btn" data-action="share-channel" data-channel="imessage">
+            <span class="share-btn__icon" style="background: hsl(210 70% 50% / 0.15);">💬</span>
+            <span class="share-btn__label type-structural">iMessage</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast" role="status" aria-live="polite">
+      <span class="toast__text type-structural" id="toast-text"></span>
+    </div>
+
+  </div><!-- /app -->
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

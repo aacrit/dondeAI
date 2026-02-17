@@ -1,0 +1,68 @@
+/* ============================================
+   South American / Puerto Rican Theme
+   Tropical vivid, fiesta energy, hand-painted tiles
+   ============================================ */
+
+/* ---- Light Mode ---- */
+[data-theme="southamerican"][data-mode="light"] {
+  --bg:          hsl(45 25% 96%);
+  --bg2:         hsl(45 20% 99%);
+  --bg3:         hsl(45 15% 92%);
+  --fg:          hsl(340 25% 12%);
+  --fg2:         hsl(340 10% 38%);
+  --fg3:         hsl(340 6% 55%);
+  --ac:          hsl(350 80% 52%);
+  --ac2:         hsl(350 80% 44%);
+  --ac-soft:     hsl(350 80% 52% / 0.14);
+  --green:       hsl(170 55% 38%);
+  --green-soft:  hsl(170 55% 38% / 0.12);
+  --rose:        hsl(340 65% 50%);
+  --rose-soft:   hsl(340 65% 50% / 0.12);
+  --amber:       hsl(45 90% 50%);
+  --amber-soft:  hsl(45 90% 50% / 0.12);
+  --glass:       hsl(45 20% 99% / 0.74);
+  --glass-blur:  20px;
+  --border:      hsl(45 15% 84%);
+  --shadow:      hsl(340 15% 20% / 0.08);
+  --shadow-lg:   hsl(340 15% 20% / 0.14);
+  --radius:      18px;
+  --radius-sm:   12px;
+  --radius-lg:   28px;
+  --radius-pill: 100px;
+  --blob-1:      hsl(350 75% 52% / 0.1);
+  --blob-2:      hsl(170 50% 45% / 0.07);
+  --blob-3:      hsl(45 85% 50% / 0.06);
+  --grain-opacity: 0.03;
+}
+
+/* ---- Dark Mode ---- */
+[data-theme="southamerican"][data-mode="dark"] {
+  --bg:          hsl(340 12% 7%);
+  --bg2:         hsl(340 10% 11%);
+  --bg3:         hsl(340 8% 15%);
+  --fg:          hsl(45 18% 90%);
+  --fg2:         hsl(45 10% 62%);
+  --fg3:         hsl(45 6% 42%);
+  --ac:          hsl(350 75% 60%);
+  --ac2:         hsl(350 75% 70%);
+  --ac-soft:     hsl(350 75% 60% / 0.18);
+  --green:       hsl(170 50% 48%);
+  --green-soft:  hsl(170 50% 48% / 0.15);
+  --rose:        hsl(340 60% 58%);
+  --rose-soft:   hsl(340 60% 58% / 0.15);
+  --amber:       hsl(45 85% 58%);
+  --amber-soft:  hsl(45 85% 58% / 0.15);
+  --glass:       hsl(340 10% 11% / 0.82);
+  --glass-blur:  24px;
+  --border:      hsl(340 8% 20%);
+  --shadow:      hsl(0 0% 0% / 0.25);
+  --shadow-lg:   hsl(0 0% 0% / 0.4);
+  --radius:      18px;
+  --radius-sm:   12px;
+  --radius-lg:   28px;
+  --radius-pill: 100px;
+  --blob-1:      hsl(350 70% 52% / 0.12);
+  --blob-2:      hsl(170 45% 45% / 0.08);
+  --blob-3:      hsl(45 80% 50% / 0.07);
+  --grain-opacity: 0.045;
+}

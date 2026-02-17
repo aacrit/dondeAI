@@ -1,0 +1,68 @@
+/* ============================================
+   African / Black American Theme
+   Kente geometry, warm earth, Afrofuturist energy
+   ============================================ */
+
+/* ---- Light Mode ---- */
+[data-theme="african"][data-mode="light"] {
+  --bg:          hsl(30 18% 95%);
+  --bg2:         hsl(30 14% 98%);
+  --bg3:         hsl(30 12% 91%);
+  --fg:          hsl(20 25% 12%);
+  --fg2:         hsl(20 12% 38%);
+  --fg3:         hsl(20 8% 55%);
+  --ac:          hsl(35 80% 48%);
+  --ac2:         hsl(35 80% 40%);
+  --ac-soft:     hsl(35 80% 48% / 0.14);
+  --green:       hsl(150 45% 35%);
+  --green-soft:  hsl(150 45% 35% / 0.12);
+  --rose:        hsl(0 65% 48%);
+  --rose-soft:   hsl(0 65% 48% / 0.12);
+  --amber:       hsl(40 85% 50%);
+  --amber-soft:  hsl(40 85% 50% / 0.12);
+  --glass:       hsl(30 14% 98% / 0.76);
+  --glass-blur:  18px;
+  --border:      hsl(30 12% 82%);
+  --shadow:      hsl(20 20% 15% / 0.1);
+  --shadow-lg:   hsl(20 20% 15% / 0.18);
+  --radius:      14px;
+  --radius-sm:   8px;
+  --radius-lg:   22px;
+  --radius-pill: 100px;
+  --blob-1:      hsl(35 80% 48% / 0.1);
+  --blob-2:      hsl(150 40% 40% / 0.07);
+  --blob-3:      hsl(0 60% 48% / 0.06);
+  --grain-opacity: 0.04;
+}
+
+/* ---- Dark Mode ---- */
+[data-theme="african"][data-mode="dark"] {
+  --bg:          hsl(20 15% 7%);
+  --bg2:         hsl(20 12% 11%);
+  --bg3:         hsl(20 10% 15%);
+  --fg:          hsl(30 15% 90%);
+  --fg2:         hsl(30 8% 62%);
+  --fg3:         hsl(30 5% 42%);
+  --ac:          hsl(35 75% 58%);
+  --ac2:         hsl(35 75% 68%);
+  --ac-soft:     hsl(35 75% 58% / 0.18);
+  --green:       hsl(150 40% 48%);
+  --green-soft:  hsl(150 40% 48% / 0.15);
+  --rose:        hsl(0 60% 55%);
+  --rose-soft:   hsl(0 60% 55% / 0.15);
+  --amber:       hsl(40 80% 58%);
+  --amber-soft:  hsl(40 80% 58% / 0.15);
+  --glass:       hsl(20 12% 11% / 0.82);
+  --glass-blur:  22px;
+  --border:      hsl(20 10% 20%);
+  --shadow:      hsl(0 0% 0% / 0.28);
+  --shadow-lg:   hsl(0 0% 0% / 0.42);
+  --radius:      14px;
+  --radius-sm:   8px;
+  --radius-lg:   22px;
+  --radius-pill: 100px;
+  --blob-1:      hsl(35 70% 50% / 0.12);
+  --blob-2:      hsl(150 35% 40% / 0.08);
+  --blob-3:      hsl(0 55% 48% / 0.07);
+  --grain-opacity: 0.05;
+}
