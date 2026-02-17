@@ -201,6 +201,12 @@
   50%      { transform: scale(1.4); opacity: 0.6; }
 }
 
+/* ---- Logo Dot Breathe (ambient life at rest) ---- */
+@keyframes logoDotBreathe {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.6; }
+}
+
 /* ---- Pin Draw-In (loading — stroke then fill) ---- */
 @keyframes pinDraw {
   from { stroke-dashoffset: 80; fill: transparent; }
@@ -284,6 +290,40 @@
   }
 }
 
+/* ---- Tile Reveal (score tiles stagger) ---- */
+@keyframes tileRevealIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(-2px) scale(1.01);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ---- Ink Reveal (restaurant name left-to-right) ---- */
+@keyframes inkReveal {
+  from { clip-path: inset(0 100% 0 0); }
+  to   { clip-path: inset(0 0 0 0); }
+}
+
+/* ---- Slide Settle In (oneliner from right) ---- */
+@keyframes slideSettleIn {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ---- Border Draw Down (insider tip amber border) ---- */
+@keyframes borderDrawDown {
+  from { border-image: linear-gradient(to bottom, var(--amber) 0%, transparent 0%) 1; }
+  to   { border-image: linear-gradient(to bottom, var(--amber) 100%, transparent 100%) 1; }
+}
+
 /* ---- Reduced Motion: Gentle fallback (100ms linear, not 0ms) ---- */
 @media (prefers-reduced-motion: reduce) {
   .stagger-in > *,
@@ -296,8 +336,12 @@
   .logo-mark--loading .logo-mark__pin--draw,
   .logo-mark--loading .logo-mark__tine--draw,
   .logo-mark--loading .logo-mark__dot--pulse,
+  .logo-mark__dot,
   .loading-logo__text,
-  .result-card--revealing > * {
+  .result-card--revealing > *,
+  .result-card--revealing .score-tile,
+  .result-card--revealing .result-name,
+  .result-card--revealing .result-oneliner {
     animation-duration: 100ms !important;
     animation-timing-function: linear !important;
     opacity: 1;

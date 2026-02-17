@@ -31,7 +31,7 @@ Every text element must use exactly one of these three voices:
 
 | Voice | Role | Feel | CSS Class |
 |---|---|---|---|
-| **Emotional** | Prompts, greetings, headings | Handwritten serif/italic — like a pen on fine paper | `.type-emotional` |
+| **Emotional** | Prompts, greetings, headings | Upright serif — confident penmanship on fine paper | `.type-emotional` |
 | **Structural** | Buttons, labels, navigation | Geometric sans — authoritative, clean | `.type-structural` |
 | **Data** | Scores, tags, badges, metadata | Monospace — annotated blueprint measurements | `.type-data` |
 
@@ -156,6 +156,19 @@ Follow this checklist for every component you create or review:
 4. Orbit dot slides to final position on ring
 5. Verdict label fades in ("Outstanding", "Excellent", "Solid Pick", "Worth a Try", "Adventurous")
 
+### Google Rating Animation Sequence
+1. Rating number counts from 0.0 to target (eased cubic-out, 1000ms)
+2. Stars already rendered as static SVGs (instant)
+3. Review count fades in alongside
+
+### Score Tiles Layout
+Three equal glass tiles in a grid: DondeAI Score | Radar Chart | Google Rating.
+- Grid: `repeat(3, 1fr)` on desktop, `repeat(2, 1fr)` on tablet (radar spans full width), `1fr` on mobile
+- Each tile: glass background, border, centered vertical flex
+- Price badge embedded in Score tile; Noise badge in Google Rating tile
+- When radar has <3 dimensions: hide radar tile, switch to 2-column
+- Staggered tile entrance: 200ms, 280ms, 360ms delays
+
 ### Particle Loading Sequence
 1. Random particles spawn across viewport (200-300 particles)
 2. Particles drift with gentle Brownian motion (1s)
@@ -276,7 +289,7 @@ function springTranslate(el, targetX, duration = 450) {
 ## When Reviewing Code
 
 Ask yourself:
-1. Does this feel like **ink on paper** or like a generic web form?
+1. Does this feel like **confident penmanship** or like a generic web form?
 2. Would this transition feel at home in **Arc Browser**?
 3. Does the typography carry the hierarchy, or is there unnecessary visual chrome?
 4. Is there **exactly one decision per frame**, or are we cramming?

@@ -14,7 +14,7 @@ import { initShare, shareResult, closeShareSheet, handleShareChannel } from './s
 import { initOffline, isOnline } from './offline.js';
 import { initAccessibility, announce } from './accessibility.js';
 import { fetchRecommendation } from './api.js';
-import { animateScoreRing, renderRadar, startParticles, stopParticles, chaosToOrderReveal, initLogoAnimation, animateLogoToCenter } from './animations.js';
+import { animateScoreRing, renderRadar, animateGoogleRating, animateBadge, startParticles, stopParticles, chaosToOrderReveal, initLogoAnimation, animateLogoToCenter } from './animations.js';
 import {
   getGreeting, getCuisineFromResult, svgIcon,
   getScoreTier, getScoreColor, buildGoogleStars, buildMapsUrl, relativeTime, matchCuisine
@@ -525,27 +525,80 @@ function renderResult(data) {
     chaosToOrderReveal($rec, data.recommendation || '');
   }
 
-  // Score (integer)
+  // ---- Score Tile (DondeAI Score) ----
   const tier = getScoreTier(data.donde_score);
   const $verdict = document.getElementById('score-verdict');
-  const $scoreSection = document.querySelector('.score-section');
+  const $scoreTileDonde = document.getElementById('score-tile-donde');
   const $percentile = document.getElementById('score-percentile');
   if ($verdict) {
     $verdict.textContent = tier.verdict;
     $verdict.className = `score-verdict type-structural--bold ${tier.cssClass}`;
   }
-  if ($scoreSection) $scoreSection.setAttribute('data-tier', tier.tier);
+  if ($scoreTileDonde) $scoreTileDonde.setAttribute('data-tier', tier.tier);
   if ($percentile) $percentile.textContent = `Top ${Math.round((tier.integer / 10) * 100)}%`;
-  animateScoreRing(data.donde_score);
+  // Delay score ring to after tile entrance
+  setTimeout(() => animateScoreRing(data.donde_score), 400);
 
-  // Google rating (SVG stars)
+  // ---- Google Rating Tile ----
   const $googleStars = document.getElementById('google-stars');
   const $googleNum = document.getElementById('google-rating-num');
   const $googleCount = document.getElementById('google-count');
+  const $scoreTileGoogle = document.getElementById('score-tile-google');
   if (r.google_rating) {
     if ($googleStars) $googleStars.innerHTML = buildGoogleStars(r.google_rating);
-    if ($googleNum) $googleNum.textContent = parseFloat(r.google_rating).toFixed(1);
     if ($googleCount) $googleCount.textContent = r.google_review_count ? `(${r.google_review_count})` : '';
+    if ($scoreTileGoogle) $scoreTileGoogle.style.display = '';
+    // Animate count-up after tile entrance
+    setTimeout(() => animateGoogleRating(r.google_rating), 500);
+  } else {
+    if ($scoreTileGoogle) $scoreTileGoogle.style.display = 'none';
+  }
+
+  // ---- Radar Tile ----
+  const $scoreTileRadar = document.getElementById('score-tile-radar');
+  if (data.scores) {
+    renderRadar(data.scores, r);
+    // Show tile if radar rendered (renderRadar sets radar-wrap display)
+    const radarWrap = document.getElementById('radar-wrap');
+    if (radarWrap && radarWrap.style.display !== 'none') {
+      if ($scoreTileRadar) $scoreTileRadar.style.display = '';
+    } else {
+      if ($scoreTileRadar) $scoreTileRadar.style.display = 'none';
+    }
+  } else {
+    if ($scoreTileRadar) $scoreTileRadar.style.display = 'none';
+  }
+
+  // ---- Grid column count based on visible tiles ----
+  const $scoreTiles = document.getElementById('score-tiles');
+  const visibleTiles = [
+    $scoreTileDonde,
+    $scoreTileRadar?.style.display !== 'none' ? $scoreTileRadar : null,
+    $scoreTileGoogle?.style.display !== 'none' ? $scoreTileGoogle : null,
+  ].filter(Boolean).length;
+  if ($scoreTiles) {
+    $scoreTiles.classList.toggle('score-tiles--two-col', visibleTiles === 2);
+  }
+
+  // ---- Price Badge (inside DondeAI Score tile) ----
+  if (r.price_level) {
+    const $priceBadge = document.getElementById('price-badge');
+    const $priceIcon = document.getElementById('price-icon');
+    const $priceValue = document.getElementById('price-value');
+    if ($priceIcon) $priceIcon.innerHTML = svgIcon('dollarSign', 14);
+    if ($priceValue) $priceValue.textContent = r.price_level;
+    animateBadge($priceBadge, 600);
+  }
+
+  // ---- Noise Badge (inside Google Rating tile) ----
+  if (r.noise_level) {
+    const $noiseBadge = document.getElementById('noise-badge');
+    const $noiseIcon = document.getElementById('noise-icon');
+    const $noiseValue = document.getElementById('noise-value');
+    const firstWord = r.noise_level.split(/[\s,]+/)[0];
+    if ($noiseIcon) $noiseIcon.innerHTML = svgIcon('speakerWave', 14);
+    if ($noiseValue) $noiseValue.textContent = firstWord;
+    animateBadge($noiseBadge, 650);
   }
 
   // Insider tip
@@ -556,11 +609,6 @@ function renderResult(data) {
     $tip.style.display = 'block';
   } else if ($tip) {
     $tip.style.display = 'none';
-  }
-
-  // Radar chart (pass restaurantData for extended dimensions)
-  if (data.scores) {
-    renderRadar(data.scores, r);
   }
 
   // Info grid — restructured: Navigation tile + Compact details + remaining items
@@ -585,13 +633,8 @@ function renderResult(data) {
       $infoGrid.appendChild(navTile);
     }
 
-    // 2. Compact details row (Price | Noise | Parking)
+    // 2. Compact details row (Parking only — Price/Noise moved to score tiles)
     const compactItems = [];
-    if (r.price_level) compactItems.push({ label: 'Price', value: r.price_level });
-    if (r.noise_level) {
-      const firstWord = r.noise_level.split(/[\s,]+/)[0];
-      compactItems.push({ label: 'Noise', value: firstWord });
-    }
     if (r.parking_availability) {
       const shortParking = r.parking_availability.split(/\s+/).slice(0, 2).join(' ');
       compactItems.push({ label: 'Parking', value: shortParking, title: r.parking_availability });
@@ -647,6 +690,21 @@ function renderResult(data) {
       span.innerHTML = `<span class="atmo-tag__icon">${svgIcon(a.icon, 14)}</span><span class="type-data--sm">${a.label}</span>`;
       $atmoTags.appendChild(span);
     });
+
+    // Atmosphere tags spring pop stagger
+    const REDUCED_MQ = matchMedia('(prefers-reduced-motion: reduce)');
+    if (!REDUCED_MQ.matches) {
+      const atmoTagEls = $atmoTags.querySelectorAll('.atmo-tag');
+      atmoTagEls.forEach((tag, i) => {
+        tag.style.opacity = '0';
+        tag.style.transform = 'scale(0.8)';
+        setTimeout(() => {
+          tag.style.transition = 'opacity 200ms ease-out, transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
+          tag.style.opacity = '1';
+          tag.style.transform = 'scale(1)';
+        }, 780 + i * 60);
+      });
+    }
   }
 
   // Tags cloud
@@ -701,6 +759,21 @@ function renderResult(data) {
     shareBtn.setAttribute('data-action', 'share');
     shareBtn.innerHTML = `<svg viewBox="0 0 256 256" width="18" height="18">${ICONS.shareNetwork}</svg> <span data-label="share">Share</span>`;
     $actionBtns.appendChild(shareBtn);
+
+    // Action buttons stagger entrance
+    const REDUCED_MQ2 = matchMedia('(prefers-reduced-motion: reduce)');
+    if (!REDUCED_MQ2.matches) {
+      const actionBtnEls = $actionBtns.querySelectorAll('.action-btn');
+      actionBtnEls.forEach((btn, i) => {
+        btn.style.opacity = '0';
+        btn.style.transform = 'translateY(8px) scale(0.95)';
+        setTimeout(() => {
+          btn.style.transition = 'opacity 300ms ease-out, transform 350ms cubic-bezier(0.34, 1.56, 0.64, 1)';
+          btn.style.opacity = '1';
+          btn.style.transform = 'translateY(0) scale(1)';
+        }, 900 + i * 80);
+      });
+    }
   }
 
   // Init scroll-linked parallax on result step
@@ -716,11 +789,11 @@ function renderResult(data) {
     // Clean up reveal class after all sections have animated
     setTimeout(() => {
       $resultCard.classList.remove('result-card--revealing');
-      $resultCard.querySelectorAll(':scope > *').forEach(child => {
+      $resultCard.querySelectorAll(':scope > *, .score-tile').forEach(child => {
         child.style.opacity = '';
         child.style.transform = '';
       });
-    }, 1200);
+    }, 1400);
   }
   if ($loadingState) $loadingState.style.display = 'none';
 }
@@ -842,7 +915,7 @@ function initResultParallax() {
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
   const resultStep = document.querySelector('[data-step="1"]');
-  const scoreSection = resultStep?.querySelector('.score-section');
+  const scoreSection = resultStep?.querySelector('.score-tile--donde');
   if (!resultStep || !scoreSection) return;
 
   // Remove any previous listener by replacing element listener strategy

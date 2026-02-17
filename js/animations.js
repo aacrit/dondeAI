@@ -62,6 +62,17 @@ export function animateScoreRing(rawScore) {
       verdictEl.style.opacity = '1';
       verdictEl.style.transform = 'translateY(0)';
     });
+
+    // Subtle emphasis pulse after verdict appears
+    if (!REDUCED.matches) {
+      setTimeout(() => {
+        verdictEl.style.transition = 'transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
+        verdictEl.style.transform = 'scale(1.08)';
+        setTimeout(() => {
+          verdictEl.style.transform = 'scale(1)';
+        }, 150);
+      }, 1300);
+    }
   }
 }
 
@@ -74,6 +85,7 @@ export function renderRadar(scores, restaurantData = null) {
     { key: 'business_lunch_score', short: 'BZ', full: 'Business' },
     { key: 'solo_dining_score', short: 'SL', full: 'Solo' },
     { key: 'hole_in_wall_factor', short: 'GM', full: 'Gem' },
+    { key: 'romantic_rating', short: 'RM', full: 'Romance' },
   ];
 
   // Extend with normalized extra fields
@@ -257,6 +269,52 @@ export function renderRadar(scores, restaurantData = null) {
     text.textContent = available[i].full;
     svg.appendChild(text);
   }
+}
+
+/* ---- Google Rating Count-Up Animation ---- */
+export function animateGoogleRating(ratingValue) {
+  const numEl = document.getElementById('google-rating-num');
+  if (!numEl) return;
+
+  const target = parseFloat(ratingValue) || 0;
+
+  if (REDUCED.matches) {
+    numEl.textContent = target.toFixed(1);
+    return;
+  }
+
+  const duration = 1000;
+  const start = performance.now();
+
+  function tick(now) {
+    const elapsed = now - start;
+    const progress = Math.min(elapsed / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    numEl.textContent = (target * eased).toFixed(1);
+    if (progress < 1) requestAnimationFrame(tick);
+    else numEl.textContent = target.toFixed(1);
+  }
+  requestAnimationFrame(tick);
+}
+
+/* ---- Badge Fade-In with Scale Spring ---- */
+export function animateBadge(badgeEl, delayMs = 0) {
+  if (!badgeEl) return;
+  if (REDUCED.matches) {
+    badgeEl.style.display = 'flex';
+    badgeEl.style.opacity = '1';
+    return;
+  }
+
+  badgeEl.style.display = 'flex';
+  badgeEl.style.opacity = '0';
+  badgeEl.style.transform = 'scale(0.8)';
+
+  setTimeout(() => {
+    badgeEl.style.transition = 'opacity 300ms ease-out, transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
+    badgeEl.style.opacity = '1';
+    badgeEl.style.transform = 'scale(1)';
+  }, delayMs);
 }
 
 /* ---- Chaos-to-Order Text Reveal ---- */

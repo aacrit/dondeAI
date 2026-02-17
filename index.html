@@ -48,7 +48,7 @@
     <!-- Header -->
     <header class="header">
       <button class="header__logo" data-action="reset" aria-label="DondeAI — start over">
-        <svg class="logo-mark" viewBox="0 0 24 36" width="20" height="30" aria-hidden="true">
+        <svg class="logo-mark" viewBox="0 0 24 36" width="24" height="36" aria-hidden="true">
           <!-- Pin-fork: pin silhouette with fork-tine negative spaces -->
           <path class="logo-mark__pin"
                 d="M12 0C6.48 0 2 4.48 2 10c0 8.4 9.2 15.17 9.6 15.47a.75.75 0 0 0 .8 0C12.8 25.17 22 18.4 22 10 22 4.48 17.52 0 12 0Z"
@@ -299,10 +299,11 @@
                 <p class="result-oneliner type-structural" id="result-oneliner"></p>
               </div>
 
-              <!-- Score + Radar Row -->
-              <div class="score-radar-row">
-                <!-- Score Section -->
-                <div class="score-section">
+              <!-- Score Tiles Row -->
+              <div class="score-tiles" id="score-tiles">
+                <!-- Tile 1: DondeAI Score -->
+                <div class="score-tile score-tile--donde" id="score-tile-donde" role="group" aria-label="DondeAI Score">
+                  <span class="score-tile__label type-data--sm">DondeAI Score</span>
                   <div class="score-ring-wrap">
                     <svg class="score-ring" viewBox="0 0 100 100">
                       <circle class="score-ring__bg" cx="50" cy="50" r="45"></circle>
@@ -312,21 +313,34 @@
                       <span class="type-data--lg" id="score-number">0</span>
                     </div>
                   </div>
-                  <div class="score-meta">
-                    <span class="score-verdict type-structural--bold" id="score-verdict"></span>
-                    <span class="score-percentile type-data--sm" id="score-percentile"></span>
-                    <span class="type-data--sm">DondeAI Score</span>
-                    <div class="google-rating" id="google-rating">
-                      <div class="google-stars" id="google-stars"></div>
-                      <span class="type-data" id="google-rating-num"></span>
-                      <span class="google-count type-data--sm" id="google-count"></span>
-                    </div>
+                  <span class="score-verdict type-structural--bold" id="score-verdict"></span>
+                  <span class="score-percentile type-data--sm" id="score-percentile"></span>
+                  <div class="score-tile__badge" id="price-badge" style="display:none">
+                    <span class="score-tile__badge-icon" id="price-icon"></span>
+                    <span class="score-tile__badge-value type-data--sm" id="price-value"></span>
                   </div>
                 </div>
 
-                <!-- Radar Chart -->
-                <div class="radar-wrap" id="radar-wrap" style="display: none;">
-                  <svg id="radar-svg" viewBox="0 0 200 200"></svg>
+                <!-- Tile 2: Radar Chart -->
+                <div class="score-tile score-tile--radar" id="score-tile-radar" role="group" aria-label="Vibe Profile" style="display:none">
+                  <span class="score-tile__label type-data--sm">Vibe Profile</span>
+                  <div class="radar-wrap" id="radar-wrap">
+                    <svg id="radar-svg" viewBox="0 0 200 200"></svg>
+                  </div>
+                </div>
+
+                <!-- Tile 3: Google Rating -->
+                <div class="score-tile score-tile--google" id="score-tile-google" role="group" aria-label="Google Rating">
+                  <span class="score-tile__label type-data--sm">Google Rating</span>
+                  <div class="google-rating-display">
+                    <span class="google-rating-number type-data--lg" id="google-rating-num"></span>
+                    <div class="google-stars" id="google-stars"></div>
+                    <span class="google-count type-data--sm" id="google-count"></span>
+                  </div>
+                  <div class="score-tile__badge" id="noise-badge" style="display:none">
+                    <span class="score-tile__badge-icon" id="noise-icon"></span>
+                    <span class="score-tile__badge-value type-data--sm" id="noise-value"></span>
+                  </div>
                 </div>
               </div>
 

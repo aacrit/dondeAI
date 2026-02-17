@@ -5,6 +5,7 @@
 **What:** AI-powered restaurant recommendation engine for Chicago (expandable).
 **How it feels:** Writing a wish on paper and watching it come to life — Arc Browser × Apple Notes × Notion.
 **Design language:** "Ink & Momentum" — confident pen strokes, spring-physics choreography, handwritten texture over precision engineering.
+**Logo:** "Donde" in Playfair Display roman bold + "AI" superscript in JetBrains Mono accent color. Pin-fork SVG mark. Left-aligned header, accent-color underline on hover, breathing dot animation.
 **Stack:** Vanilla HTML + CSS + JavaScript. Zero frameworks. Zero build steps. Files served as-is.
 
 ---
@@ -73,7 +74,7 @@ dondeAI/
 3. **Commit and Forgive** — Selections animate with confidence but are instantly reversible from the review step.
 4. **The Screen Is the Canvas** — Full viewport, no scrollbars during input flow. Content IS the interface. Minimal chrome.
 5. **Three Voices of Type:**
-   - **Emotional** (serif/italic) — prompts, greetings, headings. Feels handwritten.
+   - **Emotional** (serif) — prompts, greetings, headings. Feels like confident penmanship.
    - **Structural** (geometric sans) — buttons, labels, navigation. Feels authoritative.
    - **Data** (monospace) — scores, tags, badges. Feels like annotated measurements.
 6. **Motion Has Grammar:**

@@ -114,10 +114,13 @@
 .header__logo {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-xs);
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
+  margin: calc(-1 * var(--space-xs)) calc(-1 * var(--space-sm));
   color: var(--fg);
   cursor: pointer;
   user-select: none;
+  border-radius: var(--radius-sm);
   transition: opacity var(--dur-fast) var(--ease-out);
 }
 

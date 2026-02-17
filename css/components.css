@@ -27,8 +27,9 @@
   width: 100%;
   padding: var(--space-sm) 0;
   padding-right: 48px;
-  font-family: var(--font-emotional);
-  font-style: italic;
+  font-family: var(--font-structural);
+  font-style: normal;
+  font-weight: 500;
   font-size: var(--text-xl);
   color: var(--fg);
   background: transparent;
@@ -41,8 +42,9 @@
 }
 
 .craving-input::placeholder {
-  color: var(--fg3);
+  font-family: var(--font-emotional);
   font-style: italic;
+  color: var(--fg3);
   transition: opacity 120ms ease-out;
 }
 
@@ -525,22 +527,48 @@
   max-width: 600px;
 }
 
-.result-name {
-  animation: contentFadeIn 200ms ease-out;
+/* ---- Score Tiles (3-column grid) ---- */
+.score-tiles {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-sm);
+  width: 100%;
 }
 
-/* ---- Score Section ---- */
-.score-section {
+.score-tiles--two-col {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+/* ---- Individual Score Tile ---- */
+.score-tile {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: var(--space-lg);
-  flex-wrap: wrap;
+  gap: var(--space-xs);
+  padding: var(--space-md);
+  background: var(--glass);
+  backdrop-filter: blur(calc(var(--glass-blur) * 0.5));
+  -webkit-backdrop-filter: blur(calc(var(--glass-blur) * 0.5));
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  text-align: center;
 }
 
-.score-ring-wrap {
+.score-tile__label {
+  color: var(--fg3);
+  letter-spacing: 0.06em;
+}
+
+/* ---- DondeAI Score Tile: Tier tinting ---- */
+.score-tile--donde[data-tier="high"] { background: var(--green-soft); }
+.score-tile--donde[data-tier="mid"]  { background: var(--ac-soft); }
+.score-tile--donde[data-tier="low"]  { background: var(--rose-soft); }
+
+/* ---- Score Ring (inside tile) ---- */
+.score-tile .score-ring-wrap {
   position: relative;
-  width: 120px;
-  height: 120px;
+  width: 90px;
+  height: 90px;
   flex-shrink: 0;
 }
 
@@ -574,14 +602,8 @@
   justify-content: center;
 }
 
-.score-meta {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-}
-
 .score-verdict {
-  font-size: var(--text-md);
+  font-size: var(--text-sm);
   font-weight: 700;
 }
 
@@ -589,21 +611,28 @@
 .score-verdict--mid  { color: var(--ac); }
 .score-verdict--low  { color: var(--rose); }
 
-.score-section[data-tier="high"] { background: var(--green-soft); backdrop-filter: blur(calc(var(--glass-blur) * 0.5)); -webkit-backdrop-filter: blur(calc(var(--glass-blur) * 0.5)); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--space-md); }
-.score-section[data-tier="mid"]  { background: var(--ac-soft); backdrop-filter: blur(calc(var(--glass-blur) * 0.5)); -webkit-backdrop-filter: blur(calc(var(--glass-blur) * 0.5)); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--space-md); }
-.score-section[data-tier="low"]  { background: var(--rose-soft); backdrop-filter: blur(calc(var(--glass-blur) * 0.5)); -webkit-backdrop-filter: blur(calc(var(--glass-blur) * 0.5)); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--space-md); }
-
 .score-percentile {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--fg3);
   letter-spacing: -0.03em;
 }
 
-/* ---- Google Rating ---- */
-.google-rating {
+/* ---- Google Rating Tile ---- */
+.score-tile--google {
+  background: var(--amber-soft);
+}
+
+.google-rating-display {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: var(--space-xs);
+  gap: var(--space-2xs);
+}
+
+.google-rating-number {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: var(--fg);
 }
 
 .google-stars {
@@ -618,6 +647,68 @@
 
 .google-count {
   color: var(--fg2);
+}
+
+/* ---- Radar Tile ---- */
+.score-tile--radar .radar-wrap {
+  width: 100%;
+  max-width: 160px;
+  aspect-ratio: 1;
+  margin: 0 auto;
+}
+
+.score-tile--radar .radar-wrap svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* ---- Tile Badge (Price/Noise at bottom) ---- */
+.score-tile__badge {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  margin-top: auto;
+  padding-top: var(--space-xs);
+  border-top: 1px solid var(--border);
+  color: var(--fg2);
+  width: 100%;
+  justify-content: center;
+}
+
+.score-tile__badge-icon {
+  display: flex;
+  align-items: center;
+  color: var(--fg3);
+}
+
+.score-tile__badge-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.score-tile__badge-value {
+  color: var(--fg2);
+  font-weight: 600;
+}
+
+/* ---- Score Tiles Responsive ---- */
+@media (max-width: 479px) {
+  .score-tiles,
+  .score-tiles--two-col {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 480px) and (max-width: 767px) {
+  .score-tiles {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .score-tile--radar {
+    grid-column: 1 / -1;
+  }
+  .score-tiles--two-col {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 /* ---- Info Grid ---- */
@@ -757,17 +848,7 @@
   font-size: var(--text-sm);
 }
 
-/* ---- Radar Chart ---- */
-.radar-wrap {
-  width: 200px;
-  height: 200px;
-  margin: 0 auto;
-}
-
-.radar-wrap svg {
-  width: 100%;
-  height: 100%;
-}
+/* ---- Radar Chart (styles now in .score-tile--radar) ---- */
 
 /* ---- Sentiment Bar ---- */
 .sentiment-bar {
@@ -1277,34 +1358,6 @@
   clip-path: circle(150% at var(--wash-x, 50%) var(--wash-y, 50%));
 }
 
-/* ---- Score + Radar Row ---- */
-.score-radar-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-lg);
-  flex-wrap: wrap;
-  width: 100%;
-}
-
-.score-radar-row .radar-wrap {
-  width: 180px;
-  height: 180px;
-  flex-shrink: 0;
-  margin: 0;
-}
-
-@media (max-width: 480px) {
-  .score-radar-row {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .score-radar-row .radar-wrap {
-    width: 100%;
-    max-width: 200px;
-    margin: 0 auto;
-  }
-}
-
 /* ---- Navigation Tile ---- */
 .nav-tile {
   grid-column: 1 / -1;
@@ -1431,6 +1484,7 @@
 .logo-mark__dot {
   transition: transform var(--dur-fast) var(--spring);
   transform-origin: 12px 18px;
+  animation: logoDotBreathe 3s ease-in-out infinite;
 }
 
 /* ---- Header Logo Hover ---- */
@@ -1446,12 +1500,21 @@
 /* ---- Wordmark Typography ---- */
 .logo-wordmark {
   font-family: var(--font-emotional);
-  font-style: italic;
+  font-style: normal;
   font-weight: 700;
-  font-size: var(--text-sm);
-  letter-spacing: 0.04em;
+  font-size: var(--text-lg);
+  letter-spacing: -0.02em;
   color: var(--fg);
   line-height: 1;
+  background-image: linear-gradient(var(--ac), var(--ac));
+  background-size: 0% 2px;
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+  transition: background-size 300ms var(--ease-out);
+}
+
+.header__logo:hover .logo-wordmark {
+  background-size: 100% 2px;
 }
 
 .logo-wordmark__ai {
@@ -1581,40 +1644,74 @@
   animation: resultSectionIn 350ms var(--ease-out) 80ms forwards;
 }
 
-.result-card--revealing .score-radar-row {
-  animation: resultSectionIn 400ms var(--ease-out) 180ms forwards;
+/* Restaurant name: ink reveal (left-to-right clip) */
+.result-card--revealing .result-name {
+  opacity: 1;
+  transform: none;
+  animation: inkReveal 600ms cubic-bezier(0.2, 1, 0.4, 1) 100ms both;
+}
+
+/* Oneliner: slide in from right after name */
+.result-card--revealing .result-oneliner {
+  opacity: 0;
+  transform: translateX(20px);
+  animation: slideSettleIn 400ms var(--ease-out) 500ms forwards;
+}
+
+/* Score tiles container */
+.result-card--revealing .score-tiles {
+  animation: resultSectionIn 350ms var(--ease-out) 160ms forwards;
+}
+
+/* Individual tile stagger */
+.result-card--revealing .score-tile--donde {
+  opacity: 0;
+  transform: translateY(12px);
+  animation: tileRevealIn 400ms var(--ease-out) 200ms forwards;
+}
+
+.result-card--revealing .score-tile--radar {
+  opacity: 0;
+  transform: translateY(12px);
+  animation: tileRevealIn 400ms var(--ease-out) 280ms forwards;
+}
+
+.result-card--revealing .score-tile--google {
+  opacity: 0;
+  transform: translateY(12px);
+  animation: tileRevealIn 400ms var(--ease-out) 360ms forwards;
 }
 
 .result-card--revealing .result-recommendation {
-  animation: resultSectionIn 350ms var(--ease-out) 320ms forwards;
+  animation: resultSectionIn 350ms var(--ease-out) 480ms forwards;
 }
 
 .result-card--revealing .insider-tip {
-  animation: resultSectionIn 350ms var(--ease-out) 420ms forwards;
+  animation: resultSectionIn 350ms var(--ease-out) 580ms forwards;
 }
 
 .result-card--revealing .info-grid {
-  animation: resultSectionIn 350ms var(--ease-out) 500ms forwards;
+  animation: resultSectionIn 350ms var(--ease-out) 660ms forwards;
 }
 
 .result-card--revealing .atmosphere-tags {
-  animation: resultSectionIn 300ms var(--ease-out) 580ms forwards;
+  animation: resultSectionIn 300ms var(--ease-out) 740ms forwards;
 }
 
 .result-card--revealing .tags-cloud {
-  animation: resultSectionIn 300ms var(--ease-out) 620ms forwards;
+  animation: resultSectionIn 300ms var(--ease-out) 780ms forwards;
 }
 
 .result-card--revealing #sentiment-section {
-  animation: resultSectionIn 300ms var(--ease-out) 660ms forwards;
+  animation: resultSectionIn 300ms var(--ease-out) 820ms forwards;
 }
 
 .result-card--revealing .action-btns {
-  animation: resultSectionIn 350ms var(--ease-out) 720ms forwards;
+  animation: resultSectionIn 350ms var(--ease-out) 880ms forwards;
 }
 
 .result-card--revealing .result-actions {
-  animation: resultSectionIn 350ms var(--ease-out) 800ms forwards;
+  animation: resultSectionIn 350ms var(--ease-out) 960ms forwards;
 }
 
 /* ---- Filter Pill Ink Ripple ---- */
