@@ -1082,14 +1082,14 @@ function renderResult(data) {
 
     $profileFacts.style.display = badges.length > 0 ? '' : 'none';
 
-    // Render compact profile preview (icon + value, no labels)
+    // Render compact profile preview (organized grid with labels)
     const $profileCompact = document.getElementById('profile-compact');
     if ($profileCompact) {
       $profileCompact.innerHTML = '';
       badges.forEach(b => {
         const item = document.createElement('span');
         item.className = 'profile-compact__item';
-        item.innerHTML = `${svgIcon(b.icon, 14)}<span class="profile-compact__value type-data--sm">${b.value}</span>`;
+        item.innerHTML = `${svgIcon(b.icon, 14)}<span class="profile-compact__label">${b.label}</span><span class="profile-compact__value type-data--sm">${b.value}</span>`;
         $profileCompact.appendChild(item);
       });
     }
@@ -1140,15 +1140,18 @@ function renderResult(data) {
 
     $profileAtmo.style.display = atmoItems.length > 0 ? '' : 'none';
 
-    // Add atmosphere items to compact preview
+    // Add atmosphere items to compact preview as a row of tags
     const $profileCompact2 = document.getElementById('profile-compact');
-    if ($profileCompact2) {
+    if ($profileCompact2 && atmoItems.length > 0) {
+      const atmoRow = document.createElement('div');
+      atmoRow.className = 'profile-compact__atmo-row';
       atmoItems.forEach(a => {
-        const item = document.createElement('span');
-        item.className = 'profile-compact__item';
-        item.innerHTML = `${svgIcon(a.icon, 14)}<span class="profile-compact__value type-data--sm">${a.label}</span>`;
-        $profileCompact2.appendChild(item);
+        const tag = document.createElement('span');
+        tag.className = 'profile-compact__atmo-tag';
+        tag.innerHTML = `${svgIcon(a.icon, 12)}<span class="type-data--sm">${a.label}</span>`;
+        atmoRow.appendChild(tag);
       });
+      $profileCompact2.appendChild(atmoRow);
     }
 
     // Spring pop stagger for atmosphere tags (organic jitter for handwritten feel)
@@ -1269,7 +1272,7 @@ function openTileExpand(tileEl) {
     const strokeColor = 'var(--ac)';
     $content.innerHTML = `
       <div class="score-tile__brand" aria-label="DondeAI Score">
-        <svg class="score-tile__logo-mark" viewBox="0 0 32 44" width="18" height="25" aria-hidden="true">
+        <svg class="score-tile__logo-mark" viewBox="0 0 32 44" width="20" height="28" aria-hidden="true">
           <path d="M10.5 1C10.5 1 10 8.5 12.5 11.5Q14 13 14.5 13.5"
                 fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
           <path d="M21.5 1C21.5 1 22 8.5 19.5 11.5Q18 13 17.5 13.5"

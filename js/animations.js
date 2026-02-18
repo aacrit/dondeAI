@@ -83,7 +83,7 @@ export function animateScoreRing(rawScore) {
   }
 }
 
-/* ---- Vibe Profile Tiles ---- */
+/* ---- Vibe Profile (Compact Inline Bars) ---- */
 export function renderVibeTiles(scores, timers = []) {
   const dimensions = [
     { key: 'date_friendly_score', label: 'Date' },
@@ -91,7 +91,7 @@ export function renderVibeTiles(scores, timers = []) {
     { key: 'family_friendly_score', label: 'Family' },
     { key: 'business_lunch_score', label: 'Business' },
     { key: 'solo_dining_score', label: 'Solo' },
-    { key: 'hole_in_wall_factor', label: 'Hidden Gem' },
+    { key: 'hole_in_wall_factor', label: 'Gem' },
     { key: 'romantic_rating', label: 'Romance' },
   ];
 
@@ -107,11 +107,14 @@ export function renderVibeTiles(scores, timers = []) {
     available = available.filter(d => d.key !== 'romantic_rating');
   }
 
-  // Mobile: show only top 4 scoring dimensions
-  if (window.innerWidth < 768 && available.length > 4) {
-    available.sort((a, b) =>
-      (parseFloat(scores[b.key]) || 0) - (parseFloat(scores[a.key]) || 0));
-    available = available.slice(0, 4);
+  // Sort by score descending — show strongest vibes first
+  available.sort((a, b) =>
+    (parseFloat(scores[b.key]) || 0) - (parseFloat(scores[a.key]) || 0));
+
+  // Mobile: top 3, desktop: top 4
+  const limit = window.innerWidth < 768 ? 3 : 4;
+  if (available.length > limit) {
+    available = available.slice(0, limit);
   }
 
   const $container = document.getElementById('vibe-tiles');
@@ -133,31 +136,29 @@ export function renderVibeTiles(scores, timers = []) {
     tile.setAttribute('role', 'group');
     tile.setAttribute('aria-label', `${dim.label}: ${val.toFixed(1)} out of 10`);
     tile.innerHTML = `
-      <div class="vibe-tile__header">
-        <span class="vibe-tile__label type-data--sm">${dim.label}</span>
-        <span class="vibe-tile__value type-data--sm">${val.toFixed(1)}</span>
-      </div>
+      <span class="vibe-tile__label type-data--sm">${dim.label}</span>
       <div class="vibe-tile__bar" role="progressbar"
            aria-valuenow="${val}" aria-valuemin="0" aria-valuemax="10">
         <div class="vibe-tile__bar-fill" data-target="${pct}"></div>
-      </div>`;
+      </div>
+      <span class="vibe-tile__value type-data--sm">${val.toFixed(1)}</span>`;
     $container.appendChild(tile);
 
     // Stagger entrance + bar fill animation
     const delay = 980 + (i * 60);
     if (!REDUCED.matches) {
       tile.style.opacity = '0';
-      tile.style.transform = 'translateY(8px)';
+      tile.style.transform = 'translateX(-8px)';
       timers.push(setTimeout(() => {
-        tile.style.transition = 'opacity 300ms ease-out, transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
+        tile.style.transition = 'opacity 250ms ease-out, transform 250ms cubic-bezier(0.34, 1.56, 0.64, 1)';
         tile.style.opacity = '1';
-        tile.style.transform = 'translateY(0)';
+        tile.style.transform = 'translateX(0)';
       }, delay));
       const fill = tile.querySelector('.vibe-tile__bar-fill');
       timers.push(setTimeout(() => {
         fill.style.transition = 'width 500ms cubic-bezier(0.4, 0, 0.2, 1)';
         fill.style.width = pct + '%';
-      }, delay + 100));
+      }, delay + 80));
     } else {
       tile.querySelector('.vibe-tile__bar-fill').style.width = pct + '%';
     }
