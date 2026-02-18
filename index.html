@@ -311,23 +311,33 @@
 
               <!-- Block 4: Profile — "About This Spot" -->
               <div class="result-profile" id="result-profile">
-                <h3 class="result-profile__heading type-data--sm" data-label="profile">About This Spot</h3>
-                <div class="profile-facts" id="profile-facts"></div>
-                <div class="profile-atmosphere" id="profile-atmosphere"></div>
-                <div class="profile-sentiment" id="profile-sentiment" style="display: none;">
-                  <div class="profile-sentiment__header">
-                    <span class="profile-sentiment__label type-data--sm">Review Sentiment</span>
-                    <span class="profile-sentiment__score type-data--sm" id="sentiment-score-label"></span>
-                  </div>
-                  <div class="sentiment-bar">
-                    <div class="sentiment-bar__pos" id="sentiment-pos"></div>
-                    <div class="sentiment-bar__neu" id="sentiment-neu"></div>
-                    <div class="sentiment-bar__neg" id="sentiment-neg"></div>
-                  </div>
-                  <div class="profile-sentiment__legend type-data--sm">
-                    <span class="profile-sentiment__legend-item"><span class="profile-sentiment__dot profile-sentiment__dot--pos"></span> Positive <span id="sentiment-pos-pct"></span></span>
-                    <span class="profile-sentiment__legend-item"><span class="profile-sentiment__dot profile-sentiment__dot--neu"></span> Neutral <span id="sentiment-neu-pct"></span></span>
-                    <span class="profile-sentiment__legend-item"><span class="profile-sentiment__dot profile-sentiment__dot--neg"></span> Negative <span id="sentiment-neg-pct"></span></span>
+                <button class="result-profile__toggle type-data--sm"
+                        data-action="toggle-profile"
+                        aria-expanded="false" aria-controls="profile-details">
+                  <span data-label="profile">About This Spot</span>
+                  <svg class="result-profile__chevron" viewBox="0 0 256 256" width="14" height="14" aria-hidden="true">
+                    <path fill="currentColor" d="M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z"/>
+                  </svg>
+                </button>
+                <div class="profile-compact" id="profile-compact"></div>
+                <div class="profile-details" id="profile-details">
+                  <div class="profile-facts" id="profile-facts"></div>
+                  <div class="profile-atmosphere" id="profile-atmosphere"></div>
+                  <div class="profile-sentiment" id="profile-sentiment" style="display: none;">
+                    <div class="profile-sentiment__header">
+                      <span class="profile-sentiment__label type-data--sm">Review Sentiment</span>
+                      <span class="profile-sentiment__score type-data--sm" id="sentiment-score-label"></span>
+                    </div>
+                    <div class="sentiment-bar">
+                      <div class="sentiment-bar__pos" id="sentiment-pos"></div>
+                      <div class="sentiment-bar__neu" id="sentiment-neu"></div>
+                      <div class="sentiment-bar__neg" id="sentiment-neg"></div>
+                    </div>
+                    <div class="profile-sentiment__legend type-data--sm">
+                      <span class="profile-sentiment__legend-item"><span class="profile-sentiment__dot profile-sentiment__dot--pos"></span> Positive <span id="sentiment-pos-pct"></span></span>
+                      <span class="profile-sentiment__legend-item"><span class="profile-sentiment__dot profile-sentiment__dot--neu"></span> Neutral <span id="sentiment-neu-pct"></span></span>
+                      <span class="profile-sentiment__legend-item"><span class="profile-sentiment__dot profile-sentiment__dot--neg"></span> Negative <span id="sentiment-neg-pct"></span></span>
+                    </div>
                   </div>
                 </div>
               </div>

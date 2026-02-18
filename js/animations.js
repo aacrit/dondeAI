@@ -107,6 +107,13 @@ export function renderVibeTiles(scores, timers = []) {
     available = available.filter(d => d.key !== 'romantic_rating');
   }
 
+  // Mobile: show only top 4 scoring dimensions
+  if (window.innerWidth < 768 && available.length > 4) {
+    available.sort((a, b) =>
+      (parseFloat(scores[b.key]) || 0) - (parseFloat(scores[a.key]) || 0));
+    available = available.slice(0, 4);
+  }
+
   const $container = document.getElementById('vibe-tiles');
   if (!$container) return;
   $container.innerHTML = '';

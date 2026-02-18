@@ -394,6 +394,14 @@ function wireEvents() {
         btn.textContent = isExpanded ? 'Read more' : 'Read less';
         break;
       }
+
+      case 'toggle-profile': {
+        const $profile = document.getElementById('result-profile');
+        const isExpanded = btn.getAttribute('aria-expanded') === 'true';
+        btn.setAttribute('aria-expanded', String(!isExpanded));
+        if ($profile) $profile.classList.toggle('result-profile--expanded');
+        break;
+      }
     }
   });
 
@@ -891,6 +899,12 @@ function renderResult(data) {
   if (!data?.restaurant) return;
   const r = data.restaurant;
 
+  // Reset profile to collapsed
+  const $profileToggle = document.querySelector('[data-action="toggle-profile"]');
+  if ($profileToggle) $profileToggle.setAttribute('aria-expanded', 'false');
+  const $profileEl = document.getElementById('result-profile');
+  if ($profileEl) $profileEl.classList.remove('result-profile--expanded');
+
   // Cancel any in-flight animation timeouts from a previous render
   animationTimers.forEach(clearTimeout);
   animationTimers = [];
@@ -1049,6 +1063,18 @@ function renderResult(data) {
     });
 
     $profileFacts.style.display = badges.length > 0 ? '' : 'none';
+
+    // Render compact profile preview (icon + value, no labels)
+    const $profileCompact = document.getElementById('profile-compact');
+    if ($profileCompact) {
+      $profileCompact.innerHTML = '';
+      badges.forEach(b => {
+        const item = document.createElement('span');
+        item.className = 'profile-compact__item';
+        item.innerHTML = `${svgIcon(b.icon, 14)}<span class="profile-compact__value type-data--sm">${b.value}</span>`;
+        $profileCompact.appendChild(item);
+      });
+    }
   }
 
   // ---- Quick Links (Website, Call, Share) ----
@@ -1095,6 +1121,17 @@ function renderResult(data) {
     });
 
     $profileAtmo.style.display = atmoItems.length > 0 ? '' : 'none';
+
+    // Add atmosphere items to compact preview
+    const $profileCompact2 = document.getElementById('profile-compact');
+    if ($profileCompact2) {
+      atmoItems.forEach(a => {
+        const item = document.createElement('span');
+        item.className = 'profile-compact__item';
+        item.innerHTML = `${svgIcon(a.icon, 14)}<span class="profile-compact__value type-data--sm">${a.label}</span>`;
+        $profileCompact2.appendChild(item);
+      });
+    }
 
     // Spring pop stagger for atmosphere tags (organic jitter for handwritten feel)
     const REDUCED_MQ = matchMedia('(prefers-reduced-motion: reduce)');
