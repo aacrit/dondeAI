@@ -322,7 +322,26 @@ function wireEvents() {
         renderShareCanvas(format);
         break;
       }
+
+      case 'close-tile-expand':
+        closeTileExpand();
+        break;
+
+      case 'toggle-recommendation': {
+        const $rec = document.getElementById('result-recommendation');
+        const isExpanded = btn.getAttribute('aria-expanded') === 'true';
+        btn.setAttribute('aria-expanded', String(!isExpanded));
+        if ($rec) $rec.classList.toggle('result-recommendation--expanded');
+        btn.textContent = isExpanded ? 'Read more' : 'Read less';
+        break;
+      }
     }
+  });
+
+  // Expandable tile click delegation (DondeAI Score + Vibe Radar)
+  document.addEventListener('click', (e) => {
+    const tile = e.target.closest('.score-tile--expandable');
+    if (tile) openTileExpand(tile);
   });
 }
 
@@ -639,10 +658,43 @@ function renderResult(data) {
   if ($name) $name.textContent = r.name || '';
   if ($oneliner) $oneliner.textContent = r.best_for_oneliner || '';
 
-  // Recommendation (chaos-to-order text reveal)
+  // Navigation tile (immediately after name — "What? Where? Why?" flow)
+  const $navTileContainer = document.getElementById('result-nav-tile');
+  if ($navTileContainer) {
+    $navTileContainer.innerHTML = '';
+    if (r.address) {
+      const mapsUrl = buildMapsUrl(r.address);
+      $navTileContainer.innerHTML = `
+        <a class="nav-tile__link" href="${mapsUrl}" target="_blank" rel="noopener noreferrer">
+          <span class="nav-tile__icon">${svgIcon('pin', 24)}</span>
+          <span class="nav-tile__content">
+            <span class="nav-tile__label type-data--sm">Navigation</span>
+            <span class="nav-tile__address type-structural">${r.address}</span>
+          </span>
+          <span class="nav-tile__arrow">${svgIcon('chevronRight', 20)}</span>
+        </a>`;
+      $navTileContainer.style.display = '';
+    } else {
+      $navTileContainer.style.display = 'none';
+    }
+  }
+
+  // Recommendation (chaos-to-order text reveal + collapsible)
   const $rec = document.getElementById('result-recommendation');
   if ($rec) {
+    $rec.classList.remove('result-recommendation--expanded');
     chaosToOrderReveal($rec, data.recommendation || '');
+
+    // Show "Read more" toggle only if text overflows 3-line clamp
+    const $recToggle = document.getElementById('result-rec-toggle');
+    if ($recToggle) {
+      $recToggle.setAttribute('aria-expanded', 'false');
+      $recToggle.textContent = 'Read more';
+      requestAnimationFrame(() => {
+        const isClamped = $rec.scrollHeight > $rec.clientHeight + 2;
+        $recToggle.style.display = isClamped ? '' : 'none';
+      });
+    }
   }
 
   // ---- Score Tile (DondeAI Score) ----
@@ -654,10 +706,16 @@ function renderResult(data) {
     $verdict.textContent = tier.verdict;
     $verdict.className = `score-verdict type-structural--bold ${tier.cssClass}`;
   }
-  if ($scoreTileDonde) $scoreTileDonde.setAttribute('data-tier', tier.tier);
+  if ($scoreTileDonde) {
+    $scoreTileDonde.setAttribute('data-tier', tier.tier);
+    $scoreTileDonde.classList.add('score-tile--expandable');
+    $scoreTileDonde.setAttribute('tabindex', '0');
+    $scoreTileDonde.setAttribute('role', 'button');
+    $scoreTileDonde.setAttribute('aria-label', 'Expand DondeAI Score');
+  }
   if ($percentile) $percentile.textContent = `Top ${Math.round((tier.integer / 10) * 100)}%`;
-  // Delay score ring to after tile entrance (tiles now below recommendation)
-  setTimeout(() => animateScoreRing(data.donde_score), 700);
+  // Delay score ring to after tile entrance
+  setTimeout(() => animateScoreRing(data.donde_score), 800);
 
   // ---- Google Rating Tile ----
   const $googleStars = document.getElementById('google-stars');
@@ -668,15 +726,35 @@ function renderResult(data) {
     if ($googleStars) $googleStars.innerHTML = buildGoogleStars(r.google_rating);
     if ($googleCount) $googleCount.textContent = r.google_review_count ? `(${r.google_review_count})` : '';
     if ($scoreTileGoogle) $scoreTileGoogle.style.display = '';
-    // Animate count-up after tile entrance
-    setTimeout(() => animateGoogleRating(r.google_rating), 800);
+    // Make tile link to Google Reviews if place_id available
+    if ($scoreTileGoogle && r.google_place_id) {
+      const reviewsUrl = `https://www.google.com/maps/place/?q=place_id:${r.google_place_id}`;
+      $scoreTileGoogle.setAttribute('tabindex', '0');
+      $scoreTileGoogle.setAttribute('role', 'link');
+      $scoreTileGoogle.setAttribute('aria-label', 'View on Google Maps');
+      const hint = document.createElement('span');
+      hint.className = 'score-tile__link-hint type-data--sm';
+      hint.textContent = 'View on Google';
+      $scoreTileGoogle.appendChild(hint);
+      $scoreTileGoogle.onclick = () => window.open(reviewsUrl, '_blank', 'noopener,noreferrer');
+      $scoreTileGoogle.onkeydown = (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.open(reviewsUrl, '_blank', 'noopener,noreferrer'); }
+      };
+    }
+    setTimeout(() => animateGoogleRating(r.google_rating), 900);
   } else {
     if ($scoreTileGoogle) $scoreTileGoogle.style.display = 'none';
   }
 
   // ---- Radar Tile ----
   const $scoreTileRadar = document.getElementById('score-tile-radar');
-  if ($scoreTileRadar) $scoreTileRadar.style.display = '';
+  if ($scoreTileRadar) {
+    $scoreTileRadar.style.display = '';
+    $scoreTileRadar.classList.add('score-tile--expandable');
+    $scoreTileRadar.setAttribute('tabindex', '0');
+    $scoreTileRadar.setAttribute('role', 'button');
+    $scoreTileRadar.setAttribute('aria-label', 'Expand Vibe Profile');
+  }
   renderRadar(data.scores || {}, r);
 
   // ---- Details Tile (Cuisine, Price, Parking, Noise badges — all color-coded) ----
@@ -727,29 +805,12 @@ function renderResult(data) {
     $tip.style.display = 'none';
   }
 
-  // Info grid — restructured: Navigation tile + Compact details + remaining items
+  // Info grid — remaining items only (nav tile moved to after header)
   const $infoGrid = document.getElementById('info-grid');
   if ($infoGrid) {
     $infoGrid.innerHTML = '';
 
-    // 1. Navigation tile (full-width, replaces address info-item)
-    if (r.address) {
-      const navTile = document.createElement('div');
-      navTile.className = 'nav-tile';
-      const mapsUrl = buildMapsUrl(r.address);
-      navTile.innerHTML = `
-        <a class="nav-tile__link" href="${mapsUrl}" target="_blank" rel="noopener noreferrer">
-          <span class="nav-tile__icon">${svgIcon('pin', 24)}</span>
-          <span class="nav-tile__content">
-            <span class="nav-tile__label type-data--sm">Navigation</span>
-            <span class="nav-tile__address type-structural">${r.address}</span>
-          </span>
-          <span class="nav-tile__arrow">${svgIcon('chevronRight', 20)}</span>
-        </a>`;
-      $infoGrid.appendChild(navTile);
-    }
-
-    // 2. Remaining items (standard 2-col grid — Parking/Price/Noise moved to score tiles)
+    // Remaining items (standard 2-col grid)
     const remainingItems = [];
     if (r.lighting_ambiance) remainingItems.push({ label: 'Ambiance', value: r.lighting_ambiance });
     if (r.dress_code) remainingItems.push({ label: 'Dress Code', value: r.dress_code });
@@ -796,7 +857,7 @@ function renderResult(data) {
           tag.style.transition = 'opacity 200ms ease-out, transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
           tag.style.opacity = '1';
           tag.style.transform = 'scale(1)';
-        }, 780 + i * 60);
+        }, 980 + i * 60);
       });
     }
   }
@@ -865,10 +926,16 @@ function renderResult(data) {
           btn.style.transition = 'opacity 300ms ease-out, transform 350ms cubic-bezier(0.34, 1.56, 0.64, 1)';
           btn.style.opacity = '1';
           btn.style.transform = 'translateY(0) scale(1)';
-        }, 900 + i * 80);
+        }, 1100 + i * 80);
       });
     }
   }
+
+  // Inject icons into result action buttons (Try Another / Start Over)
+  const $tryAgainIcon = document.getElementById('try-again-icon');
+  const $startOverIcon = document.getElementById('start-over-icon');
+  if ($tryAgainIcon) $tryAgainIcon.innerHTML = svgIcon('refresh', 18);
+  if ($startOverIcon) $startOverIcon.innerHTML = svgIcon('home', 18);
 
   // Init scroll-linked parallax on result step
   initResultParallax();
@@ -886,7 +953,7 @@ function renderResult(data) {
         child.style.opacity = '';
         child.style.transform = '';
       });
-    }, 1400);
+    }, 1600);
   }
   // Note: show/hide of loading overlay and result card is handled by orchestrateReveal()
 }
@@ -919,6 +986,61 @@ function getNoiseBadgeMod(noiseLevel) {
   if (lower.includes('moderate') || lower.includes('average') || lower.includes('normal')) return 'details-badge--amber';
   if (lower.includes('loud') || lower.includes('lively') || lower.includes('bustling') || lower.includes('noisy') || lower.includes('energetic')) return 'details-badge--rose';
   return 'details-badge--accent';
+}
+
+/* ---- Tile Expand Modal ---- */
+function openTileExpand(tileEl) {
+  const $modal = document.getElementById('tile-expand');
+  const $content = document.getElementById('tile-expand-content');
+  if (!$modal || !$content) return;
+
+  $content.innerHTML = '';
+  const state = getState();
+  const data = state.result;
+  if (!data) return;
+
+  if (tileEl.id === 'score-tile-donde') {
+    const tier = getScoreTier(data.donde_score);
+    const n = Math.round(parseFloat(data.donde_score) || 8);
+    const circumference = 2 * Math.PI * 45;
+    const offset = circumference - (n / 10) * circumference;
+    const colors = { high: 'var(--green)', mid: 'var(--ac)', low: 'var(--rose)' };
+    const strokeColor = colors[tier.tier] || 'var(--ac)';
+    $content.innerHTML = `
+      <span class="score-tile__label type-data--sm">DondeAI Score</span>
+      <div class="score-ring-wrap">
+        <svg class="score-ring" viewBox="0 0 100 100">
+          <circle class="score-ring__bg" cx="50" cy="50" r="45"></circle>
+          <circle class="score-ring__fill" cx="50" cy="50" r="45"
+            style="stroke: ${strokeColor}; stroke-dasharray: ${circumference}; stroke-dashoffset: ${offset}"></circle>
+        </svg>
+        <div class="score-ring__number">
+          <span class="type-data--lg" style="font-size: var(--text-2xl);">${n}</span>
+        </div>
+      </div>
+      <span class="score-verdict type-structural--bold ${tier.cssClass}" style="font-size: var(--text-lg);">${tier.verdict}</span>
+      <span class="score-percentile type-data--sm">Top ${Math.round((tier.integer / 10) * 100)}%</span>`;
+  } else if (tileEl.id === 'score-tile-radar') {
+    const existingSvg = document.getElementById('radar-svg');
+    $content.innerHTML = `
+      <span class="score-tile__label type-data--sm">Vibe Profile</span>
+      <div class="radar-wrap">
+        <svg viewBox="0 0 200 200">${existingSvg ? existingSvg.innerHTML : ''}</svg>
+      </div>`;
+  }
+
+  $modal.classList.add('tile-expand--open');
+  $modal.querySelector('.tile-expand__close')?.focus();
+  announce('Score details expanded');
+}
+
+function closeTileExpand() {
+  const $modal = document.getElementById('tile-expand');
+  if ($modal) {
+    $modal.classList.remove('tile-expand--open');
+    // Return focus to the tile that was expanded
+    document.querySelector('.score-tile--expandable')?.focus();
+  }
 }
 
 function createActionBtn(iconSvg, label, href) {

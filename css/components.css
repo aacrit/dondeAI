@@ -515,6 +515,15 @@
   color: var(--fg);
   line-height: 1.75;
   max-width: 600px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.result-recommendation--expanded {
+  -webkit-line-clamp: unset;
+  overflow: visible;
 }
 
 /* ---- Score Tiles (3-col top row + full-width details) ---- */
@@ -532,15 +541,12 @@
   align-items: center;
   gap: var(--space-xs);
   padding: var(--space-md);
-  background: var(--glass);
-  backdrop-filter: blur(calc(var(--glass-blur) * 0.5));
-  -webkit-backdrop-filter: blur(calc(var(--glass-blur) * 0.5));
+  background: var(--bg2);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   text-align: center;
   overflow: hidden;
   min-height: 0;
-  transform: translateZ(0); /* force compositing — fixes scroll sticking on WebKit/Blink */
 }
 
 /* Details tile spans full width below the 3-col row */
@@ -1237,6 +1243,205 @@
   color: var(--fg2);
 }
 
+/* ---- Tile Expand Modal ---- */
+.tile-expand {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--dur-normal) var(--ease-out);
+}
+
+.tile-expand--open {
+  pointer-events: auto;
+  opacity: 1;
+}
+
+.tile-expand__backdrop {
+  position: absolute;
+  inset: 0;
+  background: hsl(0 0% 0% / 0.5);
+}
+
+.tile-expand__panel {
+  position: relative;
+  width: 90vw;
+  max-width: 360px;
+  max-height: 80vh;
+  overflow-y: auto;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+  transform: scale(0.9);
+  transition: transform var(--dur-step) var(--spring);
+}
+
+.tile-expand--open .tile-expand__panel {
+  transform: scale(1);
+}
+
+.tile-expand__close {
+  position: absolute;
+  top: var(--space-sm);
+  right: var(--space-sm);
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: var(--fg2);
+  background: none;
+  border: none;
+  cursor: pointer;
+  z-index: 1;
+  transition: background var(--dur-fast) var(--ease-out),
+              color var(--dur-fast) var(--ease-out);
+}
+
+.tile-expand__close:hover {
+  background: var(--bg3);
+  color: var(--fg);
+}
+
+.tile-expand__content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  text-align: center;
+}
+
+/* Expanded score ring — larger */
+.tile-expand__content .score-ring-wrap {
+  width: 160px;
+  height: 160px;
+}
+
+.tile-expand__content .score-verdict {
+  font-size: var(--text-lg);
+}
+
+.tile-expand__content .score-percentile {
+  font-size: var(--text-sm);
+}
+
+/* Expanded radar — larger */
+.tile-expand__content .radar-wrap {
+  width: 280px;
+  max-width: 100%;
+  aspect-ratio: 1;
+}
+
+/* ---- Expandable Tile Affordance ---- */
+.score-tile--expandable {
+  cursor: pointer;
+  transition: transform var(--dur-fast) var(--spring),
+              box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.score-tile--expandable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px var(--shadow);
+}
+
+.score-tile--expandable:active {
+  transform: scale(0.97);
+}
+
+/* ---- Google Tile Clickable ---- */
+.score-tile--google[role="link"] {
+  cursor: pointer;
+  transition: transform var(--dur-fast) var(--spring),
+              box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.score-tile--google[role="link"]:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px var(--shadow);
+}
+
+.score-tile--google[role="link"]:active {
+  transform: scale(0.97);
+}
+
+.score-tile__link-hint {
+  color: var(--fg3);
+  font-size: var(--text-xs);
+  margin-top: var(--space-2xs);
+  transition: color var(--dur-fast) var(--ease-out);
+}
+
+.score-tile--google[role="link"]:hover .score-tile__link-hint {
+  color: var(--ac);
+}
+
+/* ---- Result Navigation (after header) ---- */
+.result-nav {
+  width: 100%;
+}
+
+/* ---- Recommendation Wrap (collapsible) ---- */
+.result-rec-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  width: 100%;
+  max-width: 600px;
+}
+
+.result-rec-toggle {
+  align-self: flex-start;
+  padding: var(--space-2xs) 0;
+  font-size: var(--text-sm);
+  color: var(--ac);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-structural);
+  font-weight: 600;
+  transition: color var(--dur-fast) var(--ease-out);
+}
+
+.result-rec-toggle:hover {
+  opacity: 0.8;
+}
+
+.result-rec-toggle:focus-visible {
+  outline: 2px solid var(--ac);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* ---- CTA Button with Icon ---- */
+.cta-btn--icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+}
+
+.cta-btn__icon {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.cta-btn__icon svg {
+  width: 18px;
+  height: 18px;
+}
+
 /* ---- Validation Hint ---- */
 .hint {
   font-size: var(--text-sm);
@@ -1722,7 +1927,7 @@
 }
 
 /* ---- Progressive Result Card Reveal ---- */
-/* Narrative first: recommendation enters early, tiles follow */
+/* Flow: Header → Nav → Recommendation → Tip → Tiles → Data → Actions */
 .result-card--revealing > * {
   opacity: 0;
   transform: translateY(12px);
@@ -1746,67 +1951,72 @@
   animation: slideSettleIn 400ms var(--ease-out) 400ms forwards;
 }
 
-/* Recommendation (HERO — enters early for emphasis) */
-.result-card--revealing .result-recommendation {
-  animation: resultSectionIn 450ms var(--ease-out) 200ms forwards;
+/* Navigation tile (Where is it?) */
+.result-card--revealing .result-nav {
+  animation: resultSectionIn 300ms var(--ease-out) 100ms forwards;
+}
+
+/* Recommendation wrap (Why this spot? — collapsible) */
+.result-card--revealing .result-rec-wrap {
+  animation: resultSectionIn 450ms var(--ease-out) 300ms forwards;
 }
 
 .result-card--revealing .insider-tip {
-  animation: resultSectionIn 350ms var(--ease-out) 350ms forwards;
+  animation: resultSectionIn 350ms var(--ease-out) 450ms forwards;
 }
 
 /* Score tiles container */
 .result-card--revealing .score-tiles {
-  animation: resultSectionIn 350ms var(--ease-out) 450ms forwards;
+  animation: resultSectionIn 350ms var(--ease-out) 550ms forwards;
 }
 
 /* Individual tile stagger (3-col row + full-width details) */
 .result-card--revealing .score-tile--donde {
   opacity: 0;
   transform: translateY(12px);
-  animation: tileRevealIn 400ms var(--ease-out) 500ms forwards;
+  animation: tileRevealIn 400ms var(--ease-out) 600ms forwards;
 }
 
 .result-card--revealing .score-tile--google {
   opacity: 0;
   transform: translateY(12px);
-  animation: tileRevealIn 400ms var(--ease-out) 560ms forwards;
+  animation: tileRevealIn 400ms var(--ease-out) 650ms forwards;
 }
 
 .result-card--revealing .score-tile--radar {
   opacity: 0;
   transform: translateY(12px);
-  animation: tileRevealIn 400ms var(--ease-out) 620ms forwards;
+  animation: tileRevealIn 400ms var(--ease-out) 710ms forwards;
 }
 
 .result-card--revealing .score-tile--details {
   opacity: 0;
   transform: translateY(12px);
-  animation: tileRevealIn 400ms var(--ease-out) 700ms forwards;
+  animation: tileRevealIn 400ms var(--ease-out) 780ms forwards;
 }
 
 .result-card--revealing .info-grid {
-  animation: resultSectionIn 350ms var(--ease-out) 760ms forwards;
+  animation: resultSectionIn 350ms var(--ease-out) 860ms forwards;
 }
 
 .result-card--revealing .atmosphere-tags {
-  animation: resultSectionIn 300ms var(--ease-out) 840ms forwards;
-}
-
-.result-card--revealing .tags-cloud {
-  animation: resultSectionIn 300ms var(--ease-out) 880ms forwards;
-}
-
-.result-card--revealing #sentiment-section {
   animation: resultSectionIn 300ms var(--ease-out) 920ms forwards;
 }
 
+.result-card--revealing .tags-cloud {
+  animation: resultSectionIn 300ms var(--ease-out) 960ms forwards;
+}
+
+.result-card--revealing #sentiment-section {
+  animation: resultSectionIn 300ms var(--ease-out) 1000ms forwards;
+}
+
 .result-card--revealing .action-btns {
-  animation: resultSectionIn 350ms var(--ease-out) 980ms forwards;
+  animation: resultSectionIn 350ms var(--ease-out) 1060ms forwards;
 }
 
 .result-card--revealing .result-actions {
-  animation: resultSectionIn 350ms var(--ease-out) 1060ms forwards;
+  animation: resultSectionIn 350ms var(--ease-out) 1140ms forwards;
 }
 
 /* ---- Filter Pill Ink Ripple ---- */

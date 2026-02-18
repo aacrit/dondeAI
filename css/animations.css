@@ -356,7 +356,9 @@
   .result-card--revealing .score-tile,
   .result-card--revealing .score-tile--details,
   .result-card--revealing .result-name,
-  .result-card--revealing .result-oneliner {
+  .result-card--revealing .result-oneliner,
+  .result-card--revealing .result-nav,
+  .result-card--revealing .result-rec-wrap {
     animation-duration: 100ms !important;
     animation-timing-function: linear !important;
     opacity: 1;
@@ -373,6 +375,15 @@
   /* No scale transition on loading overlay */
   .loading-state,
   .loading-state--fading {
+    transition: none !important;
+  }
+
+  /* Tile expand modal — instant open/close, no spring */
+  .tile-expand__panel {
+    transition: none !important;
+    transform: none !important;
+  }
+  .tile-expand__backdrop {
     transition: none !important;
   }
 }

@@ -257,8 +257,17 @@
                 <p class="result-oneliner type-structural" id="result-oneliner"></p>
               </div>
 
-              <!-- Recommendation (HERO — narrative first, data second) -->
-              <p class="result-recommendation type-structural" id="result-recommendation"></p>
+              <!-- Navigation (immediately after name — "What? Where? Why?" flow) -->
+              <div class="result-nav" id="result-nav-tile"></div>
+
+              <!-- Recommendation (collapsible — 3-line clamp with Read More) -->
+              <div class="result-rec-wrap" id="result-rec-wrap">
+                <p class="result-recommendation type-structural" id="result-recommendation"></p>
+                <button class="result-rec-toggle type-structural" id="result-rec-toggle"
+                        data-action="toggle-recommendation" aria-expanded="false"
+                        aria-controls="result-recommendation"
+                        style="display: none;">Read more</button>
+              </div>
 
               <!-- Insider Tip -->
               <div class="insider-tip" id="insider-tip" style="display: none;">
@@ -333,11 +342,13 @@
 
               <!-- Result Footer: Try Again / Start Over -->
               <div class="result-actions">
-                <button class="cta-btn type-structural--bold" data-action="try-again" data-label="again">
-                  Try Another
+                <button class="cta-btn cta-btn--icon type-structural--bold" data-action="try-again" data-label="again">
+                  <span class="cta-btn__icon" id="try-again-icon"></span>
+                  <span class="cta-btn__text">Try Another</span>
                 </button>
-                <button class="cta-btn cta-btn--secondary type-structural" data-action="reset">
-                  Start Over
+                <button class="cta-btn cta-btn--secondary cta-btn--icon type-structural" data-action="reset">
+                  <span class="cta-btn__icon" id="start-over-icon"></span>
+                  <span class="cta-btn__text">Start Over</span>
                 </button>
               </div>
             </div>
@@ -520,6 +531,20 @@
             <span class="share-btn__label type-structural">iMessage</span>
           </button>
         </div>
+      </div>
+    </div>
+
+    <!-- Tile Expand Modal (DondeAI Score / Vibe Radar) -->
+    <div class="tile-expand" id="tile-expand" role="dialog" aria-label="Expanded score view" aria-modal="true">
+      <div class="tile-expand__backdrop" data-action="close-tile-expand"></div>
+      <div class="tile-expand__panel" id="tile-expand-panel">
+        <button class="tile-expand__close" data-action="close-tile-expand" aria-label="Close expanded view">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+        <div class="tile-expand__content" id="tile-expand-content"></div>
       </div>
     </div>
 

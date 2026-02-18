@@ -48,8 +48,15 @@ function handleKeyboard(e) {
     target.click();
   }
 
-  // Escape closes modals
+  // Escape closes modals (check innermost first)
   if (e.key === 'Escape') {
+    const tileExpand = document.getElementById('tile-expand');
+    if (tileExpand?.classList.contains('tile-expand--open')) {
+      tileExpand.classList.remove('tile-expand--open');
+      document.querySelector('.score-tile--expandable')?.focus();
+      return;
+    }
+
     const themePicker = document.getElementById('theme-picker');
     if (themePicker?.classList.contains('theme-picker--open')) {
       themePicker.classList.remove('theme-picker--open');

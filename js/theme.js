@@ -194,13 +194,15 @@ function applyLabels(labels) {
     if (key && labels[key]) el.textContent = labels[key];
   });
 
-  // CTA buttons
+  // CTA buttons (target .cta-btn__text child if present to preserve icons)
   document.querySelectorAll('[data-label="cta"]').forEach(el => {
-    el.textContent = labels.cta;
+    const t = el.querySelector('.cta-btn__text');
+    if (t) t.textContent = labels.cta; else el.textContent = labels.cta;
   });
 
   // Again button
   document.querySelectorAll('[data-label="again"]').forEach(el => {
-    el.textContent = labels.again;
+    const t = el.querySelector('.cta-btn__text');
+    if (t) t.textContent = labels.again; else el.textContent = labels.again;
   });
 }
