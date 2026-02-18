@@ -34,6 +34,7 @@
   --grain-opacity: 0.03;
   --texture-url: none;
   --textile-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'%3E%3Cpath d='M7 7l6 6M13 7l-6 6' fill='none' stroke='%23000000' stroke-width='0.8' stroke-linecap='round' opacity='0.08'/%3E%3C/svg%3E");
+  --textile-opacity: 0.4;
   --glass-header: hsl(0 0% 100% / 0.65);
   --glass-toast:  hsl(0 0% 100% / 0.85);
   --glass-info:   hsl(0 0% 100% / 0.5);
@@ -73,6 +74,7 @@
   --grain-opacity: 0.04;
   --texture-url: none;
   --textile-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'%3E%3Cpath d='M7 7l6 6M13 7l-6 6' fill='none' stroke='%23ffffff' stroke-width='0.8' stroke-linecap='round' opacity='0.10'/%3E%3C/svg%3E");
+  --textile-opacity: 0.5;
   --glass-header: hsl(0 0% 11% / 0.7);
   --glass-toast:  hsl(0 0% 14% / 0.88);
   --glass-info:   hsl(0 0% 14% / 0.55);
