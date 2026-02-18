@@ -256,33 +256,33 @@
           <div class="step__inner" id="result-container">
             <!-- Result Card (populated by JS) -->
             <div class="result-card card-enter" id="result-card" style="display: none;">
-              <!-- Header: Name + Oneliner -->
-              <div class="result-header">
-                <h2 class="result-name type-emotional--md" id="result-name"></h2>
-                <p class="result-oneliner type-structural" id="result-oneliner"></p>
+
+              <!-- Block 1: Identity — "What? Where?" -->
+              <div class="result-identity">
+                <div class="result-header">
+                  <h2 class="result-name type-emotional--md" id="result-name"></h2>
+                  <p class="result-oneliner type-structural" id="result-oneliner"></p>
+                </div>
+                <div class="result-nav" id="result-nav-tile"></div>
               </div>
 
-              <!-- Navigation (immediately after name — "What? Where? Why?" flow) -->
-              <div class="result-nav" id="result-nav-tile"></div>
-
-              <!-- Recommendation (collapsible — 3-line clamp with Read More) -->
-              <div class="result-rec-wrap" id="result-rec-wrap">
-                <p class="result-recommendation type-structural" id="result-recommendation"></p>
-                <button class="result-rec-toggle type-structural" id="result-rec-toggle"
-                        data-action="toggle-recommendation" aria-expanded="false"
-                        aria-controls="result-recommendation"
-                        style="display: none;">Read more</button>
+              <!-- Block 2: Story — "Why this spot?" -->
+              <div class="result-story">
+                <div class="result-rec-wrap" id="result-rec-wrap">
+                  <p class="result-recommendation type-structural" id="result-recommendation"></p>
+                  <button class="result-rec-toggle type-structural" id="result-rec-toggle"
+                          data-action="toggle-recommendation" aria-expanded="false"
+                          aria-controls="result-recommendation"
+                          style="display: none;">Read more</button>
+                </div>
+                <div class="insider-tip" id="insider-tip" style="display: none;">
+                  <div class="insider-tip__label type-data--sm">Insider Tip</div>
+                  <p class="insider-tip__text type-structural" id="insider-tip-text"></p>
+                </div>
               </div>
 
-              <!-- Insider Tip -->
-              <div class="insider-tip" id="insider-tip" style="display: none;">
-                <div class="insider-tip__label type-data--sm">Insider Tip</div>
-                <p class="insider-tip__text type-structural" id="insider-tip-text"></p>
-              </div>
-
-              <!-- Score Tiles (2×2 grid) -->
+              <!-- Block 3: Scores — evaluative metrics only -->
               <div class="score-tiles" id="score-tiles">
-                <!-- Tile 1: DondeAI Score -->
                 <div class="score-tile score-tile--donde" id="score-tile-donde" role="group" aria-label="DondeAI Score">
                   <span class="score-tile__label type-data--sm">DondeAI Score</span>
                   <div class="score-ring-wrap">
@@ -298,7 +298,6 @@
                   <span class="score-percentile type-data--sm" id="score-percentile"></span>
                 </div>
 
-                <!-- Tile 2: Google Rating -->
                 <div class="score-tile score-tile--google" id="score-tile-google" role="group" aria-label="Google Rating">
                   <span class="score-tile__label type-data--sm">Google Rating</span>
                   <div class="google-rating-display">
@@ -308,52 +307,51 @@
                   </div>
                 </div>
 
-                <!-- Tile 3: Radar Chart -->
                 <div class="score-tile score-tile--radar" id="score-tile-radar" role="group" aria-label="Vibe Profile">
                   <span class="score-tile__label type-data--sm">Vibe Profile</span>
                   <div class="radar-wrap" id="radar-wrap">
                     <svg id="radar-svg" viewBox="0 0 200 200"></svg>
                   </div>
                 </div>
-
-                <!-- Tile 4: Details (full-width, Cuisine/Price/Parking/Noise badges) -->
-                <div class="score-tile score-tile--details" id="score-tile-details" role="group" aria-label="Restaurant Details">
-                  <div class="details-badge-grid" id="details-badge-grid"></div>
-                </div>
               </div>
 
-              <!-- Quick Links (Website, Call, Reviews, Share) -->
-              <div class="result-links" id="result-links"></div>
-
-              <!-- Info Grid -->
-              <div class="info-grid" id="info-grid"></div>
-
-              <!-- Atmosphere Tags -->
-              <div class="atmosphere-tags" id="atmosphere-tags"></div>
-
-              <!-- Tags Cloud -->
-              <div class="tags-cloud" id="tags-cloud"></div>
-
-              <!-- Sentiment Bar -->
-              <div id="sentiment-section" style="display: none;">
-                <div class="type-data--sm" style="margin-bottom: var(--space-xs);">Sentiment</div>
-                <div class="sentiment-bar">
-                  <div class="sentiment-bar__pos" id="sentiment-pos"></div>
-                  <div class="sentiment-bar__neu" id="sentiment-neu"></div>
-                  <div class="sentiment-bar__neg" id="sentiment-neg"></div>
+              <!-- Block 4: Profile — "About This Spot" -->
+              <div class="result-profile" id="result-profile">
+                <h3 class="result-profile__heading type-data--sm">About This Spot</h3>
+                <div class="profile-facts" id="profile-facts"></div>
+                <div class="profile-atmosphere" id="profile-atmosphere"></div>
+                <div class="profile-sentiment" id="profile-sentiment" style="display: none;">
+                  <div class="profile-sentiment__header">
+                    <span class="profile-sentiment__label type-data--sm">Review Sentiment</span>
+                    <span class="profile-sentiment__score type-data--sm" id="sentiment-score-label"></span>
+                  </div>
+                  <div class="sentiment-bar">
+                    <div class="sentiment-bar__pos" id="sentiment-pos"></div>
+                    <div class="sentiment-bar__neu" id="sentiment-neu"></div>
+                    <div class="sentiment-bar__neg" id="sentiment-neg"></div>
+                  </div>
+                  <div class="profile-sentiment__legend type-data--sm">
+                    <span class="profile-sentiment__legend-item"><span class="profile-sentiment__dot profile-sentiment__dot--pos"></span> Positive <span id="sentiment-pos-pct"></span></span>
+                    <span class="profile-sentiment__legend-item"><span class="profile-sentiment__dot profile-sentiment__dot--neu"></span> Neutral <span id="sentiment-neu-pct"></span></span>
+                    <span class="profile-sentiment__legend-item"><span class="profile-sentiment__dot profile-sentiment__dot--neg"></span> Negative <span id="sentiment-neg-pct"></span></span>
+                  </div>
                 </div>
+                <div class="profile-tags" id="profile-tags"></div>
               </div>
 
-              <!-- Result Footer: Try Again / Start Over -->
-              <div class="result-actions">
-                <button class="cta-btn cta-btn--icon type-structural--bold" data-action="try-again" data-label="again">
-                  <span class="cta-btn__icon" id="try-again-icon"></span>
-                  <span class="cta-btn__text">Try Another</span>
-                </button>
-                <button class="cta-btn cta-btn--secondary cta-btn--icon type-structural" data-action="reset">
-                  <span class="cta-btn__icon" id="start-over-icon"></span>
-                  <span class="cta-btn__text">Start Over</span>
-                </button>
+              <!-- Block 5: Actions — "Now what?" -->
+              <div class="result-actions-block">
+                <div class="result-links" id="result-links"></div>
+                <div class="result-actions">
+                  <button class="cta-btn cta-btn--icon type-structural--bold" data-action="try-again" data-label="again">
+                    <span class="cta-btn__icon" id="try-again-icon"></span>
+                    <span class="cta-btn__text">Try Another</span>
+                  </button>
+                  <button class="cta-btn cta-btn--secondary cta-btn--icon type-structural" data-action="reset">
+                    <span class="cta-btn__icon" id="start-over-icon"></span>
+                    <span class="cta-btn__text">Start Over</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
