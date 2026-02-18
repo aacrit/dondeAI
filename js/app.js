@@ -5,8 +5,7 @@
 
 import { getState, setState, subscribe, resetState } from './state.js';
 import { initRouter, goToStep, goToStepInstant } from './router.js';
-import { loadTheme, loadSound, loadHistory } from './persistence.js';
-import { addToHistory } from './persistence.js';
+import { loadTheme, loadSound, loadHistory, addToHistory, saveTheme } from './persistence.js';
 import { initTheme, setTheme, getLabels, CULTURES, CULTURE_DISPLAY_NAMES } from './theme.js';
 import { initAudio, toggleSound, playChime } from './audio.js';
 import { initVoice, startVoice } from './voice.js';
@@ -14,7 +13,7 @@ import { initShare, shareResult, closeShareSheet, handleShareChannel } from './s
 import { initOffline, isOnline } from './offline.js';
 import { initAccessibility, announce } from './accessibility.js';
 import { fetchRecommendation } from './api.js';
-import { animateScoreRing, renderRadar, animateGoogleRating, animateBadge, startParticles, stopParticles, chaosToOrderReveal, initLogoAnimation, startSearchPulse, stopSearchPulse, resolveLogoToFound, cleanupLoadingLogo } from './animations.js';
+import { animateScoreRing, renderVibeTiles, animateBadge, startParticles, stopParticles, chaosToOrderReveal, initLogoAnimation, startSearchPulse, stopSearchPulse, resolveLogoToFound, cleanupLoadingLogo } from './animations.js';
 import {
   getGreeting, getCuisineFromResult, svgIcon,
   getScoreTier, getScoreColor, buildGoogleStars, buildMapsUrl, relativeTime, matchCuisine
@@ -30,6 +29,7 @@ const $particleCanvas = document.getElementById('particle-canvas');
 const $toast = document.getElementById('toast');
 const $toastText = document.getElementById('toast-text');
 const $cursorGlow = document.querySelector('.cursor-glow');
+const $suggestions = document.getElementById('craving-suggestions');
 
 /* ---- AbortController for fetch cancellation ---- */
 let currentAbort = null;
@@ -68,6 +68,9 @@ function init() {
   // Wire craving input
   wireCravingInput();
 
+  // Render dynamic smart chips (theme + history aware)
+  renderSmartChips();
+
   // Wire swipe gestures
   wireSwipe();
 
@@ -100,6 +103,10 @@ function init() {
     if (state.error !== prev.error && state.error) {
       showToast(state.error, true);
     }
+    if (state.theme.culture !== prev.theme.culture) {
+      renderSmartChips();
+      closeSuggestions();
+    }
   });
 
   // Push initial history state
@@ -107,6 +114,15 @@ function init() {
 
   // Sync CTA disabled state
   updateCtaState();
+
+  // First-visit theme discovery nudge
+  try {
+    if (!localStorage.getItem('dondeai-theme')) {
+      setTimeout(() => {
+        document.getElementById('theme-picker')?.classList.add('theme-picker--open');
+      }, 2000);
+    }
+  } catch { /* private browsing — skip nudge */ }
 }
 
 /* ---- Landing Setup ---- */
@@ -160,6 +176,47 @@ function renderTasteMemory(history) {
   });
 }
 
+/* ---- Dynamic Smart Chips (theme + history aware) ---- */
+function renderSmartChips() {
+  const $container = document.querySelector('.smart-chips');
+  if (!$container) return;
+
+  const culture = getState().theme.culture;
+  const labels = getLabels(culture);
+  const cultureChips = labels.smartChips || ['outdoor seating', 'live music', 'pet friendly', 'great cocktails', 'hidden gem'];
+  const history = loadHistory();
+
+  // Derive up to 2 history-based chips
+  const historyChips = history.slice(0, 2).map(h => h.label.slice(0, 25)).filter(Boolean);
+
+  // Combine: history first, then culture, deduplicate, cap at 5
+  const seen = new Set();
+  const combined = [];
+  for (const chip of [...historyChips, ...cultureChips]) {
+    const key = chip.toLowerCase();
+    if (!seen.has(key) && combined.length < 5) {
+      seen.add(key);
+      combined.push(chip);
+    }
+  }
+
+  // Clear and re-render with stagger animation
+  $container.innerHTML = '';
+  $container.classList.remove('smart-chips--visible');
+  void $container.offsetWidth; // force reflow for animation restart
+
+  combined.forEach(text => {
+    const btn = document.createElement('button');
+    btn.className = 'smart-chip type-structural';
+    btn.setAttribute('data-action', 'smart-chip');
+    btn.setAttribute('data-value', text);
+    btn.textContent = text;
+    $container.appendChild(btn);
+  });
+
+  $container.classList.add('smart-chips--visible');
+}
+
 /* ---- Event Delegation ---- */
 function wireEvents() {
   document.addEventListener('click', (e) => {
@@ -174,6 +231,7 @@ function wireEvents() {
         if ($cravingInput) $cravingInput.value = '';
         clearAllSelections();
         setupLanding();
+        renderSmartChips();
         goToStep(0);
         updateCtaState();
         updateFilterSummary();
@@ -202,6 +260,15 @@ function wireEvents() {
           setState({ craving: $cravingInput.value });
           updateCtaState();
         }
+        // Spring feedback
+        btn.classList.add('smart-chip--active');
+        btn.addEventListener('animationend',
+          () => btn.classList.remove('smart-chip--active'), { once: true });
+        // Ink ripple (reuse filter pill ripple)
+        const ripple = document.createElement('span');
+        ripple.className = 'filter-pill__ripple';
+        btn.appendChild(ripple);
+        ripple.addEventListener('animationend', () => ripple.remove(), { once: true });
         break;
       }
 
@@ -237,9 +304,11 @@ function wireEvents() {
         document.getElementById('theme-picker')?.classList.add('theme-picker--open');
         break;
 
-      case 'close-themes':
+      case 'close-themes': {
         document.getElementById('theme-picker')?.classList.remove('theme-picker--open');
+        saveTheme(getState().theme);
         break;
+      }
 
       case 'select-theme': {
         const culture = btn.dataset.theme;
@@ -261,12 +330,7 @@ function wireEvents() {
       }
 
       case 'cycle-theme': {
-        const currentCulture = getState().theme.culture;
-        const currentIndex = CULTURES.indexOf(currentCulture);
-        const nextIndex = (currentIndex + 1) % CULTURES.length;
-        const nextCulture = CULTURES[nextIndex];
-        setTheme(nextCulture, getState().theme.mode);
-        showToast(CULTURE_DISPLAY_NAMES[nextCulture] || nextCulture);
+        document.getElementById('theme-picker')?.classList.add('theme-picker--open');
         break;
       }
 
@@ -340,21 +404,192 @@ function wireEvents() {
   });
 }
 
-/* ---- Craving Input ---- */
+/* ---- Craving Input + Autocomplete ---- */
+let placeholderInterval = null;
+let activeIndex = -1;
+
+function getSuggestionPool() {
+  const culture = getState().theme.culture;
+  const labels = getLabels(culture);
+  const pool = new Set();
+
+  // Culture suggestions (primary pool)
+  if (labels.suggestions) labels.suggestions.forEach(s => pool.add(s));
+  // Culture smart chips as fallback
+  if (labels.smartChips) labels.smartChips.forEach(s => pool.add(s));
+  // History labels
+  loadHistory().forEach(h => { if (h.label) pool.add(h.label); });
+
+  return [...pool];
+}
+
+function renderSuggestions(matches, query) {
+  if (!$suggestions || matches.length === 0) {
+    closeSuggestions();
+    return;
+  }
+
+  $suggestions.innerHTML = '';
+  activeIndex = -1;
+
+  matches.forEach((text, i) => {
+    const div = document.createElement('div');
+    div.className = 'craving-suggestion';
+    div.setAttribute('role', 'option');
+    div.setAttribute('id', `suggestion-${i}`);
+    div.dataset.value = text;
+
+    // Highlight matching substring
+    const lowerText = text.toLowerCase();
+    const matchStart = lowerText.indexOf(query);
+    if (matchStart >= 0) {
+      const before = text.slice(0, matchStart);
+      const match = text.slice(matchStart, matchStart + query.length);
+      const after = text.slice(matchStart + query.length);
+      div.innerHTML = `${before}<mark>${match}</mark>${after}`;
+    } else {
+      div.textContent = text;
+    }
+
+    $suggestions.appendChild(div);
+  });
+
+  $suggestions.hidden = false;
+}
+
+function closeSuggestions() {
+  if (!$suggestions) return;
+  $suggestions.hidden = true;
+  $suggestions.innerHTML = '';
+  activeIndex = -1;
+  if ($cravingInput) $cravingInput.removeAttribute('aria-activedescendant');
+}
+
+function moveActive(delta) {
+  if (!$suggestions || $suggestions.hidden) return;
+  const items = $suggestions.querySelectorAll('.craving-suggestion');
+  if (items.length === 0) return;
+
+  // Remove current active
+  if (activeIndex >= 0 && activeIndex < items.length) {
+    items[activeIndex].classList.remove('craving-suggestion--active');
+  }
+
+  // Compute new index with wrapping
+  activeIndex = (activeIndex + delta + items.length) % items.length;
+
+  items[activeIndex].classList.add('craving-suggestion--active');
+  items[activeIndex].scrollIntoView({ block: 'nearest' });
+  $cravingInput.setAttribute('aria-activedescendant', `suggestion-${activeIndex}`);
+}
+
+function selectSuggestion(index) {
+  if (!$suggestions) return;
+  const items = $suggestions.querySelectorAll('.craving-suggestion');
+  if (index < 0 || index >= items.length) return;
+
+  const value = items[index].dataset.value;
+  if ($cravingInput) {
+    $cravingInput.value = value;
+    setState({ craving: value });
+    updateCtaState();
+  }
+  closeSuggestions();
+}
+
 function wireCravingInput() {
   if (!$cravingInput) return;
 
   $cravingInput.addEventListener('input', () => {
     setState({ craving: $cravingInput.value });
     updateCtaState();
+
+    // Autocomplete filtering
+    const query = $cravingInput.value.trim().toLowerCase();
+    if (query.length < 2) {
+      closeSuggestions();
+      return;
+    }
+    const pool = getSuggestionPool();
+    const matches = pool.filter(s => s.toLowerCase().includes(query)).slice(0, 5);
+    renderSuggestions(matches, query);
   });
 
   $cravingInput.addEventListener('keydown', (e) => {
+    // Autocomplete keyboard navigation
+    if ($suggestions && !$suggestions.hidden) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        moveActive(1);
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        moveActive(-1);
+        return;
+      }
+      if (e.key === 'Escape') {
+        closeSuggestions();
+        return;
+      }
+      if (e.key === 'Enter' && activeIndex >= 0) {
+        e.preventDefault();
+        selectSuggestion(activeIndex);
+        return;
+      }
+    }
+
     if (e.key === 'Enter') {
       e.preventDefault();
       handleSubmit();
     }
   });
+
+  // Stop placeholder rotation on focus, restart on blur
+  $cravingInput.addEventListener('focus', () => {
+    if (placeholderInterval) { clearInterval(placeholderInterval); placeholderInterval = null; }
+  });
+  $cravingInput.addEventListener('blur', () => {
+    setTimeout(() => closeSuggestions(), 150);
+    if (!$cravingInput.value.trim()) startPlaceholderRotation();
+  });
+
+  // Click handler on suggestions container (event delegation)
+  if ($suggestions) {
+    $suggestions.addEventListener('pointerdown', (e) => {
+      e.preventDefault(); // Prevent blur on input
+      const item = e.target.closest('.craving-suggestion');
+      if (item) {
+        $cravingInput.value = item.dataset.value;
+        setState({ craving: item.dataset.value });
+        updateCtaState();
+        closeSuggestions();
+        $cravingInput.focus();
+      }
+    });
+  }
+
+  startPlaceholderRotation();
+}
+
+function startPlaceholderRotation() {
+  if (placeholderInterval) clearInterval(placeholderInterval);
+  if (!$cravingInput || $cravingInput.value.trim()) return;
+
+  const labels = getLabels(getState().theme.culture);
+  const phs = labels.placeholders || [labels.placeholder];
+  let idx = 0;
+
+  placeholderInterval = setInterval(() => {
+    if ($cravingInput.value.trim() || document.activeElement === $cravingInput) return;
+    idx = (idx + 1) % phs.length;
+    $cravingInput.style.transition = 'opacity 200ms ease';
+    $cravingInput.style.opacity = '0.3';
+    setTimeout(() => {
+      $cravingInput.placeholder = phs[idx];
+      $cravingInput.style.opacity = '';
+    }, 200);
+  }, 4000);
 }
 
 function updateCtaState() {
@@ -433,7 +668,14 @@ async function handleSubmit() {
     $cravingInput?.classList.add('shake');
     $cravingInput?.addEventListener('animationend', () => $cravingInput.classList.remove('shake'), { once: true });
     $cravingInput?.focus();
-    showToast('Tell us what you\'re craving first!', true);
+    // Inline hint instead of toast — modern validation pattern
+    const $hint = document.getElementById('cta-hint');
+    if ($hint) {
+      $hint.textContent = "Tell us what you're craving first";
+      $hint.classList.add('cta-hint--visible', 'cta-hint--nudge');
+      $hint.addEventListener('animationend',
+        () => $hint.classList.remove('cta-hint--nudge'), { once: true });
+    }
     return;
   }
 
@@ -446,9 +688,12 @@ async function handleSubmit() {
   if (currentAbort) currentAbort.abort();
   currentAbort = new AbortController();
 
-  // Set CTA to loading state
+  // Set CTA to loading state with brief confirmation glow
   const $cta = document.querySelector('.cta-btn[data-action="submit"]');
   if ($cta) {
+    $cta.classList.add('cta-btn--confirming');
+    await new Promise(r => setTimeout(r, 200));
+    $cta.classList.remove('cta-btn--confirming');
     $cta.classList.add('cta-btn--loading');
     $cta.textContent = 'Searching';
   }
@@ -477,6 +722,7 @@ async function handleSubmit() {
 
     // Set result — triggers orchestrateReveal() via subscription
     setState({ result: data, loading: false, history: hist });
+    renderSmartChips(); // Refresh chips with new history
     playChime();
     announce(`Recommendation: ${data.restaurant?.name || 'found'}`);
   } catch (err) {
@@ -528,15 +774,28 @@ function toggleLoading(loading) {
     // Start search pulse (sonar ring + dot pulse) after draw-in completes
     setTimeout(() => startSearchPulse(), 800);
 
-    // Animated searching dots
+    // Animated searching dots with culture-specific phrases
     if ($loadingStatus) {
-      $loadingStatus.textContent = 'Searching';
-      $loadingStatus.style.opacity = '';
+      const labels = getLabels(getState().theme.culture);
+      const phrases = labels.loadingPhrases || ['Searching'];
+      let phraseIndex = 0;
       let dotCount = 0;
+      $loadingStatus.textContent = phrases[0];
+      $loadingStatus.style.opacity = '';
       searchingDotsInterval = setInterval(() => {
         dotCount = (dotCount + 1) % 4;
-        $loadingStatus.textContent = 'Searching' + '.'.repeat(dotCount);
-      }, 400);
+        if (dotCount === 0) {
+          phraseIndex = (phraseIndex + 1) % phrases.length;
+          $loadingStatus.style.transition = 'opacity 150ms ease';
+          $loadingStatus.style.opacity = '0';
+          setTimeout(() => {
+            $loadingStatus.textContent = phrases[phraseIndex];
+            $loadingStatus.style.opacity = '1';
+          }, 150);
+        } else {
+          $loadingStatus.textContent = phrases[phraseIndex] + '.'.repeat(dotCount);
+        }
+      }, 500);
     }
   } else {
     // === CLEANUP (called after reveal orchestration completes) ===
@@ -719,47 +978,38 @@ function renderResult(data) {
   // Delay score ring to after tile entrance
   animationTimers.push(setTimeout(() => animateScoreRing(data.donde_score), 800));
 
-  // ---- Google Rating Tile ----
+  // ---- Google Rating (inline display below ring) ----
+  const $googleInline = document.getElementById('google-rating-inline');
   const $googleStars = document.getElementById('google-stars');
   const $googleNum = document.getElementById('google-rating-num');
   const $googleCount = document.getElementById('google-count');
-  const $scoreTileGoogle = document.getElementById('score-tile-google');
-  if (r.google_rating) {
+  if (r.google_rating && $googleInline) {
     if ($googleStars) $googleStars.innerHTML = buildGoogleStars(r.google_rating);
-    if ($googleCount) $googleCount.textContent = r.google_review_count ? `(${r.google_review_count})` : '';
-    if ($scoreTileGoogle) $scoreTileGoogle.style.display = '';
-    // Make tile link to Google Reviews if place_id available
-    if ($scoreTileGoogle && r.google_place_id) {
-      const reviewsUrl = `https://www.google.com/maps/place/?q=place_id:${r.google_place_id}`;
-      $scoreTileGoogle.setAttribute('tabindex', '0');
-      $scoreTileGoogle.setAttribute('role', 'link');
-      $scoreTileGoogle.setAttribute('aria-label', 'View on Google Maps');
-      const oldHint = $scoreTileGoogle.querySelector('.score-tile__link-hint');
-      if (oldHint) oldHint.remove();
-      const hint = document.createElement('span');
-      hint.className = 'score-tile__link-hint type-data--sm';
-      hint.textContent = 'View on Google';
-      $scoreTileGoogle.appendChild(hint);
-      $scoreTileGoogle.onclick = () => window.open(reviewsUrl, '_blank', 'noopener,noreferrer');
-      $scoreTileGoogle.onkeydown = (e) => {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.open(reviewsUrl, '_blank', 'noopener,noreferrer'); }
+    if ($googleNum) $googleNum.textContent = parseFloat(r.google_rating).toFixed(1);
+    if ($googleCount) $googleCount.textContent = r.google_review_count
+      ? `(${Number(r.google_review_count).toLocaleString()} reviews)` : '';
+    if (r.google_place_id) {
+      $googleInline.style.cursor = 'pointer';
+      $googleInline.setAttribute('role', 'link');
+      $googleInline.setAttribute('tabindex', '0');
+      $googleInline.setAttribute('aria-label',
+        `Google Rating ${parseFloat(r.google_rating).toFixed(1)} - View on Google Maps`);
+      const url = `https://www.google.com/maps/place/?q=place_id:${r.google_place_id}`;
+      $googleInline.onclick = () => window.open(url, '_blank', 'noopener,noreferrer');
+      $googleInline.onkeydown = (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault(); window.open(url, '_blank', 'noopener,noreferrer');
+        }
       };
     }
-    animationTimers.push(setTimeout(() => animateGoogleRating(r.google_rating), 900));
-  } else {
-    if ($scoreTileGoogle) $scoreTileGoogle.style.display = 'none';
+    $googleInline.style.display = '';
+    animationTimers.push(setTimeout(() => { $googleInline.style.opacity = '1'; }, 900));
+  } else if ($googleInline) {
+    $googleInline.style.display = 'none';
   }
 
-  // ---- Radar Tile ----
-  const $scoreTileRadar = document.getElementById('score-tile-radar');
-  if ($scoreTileRadar) {
-    $scoreTileRadar.style.display = '';
-    $scoreTileRadar.classList.add('score-tile--expandable');
-    $scoreTileRadar.setAttribute('tabindex', '0');
-    $scoreTileRadar.setAttribute('role', 'button');
-    $scoreTileRadar.setAttribute('aria-label', 'Expand Vibe Profile');
-  }
-  renderRadar(data.scores || {}, r);
+  // ---- Vibe Profile Tiles ----
+  renderVibeTiles(data.scores || {}, animationTimers);
 
   // ---- Profile Block: Facts (all neutral badges — Cuisine, Price, Parking, Noise, Ambiance, Dress) ----
   const $profileFacts = document.getElementById('profile-facts');
@@ -774,9 +1024,8 @@ function renderResult(data) {
       badges.push({ icon: 'tag', label: 'Price', value: r.price_level });
     }
     if (r.parking_availability) {
-      parseParkingTypes(r.parking_availability).forEach(pt => {
-        badges.push({ icon: 'car', label: 'Parking', value: pt });
-      });
+      const pts = parseParkingTypes(r.parking_availability);
+      badges.push({ icon: 'car', label: 'Parking', value: pts.join(' / ') });
     }
     if (r.noise_level) {
       badges.push({ icon: 'speakerWave', label: 'Noise', value: r.noise_level.split(/[\s,]+/).slice(0, 2).join(' ') });
@@ -790,7 +1039,7 @@ function renderResult(data) {
 
     badges.forEach(b => {
       const div = document.createElement('div');
-      div.className = 'details-badge';
+      div.className = 'details-badge' + (b.label === 'Cuisine' ? ' details-badge--cuisine' : '');
       div.innerHTML = `
         <span class="details-badge__icon">${svgIcon(b.icon, 16)}</span>
         <span class="details-badge__label type-data--sm">${b.label}</span>
@@ -847,18 +1096,20 @@ function renderResult(data) {
 
     $profileAtmo.style.display = atmoItems.length > 0 ? '' : 'none';
 
-    // Spring pop stagger for atmosphere tags
+    // Spring pop stagger for atmosphere tags (organic jitter for handwritten feel)
     const REDUCED_MQ = matchMedia('(prefers-reduced-motion: reduce)');
     if (!REDUCED_MQ.matches && atmoItems.length > 0) {
       const allTags = $profileAtmo.querySelectorAll('.atmo-tag');
       allTags.forEach((tag, i) => {
+        const jitter = Math.floor(Math.random() * 40);
+        const rotation = ((Math.random() - 0.5) * 6).toFixed(1);
         tag.style.opacity = '0';
-        tag.style.transform = 'scale(0.8)';
+        tag.style.transform = `scale(0.8) rotate(${rotation}deg)`;
         animationTimers.push(setTimeout(() => {
           tag.style.transition = 'opacity 200ms ease-out, transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
           tag.style.opacity = '1';
-          tag.style.transform = 'scale(1)';
-        }, 980 + i * 60));
+          tag.style.transform = 'scale(1) rotate(0deg)';
+        }, 980 + i * 80 + jitter));
       });
     }
   }
@@ -917,14 +1168,14 @@ function renderResult(data) {
     void $resultCard.offsetWidth;
     $resultCard.classList.add('result-card--revealing');
 
-    // Clean up reveal class after all sections have animated
+    // Clean up reveal class after all sections have animated (600ms last delay + 400ms duration)
     setTimeout(() => {
       $resultCard.classList.remove('result-card--revealing');
       $resultCard.querySelectorAll(':scope > *, .score-tile').forEach(child => {
         child.style.opacity = '';
         child.style.transform = '';
       });
-    }, 1600);
+    }, 1200);
   }
   // Note: show/hide of loading overlay and result card is handled by orchestrateReveal()
 }
@@ -975,13 +1226,6 @@ function openTileExpand(tileEl) {
       </div>
       <span class="score-verdict type-structural--bold ${tier.cssClass}" style="font-size: var(--text-lg);">${tier.verdict}</span>
       <span class="score-percentile type-data--sm">Top ${Math.round((tier.integer / 10) * 100)}%</span>`;
-  } else if (tileEl.id === 'score-tile-radar') {
-    const existingSvg = document.getElementById('radar-svg');
-    $content.innerHTML = `
-      <span class="score-tile__label type-data--sm">Vibe Profile</span>
-      <div class="radar-wrap">
-        <svg viewBox="0 0 200 200">${existingSvg ? existingSvg.innerHTML : ''}</svg>
-      </div>`;
   }
 
   $modal.classList.add('tile-expand--open');
@@ -1147,6 +1391,13 @@ function renderShareCanvas(format = 'post') {
   ctx.fillStyle = ac;
   ctx.fillRect(0, 0, w, 6);
 
+  // Subtle ambient wash overlay (brand depth)
+  const gradient = ctx.createRadialGradient(w * 0.3, h * 0.2, 0, w * 0.3, h * 0.2, w * 0.6);
+  gradient.addColorStop(0, ac + '12');
+  gradient.addColorStop(1, 'transparent');
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, w, h);
+
   const r = result.restaurant;
   const score = Math.round(parseFloat(result.donde_score) || 8);
   const pad = 40;
@@ -1172,6 +1423,11 @@ function renderShareCanvas(format = 'post') {
   }
   ctx.fillText(nameLine, pad, y);
   y += isStory ? 32 : 28;
+
+  // Accent divider line below name
+  ctx.fillStyle = ac;
+  ctx.fillRect(pad, y, 40, 2);
+  y += 12;
 
   // One-liner
   if (r.best_for_oneliner) {

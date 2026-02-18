@@ -4,8 +4,6 @@
    chaos-to-order text, logo animation.
    ============================================ */
 
-import { normalizeNoiseLevel } from './utils.js';
-
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)');
 
 /* ---- Score Ring Animation (Integer-only) ---- */
@@ -49,17 +47,18 @@ export function animateScoreRing(rawScore) {
   }
   requestAnimationFrame(tick);
 
-  // Verdict word label animates in after number settles
+  // Verdict word label: ink-reveal entrance (left-to-right clip) after number settles
   if (verdictEl) {
-    verdictEl.style.opacity = '0';
-    verdictEl.style.transform = 'translateY(6px)';
-    requestAnimationFrame(() => {
-      verdictEl.style.transition = 'opacity 400ms ease-out 800ms, transform 400ms ease-out 800ms';
-      verdictEl.style.opacity = '1';
-      verdictEl.style.transform = 'translateY(0)';
-    });
+    verdictEl.style.opacity = '1';
+    verdictEl.style.clipPath = 'inset(0 100% 0 0)';
+    verdictEl.style.transform = 'none';
 
-    // Subtle emphasis pulse after verdict appears
+    setTimeout(() => {
+      verdictEl.style.transition = 'clip-path 500ms cubic-bezier(0.2, 1, 0.4, 1)';
+      verdictEl.style.clipPath = 'inset(0 0 0 0)';
+    }, 1000);
+
+    // Scale emphasis pulse after ink-reveal completes
     if (!REDUCED.matches) {
       setTimeout(() => {
         verdictEl.style.transition = 'transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
@@ -67,287 +66,95 @@ export function animateScoreRing(rawScore) {
         setTimeout(() => {
           verdictEl.style.transform = 'scale(1)';
         }, 150);
-      }, 1300);
+      }, 1500);
     }
+  }
+
+  // Celebration glow for exceptional scores (9+)
+  if (!REDUCED.matches && n >= 9) {
+    setTimeout(() => {
+      const tile = document.getElementById('score-tile-donde');
+      if (tile) {
+        tile.classList.add('score-tile--celebrating');
+        tile.addEventListener('animationend',
+          () => tile.classList.remove('score-tile--celebrating'), { once: true });
+      }
+    }, 1400);
   }
 }
 
-/* ---- Radar Chart (Extended dimensions, morph-from-center animation) ---- */
-export function renderRadar(scores, restaurantData = null) {
+/* ---- Vibe Profile Tiles ---- */
+export function renderVibeTiles(scores, timers = []) {
   const dimensions = [
-    { key: 'date_friendly_score', short: 'DT', full: 'Date' },
-    { key: 'group_friendly_score', short: 'GR', full: 'Group' },
-    { key: 'family_friendly_score', short: 'FM', full: 'Family' },
-    { key: 'business_lunch_score', short: 'BZ', full: 'Business' },
-    { key: 'solo_dining_score', short: 'SL', full: 'Solo' },
-    { key: 'hole_in_wall_factor', short: 'GM', full: 'Gem' },
-    { key: 'romantic_rating', short: 'RM', full: 'Romance' },
+    { key: 'date_friendly_score', label: 'Date' },
+    { key: 'group_friendly_score', label: 'Group' },
+    { key: 'family_friendly_score', label: 'Family' },
+    { key: 'business_lunch_score', label: 'Business' },
+    { key: 'solo_dining_score', label: 'Solo' },
+    { key: 'hole_in_wall_factor', label: 'Hidden Gem' },
+    { key: 'romantic_rating', label: 'Romance' },
   ];
 
-  // Extend with normalized extra fields
-  const extendedScores = { ...scores };
-  if (restaurantData) {
-    const noiseNorm = normalizeNoiseLevel(restaurantData.noise_level);
-    if (noiseNorm !== null) {
-      extendedScores._noise = String(noiseNorm);
-      dimensions.push({ key: '_noise', short: 'NS', full: 'Noise' });
-    }
-    if (restaurantData.sentiment_score) {
-      extendedScores._sentiment = String((parseFloat(restaurantData.sentiment_score) * 10).toFixed(1));
-      dimensions.push({ key: '_sentiment', short: 'SN', full: 'Sentiment' });
-    }
-    if (restaurantData.google_rating) {
-      extendedScores._google = String(((parseFloat(restaurantData.google_rating) / 5) * 10).toFixed(1));
-      dimensions.push({ key: '_google', short: 'GL', full: 'Google' });
-    }
-  }
-
+  // Only show dimensions that have data
   let available = dimensions.filter(d => {
-    const v = extendedScores[d.key];
+    const v = scores[d.key];
     return v != null && v !== '' && !isNaN(parseFloat(v));
   });
 
-  // Mock data fallback — generate random scores so radar always renders
-  if (available.length < 3) {
-    const mockPool = [
-      { key: 'date_friendly_score', short: 'DT', full: 'Date' },
-      { key: 'group_friendly_score', short: 'GR', full: 'Group' },
-      { key: 'family_friendly_score', short: 'FM', full: 'Family' },
-      { key: 'business_lunch_score', short: 'BZ', full: 'Business' },
-      { key: 'solo_dining_score', short: 'SL', full: 'Solo' },
-      { key: 'hole_in_wall_factor', short: 'GM', full: 'Gem' },
-      { key: 'romantic_rating', short: 'RM', full: 'Romance' },
-    ];
-    const count = 5 + Math.floor(Math.random() * 3);
-    const shuffled = mockPool.sort(() => Math.random() - 0.5).slice(0, count);
-    shuffled.forEach(d => {
-      if (!extendedScores[d.key] || extendedScores[d.key] === '' || isNaN(parseFloat(extendedScores[d.key]))) {
-        extendedScores[d.key] = String((3 + Math.random() * 6).toFixed(1));
-      }
-      if (!dimensions.find(dim => dim.key === d.key)) dimensions.push(d);
-    });
-    available = dimensions.filter(d => {
-      const v = extendedScores[d.key];
-      return v != null && v !== '' && !isNaN(parseFloat(v));
-    });
+  // If both date + romance present, drop romance (redundant)
+  if (available.find(d => d.key === 'date_friendly_score') &&
+      available.find(d => d.key === 'romantic_rating')) {
+    available = available.filter(d => d.key !== 'romantic_rating');
   }
 
-  const wrap = document.getElementById('radar-wrap');
-  const svg = document.getElementById('radar-svg');
-  if (!wrap || !svg) return;
+  const $container = document.getElementById('vibe-tiles');
+  if (!$container) return;
+  $container.innerHTML = '';
 
-  wrap.style.display = 'block';
-  svg.innerHTML = '';
-
-  const cx = 100, cy = 100, maxR = 70;
-  const n = available.length;
-  const fontSize = n > 7 ? '8' : '10';
-
-  // Grid rings
-  for (let ring = 1; ring <= 3; ring++) {
-    const r = (ring / 3) * maxR;
-    const points = [];
-    for (let i = 0; i < n; i++) {
-      const angle = (Math.PI * 2 * i) / n - Math.PI / 2;
-      points.push(`${cx + r * Math.cos(angle)},${cy + r * Math.sin(angle)}`);
-    }
-    const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-    polygon.setAttribute('points', points.join(' '));
-    polygon.setAttribute('fill', 'none');
-    polygon.setAttribute('stroke', 'var(--border)');
-    polygon.setAttribute('stroke-width', '0.5');
-    svg.appendChild(polygon);
-  }
-
-  // Axes
-  for (let i = 0; i < n; i++) {
-    const angle = (Math.PI * 2 * i) / n - Math.PI / 2;
-    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    line.setAttribute('x1', cx);
-    line.setAttribute('y1', cy);
-    line.setAttribute('x2', cx + maxR * Math.cos(angle));
-    line.setAttribute('y2', cy + maxR * Math.sin(angle));
-    line.setAttribute('stroke', 'var(--border)');
-    line.setAttribute('stroke-width', '0.5');
-    svg.appendChild(line);
-  }
-
-  // Compute final data coordinates
-  const dataCoords = [];
-  for (let i = 0; i < n; i++) {
-    const angle = (Math.PI * 2 * i) / n - Math.PI / 2;
-    const val = Math.min(parseFloat(extendedScores[available[i].key]) || 0, 10) / 10;
-    const r = val * maxR;
-    dataCoords.push({ x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) });
-  }
-
-  // Build final path
-  let finalD = `M ${dataCoords[0].x} ${dataCoords[0].y}`;
-  for (let i = 1; i < n; i++) finalD += ` L ${dataCoords[i].x} ${dataCoords[i].y}`;
-  finalD += ' Z';
-
-  // Fill polygon
-  const fillPoly = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  fillPoly.setAttribute('fill', 'var(--ac-soft)');
-  fillPoly.setAttribute('stroke', 'none');
-  svg.appendChild(fillPoly);
-
-  // Stroke polygon
-  const strokePoly = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  strokePoly.setAttribute('fill', 'none');
-  strokePoly.setAttribute('stroke', 'var(--ac)');
-  strokePoly.setAttribute('stroke-width', '2');
-  strokePoly.setAttribute('stroke-linejoin', 'round');
-  svg.appendChild(strokePoly);
-
-  // Create interactive vertex dots (start at center, will track during animation)
-  const dotEls = [];
-  for (let i = 0; i < n; i++) {
-    const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    dot.setAttribute('cx', REDUCED.matches ? dataCoords[i].x : cx);
-    dot.setAttribute('cy', REDUCED.matches ? dataCoords[i].y : cy);
-    dot.setAttribute('r', '4');
-    dot.setAttribute('fill', 'var(--ac)');
-    dot.style.cursor = 'pointer';
-    svg.appendChild(dot);
-    dotEls.push(dot);
-  }
-
-  // Wobbly spring animation (damped harmonic oscillator)
-  if (!REDUCED.matches) {
-    const duration = 1200;
-    const start = performance.now();
-
-    // Per-vertex spring parameters for organic variation (deterministic pseudo-random)
-    const vertexParams = dataCoords.map((_, i) => ({
-      delay: i * 30,
-      stiffness: 0.15 + (((i * 7) % 13) / 13) * 0.05,
-      damping: 0.6 + (((i * 11) % 13) / 13) * 0.1,
-    }));
-
-    // Damped harmonic oscillator: overshoot -> wobble -> settle at 1.0
-    function springEase(t, stiffness, damping) {
-      if (t >= 1) return 1;
-      const omega = 10 * stiffness;
-      const decay = damping * 8;
-      return 1 - Math.exp(-decay * t) * Math.cos(omega * t * Math.PI * 2);
-    }
-
-    function wobbleTick(now) {
-      const elapsed = now - start;
-      let allDone = true;
-      let d = '';
-
-      for (let i = 0; i < n; i++) {
-        const p = vertexParams[i];
-        const vElapsed = Math.max(0, elapsed - p.delay);
-        const progress = Math.min(vElapsed / duration, 1);
-        if (progress < 1) allDone = false;
-
-        const eased = springEase(progress, p.stiffness, p.damping);
-        const vx = cx + (dataCoords[i].x - cx) * eased;
-        const vy = cy + (dataCoords[i].y - cy) * eased;
-        d += i === 0 ? `M ${vx} ${vy}` : ` L ${vx} ${vy}`;
-
-        // Track dot positions during wobble
-        if (dotEls[i]) {
-          dotEls[i].setAttribute('cx', vx);
-          dotEls[i].setAttribute('cy', vy);
-        }
-      }
-      d += ' Z';
-      fillPoly.setAttribute('d', d);
-      strokePoly.setAttribute('d', d);
-
-      if (!allDone) requestAnimationFrame(wobbleTick);
-    }
-    requestAnimationFrame(wobbleTick);
-  } else {
-    fillPoly.setAttribute('d', finalD);
-    strokePoly.setAttribute('d', finalD);
-  }
-
-  // Tooltips (positioned at final coords, shown on hover)
-  for (let i = 0; i < n; i++) {
-    const val = Math.min(parseFloat(extendedScores[available[i].key]) || 0, 10) / 10;
-    const scoreVal = (val * 10).toFixed(1);
-
-    const tooltip = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    tooltip.style.opacity = '0';
-    tooltip.style.transition = 'opacity 150ms ease';
-
-    const tooltipBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-    const tipX = dataCoords[i].x - 28;
-    const tipY = dataCoords[i].y - 28;
-    tooltipBg.setAttribute('x', tipX);
-    tooltipBg.setAttribute('y', tipY);
-    tooltipBg.setAttribute('width', '56');
-    tooltipBg.setAttribute('height', '20');
-    tooltipBg.setAttribute('rx', '4');
-    tooltipBg.setAttribute('fill', 'var(--bg2)');
-    tooltipBg.setAttribute('stroke', 'var(--border)');
-    tooltipBg.setAttribute('stroke-width', '0.5');
-    tooltip.appendChild(tooltipBg);
-
-    const tipText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    tipText.setAttribute('x', dataCoords[i].x);
-    tipText.setAttribute('y', tipY + 14);
-    tipText.setAttribute('text-anchor', 'middle');
-    tipText.setAttribute('fill', 'var(--fg)');
-    tipText.setAttribute('font-size', '9');
-    tipText.setAttribute('font-family', 'var(--font-data)');
-    tipText.textContent = `${available[i].full}: ${scoreVal}`;
-    tooltip.appendChild(tipText);
-
-    svg.appendChild(tooltip);
-
-    dotEls[i].addEventListener('mouseenter', () => { tooltip.style.opacity = '1'; });
-    dotEls[i].addEventListener('mouseleave', () => { tooltip.style.opacity = '0'; });
-    dotEls[i].addEventListener('touchstart', (e) => { e.preventDefault(); tooltip.style.opacity = '1'; }, { passive: false });
-    dotEls[i].addEventListener('touchend', () => { setTimeout(() => { tooltip.style.opacity = '0'; }, 1500); });
-  }
-
-  // Labels
-  for (let i = 0; i < n; i++) {
-    const angle = (Math.PI * 2 * i) / n - Math.PI / 2;
-    const labelR = maxR + 18;
-    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    text.setAttribute('x', cx + labelR * Math.cos(angle));
-    text.setAttribute('y', cy + labelR * Math.sin(angle));
-    text.setAttribute('text-anchor', 'middle');
-    text.setAttribute('dominant-baseline', 'middle');
-    text.setAttribute('fill', 'var(--fg2)');
-    text.setAttribute('font-size', fontSize);
-    text.setAttribute('font-family', 'var(--font-data)');
-    text.textContent = available[i].full;
-    svg.appendChild(text);
-  }
-}
-
-/* ---- Google Rating Count-Up Animation ---- */
-export function animateGoogleRating(ratingValue) {
-  const numEl = document.getElementById('google-rating-num');
-  if (!numEl) return;
-
-  const target = parseFloat(ratingValue) || 0;
-
-  if (REDUCED.matches) {
-    numEl.textContent = target.toFixed(1);
+  if (available.length < 2) {
+    $container.style.display = 'none';
     return;
   }
+  $container.style.display = '';
 
-  const duration = 1000;
-  const start = performance.now();
+  available.forEach((dim, i) => {
+    const val = Math.min(parseFloat(scores[dim.key]) || 0, 10);
+    const pct = (val / 10) * 100;
 
-  function tick(now) {
-    const elapsed = now - start;
-    const progress = Math.min(elapsed / duration, 1);
-    const eased = 1 - Math.pow(1 - progress, 3);
-    numEl.textContent = (target * eased).toFixed(1);
-    if (progress < 1) requestAnimationFrame(tick);
-    else numEl.textContent = target.toFixed(1);
-  }
-  requestAnimationFrame(tick);
+    const tile = document.createElement('div');
+    tile.className = 'vibe-tile';
+    tile.setAttribute('role', 'group');
+    tile.setAttribute('aria-label', `${dim.label}: ${val.toFixed(1)} out of 10`);
+    tile.innerHTML = `
+      <div class="vibe-tile__header">
+        <span class="vibe-tile__label type-data--sm">${dim.label}</span>
+        <span class="vibe-tile__value type-data--sm">${val.toFixed(1)}</span>
+      </div>
+      <div class="vibe-tile__bar" role="progressbar"
+           aria-valuenow="${val}" aria-valuemin="0" aria-valuemax="10">
+        <div class="vibe-tile__bar-fill" data-target="${pct}"></div>
+      </div>`;
+    $container.appendChild(tile);
+
+    // Stagger entrance + bar fill animation
+    const delay = 980 + (i * 60);
+    if (!REDUCED.matches) {
+      tile.style.opacity = '0';
+      tile.style.transform = 'translateY(8px)';
+      timers.push(setTimeout(() => {
+        tile.style.transition = 'opacity 300ms ease-out, transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
+        tile.style.opacity = '1';
+        tile.style.transform = 'translateY(0)';
+      }, delay));
+      const fill = tile.querySelector('.vibe-tile__bar-fill');
+      timers.push(setTimeout(() => {
+        fill.style.transition = 'width 500ms cubic-bezier(0.4, 0, 0.2, 1)';
+        fill.style.width = pct + '%';
+      }, delay + 100));
+    } else {
+      tile.querySelector('.vibe-tile__bar-fill').style.width = pct + '%';
+    }
+  });
 }
 
 /* ---- Badge Fade-In with Scale Spring ---- */

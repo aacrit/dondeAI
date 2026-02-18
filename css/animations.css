@@ -235,6 +235,17 @@
   50%      { transform: scale(1.02) translateY(-1px); }
 }
 
+/* ---- Score Ring Celebration Glow (9+ scores) ---- */
+@keyframes scoreGlow {
+  0%   { box-shadow: 0 0 0 0 var(--ac-soft); }
+  50%  { box-shadow: 0 0 20px 4px var(--ac-soft); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+.score-tile--celebrating {
+  animation: scoreGlow 800ms var(--ease-out);
+}
+
 /* ---- Focus Ring Spring-In ---- */
 @keyframes focusRingIn {
   from {
@@ -246,6 +257,17 @@
   to {
     box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--ac);
   }
+}
+
+/* ---- CTA Submit Confirmation Glow ---- */
+@keyframes ctaConfirm {
+  0%   { box-shadow: 0 0 0 0 var(--ac); }
+  50%  { box-shadow: 0 0 0 8px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+.cta-btn--confirming {
+  animation: ctaConfirm 400ms var(--spring);
 }
 
 /* ---- CTA Disabled Nudge ---- */
@@ -327,7 +349,21 @@
   to   { border-image: linear-gradient(to bottom, var(--amber) 100%, transparent 100%) 1; }
 }
 
+/* ---- Tip Border Draw (insider tip animated left border) ---- */
+@keyframes tipBorderDraw {
+  from { height: 0; }
+  to   { height: 100%; }
+}
+
 /* ---- (Loading orbit removed — replaced by sonar ring) ---- */
+
+/* ---- Swipe Edge Hint (one-time gesture affordance on result view) ---- */
+@keyframes edgeHint {
+  0%   { opacity: 0; }
+  20%  { opacity: 1; }
+  80%  { opacity: 1; }
+  100% { opacity: 0; }
+}
 
 /* ---- Reduced Motion: Gentle fallback (100ms linear, not 0ms) ---- */
 @media (prefers-reduced-motion: reduce) {

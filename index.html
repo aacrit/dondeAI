@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="description" content="DondeAI — AI-powered restaurant recommendations for Chicago. Tell us what you're craving.">
-  <meta name="theme-color" content="#6c5ce7">
+  <meta name="theme-color" content="#383838">
   <title>DondeAI — Find Your Spot</title>
 
   <!-- Web Fonts -->
@@ -75,7 +75,7 @@
             <path fill="currentColor" d="M153.76,28.41a4,4,0,0,0-4.22.43L78.63,84H32A12,12,0,0,0,20,96v64a12,12,0,0,0,12,12H78.63l70.91,55.16A4.07,4.07,0,0,0,152,228a3.92,3.92,0,0,0,1.76-.41A4,4,0,0,0,156,224V32A4,4,0,0,0,153.76,28.41ZM28,160V96a4,4,0,0,1,4-4H76v72H32A4,4,0,0,1,28,160Zm120,55.82L84,166V90l64-49.78Zm47-111.61a36,36,0,0,1,0,47.59,4,4,0,1,1-6-5.3,28,28,0,0,0,0-37,4,4,0,0,1,6-5.28ZM244,128a75.88,75.88,0,0,1-19.35,50.67,4,4,0,0,1-6-5.34,68,68,0,0,0,0-90.66,4,4,0,0,1,6-5.34A75.88,75.88,0,0,1,244,128Z"/>
           </svg>
         </button>
-        <button class="header__btn" data-action="cycle-theme" aria-label="Switch theme" title="Next theme">
+        <button class="header__btn" data-action="cycle-theme" aria-label="Choose theme" title="Explore cultural themes">
           <svg viewBox="0 0 256 256" width="20" height="20">
             <path fill="currentColor" d="M198,56.74A99.31,99.31,0,0,0,128,28h-1A100,100,0,0,0,28,128c0,41.22,25.55,75.85,66.69,90.38a28.34,28.34,0,0,0,9.42,1.63A28,28,0,0,0,132,192a20,20,0,0,1,20-20h46.21a27.84,27.84,0,0,0,27.3-21.76,100.37,100.37,0,0,0,2.49-23.1A99.26,99.26,0,0,0,198,56.74Zm19.74,91.72A19.89,19.89,0,0,1,198.21,164H152a28,28,0,0,0-28,28,20,20,0,0,1-26.64,18.83C59.51,197.46,36,165.72,36,128a92,92,0,0,1,91.05-92H128a92,92,0,0,1,89.72,112.46ZM136,76a8,8,0,1,1-8-8A8,8,0,0,1,136,76ZM92,100a8,8,0,1,1-8-8A8,8,0,0,1,92,100Zm0,56a8,8,0,1,1-8-8A8,8,0,0,1,92,156Zm88-56a8,8,0,1,1-8-8A8,8,0,0,1,180,100Z"/>
           </svg>
@@ -123,20 +123,19 @@
                 placeholder="cozy ramen with killer sake..."
                 autocomplete="off"
                 aria-label="What are you craving?"
+                aria-autocomplete="list"
+                aria-controls="craving-suggestions"
               >
               <button class="craving-voice-btn" data-action="voice" aria-label="Voice input" hidden>
                 <svg viewBox="0 0 256 256" width="20" height="20">
                   <path fill="currentColor" d="M128,172a44.05,44.05,0,0,0,44-44V64a44,44,0,0,0-88,0v64A44.05,44.05,0,0,0,128,172ZM92,64a36,36,0,0,1,72,0v64a36,36,0,0,1-72,0Zm40,139.89V240a4,4,0,0,1-8,0V203.89A76.09,76.09,0,0,1,52,128a4,4,0,0,1,8,0,68,68,0,0,0,136,0,4,4,0,0,1,8,0A76.09,76.09,0,0,1,132,203.89Z"/>
                 </svg>
               </button>
+              <div class="craving-suggestions" id="craving-suggestions" role="listbox" aria-label="Search suggestions" hidden></div>
             </div>
 
-            <div class="smart-chips smart-chips--visible" aria-label="Quick suggestions">
-              <button class="smart-chip type-structural" data-action="smart-chip" data-value="outdoor seating">outdoor seating</button>
-              <button class="smart-chip type-structural" data-action="smart-chip" data-value="live music">live music</button>
-              <button class="smart-chip type-structural" data-action="smart-chip" data-value="pet friendly">pet friendly</button>
-              <button class="smart-chip type-structural" data-action="smart-chip" data-value="great cocktails">great cocktails</button>
-              <button class="smart-chip type-structural" data-action="smart-chip" data-value="hidden gem">hidden gem</button>
+            <div class="smart-chips" aria-label="Quick suggestions">
+              <!-- Rendered dynamically by renderSmartChips() -->
             </div>
 
             <!-- Collapsible Filter Drawer -->
@@ -276,13 +275,14 @@
                           style="display: none;">Read more</button>
                 </div>
                 <div class="insider-tip" id="insider-tip" style="display: none;">
-                  <div class="insider-tip__label type-data--sm">Insider Tip</div>
+                  <div class="insider-tip__label type-data--sm" data-label="insiderTip">Insider Tip</div>
                   <p class="insider-tip__text type-structural" id="insider-tip-text"></p>
                 </div>
               </div>
 
-              <!-- Block 3: Scores — evaluative metrics only -->
-              <div class="score-tiles" id="score-tiles">
+              <!-- Block 3: Scores — DondeAI Score hero + Vibe Profile -->
+              <div class="score-section" id="score-section">
+                <!-- Hero: DondeAI Score Ring -->
                 <div class="score-tile score-tile--donde" id="score-tile-donde" role="group" aria-label="DondeAI Score">
                   <span class="score-tile__label type-data--sm">DondeAI Score</span>
                   <div class="score-ring-wrap">
@@ -298,26 +298,20 @@
                   <span class="score-percentile type-data--sm" id="score-percentile"></span>
                 </div>
 
-                <div class="score-tile score-tile--google" id="score-tile-google" role="group" aria-label="Google Rating">
-                  <span class="score-tile__label type-data--sm">Google Rating</span>
-                  <div class="google-rating-display">
-                    <span class="google-rating-number type-data--lg" id="google-rating-num"></span>
-                    <div class="google-stars" id="google-stars"></div>
-                    <span class="google-count type-data--sm" id="google-count"></span>
-                  </div>
+                <!-- Google Rating — subtle inline, not a tile -->
+                <div class="google-rating-inline" id="google-rating-inline" style="display: none;">
+                  <div class="google-stars" id="google-stars"></div>
+                  <span class="google-rating-number type-data--sm" id="google-rating-num"></span>
+                  <span class="google-count type-data--sm" id="google-count"></span>
                 </div>
 
-                <div class="score-tile score-tile--radar" id="score-tile-radar" role="group" aria-label="Vibe Profile">
-                  <span class="score-tile__label type-data--sm">Vibe Profile</span>
-                  <div class="radar-wrap" id="radar-wrap">
-                    <svg id="radar-svg" viewBox="0 0 200 200"></svg>
-                  </div>
-                </div>
+                <!-- Vibe Profile: Individual dimension tiles (rendered by JS) -->
+                <div class="vibe-tiles" id="vibe-tiles" role="group" aria-label="Vibe Profile"></div>
               </div>
 
               <!-- Block 4: Profile — "About This Spot" -->
               <div class="result-profile" id="result-profile">
-                <h3 class="result-profile__heading type-data--sm">About This Spot</h3>
+                <h3 class="result-profile__heading type-data--sm" data-label="profile">About This Spot</h3>
                 <div class="profile-facts" id="profile-facts"></div>
                 <div class="profile-atmosphere" id="profile-atmosphere"></div>
                 <div class="profile-sentiment" id="profile-sentiment" style="display: none;">
@@ -390,7 +384,7 @@
       <div class="theme-picker__backdrop" data-action="close-themes"></div>
       <div class="theme-picker__sheet">
         <div class="theme-picker__header">
-          <h3 class="theme-picker__title type-emotional">Choose Your Vibe</h3>
+          <h3 class="theme-picker__title type-emotional">Set the Mood</h3>
           <button class="theme-picker__close" data-action="close-themes" aria-label="Close theme picker">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -402,12 +396,12 @@
         <div class="theme-grid" role="radiogroup" aria-label="Cultural theme">
           <button class="theme-card" role="radio" aria-checked="true" data-action="select-theme" data-theme="neutral">
             <div class="theme-card__swatches">
-              <span class="theme-card__swatch" style="background: hsl(250 65% 55%)"></span>
+              <span class="theme-card__swatch" style="background: hsl(0 0% 22%)"></span>
               <span class="theme-card__swatch" style="background: hsl(0 0% 98%)"></span>
               <span class="theme-card__swatch" style="background: hsl(0 0% 10%)"></span>
             </div>
-            <span class="theme-card__name type-structural">Studio</span>
-            <span class="theme-card__desc type-data--sm">Clean slate, pure canvas</span>
+            <span class="theme-card__name type-structural">Monochrome</span>
+            <span class="theme-card__desc type-data--sm">The blank page before the masterpiece</span>
           </button>
 
           <button class="theme-card" role="radio" aria-checked="false" data-action="select-theme" data-theme="indian">
@@ -417,7 +411,7 @@
               <span class="theme-card__swatch" style="background: hsl(25 90% 45%)"></span>
             </div>
             <span class="theme-card__name type-structural">Saffron</span>
-            <span class="theme-card__desc type-data--sm">Warm spice, golden hour</span>
+            <span class="theme-card__desc type-data--sm">Golden hour in the spice market</span>
           </button>
 
           <button class="theme-card" role="radio" aria-checked="false" data-action="select-theme" data-theme="nepalese">
@@ -427,7 +421,7 @@
               <span class="theme-card__swatch" style="background: hsl(45 70% 55%)"></span>
             </div>
             <span class="theme-card__name type-structural">Summit</span>
-            <span class="theme-card__desc type-data--sm">Mountain air, prayer flags</span>
+            <span class="theme-card__desc type-data--sm">Where prayer flags meet the sky</span>
           </button>
 
           <button class="theme-card" role="radio" aria-checked="false" data-action="select-theme" data-theme="japanese">
@@ -437,7 +431,7 @@
               <span class="theme-card__swatch" style="background: hsl(200 15% 25%)"></span>
             </div>
             <span class="theme-card__name type-structural">Inkwell</span>
-            <span class="theme-card__desc type-data--sm">Wabi-sabi restraint</span>
+            <span class="theme-card__desc type-data--sm">Less is more, silence is loud</span>
           </button>
 
           <button class="theme-card" role="radio" aria-checked="false" data-action="select-theme" data-theme="african">
@@ -447,7 +441,7 @@
               <span class="theme-card__swatch" style="background: hsl(0 65% 45%)"></span>
             </div>
             <span class="theme-card__name type-structural">Kente</span>
-            <span class="theme-card__desc type-data--sm">Bold geometry, earth &amp; fire</span>
+            <span class="theme-card__desc type-data--sm">Bold threads woven in rhythm</span>
           </button>
 
           <button class="theme-card" role="radio" aria-checked="false" data-action="select-theme" data-theme="southamerican">
@@ -457,7 +451,7 @@
               <span class="theme-card__swatch" style="background: hsl(45 90% 55%)"></span>
             </div>
             <span class="theme-card__name type-structural">Fiesta</span>
-            <span class="theme-card__desc type-data--sm">Tropical heat, painted tiles</span>
+            <span class="theme-card__desc type-data--sm">Every wall tells a story in color</span>
           </button>
         </div>
 

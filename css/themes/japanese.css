@@ -42,6 +42,16 @@
   --glass-score:  var(--glass);
 }
 
+/* Wabi-sabi restraint: slower, softer blobs */
+[data-theme="japanese"] .ambient__blob {
+  animation-duration: 35s;
+  filter: blur(120px) saturate(0.3);
+}
+
+[data-theme="japanese"] .ambient__blob--1 { opacity: 0.25; }
+[data-theme="japanese"] .ambient__blob--2 { opacity: 0.18; }
+[data-theme="japanese"] .ambient__blob--3 { opacity: 0.12; }
+
 /* ---- Dark Mode ---- */
 [data-theme="japanese"][data-mode="dark"] {
   --bg:          hsl(210 10% 8%);
