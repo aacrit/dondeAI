@@ -1050,23 +1050,29 @@ function renderResult(data) {
     const badges = [];
 
     if (r.cuisine_type) {
-      badges.push({ icon: cuisine.icon || 'plate', label: 'Cuisine', value: r.cuisine_type });
+      badges.push({ icon: cuisine.icon || 'plate', label: 'Cuisine',
+        value: shortenBadgeValue(r.cuisine_type), raw: r.cuisine_type });
     }
     if (r.price_level) {
-      badges.push({ icon: 'tag', label: 'Price', value: r.price_level });
+      badges.push({ icon: 'tag', label: 'Price',
+        value: r.price_level, raw: r.price_level });
     }
     if (r.parking_availability) {
-      const pts = parseParkingTypes(r.parking_availability);
-      badges.push({ icon: 'car', label: 'Parking', value: pts.join(' / ') });
+      const pts = parseParkingTypes(r.parking_availability).slice(0, 2);
+      badges.push({ icon: 'car', label: 'Parking',
+        value: pts.join(' / '), raw: r.parking_availability });
     }
     if (r.noise_level) {
-      badges.push({ icon: 'speakerWave', label: 'Noise', value: r.noise_level.split(/[\s,]+/).slice(0, 2).join(' ') });
+      badges.push({ icon: 'speakerWave', label: 'Noise',
+        value: shortenBadgeValue(r.noise_level), raw: r.noise_level });
     }
     if (r.lighting_ambiance) {
-      badges.push({ icon: 'sun', label: 'Ambiance', value: r.lighting_ambiance });
+      badges.push({ icon: 'sun', label: 'Ambiance',
+        value: shortenBadgeValue(r.lighting_ambiance), raw: r.lighting_ambiance });
     }
     if (r.dress_code) {
-      badges.push({ icon: 'shirt', label: 'Dress', value: r.dress_code });
+      badges.push({ icon: 'shirt', label: 'Dress',
+        value: shortenBadgeValue(r.dress_code), raw: r.dress_code });
     }
 
     badges.forEach(b => {
@@ -1076,7 +1082,7 @@ function renderResult(data) {
         <span class="details-badge__icon">${svgIcon(b.icon, 16)}</span>
         <span class="details-badge__label type-data--sm">${b.label}</span>
         <span class="details-badge__value type-structural">${b.value}</span>`;
-      if (b.label === 'Parking') div.setAttribute('title', r.parking_availability);
+      if (b.raw && b.raw !== b.value) div.setAttribute('title', b.raw);
       $profileFacts.appendChild(div);
     });
 
@@ -1089,6 +1095,7 @@ function renderResult(data) {
       badges.forEach(b => {
         const item = document.createElement('span');
         item.className = 'profile-compact__item';
+        if (b.raw && b.raw !== b.value) item.setAttribute('title', b.raw);
         item.innerHTML = `${svgIcon(b.icon, 14)}<span class="profile-compact__label">${b.label}</span><span class="profile-compact__value type-data--sm">${b.value}</span>`;
         $profileCompact.appendChild(item);
       });
@@ -1249,6 +1256,15 @@ function parseParkingTypes(parkingStr) {
   if (lower.includes('metered')) types.push('Metered');
   if (types.length === 0) types.push(parkingStr.split(/\s+/).slice(0, 2).join(' '));
   return types;
+}
+
+/* ---- Badge Value Shortener (1-2 words max) ---- */
+function shortenBadgeValue(value) {
+  if (!value) return '';
+  // Split on comma, slash, or semicolon — take first segment
+  const first = value.split(/[,/;]/).at(0).trim();
+  // Cap at 2 words
+  return first.split(/\s+/).slice(0, 2).join(' ');
 }
 
 /* Badge color helpers removed — all badges use neutral styling ("Ink Rule"). */
