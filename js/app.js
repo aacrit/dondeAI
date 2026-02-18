@@ -680,7 +680,7 @@ function renderResult(data) {
     $rec.classList.remove('result-recommendation--expanded');
     chaosToOrderReveal($rec, data.recommendation || '');
 
-    // Show "Read more" toggle only if text overflows 5-line clamp
+    // Show "Read more" toggle only if text overflows 7-line clamp
     const $recToggle = document.getElementById('result-rec-toggle');
     if ($recToggle) {
       $recToggle.setAttribute('aria-expanded', 'false');
@@ -803,10 +803,6 @@ function renderResult(data) {
     }
     if (r.phone) {
       $resultLinks.appendChild(createResultLink('a', 'phone', r.phone, `tel:${r.phone}`));
-    }
-    if (r.google_place_id) {
-      const url = `https://www.google.com/maps/place/?q=place_id:${r.google_place_id}`;
-      $resultLinks.appendChild(createResultLink('a', 'starOutline', 'Reviews', url));
     }
     const shareLink = createResultLink('button', 'shareNetwork', 'Share');
     shareLink.setAttribute('data-action', 'share');
