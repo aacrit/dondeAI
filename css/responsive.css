@@ -120,10 +120,6 @@
     transform: scale(1.03);
     background: var(--ac-soft);
   }
-
-  .action-btn:hover {
-    background: var(--ac-soft);
-  }
 }
 
 /* ---- Reduced Motion ---- */

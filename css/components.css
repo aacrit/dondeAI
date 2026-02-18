@@ -467,12 +467,6 @@
   stroke-width: 0;
 }
 
-.action-btn svg {
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
-}
-
 /* ---- Result Card ---- */
 .result-card {
   width: 100%;
@@ -793,6 +787,41 @@
   color: hsl(var(--cuisine-hue, 250) 60% 50%);
 }
 
+/* Action badges (clickable: Website, Call, Reviews, Share) */
+a.details-badge,
+button.details-badge {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.details-badge--action {
+  background: var(--ac-soft);
+  border: 1px solid var(--ac);
+  cursor: pointer;
+  transition: transform var(--dur-fast) var(--spring),
+              background var(--dur-fast) var(--ease-out);
+}
+.details-badge--action .details-badge__icon,
+.details-badge--action .details-badge__value {
+  color: var(--ac);
+}
+.details-badge--action:hover {
+  background: var(--ac);
+}
+.details-badge--action:hover .details-badge__icon,
+.details-badge--action:hover .details-badge__label,
+.details-badge--action:hover .details-badge__value {
+  color: var(--bg);
+}
+.details-badge--action:active {
+  transform: scale(0.95);
+}
+.details-badge--action:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--ac);
+}
+
 /* ---- Score Tiles Responsive ---- */
 @media (max-width: 479px) {
   .score-tiles {
@@ -858,52 +887,6 @@
   font-size: var(--text-sm);
   color: var(--fg);
   line-height: 1.6;
-}
-
-/* ---- Action Buttons (Proximity Reveal) ---- */
-.action-btns {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-sm);
-}
-
-.action-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-xs);
-  padding: var(--space-sm) var(--space-md);
-  font-size: var(--text-sm);
-  font-weight: 600;
-  color: var(--ac);
-  background: var(--ac-soft);
-  border-radius: var(--radius-pill);
-  transition: opacity 300ms ease, background var(--dur-fast) var(--ease-out),
-              transform var(--dur-fast) var(--spring);
-}
-
-@media (hover: hover) {
-  .action-btn {
-    opacity: 0.4;
-  }
-  .action-btns:hover .action-btn,
-  .result-card:hover .action-btn {
-    opacity: 1;
-  }
-}
-
-@media (hover: none) {
-  .action-btn {
-    opacity: 1;
-  }
-}
-
-.action-btn:active {
-  transform: scale(0.96);
-}
-
-.action-btn svg {
-  width: 16px;
-  height: 16px;
 }
 
 /* ---- Tags Cloud ---- */
@@ -1893,7 +1876,6 @@
 .filter-pill:focus-visible,
 .smart-chip:focus-visible,
 .cta-btn:focus-visible,
-.action-btn:focus-visible,
 .theme-card:focus-visible,
 .share-btn:focus-visible,
 .header__btn:focus-visible,
@@ -1912,8 +1894,7 @@
 
 .filter-pill:focus:not(:focus-visible),
 .smart-chip:focus:not(:focus-visible),
-.cta-btn:focus:not(:focus-visible),
-.action-btn:focus:not(:focus-visible) {
+.cta-btn:focus:not(:focus-visible) {
   outline: none;
   box-shadow: none;
 }
@@ -2028,12 +2009,8 @@
   animation: resultSectionIn 300ms var(--ease-out) 1000ms forwards;
 }
 
-.result-card--revealing .action-btns {
-  animation: resultSectionIn 350ms var(--ease-out) 1060ms forwards;
-}
-
 .result-card--revealing .result-actions {
-  animation: resultSectionIn 350ms var(--ease-out) 1140ms forwards;
+  animation: resultSectionIn 350ms var(--ease-out) 1060ms forwards;
 }
 
 /* ---- Filter Pill Ink Ripple ---- */

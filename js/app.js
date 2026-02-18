@@ -20,14 +20,6 @@ import {
   getScoreTier, getScoreColor, buildGoogleStars, buildMapsUrl, relativeTime, matchCuisine
 } from './utils.js';
 
-/* ---- SVG Icon Templates ---- */
-const ICONS = {
-  globe: '<path fill="currentColor" d="M128,28h0A100,100,0,1,0,228,128,100.11,100.11,0,0,0,128,28Zm0,190.61c-6.33-6.09-23-24.41-31.27-54.61h62.54C151,194.2,134.33,212.52,128,218.61ZM94.82,156a140.42,140.42,0,0,1,0-56h66.36a140.42,140.42,0,0,1,0,56ZM128,37.39c6.33,6.09,23,24.41,31.27,54.61H96.73C105,61.8,121.67,43.48,128,37.39ZM169.41,100h46.23a92.09,92.09,0,0,1,0,56H169.41a152.65,152.65,0,0,0,0-56Zm43.25-8h-45a129.39,129.39,0,0,0-29.19-55.4A92.25,92.25,0,0,1,212.66,92ZM117.54,36.6A129.39,129.39,0,0,0,88.35,92h-45A92.25,92.25,0,0,1,117.54,36.6ZM40.36,100H86.59a152.65,152.65,0,0,0,0,56H40.36a92.09,92.09,0,0,1,0-56Zm3,64h45a129.39,129.39,0,0,0,29.19,55.4A92.25,92.25,0,0,1,43.34,164Zm95.12,55.4A129.39,129.39,0,0,0,167.65,164h45A92.25,92.25,0,0,1,138.46,219.4Z"/>',
-  phone: '<path fill="currentColor" d="M220.78,162.13,173.56,141A12,12,0,0,0,162.18,142a3.37,3.37,0,0,0-.38.28L137,163.42a3.93,3.93,0,0,1-3.7.21c-16.24-7.84-33.05-24.52-40.89-40.57a3.9,3.9,0,0,1,.18-3.69l21.2-25.21c.1-.12.19-.25.28-.38a12,12,0,0,0,1-11.36L93.9,35.28a12,12,0,0,0-12.48-7.19A52.25,52.25,0,0,0,36,80c0,77.2,62.8,140,140,140a52.25,52.25,0,0,0,51.91-45.42A12,12,0,0,0,220.78,162.13ZM220,173.58A44.23,44.23,0,0,1,176,212C103.22,212,44,152.78,44,80A44.23,44.23,0,0,1,82.42,36a3.87,3.87,0,0,1,.48,0,4,4,0,0,1,3.67,2.49l21.11,47.14a4,4,0,0,1-.23,3.6l-21.19,25.2c-.1.13-.2.25-.29.39a12,12,0,0,0-.78,11.75c8.69,17.79,26.61,35.58,44.6,44.27a12,12,0,0,0,11.79-.87l.37-.28,24.83-21.12a3.93,3.93,0,0,1,3.57-.27l47.21,21.16A4,4,0,0,1,220,173.58Z"/>',
-  star: '<path fill="currentColor" d="M235.36,98.49A12.21,12.21,0,0,0,224.59,90l-61.47-5L139.44,27.67a12.37,12.37,0,0,0-22.88,0L92.88,85,31.41,90a12.45,12.45,0,0,0-7.07,21.84l46.85,40.41L56.87,212.64a12.35,12.35,0,0,0,18.51,13.49L128,193.77l52.62,32.36a12.12,12.12,0,0,0,13.69-.51,12.28,12.28,0,0,0,4.82-13l-14.32-60.42,46.85-40.41A12.29,12.29,0,0,0,235.36,98.49Zm-8.93,7.26-48.68,42a4,4,0,0,0-1.28,3.95l14.87,62.79a4.37,4.37,0,0,1-1.72,4.65,4.24,4.24,0,0,1-4.81.18L130.1,185.67a4,4,0,0,0-4.2,0L71.19,219.32a4.24,4.24,0,0,1-4.81-.18,4.37,4.37,0,0,1-1.72-4.65L79.53,151.7a4,4,0,0,0-1.28-3.95l-48.68-42A4.37,4.37,0,0,1,28.25,101a4.31,4.31,0,0,1,3.81-3L96,92.79a4,4,0,0,0,3.38-2.46L124,30.73a4.35,4.35,0,0,1,8.08,0l24.62,59.6A4,4,0,0,0,160,92.79l63.9,5.15a4.31,4.31,0,0,1,3.81,3A4.37,4.37,0,0,1,226.43,105.75Z"/>',
-  shareNetwork: '<path fill="currentColor" d="M176,164a36,36,0,0,0-27.92,13.3L96.25,144a35.92,35.92,0,0,0,0-32L148.08,78.7A35.93,35.93,0,1,0,143.75,72L91.92,105.3a36,36,0,1,0,0,45.4L143.75,184A36,36,0,1,0,176,164Zm0-136a28,28,0,1,1-28,28A28,28,0,0,1,176,28ZM64,156a28,28,0,1,1,28-28A28,28,0,0,1,64,156Zm112,72a28,28,0,1,1,28-28A28,28,0,0,1,176,228Z"/>',
-};
-
 /* ---- Cached DOM Elements ---- */
 const $app = document.querySelector('.app');
 const $main = document.querySelector('.cockpit');
@@ -762,13 +754,14 @@ function renderResult(data) {
   }
   renderRadar(data.scores || {}, r);
 
-  // ---- Details Tile (Cuisine, Price, Parking, Noise badges — all color-coded) ----
+  // ---- Details Tile (Info + Action badges in one grid) ----
   const $detailsGrid = document.getElementById('details-badge-grid');
   const $detailsTile = document.getElementById('score-tile-details');
   if ($detailsGrid) {
     $detailsGrid.innerHTML = '';
     const badges = [];
 
+    // Info badges
     if (r.cuisine_type) {
       badges.push({ icon: cuisine.icon || 'plate', label: 'Cuisine', value: r.cuisine_type, mod: 'details-badge--cuisine' });
     }
@@ -784,20 +777,43 @@ function renderResult(data) {
       badges.push({ icon: 'speakerWave', label: 'Noise', value: r.noise_level.split(/[\s,]+/).slice(0, 2).join(' '), mod: getNoiseBadgeMod(r.noise_level) });
     }
 
+    // Action badges (Website, Call, Reviews, Share)
+    if (r.website) {
+      let hostname = 'Visit';
+      try { hostname = new URL(r.website).hostname.replace('www.', ''); } catch { /* keep fallback */ }
+      badges.push({ icon: 'globe', label: 'Website', value: hostname, mod: 'details-badge--action', tag: 'a', href: r.website });
+    }
+    if (r.phone) {
+      badges.push({ icon: 'phone', label: 'Call', value: r.phone, mod: 'details-badge--action', tag: 'a', href: `tel:${r.phone}` });
+    }
+    if (r.google_place_id) {
+      const reviewsUrl = `https://www.google.com/maps/place/?q=place_id:${r.google_place_id}`;
+      badges.push({ icon: 'starOutline', label: 'Reviews', value: 'Google', mod: 'details-badge--action', tag: 'a', href: reviewsUrl });
+    }
+    badges.push({ icon: 'shareNetwork', label: 'Share', value: '', mod: 'details-badge--action', tag: 'button', action: 'share' });
+
     badges.forEach(b => {
-      const div = document.createElement('div');
-      div.className = `details-badge ${b.mod}`.trim();
-      div.innerHTML = `
+      const el = document.createElement(b.tag || 'div');
+      el.className = `details-badge ${b.mod}`.trim();
+      if (b.tag === 'a' && b.href) {
+        el.href = b.href;
+        el.target = '_blank';
+        el.rel = 'noopener noreferrer';
+      }
+      if (b.tag === 'button' && b.action) {
+        el.type = 'button';
+        el.setAttribute('data-action', b.action);
+      }
+      el.innerHTML = `
         <span class="details-badge__icon">${svgIcon(b.icon, 16)}</span>
         <span class="details-badge__label type-data--sm">${b.label}</span>
-        <span class="details-badge__value type-structural">${b.value}</span>`;
-      if (b.label === 'Parking') div.setAttribute('title', r.parking_availability);
-      $detailsGrid.appendChild(div);
+        ${b.value ? `<span class="details-badge__value type-structural">${b.value}</span>` : ''}`;
+      if (b.label === 'Parking') el.setAttribute('title', r.parking_availability);
+      $detailsGrid.appendChild(el);
     });
 
-    if ($detailsTile) {
-      $detailsTile.style.display = badges.length > 0 ? '' : 'none';
-    }
+    // Always show — at least Share badge is present
+    if ($detailsTile) $detailsTile.style.display = '';
   }
 
   // Insider tip
@@ -895,45 +911,6 @@ function renderResult(data) {
     if ($neg) $neg.style.width = `${negMatch?.[1] || 33}%`;
   } else if ($sentSection) {
     $sentSection.style.display = 'none';
-  }
-
-  // Action buttons (using inline SVG icons)
-  const $actionBtns = document.getElementById('action-btns');
-  if ($actionBtns) {
-    $actionBtns.innerHTML = '';
-
-    if (r.website) {
-      $actionBtns.appendChild(createActionBtn(ICONS.globe, 'Website', r.website));
-    }
-    if (r.phone) {
-      $actionBtns.appendChild(createActionBtn(ICONS.phone, 'Call', `tel:${r.phone}`));
-    }
-    if (r.google_place_id) {
-      const reviewsUrl = `https://www.google.com/maps/place/?q=place_id:${r.google_place_id}`;
-      $actionBtns.appendChild(createActionBtn(ICONS.star, 'Reviews', reviewsUrl));
-    }
-
-    // Share button
-    const shareBtn = document.createElement('button');
-    shareBtn.className = 'action-btn type-structural';
-    shareBtn.setAttribute('data-action', 'share');
-    shareBtn.innerHTML = `<svg viewBox="0 0 256 256" width="18" height="18">${ICONS.shareNetwork}</svg> <span data-label="share">Share</span>`;
-    $actionBtns.appendChild(shareBtn);
-
-    // Action buttons stagger entrance
-    const REDUCED_MQ2 = matchMedia('(prefers-reduced-motion: reduce)');
-    if (!REDUCED_MQ2.matches) {
-      const actionBtnEls = $actionBtns.querySelectorAll('.action-btn');
-      actionBtnEls.forEach((btn, i) => {
-        btn.style.opacity = '0';
-        btn.style.transform = 'translateY(8px) scale(0.95)';
-        animationTimers.push(setTimeout(() => {
-          btn.style.transition = 'opacity 300ms ease-out, transform 350ms cubic-bezier(0.34, 1.56, 0.64, 1)';
-          btn.style.opacity = '1';
-          btn.style.transform = 'translateY(0) scale(1)';
-        }, 1100 + i * 80));
-      });
-    }
   }
 
   // Inject icons into result action buttons (Try Another / Start Over)
@@ -1035,16 +1012,6 @@ function closeTileExpand() {
     // Return focus to the tile that was expanded
     document.querySelector('.score-tile--expandable')?.focus();
   }
-}
-
-function createActionBtn(iconSvg, label, href) {
-  const a = document.createElement('a');
-  a.className = 'action-btn type-structural';
-  a.href = href;
-  a.target = '_blank';
-  a.rel = 'noopener noreferrer';
-  a.innerHTML = `<svg viewBox="0 0 256 256" width="18" height="18">${iconSvg}</svg> ${label}`;
-  return a;
 }
 
 /* ---- Toast ---- */
