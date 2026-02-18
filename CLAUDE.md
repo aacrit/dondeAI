@@ -109,7 +109,7 @@ dondeAI/
 ## Backend Integration Contract (IMMUTABLE)
 
 ```
-POST https://donde.app.n8n.cloud/webhook-test/donde-recommend
+POST https://vwbzkgsxmgwcvmvuxnbe.supabase.co/functions/v1/recommend
 Content-Type: application/json
 ```
 
