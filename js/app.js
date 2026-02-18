@@ -933,8 +933,6 @@ function renderResult(data) {
   if ($tryAgainIcon) $tryAgainIcon.innerHTML = svgIcon('refresh', 18);
   if ($startOverIcon) $startOverIcon.innerHTML = svgIcon('home', 18);
 
-  // Init scroll-linked parallax on result step
-  initResultParallax();
 
   // Apply progressive reveal classes (visual stagger within the card)
   if ($resultCard) {
@@ -968,19 +966,11 @@ function parseParkingTypes(parkingStr) {
 }
 
 /* ---- Badge Color Helpers ---- */
-function getPriceBadgeMod(priceLevel) {
-  const count = (priceLevel.match(/\$/g) || []).length;
-  if (count <= 1) return 'details-badge--green';   // Budget
-  if (count === 2) return 'details-badge--accent';  // Mid-range
-  if (count === 3) return 'details-badge--amber';   // Upscale
-  return 'details-badge--rose';                     // Splurge
+function getPriceBadgeMod() {
+  return 'details-badge--accent';
 }
 
-function getNoiseBadgeMod(noiseLevel) {
-  const lower = noiseLevel.toLowerCase();
-  if (lower.includes('quiet') || lower.includes('low') || lower.includes('intimate') || lower.includes('soft')) return 'details-badge--green';
-  if (lower.includes('moderate') || lower.includes('average') || lower.includes('normal')) return 'details-badge--amber';
-  if (lower.includes('loud') || lower.includes('lively') || lower.includes('bustling') || lower.includes('noisy') || lower.includes('energetic')) return 'details-badge--rose';
+function getNoiseBadgeMod() {
   return 'details-badge--accent';
 }
 
@@ -1000,8 +990,7 @@ function openTileExpand(tileEl) {
     const n = Math.round(parseFloat(data.donde_score) || 8);
     const circumference = 2 * Math.PI * 45;
     const offset = circumference - (n / 10) * circumference;
-    const colors = { high: 'var(--green)', mid: 'var(--ac)', low: 'var(--rose)' };
-    const strokeColor = colors[tier.tier] || 'var(--ac)';
+    const strokeColor = 'var(--ac)';
     $content.innerHTML = `
       <span class="score-tile__label type-data--sm">DondeAI Score</span>
       <div class="score-ring-wrap">
@@ -1151,22 +1140,6 @@ function initCursorGlow() {
   }
 }
 
-/* ---- Scroll-Linked Parallax (Result step) ---- */
-function initResultParallax() {
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-
-  const resultStep = document.querySelector('[data-step="1"]');
-  const scoreSection = resultStep?.querySelector('.score-tile--donde');
-  if (!resultStep || !scoreSection) return;
-
-  // Remove any previous listener by replacing element listener strategy
-  const handler = () => {
-    const scrollTop = resultStep.scrollTop;
-    scoreSection.style.transform = `translateY(${scrollTop * 0.3}px)`;
-  };
-
-  resultStep.addEventListener('scroll', handler, { passive: true });
-}
 
 /* ---- Share Canvas Rendering ---- */
 function renderShareCanvas(format = 'post') {

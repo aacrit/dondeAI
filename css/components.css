@@ -560,10 +560,8 @@
   letter-spacing: 0.06em;
 }
 
-/* ---- DondeAI Score Tile: Tier tinting ---- */
-.score-tile--donde[data-tier="high"] { background: var(--green-soft); }
-.score-tile--donde[data-tier="mid"]  { background: var(--ac-soft); }
-.score-tile--donde[data-tier="low"]  { background: var(--rose-soft); }
+/* ---- DondeAI Score Tile ---- */
+.score-tile--donde { background: var(--ac-soft); }
 
 /* ---- Score Ring (inside tile) ---- */
 .score-tile .score-ring-wrap {
@@ -606,11 +604,8 @@
 .score-verdict {
   font-size: var(--text-sm);
   font-weight: 700;
+  color: var(--ac);
 }
-
-.score-verdict--high { color: var(--green); }
-.score-verdict--mid  { color: var(--ac); }
-.score-verdict--low  { color: var(--rose); }
 
 .score-percentile {
   font-size: var(--text-xs);
@@ -620,7 +615,7 @@
 
 /* ---- Google Rating Tile ---- */
 .score-tile--google {
-  background: var(--amber-soft);
+  background: var(--ac-soft);
 }
 
 .google-rating-display {
@@ -639,7 +634,7 @@
 .google-stars {
   display: flex;
   gap: 2px;
-  color: var(--amber);
+  color: var(--ac);
 }
 
 .google-stars__empty {

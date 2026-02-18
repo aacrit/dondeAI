@@ -19,11 +19,7 @@ export function animateScoreRing(rawScore) {
   const circumference = 2 * Math.PI * 45; // r=45
   const target = circumference - (n / 10) * circumference;
 
-  // Color based on integer tier
-  let color = 'var(--ac)';
-  if (n >= 8) color = 'var(--green)';
-  else if (n < 5) color = 'var(--rose)';
-  fill.style.stroke = color;
+  fill.style.stroke = 'var(--ac)';
 
   if (REDUCED.matches) {
     fill.style.strokeDashoffset = target;
