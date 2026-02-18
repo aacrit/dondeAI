@@ -167,7 +167,29 @@ serve(async (req: Request) => {
       );
     }
 
-    const result = JSON.parse(rawText);
+    // Strip markdown code fences if Claude wrapped the JSON
+    let cleaned = rawText.trim();
+    if (cleaned.startsWith("```")) {
+      cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, "").replace(/\n?```\s*$/, "");
+    }
+
+    let result;
+    try {
+      result = JSON.parse(cleaned);
+    } catch (parseErr) {
+      console.error("JSON parse failed. Raw text:", rawText);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          recommendation: "Got a response but couldn't read it. Please try again.",
+        }),
+        {
+          status: 502,
+          headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+        }
+      );
+    }
+
     result.success = true;
 
     return new Response(JSON.stringify(result), {
