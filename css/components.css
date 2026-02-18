@@ -502,11 +502,18 @@
 }
 
 /* ---- Score Tiles (3-col top row + full-width details) ---- */
-.score-tiles {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-sm);
+/* ---- Score Section (vertical stack: ring hero + inline google + vibe tiles) ---- */
+.score-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
   width: 100%;
+}
+
+.score-section .score-tile--donde {
+  width: 100%;
+  max-width: 280px;
 }
 
 /* ---- Individual Score Tile ---- */
@@ -582,49 +589,93 @@
   letter-spacing: -0.03em;
 }
 
-/* ---- Google Rating Tile ---- */
-.score-tile--google {
-  background: var(--bg2);
-}
-
-.google-rating-display {
+/* ---- Google Rating Inline ---- */
+.google-rating-inline {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: var(--space-2xs);
+  gap: var(--space-xs);
+  opacity: 0;
+  transition: opacity 300ms var(--ease-out);
 }
 
-.google-rating-number {
-  font-size: var(--text-xl);
-  font-weight: 700;
-  color: var(--fg);
-}
-
-.google-stars {
+.google-rating-inline .google-stars {
   display: flex;
   gap: 2px;
-  color: var(--amber);
+  color: hsl(45 93% 47%); /* amber — NOT accent (Ink Rule) */
+}
+
+.google-rating-inline .google-rating-number {
+  color: var(--fg);
+  font-weight: 600;
+}
+
+.google-rating-inline .google-count {
+  color: var(--fg3);
 }
 
 .google-stars__empty {
   color: var(--border);
 }
 
-.google-count {
+.google-rating-inline[role="link"] {
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  padding: var(--space-2xs) var(--space-xs);
+  transition: background var(--dur-fast) var(--ease-out), opacity 300ms var(--ease-out);
+}
+
+.google-rating-inline[role="link"]:hover {
+  background: var(--bg3);
+}
+
+/* ---- Vibe Tiles Grid ---- */
+.vibe-tiles {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-xs);
+  width: 100%;
+}
+
+.vibe-tile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.vibe-tile__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.vibe-tile__label {
   color: var(--fg2);
+  letter-spacing: 0.04em;
 }
 
-/* ---- Radar Tile ---- */
-.score-tile--radar .radar-wrap {
-  width: 100%;
-  max-width: 160px;
-  aspect-ratio: 1;
-  margin: 0 auto;
+.vibe-tile__value {
+  color: var(--fg);
+  font-weight: 700;
 }
 
-.score-tile--radar .radar-wrap svg {
+.vibe-tile__bar {
   width: 100%;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.vibe-tile__bar-fill {
   height: 100%;
+  width: 0;
+  background: var(--fg3);
+  border-radius: 2px;
+  will-change: width;
 }
 
 /* ---- Tile Badge (Price/Noise at bottom) ---- */
@@ -756,13 +807,10 @@
   box-shadow: 0 1px 0 0 var(--ac);
 }
 
-/* ---- Score Tiles Responsive ---- */
-@media (max-width: 479px) {
-  .score-tiles {
+/* ---- Vibe Tiles Responsive ---- */
+@media (max-width: 374px) {
+  .vibe-tiles {
     grid-template-columns: 1fr;
-  }
-  .score-tiles .score-tile {
-    padding: var(--space-sm);
   }
 }
 
@@ -905,8 +953,6 @@
 .atmo-tag__icon {
   font-size: var(--text-sm);
 }
-
-/* ---- Radar Chart (styles now in .score-tile--radar) ---- */
 
 /* ---- Sentiment Bar ---- */
 .sentiment-bar {
@@ -1322,13 +1368,6 @@
   font-size: var(--text-sm);
 }
 
-/* Expanded radar — larger */
-.tile-expand__content .radar-wrap {
-  width: 280px;
-  max-width: 100%;
-  aspect-ratio: 1;
-}
-
 /* ---- Expandable Tile Affordance ---- */
 .score-tile--expandable {
   cursor: pointer;
@@ -1343,33 +1382,6 @@
 
 .score-tile--expandable:active {
   transform: scale(0.97);
-}
-
-/* ---- Google Tile Clickable ---- */
-.score-tile--google[role="link"] {
-  cursor: pointer;
-  transition: transform var(--dur-fast) var(--spring),
-              box-shadow var(--dur-fast) var(--ease-out);
-}
-
-.score-tile--google[role="link"]:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px var(--shadow);
-}
-
-.score-tile--google[role="link"]:active {
-  transform: scale(0.97);
-}
-
-.score-tile__link-hint {
-  color: var(--fg3);
-  font-size: var(--text-xs);
-  margin-top: var(--space-2xs);
-  transition: color var(--dur-fast) var(--ease-out);
-}
-
-.score-tile--google[role="link"]:hover .score-tile__link-hint {
-  color: var(--ac);
 }
 
 /* ---- Result Navigation (after header) ---- */
@@ -1975,28 +1987,16 @@
 }
 
 /* Block 3: Scores (300ms) */
-.result-card--revealing .score-tiles {
+.result-card--revealing .score-section {
   animation: resultSectionIn 400ms var(--ease-out) 300ms forwards;
 }
 
-/* Individual tile stagger (3-col row) */
 .result-card--revealing .score-tile--donde {
   opacity: 0;
   transform: translateY(12px);
   animation: tileRevealIn 400ms var(--ease-out) 350ms forwards;
 }
-
-.result-card--revealing .score-tile--google {
-  opacity: 0;
-  transform: translateY(12px);
-  animation: tileRevealIn 400ms var(--ease-out) 400ms forwards;
-}
-
-.result-card--revealing .score-tile--radar {
-  opacity: 0;
-  transform: translateY(12px);
-  animation: tileRevealIn 400ms var(--ease-out) 450ms forwards;
-}
+/* Vibe tiles + Google inline animate via JS timers — no CSS keyframes */
 
 /* Block 4: Profile (450ms) */
 .result-card--revealing .result-profile {

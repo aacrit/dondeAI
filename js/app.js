@@ -14,7 +14,7 @@ import { initShare, shareResult, closeShareSheet, handleShareChannel } from './s
 import { initOffline, isOnline } from './offline.js';
 import { initAccessibility, announce } from './accessibility.js';
 import { fetchRecommendation } from './api.js';
-import { animateScoreRing, renderRadar, animateGoogleRating, animateBadge, startParticles, stopParticles, chaosToOrderReveal, initLogoAnimation, startSearchPulse, stopSearchPulse, resolveLogoToFound, cleanupLoadingLogo } from './animations.js';
+import { animateScoreRing, renderVibeTiles, animateBadge, startParticles, stopParticles, chaosToOrderReveal, initLogoAnimation, startSearchPulse, stopSearchPulse, resolveLogoToFound, cleanupLoadingLogo } from './animations.js';
 import {
   getGreeting, getCuisineFromResult, svgIcon,
   getScoreTier, getScoreColor, buildGoogleStars, buildMapsUrl, relativeTime, matchCuisine
@@ -973,47 +973,38 @@ function renderResult(data) {
   // Delay score ring to after tile entrance
   animationTimers.push(setTimeout(() => animateScoreRing(data.donde_score), 800));
 
-  // ---- Google Rating Tile ----
+  // ---- Google Rating (inline display below ring) ----
+  const $googleInline = document.getElementById('google-rating-inline');
   const $googleStars = document.getElementById('google-stars');
   const $googleNum = document.getElementById('google-rating-num');
   const $googleCount = document.getElementById('google-count');
-  const $scoreTileGoogle = document.getElementById('score-tile-google');
-  if (r.google_rating) {
+  if (r.google_rating && $googleInline) {
     if ($googleStars) $googleStars.innerHTML = buildGoogleStars(r.google_rating);
-    if ($googleCount) $googleCount.textContent = r.google_review_count ? `(${r.google_review_count})` : '';
-    if ($scoreTileGoogle) $scoreTileGoogle.style.display = '';
-    // Make tile link to Google Reviews if place_id available
-    if ($scoreTileGoogle && r.google_place_id) {
-      const reviewsUrl = `https://www.google.com/maps/place/?q=place_id:${r.google_place_id}`;
-      $scoreTileGoogle.setAttribute('tabindex', '0');
-      $scoreTileGoogle.setAttribute('role', 'link');
-      $scoreTileGoogle.setAttribute('aria-label', 'View on Google Maps');
-      const oldHint = $scoreTileGoogle.querySelector('.score-tile__link-hint');
-      if (oldHint) oldHint.remove();
-      const hint = document.createElement('span');
-      hint.className = 'score-tile__link-hint type-data--sm';
-      hint.textContent = 'View on Google';
-      $scoreTileGoogle.appendChild(hint);
-      $scoreTileGoogle.onclick = () => window.open(reviewsUrl, '_blank', 'noopener,noreferrer');
-      $scoreTileGoogle.onkeydown = (e) => {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.open(reviewsUrl, '_blank', 'noopener,noreferrer'); }
+    if ($googleNum) $googleNum.textContent = parseFloat(r.google_rating).toFixed(1);
+    if ($googleCount) $googleCount.textContent = r.google_review_count
+      ? `(${Number(r.google_review_count).toLocaleString()} reviews)` : '';
+    if (r.google_place_id) {
+      $googleInline.style.cursor = 'pointer';
+      $googleInline.setAttribute('role', 'link');
+      $googleInline.setAttribute('tabindex', '0');
+      $googleInline.setAttribute('aria-label',
+        `Google Rating ${parseFloat(r.google_rating).toFixed(1)} - View on Google Maps`);
+      const url = `https://www.google.com/maps/place/?q=place_id:${r.google_place_id}`;
+      $googleInline.onclick = () => window.open(url, '_blank', 'noopener,noreferrer');
+      $googleInline.onkeydown = (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault(); window.open(url, '_blank', 'noopener,noreferrer');
+        }
       };
     }
-    animationTimers.push(setTimeout(() => animateGoogleRating(r.google_rating), 900));
-  } else {
-    if ($scoreTileGoogle) $scoreTileGoogle.style.display = 'none';
+    $googleInline.style.display = '';
+    animationTimers.push(setTimeout(() => { $googleInline.style.opacity = '1'; }, 900));
+  } else if ($googleInline) {
+    $googleInline.style.display = 'none';
   }
 
-  // ---- Radar Tile ----
-  const $scoreTileRadar = document.getElementById('score-tile-radar');
-  if ($scoreTileRadar) {
-    $scoreTileRadar.style.display = '';
-    $scoreTileRadar.classList.add('score-tile--expandable');
-    $scoreTileRadar.setAttribute('tabindex', '0');
-    $scoreTileRadar.setAttribute('role', 'button');
-    $scoreTileRadar.setAttribute('aria-label', 'Expand Vibe Profile');
-  }
-  renderRadar(data.scores || {}, r);
+  // ---- Vibe Profile Tiles ----
+  renderVibeTiles(data.scores || {}, animationTimers);
 
   // ---- Profile Block: Facts (all neutral badges — Cuisine, Price, Parking, Noise, Ambiance, Dress) ----
   const $profileFacts = document.getElementById('profile-facts');
@@ -1231,13 +1222,6 @@ function openTileExpand(tileEl) {
       </div>
       <span class="score-verdict type-structural--bold ${tier.cssClass}" style="font-size: var(--text-lg);">${tier.verdict}</span>
       <span class="score-percentile type-data--sm">Top ${Math.round((tier.integer / 10) * 100)}%</span>`;
-  } else if (tileEl.id === 'score-tile-radar') {
-    const existingSvg = document.getElementById('radar-svg');
-    $content.innerHTML = `
-      <span class="score-tile__label type-data--sm">Vibe Profile</span>
-      <div class="radar-wrap">
-        <svg viewBox="0 0 200 200">${existingSvg ? existingSvg.innerHTML : ''}</svg>
-      </div>`;
   }
 
   $modal.classList.add('tile-expand--open');
