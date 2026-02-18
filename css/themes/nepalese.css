@@ -1,0 +1,82 @@
+/* ============================================
+   Nepalese / Tibetan Theme
+   Prayer flag colors, mountain earth tones
+   ============================================ */
+
+/* ---- Light Mode ---- */
+[data-theme="nepalese"][data-mode="light"] {
+  --bg:          hsl(30 15% 95%);
+  --bg2:         hsl(30 12% 98%);
+  --bg3:         hsl(30 10% 91%);
+  --fg:          hsl(20 20% 15%);
+  --fg2:         hsl(20 10% 42%);
+  --fg3:         hsl(20 8% 58%);
+  --ac:          hsl(210 50% 48%);
+  --ac2:         hsl(210 50% 40%);
+  --ac-soft:     hsl(210 50% 48% / 0.12);
+  --green:       hsl(160 45% 38%);
+  --green-soft:  hsl(160 45% 38% / 0.12);
+  --rose:        hsl(350 60% 50%);
+  --rose-soft:   hsl(350 60% 50% / 0.12);
+  --amber:       hsl(45 70% 50%);
+  --amber-soft:  hsl(45 70% 50% / 0.12);
+  --glass:       hsl(30 12% 98% / 0.75);
+  --glass-blur:  16px;
+  --border:      hsl(30 10% 84%);
+  --shadow:      hsl(20 15% 20% / 0.07);
+  --shadow-lg:   hsl(20 15% 20% / 0.12);
+  --radius:      14px;
+  --radius-sm:   8px;
+  --radius-lg:   20px;
+  --radius-pill: 100px;
+  --blob-1:      hsl(210 50% 48% / 0.08);
+  --blob-2:      hsl(350 55% 50% / 0.06);
+  --blob-3:      hsl(45 65% 50% / 0.05);
+  --grain-opacity: 0.035;
+  --textile-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72' fill='none' stroke='%23000000' stroke-linecap='round'%3E%3Cpath d='M8 8l8 0l0 6Q12 12 8 14z' stroke-width='0.8' opacity='0.14'/%3E%3Cpath d='M28 42Q31 34 34 42Q37 35 40 42Q42 37 44 42' stroke-width='0.9' opacity='0.15'/%3E%3Ccircle cx='56' cy='15' r='4' stroke-width='0.6' opacity='0.10'/%3E%3Cpath d='M56 11l0-3M59 13l2-2M53 13l-2-2' stroke-width='0.5' opacity='0.09'/%3E%3Cpath d='M12 38Q16 34 18 38Q20 42 16 44Q12 42 14 38' stroke-width='0.7' opacity='0.12'/%3E%3Ccircle cx='30' cy='60' r='0.8' fill='%23000000' stroke='none' opacity='0.13'/%3E%3Ccircle cx='34' cy='58' r='0.7' fill='%23000000' stroke='none' opacity='0.11'/%3E%3Ccircle cx='38' cy='57' r='0.9' fill='%23000000' stroke='none' opacity='0.14'/%3E%3Ccircle cx='42' cy='58' r='0.6' fill='%23000000' stroke='none' opacity='0.10'/%3E%3Ccircle cx='46' cy='60' r='0.8' fill='%23000000' stroke='none' opacity='0.12'/%3E%3Cpath d='M58 50l5 0l0 4Q60 52 58 54z' stroke-width='0.6' opacity='0.10'/%3E%3Cpath d='M4 26Q6 22 8 26' stroke-width='0.5' opacity='0.08'/%3E%3C/svg%3E");
+  --textile-opacity: 0.40;
+  --glass-header: hsl(30 12% 98% / 0.68);
+  --glass-toast:  hsl(30 10% 97% / 0.86);
+  --glass-info:   hsl(210 15% 96% / 0.52);
+  --glass-tip:    hsl(45 30% 96% / 0.6);
+  --glass-score:  var(--glass);
+}
+
+/* ---- Dark Mode ---- */
+[data-theme="nepalese"][data-mode="dark"] {
+  --bg:          hsl(25 12% 9%);
+  --bg2:         hsl(25 10% 13%);
+  --bg3:         hsl(25 8% 17%);
+  --fg:          hsl(30 12% 88%);
+  --fg2:         hsl(30 8% 60%);
+  --fg3:         hsl(30 5% 42%);
+  --ac:          hsl(210 48% 58%);
+  --ac2:         hsl(210 48% 68%);
+  --ac-soft:     hsl(210 48% 58% / 0.16);
+  --green:       hsl(160 40% 48%);
+  --green-soft:  hsl(160 40% 48% / 0.15);
+  --rose:        hsl(350 55% 58%);
+  --rose-soft:   hsl(350 55% 58% / 0.15);
+  --amber:       hsl(45 65% 55%);
+  --amber-soft:  hsl(45 65% 55% / 0.15);
+  --glass:       hsl(25 10% 13% / 0.8);
+  --glass-blur:  20px;
+  --border:      hsl(25 8% 22%);
+  --shadow:      transparent;
+  --shadow-lg:   transparent;
+  --radius:      14px;
+  --radius-sm:   8px;
+  --radius-lg:   20px;
+  --radius-pill: 100px;
+  --blob-1:      hsl(210 48% 50% / 0.1);
+  --blob-2:      hsl(350 50% 50% / 0.07);
+  --blob-3:      hsl(45 60% 50% / 0.06);
+  --grain-opacity: 0.045;
+  --textile-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72' fill='none' stroke='%23ffffff' stroke-linecap='round'%3E%3Cpath d='M8 8l8 0l0 6Q12 12 8 14z' stroke-width='0.8' opacity='0.16'/%3E%3Cpath d='M28 42Q31 34 34 42Q37 35 40 42Q42 37 44 42' stroke-width='0.9' opacity='0.17'/%3E%3Ccircle cx='56' cy='15' r='4' stroke-width='0.6' opacity='0.12'/%3E%3Cpath d='M56 11l0-3M59 13l2-2M53 13l-2-2' stroke-width='0.5' opacity='0.11'/%3E%3Cpath d='M12 38Q16 34 18 38Q20 42 16 44Q12 42 14 38' stroke-width='0.7' opacity='0.14'/%3E%3Ccircle cx='30' cy='60' r='0.8' fill='%23ffffff' stroke='none' opacity='0.15'/%3E%3Ccircle cx='34' cy='58' r='0.7' fill='%23ffffff' stroke='none' opacity='0.13'/%3E%3Ccircle cx='38' cy='57' r='0.9' fill='%23ffffff' stroke='none' opacity='0.16'/%3E%3Ccircle cx='42' cy='58' r='0.6' fill='%23ffffff' stroke='none' opacity='0.12'/%3E%3Ccircle cx='46' cy='60' r='0.8' fill='%23ffffff' stroke='none' opacity='0.14'/%3E%3Cpath d='M58 50l5 0l0 4Q60 52 58 54z' stroke-width='0.6' opacity='0.12'/%3E%3Cpath d='M4 26Q6 22 8 26' stroke-width='0.5' opacity='0.10'/%3E%3C/svg%3E");
+  --textile-opacity: 0.45;
+  --glass-header: hsl(25 10% 13% / 0.72);
+  --glass-toast:  hsl(25 8% 15% / 0.88);
+  --glass-info:   hsl(210 10% 15% / 0.55);
+  --glass-tip:    hsl(45 15% 15% / 0.6);
+  --glass-score:  var(--glass);
+}

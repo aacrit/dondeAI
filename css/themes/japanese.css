@@ -1,0 +1,82 @@
+/* ============================================
+   Japanese / Korean Theme
+   Ink wash, cherry blossom, wabi-sabi restraint
+   ============================================ */
+
+/* ---- Light Mode ---- */
+[data-theme="japanese"][data-mode="light"] {
+  --bg:          hsl(40 20% 96%);
+  --bg2:         hsl(40 15% 99%);
+  --bg3:         hsl(40 12% 93%);
+  --fg:          hsl(200 15% 15%);
+  --fg2:         hsl(200 8% 42%);
+  --fg3:         hsl(200 5% 60%);
+  --ac:          hsl(340 45% 55%);
+  --ac2:         hsl(340 45% 45%);
+  --ac-soft:     hsl(340 45% 55% / 0.1);
+  --green:       hsl(155 40% 40%);
+  --green-soft:  hsl(155 40% 40% / 0.1);
+  --rose:        hsl(350 55% 52%);
+  --rose-soft:   hsl(350 55% 52% / 0.1);
+  --amber:       hsl(35 60% 48%);
+  --amber-soft:  hsl(35 60% 48% / 0.1);
+  --glass:       hsl(40 15% 99% / 0.7);
+  --glass-blur:  14px;
+  --border:      hsl(40 10% 86%);
+  --shadow:      hsl(200 10% 20% / 0.05);
+  --shadow-lg:   hsl(200 10% 20% / 0.08);
+  --radius:      6px;
+  --radius-sm:   4px;
+  --radius-lg:   10px;
+  --radius-pill: 100px;
+  --blob-1:      hsl(340 45% 55% / 0.06);
+  --blob-2:      hsl(200 15% 50% / 0.04);
+  --blob-3:      hsl(155 35% 50% / 0.04);
+  --grain-opacity: 0.025;
+  --textile-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72' fill='none' stroke='%23000000' stroke-linecap='round'%3E%3Cpath d='M34 10Q36 6 38 10Q40 6 42 10Q40 13 38 11Q36 13 34 10' stroke-width='0.7' opacity='0.13'/%3E%3Ccircle cx='38' cy='10' r='0.5' fill='%23000000' stroke='none' opacity='0.11'/%3E%3Cpath d='M6 32Q10 26 18 28Q22 30 20 34' stroke-width='0.9' opacity='0.15'/%3E%3Cpath d='M56 24l-4-6M56 24l0-7M56 24l4-5' stroke-width='0.6' opacity='0.11'/%3E%3Cpath d='M14 55Q18 51 22 55Q26 51 30 55' stroke-width='0.7' opacity='0.12'/%3E%3Cpath d='M16 53Q20 50 24 53' stroke-width='0.5' opacity='0.09'/%3E%3Cpath d='M38 38l-4 6M38 38l4 6M38 38l0 7' stroke-width='0.6' opacity='0.10'/%3E%3Cpath d='M52 8Q56 4 60 8' stroke-width='0.5' opacity='0.08'/%3E%3Cpath d='M44 50l2 0M48 50l2 0M52 50l2 0' stroke-width='0.8' opacity='0.13'/%3E%3Cpath d='M60 60Q62 56 64 60' stroke-width='0.5' opacity='0.09'/%3E%3Cpath d='M4 14Q8 10 12 14' stroke-width='0.6' opacity='0.10'/%3E%3C/svg%3E");
+  --textile-opacity: 0.35;
+  --glass-header: hsl(40 15% 99% / 0.62);
+  --glass-toast:  hsl(40 12% 98% / 0.84);
+  --glass-info:   hsl(40 10% 97% / 0.48);
+  --glass-tip:    hsl(35 25% 96% / 0.55);
+  --glass-score:  var(--glass);
+}
+
+/* ---- Dark Mode ---- */
+[data-theme="japanese"][data-mode="dark"] {
+  --bg:          hsl(210 10% 8%);
+  --bg2:         hsl(210 8% 12%);
+  --bg3:         hsl(210 6% 16%);
+  --fg:          hsl(40 10% 88%);
+  --fg2:         hsl(40 6% 58%);
+  --fg3:         hsl(40 4% 40%);
+  --ac:          hsl(340 40% 65%);
+  --ac2:         hsl(340 40% 75%);
+  --ac-soft:     hsl(340 40% 65% / 0.14);
+  --green:       hsl(155 35% 50%);
+  --green-soft:  hsl(155 35% 50% / 0.14);
+  --rose:        hsl(350 50% 60%);
+  --rose-soft:   hsl(350 50% 60% / 0.14);
+  --amber:       hsl(35 55% 55%);
+  --amber-soft:  hsl(35 55% 55% / 0.14);
+  --glass:       hsl(210 8% 12% / 0.78);
+  --glass-blur:  16px;
+  --border:      hsl(210 6% 20%);
+  --shadow:      transparent;
+  --shadow-lg:   transparent;
+  --radius:      6px;
+  --radius-sm:   4px;
+  --radius-lg:   10px;
+  --radius-pill: 100px;
+  --blob-1:      hsl(340 40% 55% / 0.08);
+  --blob-2:      hsl(200 12% 45% / 0.05);
+  --blob-3:      hsl(155 30% 45% / 0.05);
+  --grain-opacity: 0.035;
+  --textile-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72' fill='none' stroke='%23ffffff' stroke-linecap='round'%3E%3Cpath d='M34 10Q36 6 38 10Q40 6 42 10Q40 13 38 11Q36 13 34 10' stroke-width='0.7' opacity='0.15'/%3E%3Ccircle cx='38' cy='10' r='0.5' fill='%23ffffff' stroke='none' opacity='0.13'/%3E%3Cpath d='M6 32Q10 26 18 28Q22 30 20 34' stroke-width='0.9' opacity='0.17'/%3E%3Cpath d='M56 24l-4-6M56 24l0-7M56 24l4-5' stroke-width='0.6' opacity='0.13'/%3E%3Cpath d='M14 55Q18 51 22 55Q26 51 30 55' stroke-width='0.7' opacity='0.14'/%3E%3Cpath d='M16 53Q20 50 24 53' stroke-width='0.5' opacity='0.11'/%3E%3Cpath d='M38 38l-4 6M38 38l4 6M38 38l0 7' stroke-width='0.6' opacity='0.12'/%3E%3Cpath d='M52 8Q56 4 60 8' stroke-width='0.5' opacity='0.10'/%3E%3Cpath d='M44 50l2 0M48 50l2 0M52 50l2 0' stroke-width='0.8' opacity='0.15'/%3E%3Cpath d='M60 60Q62 56 64 60' stroke-width='0.5' opacity='0.11'/%3E%3Cpath d='M4 14Q8 10 12 14' stroke-width='0.6' opacity='0.12'/%3E%3C/svg%3E");
+  --textile-opacity: 0.40;
+  --glass-header: hsl(210 8% 12% / 0.7);
+  --glass-toast:  hsl(210 6% 14% / 0.86);
+  --glass-info:   hsl(210 6% 14% / 0.5);
+  --glass-tip:    hsl(35 12% 14% / 0.58);
+  --glass-score:  var(--glass);
+}
