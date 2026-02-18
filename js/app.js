@@ -4,7 +4,7 @@
    ============================================ */
 
 import { getState, setState, subscribe, resetState } from './state.js';
-import { initRouter, goToStep } from './router.js';
+import { initRouter, goToStep, goToStepInstant } from './router.js';
 import { loadTheme, loadSound, loadHistory } from './persistence.js';
 import { addToHistory } from './persistence.js';
 import { initTheme, setTheme, getLabels, CULTURES, CULTURE_DISPLAY_NAMES } from './theme.js';
@@ -14,7 +14,7 @@ import { initShare, shareResult, closeShareSheet, handleShareChannel } from './s
 import { initOffline, isOnline } from './offline.js';
 import { initAccessibility, announce } from './accessibility.js';
 import { fetchRecommendation } from './api.js';
-import { animateScoreRing, renderRadar, animateGoogleRating, animateBadge, startParticles, stopParticles, chaosToOrderReveal, initLogoAnimation } from './animations.js';
+import { animateScoreRing, renderRadar, animateGoogleRating, animateBadge, startParticles, stopParticles, chaosToOrderReveal, initLogoAnimation, startChaosLogo, settleLogoToRest, stopChaosLogo, startFoodOrbit, stopFoodOrbit } from './animations.js';
 import {
   getGreeting, getCuisineFromResult, svgIcon,
   getScoreTier, getScoreColor, buildGoogleStars, buildMapsUrl, relativeTime, matchCuisine
@@ -92,13 +92,15 @@ function init() {
   // Init cursor glow (desktop only)
   initCursorGlow();
 
-  // Subscribe to result changes
+  // Subscribe to state changes
   subscribe((state, prev) => {
     if (state.result !== prev.result && state.result) {
-      renderResult(state.result);
+      // Result arrived — orchestrate the reveal transition (Act 3)
+      orchestrateReveal(state.result);
     }
-    if (state.loading !== prev.loading) {
-      toggleLoading(state.loading);
+    if (state.loading !== prev.loading && state.loading) {
+      // Only handle loading=true here; loading=false is handled by orchestrateReveal
+      toggleLoading(true);
     }
     if (state.error !== prev.error && state.error) {
       showToast(state.error, true);
@@ -186,7 +188,10 @@ function wireEvents() {
 
       case 'back':
         if (currentAbort) currentAbort.abort();
-        if (getState().loading) setState({ loading: false });
+        if (getState().loading) {
+          toggleLoading(false);
+          setState({ loading: false });
+        }
         goToStep(getState().step - 1);
         break;
 
@@ -435,7 +440,8 @@ async function handleSubmit() {
   }
 
   setState({ loading: true, error: null, result: null });
-  goToStep(1);
+  // Don't goToStep(1) — the loading overlay covers everything;
+  // step-track positioning happens in orchestrateReveal()
 
   try {
     const data = await fetchRecommendation({
@@ -455,11 +461,14 @@ async function handleSubmit() {
       price_level: s.priceLevel,
     }, cuisine.icon);
 
+    // Set result — triggers orchestrateReveal() via subscription
     setState({ result: data, loading: false, history: hist });
     playChime();
     announce(`Recommendation: ${data.restaurant?.name || 'found'}`);
   } catch (err) {
     if (err.name === 'AbortError') return; // user navigated away
+    // Error: clean up loading state and return to input
+    toggleLoading(false);
     setState({ loading: false, error: err.message });
     goToStep(0);
   } finally {
@@ -473,21 +482,138 @@ async function handleSubmit() {
   }
 }
 
-/* ---- Loading Toggle ---- */
+/* ---- Loading Toggle (3-Act Focus Pull Transition) ---- */
+let searchingDotsInterval = null;
+
 function toggleLoading(loading) {
   const $header = document.querySelector('.header');
-  if ($loadingState) $loadingState.style.display = loading ? 'flex' : 'none';
-  if ($resultCard) $resultCard.style.display = loading ? 'none' : 'flex';
+  const $step0 = document.querySelector('.step[data-step="0"]');
+  const $loadingStatus = document.getElementById('loading-status');
 
-  if (loading && $particleCanvas) {
-    startParticles($particleCanvas);
-    initLogoAnimation();
-    // Hide header so only the centered loading-logo is visible
+  if (loading) {
+    // === ACT 1: DEFOCUS ===
+    // Blur the input page behind the overlay
+    if ($step0) $step0.classList.add('step--defocused');
+    // Hide header
     if ($header) $header.style.opacity = '0';
+
+    // Show loading overlay
+    if ($loadingState) {
+      $loadingState.style.display = 'flex';
+      $loadingState.style.opacity = '1';
+      $loadingState.classList.remove('loading-state--fading');
+    }
+    // Hide result card
+    if ($resultCard) $resultCard.style.display = 'none';
+
+    // === ACT 2: SEARCH ===
+    // Start particle drift
+    if ($particleCanvas) startParticles($particleCanvas);
+    // Pin-fork SVG draw-in
+    initLogoAnimation();
+    // Chaotic logo movement
+    startChaosLogo();
+    // Food emoji orbit
+    if ($loadingState) startFoodOrbit($loadingState);
+
+    // Animated searching dots
+    if ($loadingStatus) {
+      $loadingStatus.textContent = 'Searching';
+      $loadingStatus.style.opacity = '';
+      let dotCount = 0;
+      searchingDotsInterval = setInterval(() => {
+        dotCount = (dotCount + 1) % 4;
+        $loadingStatus.textContent = 'Searching' + '.'.repeat(dotCount);
+      }, 400);
+    }
   } else {
+    // === CLEANUP (called after reveal orchestration completes) ===
+    // Stop animations
+    clearSearchingDots();
     stopParticles();
+    stopChaosLogo();
+
+    // Remove defocus from input page
+    if ($step0) $step0.classList.remove('step--defocused');
+
+    // Hide loading overlay
+    if ($loadingState) {
+      $loadingState.style.display = 'none';
+      $loadingState.classList.remove('loading-state--fading');
+    }
+
     // Restore header
     if ($header) $header.style.opacity = '';
+  }
+}
+
+function clearSearchingDots() {
+  if (searchingDotsInterval) {
+    clearInterval(searchingDotsInterval);
+    searchingDotsInterval = null;
+  }
+}
+
+/* ---- Result Reveal Orchestrator (Act 3) ---- */
+async function orchestrateReveal(data) {
+  const $header = document.querySelector('.header');
+
+  // 1. Settle logo + scatter food emoji simultaneously
+  const settlePromise = settleLogoToRest();
+  const scatterPromise = stopFoodOrbit();
+  clearSearchingDots();
+  await Promise.all([settlePromise, scatterPromise]);
+
+  // 2. Render the result card (still hidden)
+  renderResult(data);
+
+  // 3. Position step-track to result view instantly (under the overlay)
+  goToStepInstant(1);
+
+  // 4. Show result card with scale-in animation
+  if ($resultCard) {
+    $resultCard.style.display = 'flex';
+    $resultCard.style.opacity = '0';
+    $resultCard.style.transform = 'scale(0.95)';
+  }
+
+  // 5. Crossfade: fade out overlay while fading in result
+  if ($loadingState) {
+    $loadingState.classList.add('loading-state--fading');
+  }
+
+  // Small delay for crossfade to begin, then animate result in
+  await new Promise(r => setTimeout(r, 50));
+
+  if ($resultCard) {
+    $resultCard.style.transition = 'opacity 500ms cubic-bezier(0.4, 0, 0.2, 1), transform 500ms cubic-bezier(0.34, 1.56, 0.64, 1)';
+    $resultCard.style.opacity = '1';
+    $resultCard.style.transform = 'scale(1)';
+  }
+
+  // 6. Restore header
+  if ($header) $header.style.opacity = '';
+
+  // 7. After transitions complete, clean up
+  await new Promise(r => setTimeout(r, 550));
+
+  // Stop particles, remove overlay, clean up
+  stopParticles();
+  stopChaosLogo();
+
+  const $step0 = document.querySelector('.step[data-step="0"]');
+  if ($step0) $step0.classList.remove('step--defocused');
+
+  if ($loadingState) {
+    $loadingState.style.display = 'none';
+    $loadingState.classList.remove('loading-state--fading');
+    $loadingState.style.opacity = '';
+  }
+
+  // Clean up result card inline transitions
+  if ($resultCard) {
+    $resultCard.style.transition = '';
+    $resultCard.style.transform = '';
   }
 }
 
@@ -753,12 +879,11 @@ function renderResult(data) {
   // Init scroll-linked parallax on result step
   initResultParallax();
 
-  // Show the card with progressive reveal
+  // Apply progressive reveal classes (visual stagger within the card)
   if ($resultCard) {
-    $resultCard.style.display = 'flex';
     $resultCard.classList.remove('card-enter', 'result-card--revealing');
     void $resultCard.offsetWidth;
-    $resultCard.classList.add('card-enter', 'result-card--revealing');
+    $resultCard.classList.add('result-card--revealing');
 
     // Clean up reveal class after all sections have animated
     setTimeout(() => {
@@ -769,7 +894,7 @@ function renderResult(data) {
       });
     }, 1400);
   }
-  if ($loadingState) $loadingState.style.display = 'none';
+  // Note: show/hide of loading overlay and result card is handled by orchestrateReveal()
 }
 
 function createActionBtn(iconSvg, label, href) {

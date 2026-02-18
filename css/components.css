@@ -1185,44 +1185,25 @@
   pointer-events: none;
 }
 
-/* ---- Skeleton Loading (Enhancement 4) ---- */
-.skel {
-  background: var(--fg);
-  opacity: 0.06;
-  border-radius: var(--radius-sm);
-  animation: skelPulse 1.5s ease-in-out infinite;
+/* ---- Loading Status Text ---- */
+.loading-status {
+  font-size: var(--text-sm);
+  color: var(--fg3);
+  opacity: 0;
+  animation: contentFadeIn 400ms ease-out 600ms forwards;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-top: var(--space-sm);
 }
 
-.skel--name  { height: 1.75rem; width: 60%; }
-.skel--ring  { width: 120px; height: 120px; border-radius: 50%; }
-.skel--text  { height: 0.875rem; width: 100%; }
-.skel--text-sm { height: 0.75rem; width: 80%; }
-.skel--badge { height: 1.5rem; width: 100px; border-radius: var(--radius-pill); }
-
-.skeleton-card {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-lg);
-  padding: var(--space-lg);
-  background: var(--glass);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-}
-
-.skeleton-card .skel-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-lg);
-}
-
-.skeleton-card .skel-lines {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-  flex: 1;
+/* ---- Food Emoji Orbit ---- */
+.food-orbit__emoji {
+  position: absolute;
+  font-size: 1.5rem;
+  pointer-events: none;
+  will-change: transform;
+  filter: drop-shadow(0 2px 8px rgba(0,0,0,0.15));
+  z-index: var(--z-above);
 }
 
 /* ---- Taste Memory (Enhancement 9) ---- */
@@ -1540,8 +1521,8 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-sm);
-  padding: var(--space-xl) 0;
   z-index: var(--z-above);
+  will-change: transform, opacity;
 }
 
 /* ---- Loading Orbit Dots ---- */

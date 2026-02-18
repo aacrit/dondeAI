@@ -249,48 +249,6 @@
         <!-- ========== VIEW 1: Result ========== -->
         <section class="step" data-step="1" aria-hidden="true" aria-label="Your recommendation">
           <div class="step__inner" id="result-container">
-            <!-- Loading State: Skeleton-First -->
-            <div class="loading-state" id="loading-state" style="display: none;">
-              <canvas class="particle-canvas" id="particle-canvas" aria-hidden="true"></canvas>
-              <!-- Animated loading logo -->
-              <div class="loading-logo" id="loading-logo" aria-hidden="true">
-                <svg class="logo-mark logo-mark--loading" viewBox="0 0 24 36" width="48" height="72">
-                  <path class="logo-mark__pin logo-mark__pin--draw"
-                        d="M12 0C6.48 0 2 4.48 2 10c0 8.4 9.2 15.17 9.6 15.47a.75.75 0 0 0 .8 0C12.8 25.17 22 18.4 22 10 22 4.48 17.52 0 12 0Z"
-                        fill="none" stroke="currentColor" stroke-width="1"/>
-                  <line class="logo-mark__tine logo-mark__tine--draw" x1="9" y1="5" x2="9" y2="14"
-                        stroke="var(--ac)" stroke-width="1.5" stroke-linecap="round"/>
-                  <line class="logo-mark__tine logo-mark__tine--draw" x1="15" y1="5" x2="15" y2="14"
-                        stroke="var(--ac)" stroke-width="1.5" stroke-linecap="round"/>
-                  <circle class="logo-mark__dot logo-mark__dot--pulse" cx="12" cy="18" r="1.5" fill="var(--ac)"/>
-                </svg>
-                <span class="loading-logo__text type-emotional">Donde<sup class="logo-wordmark__ai">AI</sup></span>
-                <div class="loading-logo__orbit" aria-hidden="true">
-                  <span class="loading-logo__orbit-dot"></span>
-                  <span class="loading-logo__orbit-dot"></span>
-                  <span class="loading-logo__orbit-dot"></span>
-                  <span class="loading-logo__orbit-dot"></span>
-                </div>
-              </div>
-              <div class="skeleton-card" id="skeleton-card">
-                <div class="skel skel--badge"></div>
-                <div style="display: flex; flex-direction: column; gap: var(--space-xs);">
-                  <div class="skel skel--name"></div>
-                  <div class="skel skel--text-sm"></div>
-                </div>
-                <div class="skel-row">
-                  <div class="skel skel--ring"></div>
-                  <div class="skel-lines">
-                    <div class="skel skel--text" style="width: 40%;"></div>
-                    <div class="skel skel--text-sm" style="width: 60%;"></div>
-                  </div>
-                </div>
-                <div class="skel skel--text"></div>
-                <div class="skel skel--text" style="width: 90%;"></div>
-                <div class="skel skel--text" style="width: 75%;"></div>
-              </div>
-            </div>
-
             <!-- Result Card (populated by JS) -->
             <div class="result-card card-enter" id="result-card" style="display: none;">
               <!-- Cuisine Badge -->
@@ -399,6 +357,31 @@
         </section>
 
       </div><!-- /step-track -->
+
+      <!-- Loading Overlay (fixed, above everything during search) -->
+      <div class="loading-state" id="loading-state" style="display: none;" role="status" aria-label="Searching for restaurant">
+        <canvas class="particle-canvas" id="particle-canvas" aria-hidden="true"></canvas>
+        <div class="loading-logo" id="loading-logo" aria-hidden="true">
+          <svg class="logo-mark logo-mark--loading" viewBox="0 0 24 36" width="48" height="72">
+            <path class="logo-mark__pin logo-mark__pin--draw"
+                  d="M12 0C6.48 0 2 4.48 2 10c0 8.4 9.2 15.17 9.6 15.47a.75.75 0 0 0 .8 0C12.8 25.17 22 18.4 22 10 22 4.48 17.52 0 12 0Z"
+                  fill="none" stroke="currentColor" stroke-width="1"/>
+            <line class="logo-mark__tine logo-mark__tine--draw" x1="9" y1="5" x2="9" y2="14"
+                  stroke="var(--ac)" stroke-width="1.5" stroke-linecap="round"/>
+            <line class="logo-mark__tine logo-mark__tine--draw" x1="15" y1="5" x2="15" y2="14"
+                  stroke="var(--ac)" stroke-width="1.5" stroke-linecap="round"/>
+            <circle class="logo-mark__dot logo-mark__dot--pulse" cx="12" cy="18" r="1.5" fill="var(--ac)"/>
+          </svg>
+          <span class="loading-logo__text type-emotional">Donde<sup class="logo-wordmark__ai">AI</sup></span>
+          <div class="loading-logo__orbit" aria-hidden="true">
+            <span class="loading-logo__orbit-dot"></span>
+            <span class="loading-logo__orbit-dot"></span>
+            <span class="loading-logo__orbit-dot"></span>
+            <span class="loading-logo__orbit-dot"></span>
+          </div>
+        </div>
+        <p class="loading-status type-structural" id="loading-status">Searching</p>
+      </div>
     </main>
 
     <!-- Theme Picker Modal -->

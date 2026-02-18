@@ -42,6 +42,26 @@ export function goToStep(n) {
   setState({ step });
 }
 
+/* Instantly position step-track without animation (used under loading overlay) */
+export function goToStepInstant(n) {
+  const step = Math.max(0, Math.min(n, TOTAL_STEPS - 1));
+  if (!$track) return;
+  $track.style.transition = 'none';
+  $track.style.transform = `translateX(-${step * 100}vw)`;
+  // Force reflow then restore transition
+  void $track.offsetWidth;
+  $track.style.transition = '';
+  // Update aria and back button without animation
+  if ($steps) {
+    $steps.forEach((el, i) => el.setAttribute('aria-hidden', String(i !== step)));
+  }
+  if ($backBtn) {
+    $backBtn.classList.toggle('back-btn--visible', step === 1);
+  }
+  history.pushState({ step }, '', '');
+  setState({ step });
+}
+
 function renderStep(current, previous) {
   if (!$track) return;
 

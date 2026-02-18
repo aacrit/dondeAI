@@ -437,58 +437,245 @@ export function initLogoAnimation() {
   });
 }
 
-/* ---- Logo Loading Transition (Header -> Center -> Header) ---- */
-export function animateLogoToCenter() {
-  if (REDUCED.matches) return { returnToHeader: () => {} };
+/* ---- Chaotic-to-Rest Logo Animation ---- */
+let chaosAnimId = null;
+let chaosPhase = 'chaos'; // 'chaos' | 'settling' | 'float' | 'rest'
 
-  const headerLogo = document.querySelector('.header__logo');
-  if (!headerLogo) return { returnToHeader: () => {} };
+export function startChaosLogo() {
+  const logo = document.getElementById('loading-logo');
+  if (!logo) return;
 
-  // Capture header logo's current position
-  const startRect = headerLogo.getBoundingClientRect();
+  if (REDUCED.matches) {
+    logo.style.transform = 'translate(0, 0) scale(1) rotate(0deg)';
+    logo.style.opacity = '1';
+    return;
+  }
 
-  // Set header logo to fixed position at its current location
-  headerLogo.style.position = 'fixed';
-  headerLogo.style.left = startRect.left + 'px';
-  headerLogo.style.top = startRect.top + 'px';
-  headerLogo.style.zIndex = '9999';
-  headerLogo.style.pointerEvents = 'none';
+  chaosPhase = 'chaos';
+  const start = performance.now();
 
-  // Calculate center of viewport
-  const centerX = window.innerWidth / 2 - startRect.width / 2;
-  const centerY = window.innerHeight / 2 - startRect.height / 2;
+  // Pseudo-random seeded per-frame for deterministic-feeling chaos
+  let seed = 42;
+  function rand() {
+    seed = (seed * 16807 + 0) % 2147483647;
+    return (seed / 2147483647) - 0.5; // -0.5 to 0.5
+  }
 
-  // Animate to center using transform for GPU compositing
-  requestAnimationFrame(() => {
-    headerLogo.style.transition = 'transform 500ms cubic-bezier(0.34, 1.56, 0.64, 1)';
-    const dx = centerX - startRect.left;
-    const dy = centerY - startRect.top;
-    headerLogo.style.transform = `translate(${dx}px, ${dy}px) scale(2)`;
+  logo.style.opacity = '0';
+  logo.style.transform = 'translate(0, 0) scale(0.6) rotate(0deg)';
+
+  function tick(now) {
+    const elapsed = now - start;
+
+    if (chaosPhase === 'rest') {
+      // Snapped to rest — stop loop
+      return;
+    }
+
+    let tx, ty, rot, scale, opacity;
+
+    if (chaosPhase === 'chaos' || chaosPhase === 'settling') {
+      if (elapsed < 300) {
+        // Phase 1: High-energy chaos (0-300ms)
+        const energy = 1 - (elapsed / 300) * 0.3; // slight decay within chaos phase
+        tx = rand() * 160 * energy;
+        ty = rand() * 120 * energy;
+        rot = rand() * 50 * energy;
+        scale = 0.7 + Math.random() * 0.3;
+        opacity = Math.min(1, elapsed / 150); // fade in quickly
+      } else if (elapsed < 900) {
+        // Phase 2: Exponential settling (300-900ms)
+        const t = (elapsed - 300) / 600;
+        const decay = Math.exp(-4 * t);
+        tx = rand() * 80 * decay;
+        ty = rand() * 60 * decay;
+        rot = rand() * 25 * decay;
+        scale = 0.85 + (1 - decay) * 0.15;
+        opacity = 1;
+        if (t > 0.9) chaosPhase = 'float';
+      } else {
+        chaosPhase = 'float';
+        tx = ty = rot = 0;
+        scale = 1;
+        opacity = 1;
+      }
+    }
+
+    if (chaosPhase === 'float') {
+      // Phase 3: Gentle hovering float
+      const t = (now - start) / 1000;
+      tx = Math.sin(t * 1.3) * 4;
+      ty = Math.cos(t * 0.9) * 3;
+      rot = Math.sin(t * 0.7) * 2;
+      scale = 1 + Math.sin(t * 1.1) * 0.02;
+      opacity = 1;
+    }
+
+    logo.style.opacity = String(opacity);
+    logo.style.transform = `translate(${tx}px, ${ty}px) scale(${scale}) rotate(${rot}deg)`;
+
+    chaosAnimId = requestAnimationFrame(tick);
+  }
+
+  chaosAnimId = requestAnimationFrame(tick);
+}
+
+export function settleLogoToRest() {
+  const logo = document.getElementById('loading-logo');
+  if (!logo) return Promise.resolve();
+
+  chaosPhase = 'rest';
+  if (chaosAnimId) {
+    cancelAnimationFrame(chaosAnimId);
+    chaosAnimId = null;
+  }
+
+  if (REDUCED.matches) {
+    logo.style.transform = 'translate(0, 0) scale(1) rotate(0deg)';
+    return Promise.resolve();
+  }
+
+  return new Promise(resolve => {
+    const start = performance.now();
+    const duration = 400;
+
+    // Capture current transform values for smooth transition
+    const current = logo.style.transform;
+    const match = current.match(/translate\(([-\d.]+)px,\s*([-\d.]+)px\)\s*scale\(([-\d.]+)\)\s*rotate\(([-\d.]+)deg\)/);
+    const fromX = match ? parseFloat(match[1]) : 0;
+    const fromY = match ? parseFloat(match[2]) : 0;
+    const fromScale = match ? parseFloat(match[3]) : 1;
+    const fromRot = match ? parseFloat(match[4]) : 0;
+
+    function springSnap(now) {
+      const elapsed = now - start;
+      const t = Math.min(elapsed / duration, 1);
+      // Damped spring: overshoot then settle
+      const spring = 1 - Math.exp(-6 * t) * Math.cos(t * Math.PI * 3);
+
+      const tx = fromX * (1 - spring);
+      const ty = fromY * (1 - spring);
+      const s = fromScale + (1 - fromScale) * spring;
+      const r = fromRot * (1 - spring);
+
+      logo.style.transform = `translate(${tx}px, ${ty}px) scale(${s}) rotate(${r}deg)`;
+
+      if (t < 1) {
+        requestAnimationFrame(springSnap);
+      } else {
+        logo.style.transform = 'translate(0, 0) scale(1) rotate(0deg)';
+        resolve();
+      }
+    }
+
+    requestAnimationFrame(springSnap);
+  });
+}
+
+export function stopChaosLogo() {
+  chaosPhase = 'rest';
+  if (chaosAnimId) {
+    cancelAnimationFrame(chaosAnimId);
+    chaosAnimId = null;
+  }
+  const logo = document.getElementById('loading-logo');
+  if (logo) {
+    logo.style.transform = '';
+    logo.style.opacity = '';
+  }
+}
+
+/* ---- Food Emoji Orbit ---- */
+const FOOD_EMOJI = ['🍕','🍣','🌮','🍜','🍔','🥐','🍛','🥗','🍝','☕','🍸','🥟'];
+let foodOrbitAnimId = null;
+let foodEls = [];
+
+export function startFoodOrbit(container) {
+  if (!container || REDUCED.matches) return;
+
+  stopFoodOrbit(); // clean up any prior orbit
+
+  // Pick 4 random unique emoji
+  const shuffled = [...FOOD_EMOJI].sort(() => Math.random() - 0.5);
+  const chosen = shuffled.slice(0, 4);
+
+  const orbits = chosen.map((emoji, i) => {
+    const el = document.createElement('span');
+    el.className = 'food-orbit__emoji';
+    el.textContent = emoji;
+    el.style.opacity = '0';
+    container.appendChild(el);
+    foodEls.push(el);
+
+    return {
+      el,
+      rx: 70 + i * 20,         // orbit radius x (70-130px)
+      ry: 50 + i * 15,         // orbit radius y (50-95px)
+      speed: 0.8 + i * 0.3,    // angular speed (rad/s)
+      phase: (i * Math.PI) / 2, // phase offset (90deg apart)
+    };
   });
 
-  return {
-    returnToHeader: () => {
-      // Animate back
-      headerLogo.style.transition = 'transform 400ms cubic-bezier(0.4, 0, 0.2, 1)';
-      headerLogo.style.transform = 'translate(0, 0) scale(1)';
+  const start = performance.now();
 
-      // After transition, reset inline styles
-      const cleanup = () => {
-        headerLogo.style.position = '';
-        headerLogo.style.left = '';
-        headerLogo.style.top = '';
-        headerLogo.style.zIndex = '';
-        headerLogo.style.pointerEvents = '';
-        headerLogo.style.transition = '';
-        headerLogo.style.transform = '';
-        headerLogo.removeEventListener('transitionend', cleanup);
-      };
-      headerLogo.addEventListener('transitionend', cleanup, { once: true });
+  function tick(now) {
+    const elapsed = (now - start) / 1000; // seconds
 
-      // Fallback cleanup after 500ms
-      setTimeout(cleanup, 500);
+    for (const o of orbits) {
+      const angle = elapsed * o.speed + o.phase;
+      const x = Math.cos(angle) * o.rx;
+      const y = Math.sin(angle) * o.ry;
+      const pulse = 1 + 0.12 * Math.sin(elapsed * 2 + o.phase);
+      const fadeIn = Math.min(1, elapsed / 0.4); // fade in over 400ms
+
+      o.el.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px)) scale(${pulse})`;
+      o.el.style.opacity = String(fadeIn * 0.85);
     }
-  };
+
+    foodOrbitAnimId = requestAnimationFrame(tick);
+  }
+
+  foodOrbitAnimId = requestAnimationFrame(tick);
+}
+
+export function stopFoodOrbit() {
+  if (foodOrbitAnimId) {
+    cancelAnimationFrame(foodOrbitAnimId);
+    foodOrbitAnimId = null;
+  }
+
+  if (foodEls.length === 0) return Promise.resolve();
+
+  if (REDUCED.matches) {
+    foodEls.forEach(el => el.remove());
+    foodEls = [];
+    return Promise.resolve();
+  }
+
+  // Scatter outward + fade out
+  return new Promise(resolve => {
+    const els = [...foodEls];
+    foodEls = [];
+
+    els.forEach(el => {
+      const current = el.getBoundingClientRect();
+      const cx = window.innerWidth / 2;
+      const cy = window.innerHeight / 2;
+      const dx = (current.left + current.width / 2 - cx) * 3;
+      const dy = (current.top + current.height / 2 - cy) * 3;
+
+      el.style.transition = 'transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 300ms ease-out';
+      requestAnimationFrame(() => {
+        el.style.transform = `translate(${dx}px, ${dy}px) scale(0.3)`;
+        el.style.opacity = '0';
+      });
+    });
+
+    setTimeout(() => {
+      els.forEach(el => el.remove());
+      resolve();
+    }, 450);
+  });
 }
 
 /* ---- Particle System ---- */
