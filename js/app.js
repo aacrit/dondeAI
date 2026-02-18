@@ -395,6 +395,11 @@ function wireEvents() {
         break;
       }
 
+      case 'show-score-info': {
+        showToast('DondeAI Score blends cuisine quality, vibe match, and hundreds of local reviews into a single 0\u201310 rating \u2014 tuned to what you\u2019re craving right now.');
+        break;
+      }
+
       case 'toggle-profile': {
         const $profile = document.getElementById('result-profile');
         const isExpanded = btn.getAttribute('aria-expanded') === 'true';
@@ -407,6 +412,8 @@ function wireEvents() {
 
   // Expandable tile click delegation (DondeAI Score + Vibe Radar)
   document.addEventListener('click', (e) => {
+    // Skip if click was on the info button (handled by data-action delegation)
+    if (e.target.closest('[data-action]')) return;
     const tile = e.target.closest('.score-tile--expandable');
     if (tile) openTileExpand(tile);
   });
@@ -1250,7 +1257,24 @@ function openTileExpand(tileEl) {
     const offset = circumference - (n / 10) * circumference;
     const strokeColor = 'var(--ac)';
     $content.innerHTML = `
-      <span class="score-tile__label type-data--sm">DondeAI Score</span>
+      <div class="score-tile__brand" aria-label="DondeAI Score">
+        <svg class="score-tile__logo-mark" viewBox="0 0 32 44" width="18" height="25" aria-hidden="true">
+          <path d="M10.5 1C10.5 1 10 8.5 12.5 11.5Q14 13 14.5 13.5"
+                fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M21.5 1C21.5 1 22 8.5 19.5 11.5Q18 13 17.5 13.5"
+                fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M16 13.5C22 11 29 14 28 21C27 27 19 29 16 31L16 34"
+                fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>
+          <circle cx="16" cy="40" r="2.8" fill="var(--ac)"/>
+        </svg>
+        <span class="score-tile__wordmark" style="font-size: var(--text-sm);">
+          <span class="score-tile__wordmark-d">D</span><span
+            class="score-tile__wordmark-onde">onde</span><span
+            class="score-tile__wordmark-a">A</span><span
+            class="score-tile__wordmark-i">I</span>
+        </span>
+        <span class="score-tile__score-label type-data--sm">Score<sup>™</sup></span>
+      </div>
       <div class="score-ring-wrap">
         <svg class="score-ring" viewBox="0 0 100 100">
           <circle class="score-ring__bg" cx="50" cy="50" r="45"></circle>

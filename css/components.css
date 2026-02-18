@@ -542,8 +542,103 @@
   letter-spacing: 0.06em;
 }
 
+/* ---- Score Tile Brand (logo + wordmark + Score™) ---- */
+.score-tile__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+}
+
+.score-tile__logo-mark {
+  color: var(--fg);
+  flex-shrink: 0;
+}
+
+.score-tile__wordmark {
+  display: inline-flex;
+  align-items: baseline;
+  line-height: 1;
+  font-size: var(--text-xs);
+  user-select: none;
+}
+
+.score-tile__wordmark-d {
+  font-family: var(--font-emotional);
+  font-weight: 700;
+  font-size: 1.15em;
+  color: var(--ac);
+  letter-spacing: -0.03em;
+}
+
+.score-tile__wordmark-onde {
+  font-family: var(--font-emotional);
+  font-weight: 400;
+  font-size: 1em;
+  color: var(--fg);
+  letter-spacing: -0.02em;
+}
+
+.score-tile__wordmark-a {
+  font-family: var(--font-structural);
+  font-weight: 700;
+  font-size: 0.78em;
+  color: var(--fg);
+  letter-spacing: 0.04em;
+  position: relative;
+  top: -0.04em;
+}
+
+.score-tile__wordmark-i {
+  font-family: var(--font-data);
+  font-weight: 600;
+  font-size: 0.72em;
+  color: var(--ac);
+  letter-spacing: 0.02em;
+  position: relative;
+  top: -0.04em;
+}
+
+.score-tile__score-label {
+  color: var(--fg3);
+  letter-spacing: 0.06em;
+  margin-left: var(--space-2xs);
+}
+
+.score-tile__score-label sup {
+  font-size: 0.6em;
+  vertical-align: super;
+}
+
+/* ---- Score Info Button ---- */
+.score-tile__info {
+  position: absolute;
+  top: var(--space-xs);
+  right: var(--space-xs);
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  color: var(--fg3);
+  cursor: pointer;
+  border-radius: 50%;
+  transition: color var(--dur-fast) var(--ease-out),
+              background var(--dur-fast) var(--ease-out);
+  padding: 0;
+}
+
+.score-tile__info:hover {
+  color: var(--fg);
+  background: var(--bg3);
+}
+
 /* ---- DondeAI Score Tile ---- */
-.score-tile--donde { background: var(--bg2); }
+.score-tile--donde {
+  position: relative;
+  background: var(--bg2);
+}
 
 /* Mobile: strip tile chrome from score ring for vertical savings */
 @media (max-width: 767px) {
@@ -553,6 +648,9 @@
     padding: var(--space-xs) 0;
     max-width: none;
     border-radius: 0;
+  }
+  .score-section .score-tile--donde .score-tile__info {
+    right: 0;
   }
   .score-section {
     gap: var(--space-sm);
