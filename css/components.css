@@ -501,7 +501,7 @@
 
 .result-name {
   font-size: var(--text-xl);
-  color: var(--fg);
+  color: var(--ac);
   text-wrap: balance;
 }
 
@@ -517,10 +517,10 @@
   max-width: 600px;
 }
 
-/* ---- Score Tiles (2×2 grid) ---- */
+/* ---- Score Tiles (3-col top row + full-width details) ---- */
 .score-tiles {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: var(--space-sm);
   width: 100%;
 }
@@ -540,6 +540,12 @@
   text-align: center;
   overflow: hidden;
   min-height: 0;
+  transform: translateZ(0); /* force compositing — fixes scroll sticking on WebKit/Blink */
+}
+
+/* Details tile spans full width below the 3-col row */
+.score-tile--details {
+  grid-column: 1 / -1;
 }
 
 .score-tile__label {
@@ -689,7 +695,7 @@
 /* ---- Details Tile Badge Grid ---- */
 .details-badge-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
   gap: var(--space-xs);
   width: 100%;
 }
@@ -734,18 +740,55 @@
   max-width: 100%;
 }
 
-/* Parking badges highlighted with accent color */
-.details-badge--parking {
+/* ---- Badge Semantic Colors ---- */
+/* Green: budget price, quiet noise, parking */
+.details-badge--green {
+  background: var(--green-soft);
+  border: 1px solid var(--green);
+}
+.details-badge--green .details-badge__icon,
+.details-badge--green .details-badge__value {
+  color: var(--green);
+}
+
+/* Accent: mid-range price, parking */
+.details-badge--accent {
   background: var(--ac-soft);
   border: 1px solid var(--ac);
 }
-
-.details-badge--parking .details-badge__icon {
+.details-badge--accent .details-badge__icon,
+.details-badge--accent .details-badge__value {
   color: var(--ac);
 }
 
-.details-badge--parking .details-badge__value {
-  color: var(--ac);
+/* Amber: upscale price, moderate noise */
+.details-badge--amber {
+  background: var(--amber-soft);
+  border: 1px solid var(--amber);
+}
+.details-badge--amber .details-badge__icon,
+.details-badge--amber .details-badge__value {
+  color: var(--amber);
+}
+
+/* Rose: splurge price, loud noise */
+.details-badge--rose {
+  background: var(--rose-soft);
+  border: 1px solid var(--rose);
+}
+.details-badge--rose .details-badge__icon,
+.details-badge--rose .details-badge__value {
+  color: var(--rose);
+}
+
+/* Cuisine: derives color from --cuisine-hue */
+.details-badge--cuisine {
+  background: hsl(var(--cuisine-hue, 250) 60% 50% / 0.1);
+  border: 1px solid hsl(var(--cuisine-hue, 250) 60% 50% / 0.3);
+}
+.details-badge--cuisine .details-badge__icon,
+.details-badge--cuisine .details-badge__value {
+  color: hsl(var(--cuisine-hue, 250) 60% 50%);
 }
 
 /* ---- Score Tiles Responsive ---- */
@@ -753,14 +796,11 @@
   .score-tiles {
     grid-template-columns: 1fr;
   }
+  .score-tile--details {
+    grid-column: auto;
+  }
   .score-tiles .score-tile {
     padding: var(--space-sm);
-  }
-}
-
-@media (min-width: 1024px) {
-  .score-tiles {
-    grid-template-columns: repeat(4, 1fr);
   }
 }
 
@@ -1720,7 +1760,7 @@
   animation: resultSectionIn 350ms var(--ease-out) 450ms forwards;
 }
 
-/* Individual tile stagger (2×2 grid) */
+/* Individual tile stagger (3-col row + full-width details) */
 .result-card--revealing .score-tile--donde {
   opacity: 0;
   transform: translateY(12px);
@@ -1733,16 +1773,16 @@
   animation: tileRevealIn 400ms var(--ease-out) 560ms forwards;
 }
 
-.result-card--revealing .score-tile--details {
+.result-card--revealing .score-tile--radar {
   opacity: 0;
   transform: translateY(12px);
   animation: tileRevealIn 400ms var(--ease-out) 620ms forwards;
 }
 
-.result-card--revealing .score-tile--radar {
+.result-card--revealing .score-tile--details {
   opacity: 0;
   transform: translateY(12px);
-  animation: tileRevealIn 400ms var(--ease-out) 680ms forwards;
+  animation: tileRevealIn 400ms var(--ease-out) 700ms forwards;
 }
 
 .result-card--revealing .info-grid {

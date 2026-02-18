@@ -679,7 +679,7 @@ function renderResult(data) {
   if ($scoreTileRadar) $scoreTileRadar.style.display = '';
   renderRadar(data.scores || {}, r);
 
-  // ---- Details Tile (Cuisine, Price, Parking, Noise badges) ----
+  // ---- Details Tile (Cuisine, Price, Parking, Noise badges — all color-coded) ----
   const $detailsGrid = document.getElementById('details-badge-grid');
   const $detailsTile = document.getElementById('score-tile-details');
   if ($detailsGrid) {
@@ -687,21 +687,21 @@ function renderResult(data) {
     const badges = [];
 
     if (r.cuisine_type) {
-      badges.push({ icon: cuisine.icon || 'plate', label: 'Cuisine', value: r.cuisine_type, mod: '' });
+      badges.push({ icon: cuisine.icon || 'plate', label: 'Cuisine', value: r.cuisine_type, mod: 'details-badge--cuisine' });
     }
     if (r.price_level) {
-      badges.push({ icon: 'dollarSign', label: 'Price', value: r.price_level, mod: '' });
+      badges.push({ icon: 'dollarSign', label: 'Price', value: r.price_level, mod: getPriceBadgeMod(r.price_level) });
     }
     if (r.parking_availability) {
       parseParkingTypes(r.parking_availability).forEach(pt => {
-        badges.push({ icon: 'car', label: 'Parking', value: pt, mod: 'details-badge--parking' });
+        badges.push({ icon: 'car', label: 'Parking', value: pt, mod: 'details-badge--accent' });
       });
     }
-    if (r.noise_level && badges.length < 4) {
-      badges.push({ icon: 'speakerWave', label: 'Noise', value: r.noise_level.split(/[\s,]+/).slice(0, 2).join(' '), mod: '' });
+    if (r.noise_level) {
+      badges.push({ icon: 'speakerWave', label: 'Noise', value: r.noise_level.split(/[\s,]+/).slice(0, 2).join(' '), mod: getNoiseBadgeMod(r.noise_level) });
     }
 
-    badges.slice(0, 4).forEach(b => {
+    badges.forEach(b => {
       const div = document.createElement('div');
       div.className = `details-badge ${b.mod}`.trim();
       div.innerHTML = `
@@ -902,6 +902,23 @@ function parseParkingTypes(parkingStr) {
   if (lower.includes('metered')) types.push('Metered');
   if (types.length === 0) types.push(parkingStr.split(/\s+/).slice(0, 2).join(' '));
   return types;
+}
+
+/* ---- Badge Color Helpers ---- */
+function getPriceBadgeMod(priceLevel) {
+  const count = (priceLevel.match(/\$/g) || []).length;
+  if (count <= 1) return 'details-badge--green';   // Budget
+  if (count === 2) return 'details-badge--accent';  // Mid-range
+  if (count === 3) return 'details-badge--amber';   // Upscale
+  return 'details-badge--rose';                     // Splurge
+}
+
+function getNoiseBadgeMod(noiseLevel) {
+  const lower = noiseLevel.toLowerCase();
+  if (lower.includes('quiet') || lower.includes('low') || lower.includes('intimate') || lower.includes('soft')) return 'details-badge--green';
+  if (lower.includes('moderate') || lower.includes('average') || lower.includes('normal')) return 'details-badge--amber';
+  if (lower.includes('loud') || lower.includes('lively') || lower.includes('bustling') || lower.includes('noisy') || lower.includes('energetic')) return 'details-badge--rose';
+  return 'details-badge--accent';
 }
 
 function createActionBtn(iconSvg, label, href) {
