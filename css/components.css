@@ -487,6 +487,15 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+/* ---- Semantic Block Wrappers ---- */
+.result-identity,
+.result-story {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  width: 100%;
+}
+
 .result-header {
   display: flex;
   flex-direction: column;
@@ -510,7 +519,7 @@
   line-height: 1.75;
   max-width: 600px;
   display: -webkit-box;
-  -webkit-line-clamp: 5;
+  -webkit-line-clamp: 7;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -542,12 +551,6 @@
   overflow: hidden;
   min-height: 0;
 }
-
-/* Details tile spans full width below the 3-col row */
-.score-tile--details {
-  grid-column: 1 / -1;
-}
-
 
 .score-tile__label {
   color: var(--fg3);
@@ -688,14 +691,7 @@
   padding-top: 0;
 }
 
-/* ---- Details Tile Badge Grid ---- */
-.details-badge-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
-  gap: var(--space-xs);
-  width: 100%;
-}
-
+/* ---- Details Badges (used inside .profile-facts) ---- */
 .details-badge {
   display: flex;
   flex-direction: column;
@@ -791,6 +787,7 @@
 .result-links {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   align-items: center;
   gap: var(--space-sm) var(--space-md);
 }
@@ -830,43 +827,114 @@
   .score-tiles {
     grid-template-columns: 1fr;
   }
-  .score-tile--details {
-    grid-column: auto;
-  }
   .score-tiles .score-tile {
     padding: var(--space-sm);
   }
 }
 
-/* ---- Info Grid ---- */
-.info-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-sm);
-}
-
-.info-item {
+/* ---- Result Profile Block ("About This Spot") ---- */
+.result-profile {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2xs);
-  padding: var(--space-sm);
+  gap: var(--space-md);
+  width: 100%;
+  padding: var(--space-md);
   background: var(--glass-info);
   backdrop-filter: blur(calc(var(--glass-blur) * 0.5));
   -webkit-backdrop-filter: blur(calc(var(--glass-blur) * 0.5));
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
 }
 
-.info-item__label {
+.result-profile__heading {
+  color: var(--fg3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
   font-size: var(--text-xs);
+  margin: 0;
+}
+
+/* Profile: Facts (badge grid — Cuisine, Price, Parking, Noise) */
+.profile-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  gap: var(--space-xs);
+  width: 100%;
+}
+
+/* Profile: Atmosphere (merged ambiance + dress code + boolean features) */
+.profile-atmosphere {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  align-items: center;
+}
+
+/* Atmosphere key-value pill (Ambiance, Dress Code) */
+.atmo-detail {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  padding: var(--space-2xs) var(--space-sm);
+  font-size: var(--text-xs);
+  color: var(--fg);
+  background: var(--bg3);
+  border-radius: var(--radius-pill);
+}
+
+.atmo-detail__label {
+  color: var(--fg3);
+}
+
+/* Profile: Sentiment (upgraded with header + legend) */
+.profile-sentiment__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.profile-sentiment__label {
   color: var(--fg3);
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
 
-.info-item__value {
-  font-size: var(--text-sm);
-  color: var(--fg);
+.profile-sentiment__score {
+  color: var(--green);
+  font-weight: 600;
+}
+
+.profile-sentiment__legend {
+  display: flex;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+  margin-top: var(--space-2xs);
+}
+
+.profile-sentiment__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--fg3);
+}
+
+.profile-sentiment__dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 4px;
+}
+
+.profile-sentiment__dot--pos { background: var(--green); }
+.profile-sentiment__dot--neu { background: var(--fg3); }
+.profile-sentiment__dot--neg { background: var(--rose); }
+
+/* Profile: Tags */
+.profile-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
 }
 
 /* ---- Insider Tip ---- */
@@ -892,13 +960,7 @@
   line-height: 1.6;
 }
 
-/* ---- Tags Cloud ---- */
-.tags-cloud {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-xs);
-}
-
+/* ---- Tag Pill (used inside .profile-tags) ---- */
 .tag-pill {
   padding: var(--space-2xs) var(--space-sm);
   font-size: var(--text-xs);
@@ -907,13 +969,7 @@
   border-radius: var(--radius-pill);
 }
 
-/* ---- Atmosphere Tags ---- */
-.atmosphere-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-xs);
-}
-
+/* ---- Atmosphere Tag (used inside .profile-atmosphere) ---- */
 .atmo-tag {
   display: inline-flex;
   align-items: center;
@@ -956,7 +1012,16 @@
   transition: width var(--dur-slow) var(--ease-out);
 }
 
-/* ---- Result Footer Actions ---- */
+/* ---- Result Actions Block (links + buttons) ---- */
+.result-actions-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  width: 100%;
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--border);
+}
+
 .result-actions {
   display: flex;
   gap: var(--space-sm);
@@ -1928,13 +1993,14 @@
 }
 
 /* ---- Progressive Result Card Reveal ---- */
-/* Flow: Header → Nav → Recommendation → Tip → Tiles → Data → Actions */
+/* Flow: Identity → Story → Scores → Profile → Actions (5 semantic blocks) */
 .result-card--revealing > * {
   opacity: 0;
   transform: translateY(12px);
 }
 
-.result-card--revealing .result-header {
+/* Block 1: Identity */
+.result-card--revealing .result-identity {
   animation: resultSectionIn 350ms var(--ease-out) 0ms forwards;
 }
 
@@ -1952,26 +2018,17 @@
   animation: slideSettleIn 400ms var(--ease-out) 400ms forwards;
 }
 
-/* Navigation tile (Where is it?) */
-.result-card--revealing .result-nav {
-  animation: resultSectionIn 300ms var(--ease-out) 100ms forwards;
-}
-
-/* Recommendation wrap (Why this spot? — collapsible) */
-.result-card--revealing .result-rec-wrap {
+/* Block 2: Story */
+.result-card--revealing .result-story {
   animation: resultSectionIn 450ms var(--ease-out) 300ms forwards;
 }
 
-.result-card--revealing .insider-tip {
-  animation: resultSectionIn 350ms var(--ease-out) 450ms forwards;
-}
-
-/* Score tiles container */
+/* Block 3: Scores */
 .result-card--revealing .score-tiles {
   animation: resultSectionIn 350ms var(--ease-out) 550ms forwards;
 }
 
-/* Individual tile stagger (3-col row + full-width details) */
+/* Individual tile stagger (3-col row) */
 .result-card--revealing .score-tile--donde {
   opacity: 0;
   transform: translateY(12px);
@@ -1990,34 +2047,14 @@
   animation: tileRevealIn 400ms var(--ease-out) 710ms forwards;
 }
 
-.result-card--revealing .score-tile--details {
-  opacity: 0;
-  transform: translateY(12px);
-  animation: tileRevealIn 400ms var(--ease-out) 780ms forwards;
+/* Block 4: Profile */
+.result-card--revealing .result-profile {
+  animation: resultSectionIn 400ms var(--ease-out) 800ms forwards;
 }
 
-.result-card--revealing .result-links {
-  animation: resultSectionIn 300ms var(--ease-out) 840ms forwards;
-}
-
-.result-card--revealing .info-grid {
-  animation: resultSectionIn 350ms var(--ease-out) 900ms forwards;
-}
-
-.result-card--revealing .atmosphere-tags {
-  animation: resultSectionIn 300ms var(--ease-out) 960ms forwards;
-}
-
-.result-card--revealing .tags-cloud {
-  animation: resultSectionIn 300ms var(--ease-out) 1000ms forwards;
-}
-
-.result-card--revealing #sentiment-section {
-  animation: resultSectionIn 300ms var(--ease-out) 1040ms forwards;
-}
-
-.result-card--revealing .result-actions {
-  animation: resultSectionIn 350ms var(--ease-out) 1100ms forwards;
+/* Block 5: Actions */
+.result-card--revealing .result-actions-block {
+  animation: resultSectionIn 350ms var(--ease-out) 950ms forwards;
 }
 
 /* ---- Filter Pill Ink Ripple ---- */

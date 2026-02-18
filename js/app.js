@@ -693,7 +693,7 @@ function renderResult(data) {
     $rec.classList.remove('result-recommendation--expanded');
     chaosToOrderReveal($rec, data.recommendation || '');
 
-    // Show "Read more" toggle only if text overflows 5-line clamp
+    // Show "Read more" toggle only if text overflows 7-line clamp
     const $recToggle = document.getElementById('result-rec-toggle');
     if ($recToggle) {
       $recToggle.setAttribute('aria-expanded', 'false');
@@ -767,11 +767,10 @@ function renderResult(data) {
   }
   renderRadar(data.scores || {}, r);
 
-  // ---- Details Tile (Cuisine, Price, Parking, Noise info badges) ----
-  const $detailsGrid = document.getElementById('details-badge-grid');
-  const $detailsTile = document.getElementById('score-tile-details');
-  if ($detailsGrid) {
-    $detailsGrid.innerHTML = '';
+  // ---- Profile Block: Facts (Cuisine, Price, Parking, Noise badges) ----
+  const $profileFacts = document.getElementById('profile-facts');
+  if ($profileFacts) {
+    $profileFacts.innerHTML = '';
     const badges = [];
 
     if (r.cuisine_type) {
@@ -797,15 +796,13 @@ function renderResult(data) {
         <span class="details-badge__label type-data--sm">${b.label}</span>
         <span class="details-badge__value type-structural">${b.value}</span>`;
       if (b.label === 'Parking') div.setAttribute('title', r.parking_availability);
-      $detailsGrid.appendChild(div);
+      $profileFacts.appendChild(div);
     });
 
-    if ($detailsTile) {
-      $detailsTile.style.display = badges.length > 0 ? '' : 'none';
-    }
+    $profileFacts.style.display = badges.length > 0 ? '' : 'none';
   }
 
-  // ---- Quick Links (subtle row: Website, Call, Reviews, Share) ----
+  // ---- Quick Links (Website, Call, Share) ----
   const $resultLinks = document.getElementById('result-links');
   if ($resultLinks) {
     $resultLinks.innerHTML = '';
@@ -816,10 +813,6 @@ function renderResult(data) {
     }
     if (r.phone) {
       $resultLinks.appendChild(createResultLink('a', 'phone', r.phone, `tel:${r.phone}`));
-    }
-    if (r.google_place_id) {
-      const url = `https://www.google.com/maps/place/?q=place_id:${r.google_place_id}`;
-      $resultLinks.appendChild(createResultLink('a', 'starOutline', 'Reviews', url));
     }
     const shareLink = createResultLink('button', 'shareNetwork', 'Share');
     shareLink.setAttribute('data-action', 'share');
@@ -836,35 +829,29 @@ function renderResult(data) {
     $tip.style.display = 'none';
   }
 
-  // Info grid — remaining items only (nav tile moved to after header)
-  const $infoGrid = document.getElementById('info-grid');
-  if ($infoGrid) {
-    $infoGrid.innerHTML = '';
+  // ---- Profile Block: Atmosphere (merged ambiance + dress code + boolean features) ----
+  const $profileAtmo = document.getElementById('profile-atmosphere');
+  if ($profileAtmo) {
+    $profileAtmo.innerHTML = '';
+    let hasAtmo = false;
 
-    // Remaining items (standard 2-col grid)
-    const remainingItems = [];
-    if (r.lighting_ambiance) remainingItems.push({ label: 'Ambiance', value: r.lighting_ambiance });
-    if (r.dress_code) remainingItems.push({ label: 'Dress Code', value: r.dress_code });
+    // Key-value detail pills (Ambiance, Dress Code)
+    if (r.lighting_ambiance) {
+      const pill = document.createElement('span');
+      pill.className = 'atmo-detail';
+      pill.innerHTML = `<span class="atmo-detail__label type-data--sm">Ambiance</span> ${r.lighting_ambiance}`;
+      $profileAtmo.appendChild(pill);
+      hasAtmo = true;
+    }
+    if (r.dress_code) {
+      const pill = document.createElement('span');
+      pill.className = 'atmo-detail';
+      pill.innerHTML = `<span class="atmo-detail__label type-data--sm">Dress</span> ${r.dress_code}`;
+      $profileAtmo.appendChild(pill);
+      hasAtmo = true;
+    }
 
-    remainingItems.forEach(item => {
-      const div = document.createElement('div');
-      div.className = 'info-item';
-      const label = document.createElement('span');
-      label.className = 'info-item__label type-data--sm';
-      label.textContent = item.label;
-      div.appendChild(label);
-      const val = document.createElement('span');
-      val.className = 'info-item__value type-structural';
-      val.textContent = item.value;
-      div.appendChild(val);
-      $infoGrid.appendChild(div);
-    });
-  }
-
-  // Atmosphere tags (SVG icons instead of emoji)
-  const $atmoTags = document.getElementById('atmosphere-tags');
-  if ($atmoTags) {
-    $atmoTags.innerHTML = '';
+    // Boolean feature tags (Patio, Live Music, Pet Friendly)
     const atmoItems = [];
     if (r.outdoor_seating) atmoItems.push({ icon: 'patio', label: 'Patio' });
     if (r.live_music) atmoItems.push({ icon: 'music', label: 'Live Music' });
@@ -874,27 +861,62 @@ function renderResult(data) {
       const span = document.createElement('span');
       span.className = 'atmo-tag';
       span.innerHTML = `<span class="atmo-tag__icon">${svgIcon(a.icon, 14)}</span><span class="type-data--sm">${a.label}</span>`;
-      $atmoTags.appendChild(span);
+      $profileAtmo.appendChild(span);
+      hasAtmo = true;
     });
 
-    // Atmosphere tags spring pop stagger
+    $profileAtmo.style.display = hasAtmo ? '' : 'none';
+
+    // Spring pop stagger for atmosphere pills
     const REDUCED_MQ = matchMedia('(prefers-reduced-motion: reduce)');
-    if (!REDUCED_MQ.matches) {
-      const atmoTagEls = $atmoTags.querySelectorAll('.atmo-tag');
-      atmoTagEls.forEach((tag, i) => {
-        tag.style.opacity = '0';
-        tag.style.transform = 'scale(0.8)';
+    if (!REDUCED_MQ.matches && hasAtmo) {
+      const allPills = $profileAtmo.querySelectorAll('.atmo-detail, .atmo-tag');
+      allPills.forEach((pill, i) => {
+        pill.style.opacity = '0';
+        pill.style.transform = 'scale(0.8)';
         animationTimers.push(setTimeout(() => {
-          tag.style.transition = 'opacity 200ms ease-out, transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
-          tag.style.opacity = '1';
-          tag.style.transform = 'scale(1)';
+          pill.style.transition = 'opacity 200ms ease-out, transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
+          pill.style.opacity = '1';
+          pill.style.transform = 'scale(1)';
         }, 980 + i * 60));
       });
     }
   }
 
-  // Tags cloud
-  const $tags = document.getElementById('tags-cloud');
+  // ---- Profile Block: Sentiment (with legend + score label) ----
+  const $sentSection = document.getElementById('profile-sentiment');
+  if ($sentSection && r.sentiment_breakdown) {
+    $sentSection.style.display = 'block';
+    const parts = r.sentiment_breakdown.toLowerCase();
+    const posMatch = parts.match(/positive[:\s]+(\d+)/);
+    const neuMatch = parts.match(/neutral[:\s]+(\d+)/);
+    const negMatch = parts.match(/negative[:\s]+(\d+)/);
+    const posVal = posMatch?.[1] || '33';
+    const neuVal = neuMatch?.[1] || '34';
+    const negVal = negMatch?.[1] || '33';
+
+    const $pos = document.getElementById('sentiment-pos');
+    const $neu = document.getElementById('sentiment-neu');
+    const $neg = document.getElementById('sentiment-neg');
+    if ($pos) $pos.style.width = `${posVal}%`;
+    if ($neu) $neu.style.width = `${neuVal}%`;
+    if ($neg) $neg.style.width = `${negVal}%`;
+
+    // Populate legend labels
+    const $scoreLabel = document.getElementById('sentiment-score-label');
+    const $posPct = document.getElementById('sentiment-pos-pct');
+    const $neuPct = document.getElementById('sentiment-neu-pct');
+    const $negPct = document.getElementById('sentiment-neg-pct');
+    if ($scoreLabel) $scoreLabel.textContent = `${posVal}% Positive`;
+    if ($posPct) $posPct.textContent = `${posVal}%`;
+    if ($neuPct) $neuPct.textContent = `${neuVal}%`;
+    if ($negPct) $negPct.textContent = `${negVal}%`;
+  } else if ($sentSection) {
+    $sentSection.style.display = 'none';
+  }
+
+  // ---- Profile Block: Tags ----
+  const $tags = document.getElementById('profile-tags');
   if ($tags && data.tags?.length) {
     $tags.innerHTML = '';
     data.tags.forEach(tag => {
@@ -903,24 +925,19 @@ function renderResult(data) {
       span.textContent = tag;
       $tags.appendChild(span);
     });
+    $tags.style.display = '';
+  } else if ($tags) {
+    $tags.style.display = 'none';
   }
 
-  // Sentiment
-  const $sentSection = document.getElementById('sentiment-section');
-  if ($sentSection && r.sentiment_breakdown) {
-    $sentSection.style.display = 'block';
-    const parts = r.sentiment_breakdown.toLowerCase();
-    const posMatch = parts.match(/positive[:\s]+(\d+)/);
-    const neuMatch = parts.match(/neutral[:\s]+(\d+)/);
-    const negMatch = parts.match(/negative[:\s]+(\d+)/);
-    const $pos = document.getElementById('sentiment-pos');
-    const $neu = document.getElementById('sentiment-neu');
-    const $neg = document.getElementById('sentiment-neg');
-    if ($pos) $pos.style.width = `${posMatch?.[1] || 33}%`;
-    if ($neu) $neu.style.width = `${neuMatch?.[1] || 34}%`;
-    if ($neg) $neg.style.width = `${negMatch?.[1] || 33}%`;
-  } else if ($sentSection) {
-    $sentSection.style.display = 'none';
+  // Hide entire profile block if no sub-sections have content
+  const $profile = document.getElementById('result-profile');
+  if ($profile) {
+    const hasContent = ($profileFacts && $profileFacts.style.display !== 'none' && $profileFacts.children.length > 0)
+      || ($profileAtmo && $profileAtmo.style.display !== 'none' && $profileAtmo.children.length > 0)
+      || ($sentSection && $sentSection.style.display !== 'none')
+      || ($tags && $tags.style.display !== 'none' && $tags.children.length > 0);
+    $profile.style.display = hasContent ? '' : 'none';
   }
 
   // Inject icons into result action buttons (Try Another / Start Over)
