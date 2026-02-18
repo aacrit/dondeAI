@@ -202,6 +202,15 @@ function wireEvents() {
           setState({ craving: $cravingInput.value });
           updateCtaState();
         }
+        // Spring feedback
+        btn.classList.add('smart-chip--active');
+        btn.addEventListener('animationend',
+          () => btn.classList.remove('smart-chip--active'), { once: true });
+        // Ink ripple (reuse filter pill ripple)
+        const ripple = document.createElement('span');
+        ripple.className = 'filter-pill__ripple';
+        btn.appendChild(ripple);
+        ripple.addEventListener('animationend', () => ripple.remove(), { once: true });
         break;
       }
 
@@ -341,6 +350,8 @@ function wireEvents() {
 }
 
 /* ---- Craving Input ---- */
+let placeholderInterval = null;
+
 function wireCravingInput() {
   if (!$cravingInput) return;
 
@@ -355,6 +366,36 @@ function wireCravingInput() {
       handleSubmit();
     }
   });
+
+  // Stop placeholder rotation on focus, restart on blur
+  $cravingInput.addEventListener('focus', () => {
+    if (placeholderInterval) { clearInterval(placeholderInterval); placeholderInterval = null; }
+  });
+  $cravingInput.addEventListener('blur', () => {
+    if (!$cravingInput.value.trim()) startPlaceholderRotation();
+  });
+
+  startPlaceholderRotation();
+}
+
+function startPlaceholderRotation() {
+  if (placeholderInterval) clearInterval(placeholderInterval);
+  if (!$cravingInput || $cravingInput.value.trim()) return;
+
+  const labels = getLabels(getState().theme.culture);
+  const phs = labels.placeholders || [labels.placeholder];
+  let idx = 0;
+
+  placeholderInterval = setInterval(() => {
+    if ($cravingInput.value.trim() || document.activeElement === $cravingInput) return;
+    idx = (idx + 1) % phs.length;
+    $cravingInput.style.transition = 'opacity 200ms ease';
+    $cravingInput.style.opacity = '0.3';
+    setTimeout(() => {
+      $cravingInput.placeholder = phs[idx];
+      $cravingInput.style.opacity = '';
+    }, 200);
+  }, 4000);
 }
 
 function updateCtaState() {
@@ -433,7 +474,14 @@ async function handleSubmit() {
     $cravingInput?.classList.add('shake');
     $cravingInput?.addEventListener('animationend', () => $cravingInput.classList.remove('shake'), { once: true });
     $cravingInput?.focus();
-    showToast('Tell us what you\'re craving first!', true);
+    // Inline hint instead of toast — modern validation pattern
+    const $hint = document.getElementById('cta-hint');
+    if ($hint) {
+      $hint.textContent = "Tell us what you're craving first";
+      $hint.classList.add('cta-hint--visible', 'cta-hint--nudge');
+      $hint.addEventListener('animationend',
+        () => $hint.classList.remove('cta-hint--nudge'), { once: true });
+    }
     return;
   }
 
@@ -446,9 +494,12 @@ async function handleSubmit() {
   if (currentAbort) currentAbort.abort();
   currentAbort = new AbortController();
 
-  // Set CTA to loading state
+  // Set CTA to loading state with brief confirmation glow
   const $cta = document.querySelector('.cta-btn[data-action="submit"]');
   if ($cta) {
+    $cta.classList.add('cta-btn--confirming');
+    await new Promise(r => setTimeout(r, 200));
+    $cta.classList.remove('cta-btn--confirming');
     $cta.classList.add('cta-btn--loading');
     $cta.textContent = 'Searching';
   }
@@ -528,15 +579,28 @@ function toggleLoading(loading) {
     // Start search pulse (sonar ring + dot pulse) after draw-in completes
     setTimeout(() => startSearchPulse(), 800);
 
-    // Animated searching dots
+    // Animated searching dots with culture-specific phrases
     if ($loadingStatus) {
-      $loadingStatus.textContent = 'Searching';
-      $loadingStatus.style.opacity = '';
+      const labels = getLabels(getState().theme.culture);
+      const phrases = labels.loadingPhrases || ['Searching'];
+      let phraseIndex = 0;
       let dotCount = 0;
+      $loadingStatus.textContent = phrases[0];
+      $loadingStatus.style.opacity = '';
       searchingDotsInterval = setInterval(() => {
         dotCount = (dotCount + 1) % 4;
-        $loadingStatus.textContent = 'Searching' + '.'.repeat(dotCount);
-      }, 400);
+        if (dotCount === 0) {
+          phraseIndex = (phraseIndex + 1) % phrases.length;
+          $loadingStatus.style.transition = 'opacity 150ms ease';
+          $loadingStatus.style.opacity = '0';
+          setTimeout(() => {
+            $loadingStatus.textContent = phrases[phraseIndex];
+            $loadingStatus.style.opacity = '1';
+          }, 150);
+        } else {
+          $loadingStatus.textContent = phrases[phraseIndex] + '.'.repeat(dotCount);
+        }
+      }, 500);
     }
   } else {
     // === CLEANUP (called after reveal orchestration completes) ===
@@ -847,18 +911,20 @@ function renderResult(data) {
 
     $profileAtmo.style.display = atmoItems.length > 0 ? '' : 'none';
 
-    // Spring pop stagger for atmosphere tags
+    // Spring pop stagger for atmosphere tags (organic jitter for handwritten feel)
     const REDUCED_MQ = matchMedia('(prefers-reduced-motion: reduce)');
     if (!REDUCED_MQ.matches && atmoItems.length > 0) {
       const allTags = $profileAtmo.querySelectorAll('.atmo-tag');
       allTags.forEach((tag, i) => {
+        const jitter = Math.floor(Math.random() * 40);
+        const rotation = ((Math.random() - 0.5) * 6).toFixed(1);
         tag.style.opacity = '0';
-        tag.style.transform = 'scale(0.8)';
+        tag.style.transform = `scale(0.8) rotate(${rotation}deg)`;
         animationTimers.push(setTimeout(() => {
           tag.style.transition = 'opacity 200ms ease-out, transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
           tag.style.opacity = '1';
-          tag.style.transform = 'scale(1)';
-        }, 980 + i * 60));
+          tag.style.transform = 'scale(1) rotate(0deg)';
+        }, 980 + i * 80 + jitter));
       });
     }
   }
@@ -917,14 +983,14 @@ function renderResult(data) {
     void $resultCard.offsetWidth;
     $resultCard.classList.add('result-card--revealing');
 
-    // Clean up reveal class after all sections have animated
+    // Clean up reveal class after all sections have animated (600ms last delay + 400ms duration)
     setTimeout(() => {
       $resultCard.classList.remove('result-card--revealing');
       $resultCard.querySelectorAll(':scope > *, .score-tile').forEach(child => {
         child.style.opacity = '';
         child.style.transform = '';
       });
-    }, 1600);
+    }, 1200);
   }
   // Note: show/hide of loading overlay and result card is handled by orchestrateReveal()
 }
@@ -1147,6 +1213,13 @@ function renderShareCanvas(format = 'post') {
   ctx.fillStyle = ac;
   ctx.fillRect(0, 0, w, 6);
 
+  // Subtle ambient wash overlay (brand depth)
+  const gradient = ctx.createRadialGradient(w * 0.3, h * 0.2, 0, w * 0.3, h * 0.2, w * 0.6);
+  gradient.addColorStop(0, ac + '12');
+  gradient.addColorStop(1, 'transparent');
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, w, h);
+
   const r = result.restaurant;
   const score = Math.round(parseFloat(result.donde_score) || 8);
   const pad = 40;
@@ -1172,6 +1245,11 @@ function renderShareCanvas(format = 'post') {
   }
   ctx.fillText(nameLine, pad, y);
   y += isStory ? 32 : 28;
+
+  // Accent divider line below name
+  ctx.fillStyle = ac;
+  ctx.fillRect(pad, y, 40, 2);
+  y += 12;
 
   // One-liner
   if (r.best_for_oneliner) {

@@ -42,6 +42,16 @@
   --glass-score:  var(--glass);
 }
 
+/* Fiesta energy: faster, more vivid blobs */
+[data-theme="southamerican"] .ambient__blob {
+  animation-duration: 15s;
+  filter: blur(60px) saturate(0.8);
+}
+
+[data-theme="southamerican"] .ambient__blob--1 { opacity: 0.8; }
+[data-theme="southamerican"] .ambient__blob--2 { opacity: 0.6; }
+[data-theme="southamerican"] .ambient__blob--3 { opacity: 0.5; }
+
 /* ---- Dark Mode ---- */
 [data-theme="southamerican"][data-mode="dark"] {
   --bg:          hsl(340 12% 7%);

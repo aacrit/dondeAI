@@ -15,6 +15,20 @@
   }
 }
 
+/* ---- 480px-767px: Score tiles 2-col layout ---- */
+@media (min-width: 480px) and (max-width: 767px) {
+  .score-tiles {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .score-tile--radar {
+    grid-column: 1 / -1;
+  }
+  .score-tile--radar .radar-wrap {
+    max-width: 220px;
+    margin: 0 auto;
+  }
+}
+
 /* ---- 768px: Tablet ---- */
 @media (min-width: 768px) {
   :root {

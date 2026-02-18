@@ -49,17 +49,18 @@ export function animateScoreRing(rawScore) {
   }
   requestAnimationFrame(tick);
 
-  // Verdict word label animates in after number settles
+  // Verdict word label: ink-reveal entrance (left-to-right clip) after number settles
   if (verdictEl) {
-    verdictEl.style.opacity = '0';
-    verdictEl.style.transform = 'translateY(6px)';
-    requestAnimationFrame(() => {
-      verdictEl.style.transition = 'opacity 400ms ease-out 800ms, transform 400ms ease-out 800ms';
-      verdictEl.style.opacity = '1';
-      verdictEl.style.transform = 'translateY(0)';
-    });
+    verdictEl.style.opacity = '1';
+    verdictEl.style.clipPath = 'inset(0 100% 0 0)';
+    verdictEl.style.transform = 'none';
 
-    // Subtle emphasis pulse after verdict appears
+    setTimeout(() => {
+      verdictEl.style.transition = 'clip-path 500ms cubic-bezier(0.2, 1, 0.4, 1)';
+      verdictEl.style.clipPath = 'inset(0 0 0 0)';
+    }, 1000);
+
+    // Scale emphasis pulse after ink-reveal completes
     if (!REDUCED.matches) {
       setTimeout(() => {
         verdictEl.style.transition = 'transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
@@ -67,8 +68,20 @@ export function animateScoreRing(rawScore) {
         setTimeout(() => {
           verdictEl.style.transform = 'scale(1)';
         }, 150);
-      }, 1300);
+      }, 1500);
     }
+  }
+
+  // Celebration glow for exceptional scores (9+)
+  if (!REDUCED.matches && n >= 9) {
+    setTimeout(() => {
+      const tile = document.getElementById('score-tile-donde');
+      if (tile) {
+        tile.classList.add('score-tile--celebrating');
+        tile.addEventListener('animationend',
+          () => tile.classList.remove('score-tile--celebrating'), { once: true });
+      }
+    }, 1400);
   }
 }
 

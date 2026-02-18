@@ -27,6 +27,14 @@ const THEME_LABELS = {
     cta: 'Find My Spot',
     again: 'Try Another',
     share: 'Share',
+    profile: 'About This Spot',
+    loadingPhrases: ['Searching', 'Thinking', 'Exploring', 'Hunting'],
+    placeholders: [
+      'cozy ramen with killer sake...',
+      'somewhere with a great patio...',
+      'best tacos in the city...',
+      'a hidden gem worth the trip...',
+    ],
   },
   indian: {
     vibe: 'What mood are you in?',
@@ -37,6 +45,14 @@ const THEME_LABELS = {
     cta: 'Discover',
     again: 'One More',
     share: 'Share',
+    profile: 'Know Your Spot',
+    loadingPhrases: ['Searching', 'Discovering', 'Seeking flavors', 'Finding your spot'],
+    placeholders: [
+      'rich butter chicken with warm naan...',
+      'fragrant biryani for a special night...',
+      'street-style chaat and lassi...',
+      'a thali that tells a story...',
+    ],
   },
   nepalese: {
     vibe: 'What feeling today?',
@@ -47,6 +63,14 @@ const THEME_LABELS = {
     cta: 'Seek',
     again: 'Seek Again',
     share: 'Share',
+    profile: 'The Details',
+    loadingPhrases: ['Searching', 'Seeking', 'Climbing', 'Journeying'],
+    placeholders: [
+      'warming momos and thukpa...',
+      'dal bhat with mountain views...',
+      'a quiet spot for yak tea...',
+      'hearty Newari feast...',
+    ],
   },
   japanese: {
     vibe: 'What type?',
@@ -57,6 +81,14 @@ const THEME_LABELS = {
     cta: 'Search',
     again: 'Again',
     share: 'Share',
+    profile: 'Details',
+    loadingPhrases: ['Searching', 'Considering', 'Finding harmony', 'Seeking'],
+    placeholders: [
+      'perfect omakase with sake pairing...',
+      'handmade soba in a quiet room...',
+      'izakaya vibes with cold beer...',
+      'fresh sashimi at the counter...',
+    ],
   },
   african: {
     vibe: "What's the energy?",
@@ -67,6 +99,14 @@ const THEME_LABELS = {
     cta: 'Manifest',
     again: 'Run It Back',
     share: 'Share',
+    profile: 'The Rundown',
+    loadingPhrases: ['Searching', 'Vibing', 'Manifesting', 'On the hunt'],
+    placeholders: [
+      'soulful jollof and grilled suya...',
+      'fufu and egusi with the crew...',
+      'a spot with live music and plates...',
+      'comfort food that hits different...',
+    ],
   },
   southamerican: {
     vibe: 'Que onda?',
@@ -77,6 +117,14 @@ const THEME_LABELS = {
     cta: 'Dale',
     again: 'Otra Vez',
     share: 'Comparte',
+    profile: 'Los Detalles',
+    loadingPhrases: ['Buscando', 'Descubriendo', 'Explorando', 'Dale dale'],
+    placeholders: [
+      'ceviche fresco con un pisco sour...',
+      'empanadas y mate en buena compania...',
+      'tacos al pastor con salsa verde...',
+      'un asado legendario para compartir...',
+    ],
   },
 };
 
@@ -204,5 +252,10 @@ function applyLabels(labels) {
   document.querySelectorAll('[data-label="again"]').forEach(el => {
     const t = el.querySelector('.cta-btn__text');
     if (t) t.textContent = labels.again; else el.textContent = labels.again;
+  });
+
+  // Profile heading
+  document.querySelectorAll('[data-label="profile"]').forEach(el => {
+    if (labels.profile) el.textContent = labels.profile;
   });
 }
