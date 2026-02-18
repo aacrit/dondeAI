@@ -33,6 +33,7 @@
   --blob-2:      hsl(350 70% 50% / 0.07);
   --blob-3:      hsl(25 90% 50% / 0.06);
   --grain-opacity: 0.04;
+  --textile-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Cpath d='M12 2l4 4-4 4-4-4z' fill='none' stroke='%23000000' stroke-width='0.7' opacity='0.09'/%3E%3Ccircle cx='12' cy='6' r='0.8' fill='%23000000' opacity='0.09'/%3E%3Cpath d='M0 14l4 4-4 4' fill='none' stroke='%23000000' stroke-width='0.7' opacity='0.09'/%3E%3Cpath d='M24 14l-4 4 4 4' fill='none' stroke='%23000000' stroke-width='0.7' opacity='0.09'/%3E%3Ccircle cx='0' cy='18' r='0.8' fill='%23000000' opacity='0.09'/%3E%3Ccircle cx='24' cy='18' r='0.8' fill='%23000000' opacity='0.09'/%3E%3C/svg%3E");
   --glass-header: hsl(35 25% 99% / 0.7);
   --glass-toast:  hsl(35 20% 98% / 0.88);
   --glass-info:   hsl(38 30% 97% / 0.55);
@@ -70,6 +71,7 @@
   --blob-2:      hsl(350 60% 50% / 0.08);
   --blob-3:      hsl(25 80% 50% / 0.07);
   --grain-opacity: 0.05;
+  --textile-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Cpath d='M12 2l4 4-4 4-4-4z' fill='none' stroke='%23ffffff' stroke-width='0.7' opacity='0.10'/%3E%3Ccircle cx='12' cy='6' r='0.8' fill='%23ffffff' opacity='0.10'/%3E%3Cpath d='M0 14l4 4-4 4' fill='none' stroke='%23ffffff' stroke-width='0.7' opacity='0.10'/%3E%3Cpath d='M24 14l-4 4 4 4' fill='none' stroke='%23ffffff' stroke-width='0.7' opacity='0.10'/%3E%3Ccircle cx='0' cy='18' r='0.8' fill='%23ffffff' opacity='0.10'/%3E%3Ccircle cx='24' cy='18' r='0.8' fill='%23ffffff' opacity='0.10'/%3E%3C/svg%3E");
   --glass-header: hsl(25 18% 12% / 0.75);
   --glass-toast:  hsl(25 15% 14% / 0.9);
   --glass-info:   hsl(25 15% 14% / 0.55);
