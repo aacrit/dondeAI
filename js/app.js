@@ -42,6 +42,9 @@ const $cursorGlow = document.querySelector('.cursor-glow');
 /* ---- AbortController for fetch cancellation ---- */
 let currentAbort = null;
 
+/* ---- Animation timeout tracker (cancelled on re-render) ---- */
+let animationTimers = [];
+
 /* ---- Initialize ---- */
 function init() {
   // Load persisted state
@@ -637,6 +640,10 @@ function renderResult(data) {
   if (!data?.restaurant) return;
   const r = data.restaurant;
 
+  // Cancel any in-flight animation timeouts from a previous render
+  animationTimers.forEach(clearTimeout);
+  animationTimers = [];
+
   // Cuisine detection (for accent color + Details tile)
   const cuisine = getCuisineFromResult(data);
 
@@ -681,7 +688,7 @@ function renderResult(data) {
     $rec.classList.remove('result-recommendation--expanded');
     chaosToOrderReveal($rec, data.recommendation || '');
 
-    // Show "Read more" toggle only if text overflows 3-line clamp
+    // Show "Read more" toggle only if text overflows 5-line clamp
     const $recToggle = document.getElementById('result-rec-toggle');
     if ($recToggle) {
       $recToggle.setAttribute('aria-expanded', 'false');
@@ -711,7 +718,7 @@ function renderResult(data) {
   }
   if ($percentile) $percentile.textContent = `Top ${Math.round((tier.integer / 10) * 100)}%`;
   // Delay score ring to after tile entrance
-  setTimeout(() => animateScoreRing(data.donde_score), 800);
+  animationTimers.push(setTimeout(() => animateScoreRing(data.donde_score), 800));
 
   // ---- Google Rating Tile ----
   const $googleStars = document.getElementById('google-stars');
@@ -728,6 +735,8 @@ function renderResult(data) {
       $scoreTileGoogle.setAttribute('tabindex', '0');
       $scoreTileGoogle.setAttribute('role', 'link');
       $scoreTileGoogle.setAttribute('aria-label', 'View on Google Maps');
+      const oldHint = $scoreTileGoogle.querySelector('.score-tile__link-hint');
+      if (oldHint) oldHint.remove();
       const hint = document.createElement('span');
       hint.className = 'score-tile__link-hint type-data--sm';
       hint.textContent = 'View on Google';
@@ -737,7 +746,7 @@ function renderResult(data) {
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.open(reviewsUrl, '_blank', 'noopener,noreferrer'); }
       };
     }
-    setTimeout(() => animateGoogleRating(r.google_rating), 900);
+    animationTimers.push(setTimeout(() => animateGoogleRating(r.google_rating), 900));
   } else {
     if ($scoreTileGoogle) $scoreTileGoogle.style.display = 'none';
   }
@@ -849,11 +858,11 @@ function renderResult(data) {
       atmoTagEls.forEach((tag, i) => {
         tag.style.opacity = '0';
         tag.style.transform = 'scale(0.8)';
-        setTimeout(() => {
+        animationTimers.push(setTimeout(() => {
           tag.style.transition = 'opacity 200ms ease-out, transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
           tag.style.opacity = '1';
           tag.style.transform = 'scale(1)';
-        }, 980 + i * 60);
+        }, 980 + i * 60));
       });
     }
   }
@@ -918,11 +927,11 @@ function renderResult(data) {
       actionBtnEls.forEach((btn, i) => {
         btn.style.opacity = '0';
         btn.style.transform = 'translateY(8px) scale(0.95)';
-        setTimeout(() => {
+        animationTimers.push(setTimeout(() => {
           btn.style.transition = 'opacity 300ms ease-out, transform 350ms cubic-bezier(0.34, 1.56, 0.64, 1)';
           btn.style.opacity = '1';
           btn.style.transform = 'translateY(0) scale(1)';
-        }, 1100 + i * 80);
+        }, 1100 + i * 80));
       });
     }
   }
