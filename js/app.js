@@ -293,12 +293,21 @@ function wireEvents() {
       }
 
       case 'submit':
+        setState({ excludeNames: [] });
         handleSubmit();
         break;
 
-      case 'try-again':
+      case 'try-again': {
+        // Track current restaurant so backend can exclude it
+        const prev = getState().result?.restaurant?.name;
+        if (prev) {
+          const exclude = [...getState().excludeNames];
+          if (!exclude.includes(prev)) exclude.push(prev);
+          setState({ excludeNames: exclude });
+        }
         handleSubmit();
         break;
+      }
 
       case 'open-themes':
         document.getElementById('theme-picker')?.classList.add('theme-picker--open');
@@ -718,12 +727,14 @@ async function handleSubmit() {
   // step-track positioning happens in orchestrateReveal()
 
   try {
-    const data = await fetchRecommendation({
+    const payload = {
       special_request: s.craving,
       occasion: s.occasion,
       neighborhood: s.neighborhood,
       price_level: s.priceLevel,
-    });
+    };
+    if (s.excludeNames.length) payload.exclude = s.excludeNames;
+    const data = await fetchRecommendation(payload);
 
     // Save to history with cuisine icon
     const cuisine = getCuisineFromResult(data);

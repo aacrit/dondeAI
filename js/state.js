@@ -14,6 +14,7 @@ const state = {
   result: null,
   loading: false,
   error: null,
+  excludeNames: [],
   theme: { culture: 'neutral', mode: 'light' },
   soundEnabled: false,
   history: [],
@@ -50,5 +51,6 @@ export function resetState() {
     result: null,
     loading: false,
     error: null,
+    excludeNames: [],
   });
 }

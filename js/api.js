@@ -6,9 +6,12 @@
 const ENDPOINT = 'https://vwbzkgsxmgwcvmvuxnbe.supabase.co/functions/v1/recommend';
 const TIMEOUT_MS = 15000;
 
-export async function fetchRecommendation({ special_request, occasion, neighborhood, price_level }) {
+export async function fetchRecommendation({ special_request, occasion, neighborhood, price_level, exclude }) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
+  const body = { special_request, occasion, neighborhood, price_level };
+  if (exclude?.length) body.exclude = exclude;
 
   try {
     const res = await fetch(ENDPOINT, {
@@ -18,7 +21,7 @@ export async function fetchRecommendation({ special_request, occasion, neighborh
         'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3YnprZ3N4bWd3Y3ZtdnV4bmJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk5NjUzNTYsImV4cCI6MjA4NTU0MTM1Nn0.YBhmusYxc28TD5FOZv4TBpFpDVHHk1V894wUkNtJtcc',
         'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3YnprZ3N4bWd3Y3ZtdnV4bmJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk5NjUzNTYsImV4cCI6MjA4NTU0MTM1Nn0.YBhmusYxc28TD5FOZv4TBpFpDVHHk1V894wUkNtJtcc',
       },
-      body: JSON.stringify({ special_request, occasion, neighborhood, price_level }),
+      body: JSON.stringify(body),
       signal: controller.signal,
     });
 
