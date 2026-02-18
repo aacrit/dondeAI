@@ -405,7 +405,7 @@ function wireEvents() {
       }
 
       case 'show-score-info': {
-        showToast('DondeAI Score blends cuisine quality, vibe match, and hundreds of local reviews into a single 0\u201310 rating \u2014 tuned to what you\u2019re craving right now.');
+        showToast('DondeAI Score blends cuisine quality, vibe match, and hundreds of local reviews into a single 0\u201310 rating.');
         break;
       }
 
