@@ -418,264 +418,92 @@ export function chaosToOrderReveal(element, text) {
   });
 }
 
-/* ---- Logo Animation Init (Pin-Fork) ---- */
+/* ---- Logo Animation Init (Question Pin — measure path lengths) ---- */
 export function initLogoAnimation() {
-  const pin = document.querySelector('.logo-mark--loading .logo-mark__pin--draw');
-  if (pin && pin.getTotalLength) {
-    const len = pin.getTotalLength();
-    pin.style.strokeDasharray = len;
-    pin.style.strokeDashoffset = len;
-  }
-
-  const tines = document.querySelectorAll('.logo-mark--loading .logo-mark__tine--draw');
-  tines.forEach(t => {
-    if (t.getTotalLength) {
-      const len = t.getTotalLength();
-      t.style.strokeDasharray = len;
-      t.style.strokeDashoffset = len;
+  const paths = document.querySelectorAll(
+    '.logo-mark--loading .logo-mark__tine--draw, .logo-mark--loading .logo-mark__curve--draw'
+  );
+  paths.forEach(el => {
+    if (el.getTotalLength) {
+      const len = el.getTotalLength();
+      el.style.strokeDasharray = len;
+      el.style.strokeDashoffset = len;
     }
   });
+
+  // Reset dot to hidden state for spring-in animation
+  const dot = document.querySelector('.logo-mark--loading .logo-mark__dot--draw');
+  if (dot) {
+    dot.style.opacity = '0';
+    dot.style.transform = 'scale(0)';
+  }
 }
 
-/* ---- Chaotic-to-Rest Logo Animation ---- */
-let chaosAnimId = null;
-let chaosPhase = 'chaos'; // 'chaos' | 'settling' | 'float' | 'rest'
+/* ---- Search Pulse (Act 2 — sonar ring + pulse during API call) ---- */
+export function startSearchPulse() {
+  const logo = document.querySelector('.logo-mark--loading');
+  if (!logo || REDUCED.matches) return;
 
-export function startChaosLogo() {
-  const logo = document.getElementById('loading-logo');
+  logo.classList.add('logo-mark--searching');
+
+  // Create sonar ring SVG circle
+  const dot = logo.querySelector('.logo-mark__dot');
+  if (!dot) return;
+
+  const sonar = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  sonar.setAttribute('cx', dot.getAttribute('cx'));
+  sonar.setAttribute('cy', dot.getAttribute('cy'));
+  sonar.setAttribute('r', dot.getAttribute('r'));
+  sonar.setAttribute('fill', 'none');
+  sonar.setAttribute('stroke', 'var(--ac)');
+  sonar.setAttribute('stroke-width', '1');
+  sonar.classList.add('logo-mark__sonar');
+  logo.insertBefore(sonar, dot);
+}
+
+export function stopSearchPulse() {
+  const logo = document.querySelector('.logo-mark--loading');
   if (!logo) return;
-
-  if (REDUCED.matches) {
-    logo.style.transform = 'translate(0, 0) scale(1) rotate(0deg)';
-    logo.style.opacity = '1';
-    return;
-  }
-
-  chaosPhase = 'chaos';
-  const start = performance.now();
-
-  // Pseudo-random seeded per-frame for deterministic-feeling chaos
-  let seed = 42;
-  function rand() {
-    seed = (seed * 16807 + 0) % 2147483647;
-    return (seed / 2147483647) - 0.5; // -0.5 to 0.5
-  }
-
-  logo.style.opacity = '0';
-  logo.style.transform = 'translate(0, 0) scale(0.6) rotate(0deg)';
-
-  function tick(now) {
-    const elapsed = now - start;
-
-    if (chaosPhase === 'rest') {
-      // Snapped to rest — stop loop
-      return;
-    }
-
-    let tx, ty, rot, scale, opacity;
-
-    if (chaosPhase === 'chaos' || chaosPhase === 'settling') {
-      if (elapsed < 300) {
-        // Phase 1: High-energy chaos (0-300ms)
-        const energy = 1 - (elapsed / 300) * 0.3; // slight decay within chaos phase
-        tx = rand() * 160 * energy;
-        ty = rand() * 120 * energy;
-        rot = rand() * 50 * energy;
-        scale = 0.7 + Math.random() * 0.3;
-        opacity = Math.min(1, elapsed / 150); // fade in quickly
-      } else if (elapsed < 900) {
-        // Phase 2: Exponential settling (300-900ms)
-        const t = (elapsed - 300) / 600;
-        const decay = Math.exp(-4 * t);
-        tx = rand() * 80 * decay;
-        ty = rand() * 60 * decay;
-        rot = rand() * 25 * decay;
-        scale = 0.85 + (1 - decay) * 0.15;
-        opacity = 1;
-        if (t > 0.9) chaosPhase = 'float';
-      } else {
-        chaosPhase = 'float';
-        tx = ty = rot = 0;
-        scale = 1;
-        opacity = 1;
-      }
-    }
-
-    if (chaosPhase === 'float') {
-      // Phase 3: Gentle hovering float
-      const t = (now - start) / 1000;
-      tx = Math.sin(t * 1.3) * 4;
-      ty = Math.cos(t * 0.9) * 3;
-      rot = Math.sin(t * 0.7) * 2;
-      scale = 1 + Math.sin(t * 1.1) * 0.02;
-      opacity = 1;
-    }
-
-    logo.style.opacity = String(opacity);
-    logo.style.transform = `translate(${tx}px, ${ty}px) scale(${scale}) rotate(${rot}deg)`;
-
-    chaosAnimId = requestAnimationFrame(tick);
-  }
-
-  chaosAnimId = requestAnimationFrame(tick);
+  logo.classList.remove('logo-mark--searching');
+  const sonar = logo.querySelector('.logo-mark__sonar');
+  if (sonar) sonar.remove();
 }
 
-export function settleLogoToRest() {
+/* ---- Resolve Logo to "Found" (Act 3 — confirmation pulse) ---- */
+export function resolveLogoToFound() {
   const logo = document.getElementById('loading-logo');
   if (!logo) return Promise.resolve();
 
-  chaosPhase = 'rest';
-  if (chaosAnimId) {
-    cancelAnimationFrame(chaosAnimId);
-    chaosAnimId = null;
-  }
+  stopSearchPulse();
 
   if (REDUCED.matches) {
-    logo.style.transform = 'translate(0, 0) scale(1) rotate(0deg)';
+    logo.style.transform = '';
+    logo.style.opacity = '1';
     return Promise.resolve();
   }
 
   return new Promise(resolve => {
-    const start = performance.now();
-    const duration = 400;
+    // "Found" confirmation pulse — scale up then settle
+    logo.style.transition = 'transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
+    logo.style.transform = 'scale(1.08)';
 
-    // Capture current transform values for smooth transition
-    const current = logo.style.transform;
-    const match = current.match(/translate\(([-\d.]+)px,\s*([-\d.]+)px\)\s*scale\(([-\d.]+)\)\s*rotate\(([-\d.]+)deg\)/);
-    const fromX = match ? parseFloat(match[1]) : 0;
-    const fromY = match ? parseFloat(match[2]) : 0;
-    const fromScale = match ? parseFloat(match[3]) : 1;
-    const fromRot = match ? parseFloat(match[4]) : 0;
+    setTimeout(() => {
+      logo.style.transition = 'transform 250ms cubic-bezier(0.2, 1, 0.4, 1)';
+      logo.style.transform = 'scale(1)';
+    }, 200);
 
-    function springSnap(now) {
-      const elapsed = now - start;
-      const t = Math.min(elapsed / duration, 1);
-      // Damped spring: overshoot then settle
-      const spring = 1 - Math.exp(-6 * t) * Math.cos(t * Math.PI * 3);
-
-      const tx = fromX * (1 - spring);
-      const ty = fromY * (1 - spring);
-      const s = fromScale + (1 - fromScale) * spring;
-      const r = fromRot * (1 - spring);
-
-      logo.style.transform = `translate(${tx}px, ${ty}px) scale(${s}) rotate(${r}deg)`;
-
-      if (t < 1) {
-        requestAnimationFrame(springSnap);
-      } else {
-        logo.style.transform = 'translate(0, 0) scale(1) rotate(0deg)';
-        resolve();
-      }
-    }
-
-    requestAnimationFrame(springSnap);
+    setTimeout(resolve, 450);
   });
 }
 
-export function stopChaosLogo() {
-  chaosPhase = 'rest';
-  if (chaosAnimId) {
-    cancelAnimationFrame(chaosAnimId);
-    chaosAnimId = null;
-  }
+/* ---- Stop Search Pulse + cleanup (for cancel/back navigation) ---- */
+export function cleanupLoadingLogo() {
+  stopSearchPulse();
   const logo = document.getElementById('loading-logo');
   if (logo) {
     logo.style.transform = '';
     logo.style.opacity = '';
   }
-}
-
-/* ---- Food Emoji Orbit ---- */
-const FOOD_EMOJI = ['🍕','🍣','🌮','🍜','🍔','🥐','🍛','🥗','🍝','☕','🍸','🥟'];
-let foodOrbitAnimId = null;
-let foodEls = [];
-
-export function startFoodOrbit(container) {
-  if (!container || REDUCED.matches) return;
-
-  stopFoodOrbit(); // clean up any prior orbit
-
-  // Pick 4 random unique emoji
-  const shuffled = [...FOOD_EMOJI].sort(() => Math.random() - 0.5);
-  const chosen = shuffled.slice(0, 4);
-
-  const orbits = chosen.map((emoji, i) => {
-    const el = document.createElement('span');
-    el.className = 'food-orbit__emoji';
-    el.textContent = emoji;
-    el.style.opacity = '0';
-    container.appendChild(el);
-    foodEls.push(el);
-
-    return {
-      el,
-      rx: 70 + i * 20,         // orbit radius x (70-130px)
-      ry: 50 + i * 15,         // orbit radius y (50-95px)
-      speed: 0.8 + i * 0.3,    // angular speed (rad/s)
-      phase: (i * Math.PI) / 2, // phase offset (90deg apart)
-    };
-  });
-
-  const start = performance.now();
-
-  function tick(now) {
-    const elapsed = (now - start) / 1000; // seconds
-
-    for (const o of orbits) {
-      const angle = elapsed * o.speed + o.phase;
-      const x = Math.cos(angle) * o.rx;
-      const y = Math.sin(angle) * o.ry;
-      const pulse = 1 + 0.12 * Math.sin(elapsed * 2 + o.phase);
-      const fadeIn = Math.min(1, elapsed / 0.4); // fade in over 400ms
-
-      o.el.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px)) scale(${pulse})`;
-      o.el.style.opacity = String(fadeIn * 0.85);
-    }
-
-    foodOrbitAnimId = requestAnimationFrame(tick);
-  }
-
-  foodOrbitAnimId = requestAnimationFrame(tick);
-}
-
-export function stopFoodOrbit() {
-  if (foodOrbitAnimId) {
-    cancelAnimationFrame(foodOrbitAnimId);
-    foodOrbitAnimId = null;
-  }
-
-  if (foodEls.length === 0) return Promise.resolve();
-
-  if (REDUCED.matches) {
-    foodEls.forEach(el => el.remove());
-    foodEls = [];
-    return Promise.resolve();
-  }
-
-  // Scatter outward + fade out
-  return new Promise(resolve => {
-    const els = [...foodEls];
-    foodEls = [];
-
-    els.forEach(el => {
-      const current = el.getBoundingClientRect();
-      const cx = window.innerWidth / 2;
-      const cy = window.innerHeight / 2;
-      const dx = (current.left + current.width / 2 - cx) * 3;
-      const dy = (current.top + current.height / 2 - cy) * 3;
-
-      el.style.transition = 'transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 300ms ease-out';
-      requestAnimationFrame(() => {
-        el.style.transform = `translate(${dx}px, ${dy}px) scale(0.3)`;
-        el.style.opacity = '0';
-      });
-    });
-
-    setTimeout(() => {
-      els.forEach(el => el.remove());
-      resolve();
-    }, 450);
-  });
 }
 
 /* ---- Particle System ---- */
@@ -711,7 +539,7 @@ export function startParticles(canvasEl) {
   });
   particleResizeObs.observe(parent);
 
-  const PARTICLE_COUNT = 60;
+  const PARTICLE_COUNT = 30;
   const particles = [];
 
   for (let i = 0; i < PARTICLE_COUNT; i++) {
@@ -720,15 +548,12 @@ export function startParticles(canvasEl) {
       y: Math.random() * h,
       targetX: centerX + (Math.random() - 0.5) * 40,
       targetY: centerY + (Math.random() - 0.5) * 40,
-      size: Math.random() * 2.5 + 0.5,
-      speed: Math.random() * 0.5 + 0.3,
+      size: Math.random() * 2 + 0.5,
+      speed: Math.random() * 0.3 + 0.2,
     });
   }
 
   const startTime = performance.now();
-  const DRIFT = 1000;
-  const CONVERGE = 800;
-  const HOLD = 400;
 
   function draw(now) {
     const elapsed = now - startTime;
@@ -737,27 +562,13 @@ export function startParticles(canvasEl) {
     const accentColor = getComputedStyle(canvasEl).getPropertyValue('--ac').trim() || '#6c5ce7';
 
     for (const p of particles) {
-      let alpha = 0.3;
+      // Gentle inward drift — particles slowly move toward center
+      const dx = p.targetX - p.x;
+      const dy = p.targetY - p.y;
+      p.x += dx * 0.003 + (Math.random() - 0.5) * 0.8;
+      p.y += dy * 0.003 + (Math.random() - 0.5) * 0.8;
 
-      if (elapsed < DRIFT) {
-        p.x += (Math.random() - 0.5) * 2;
-        p.y += (Math.random() - 0.5) * 2;
-      } else if (elapsed < DRIFT + CONVERGE) {
-        const t = (elapsed - DRIFT) / CONVERGE;
-        const eased = t * t * (3 - 2 * t);
-        p.x += (p.targetX - p.x) * eased * 0.08;
-        p.y += (p.targetY - p.y) * eased * 0.08;
-        alpha = 0.3 + t * 0.2;
-      } else if (elapsed < DRIFT + CONVERGE + HOLD) {
-        p.x += (p.targetX - p.x) * 0.05;
-        p.y += (p.targetY - p.y) * 0.05;
-        alpha = 0.5;
-      } else {
-        const t = (elapsed - DRIFT - CONVERGE - HOLD) / 600;
-        p.x += (p.x - centerX) * 0.03;
-        p.y += (p.y - centerY) * 0.03;
-        alpha = Math.max(0, 1 - t);
-      }
+      const alpha = 0.15 + Math.sin(elapsed * 0.001 + p.speed * 10) * 0.08;
 
       ctx.beginPath();
       ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
@@ -767,11 +578,7 @@ export function startParticles(canvasEl) {
       ctx.fill();
     }
 
-    if (elapsed < DRIFT + CONVERGE + HOLD + 600) {
-      particleAnimId = requestAnimationFrame(draw);
-    } else {
-      ctx.clearRect(0, 0, w, h);
-    }
+    particleAnimId = requestAnimationFrame(draw);
   }
 
   particleAnimId = requestAnimationFrame(draw);

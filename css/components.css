@@ -1490,15 +1490,7 @@
   margin-top: var(--space-sm);
 }
 
-/* ---- Food Emoji Orbit ---- */
-.food-orbit__emoji {
-  position: absolute;
-  font-size: 1.5rem;
-  pointer-events: none;
-  will-change: transform;
-  filter: drop-shadow(0 2px 8px rgba(0,0,0,0.15));
-  z-index: var(--z-above);
-}
+/* ---- (Food orbit removed — replaced by logo-driven animation) ---- */
 
 /* ---- Taste Memory (Enhancement 9) ---- */
 .taste-memory {
@@ -1740,67 +1732,101 @@
   border-color: hsl(var(--cuisine-hue, 250) 50% 50% / 0.2);
 }
 
-/* ---- Logo Mark (Pin-Fork Symbol) ---- */
+/* ---- Logo Mark (Question Pin Symbol) ---- */
 .logo-mark {
   display: block;
   flex-shrink: 0;
   overflow: visible;
 }
 
-.logo-mark__pin {
-  transition: transform var(--dur-fast) var(--spring);
-  transform-origin: 12px 12px;
+.logo-mark__tine {
+  transition: opacity var(--dur-fast) var(--ease-out);
 }
 
-.logo-mark__tine {
-  opacity: 0.9;
+.logo-mark__curve {
+  transition: opacity var(--dur-fast) var(--ease-out);
 }
 
 .logo-mark__dot {
   transition: transform var(--dur-fast) var(--spring);
-  transform-origin: 12px 18px;
-  animation: logoDotBreathe 3s ease-in-out infinite;
+  transform-origin: 16px 40px;
+  animation: gentleBreathe 4s ease-in-out infinite;
 }
 
 /* ---- Header Logo Hover ---- */
-.header__logo:hover .logo-mark__pin {
-  animation: pinSeek 1.6s var(--ease-out) infinite;
-  transform-origin: 12px 18px;
+.header__logo:hover .logo-mark {
+  animation: logoNod 600ms var(--spring) forwards;
 }
 
-.header__logo:hover .logo-mark__dot {
-  animation: dotPulse 1.6s var(--ease-out) infinite;
-}
-
-/* ---- Wordmark Typography ---- */
+/* ---- Wordmark Typography (Multi-Voice) ---- */
 .logo-wordmark {
-  font-family: var(--font-emotional);
-  font-style: normal;
-  font-weight: 700;
-  font-size: var(--text-lg);
-  letter-spacing: -0.02em;
-  color: var(--fg);
+  display: inline-flex;
+  align-items: baseline;
   line-height: 1;
-  background-image: linear-gradient(var(--ac), var(--ac));
-  background-size: 0% 2px;
-  background-position: 0 100%;
-  background-repeat: no-repeat;
-  transition: background-size 300ms var(--ease-out);
+  color: var(--fg);
+  font-size: var(--text-lg);
+  user-select: none;
 }
 
-.header__logo:hover .logo-wordmark {
-  background-size: 100% 2px;
-}
-
-.logo-wordmark__ai {
-  font-family: var(--font-data);
-  font-style: normal;
-  font-weight: 600;
-  font-size: 0.55em;
+.logo-wordmark__d {
+  font-family: var(--font-emotional);
+  font-weight: 700;
+  font-size: 1.15em;
   color: var(--ac);
-  vertical-align: super;
+  letter-spacing: -0.03em;
+  transition: color 200ms var(--ease-out);
+}
+
+.logo-wordmark__onde {
+  font-family: var(--font-emotional);
+  font-weight: 400;
+  font-size: 1em;
+  color: var(--fg);
+  letter-spacing: -0.02em;
+  transition: color 200ms var(--ease-out);
+}
+
+.logo-wordmark__a {
+  font-family: var(--font-structural);
+  font-weight: 700;
+  font-size: 0.78em;
+  color: var(--fg);
+  letter-spacing: 0.04em;
+  position: relative;
+  top: -0.04em;
+  transition: color 200ms var(--ease-out);
+}
+
+.logo-wordmark__i {
+  font-family: var(--font-data);
+  font-weight: 600;
+  font-size: 0.72em;
+  color: var(--ac);
   letter-spacing: 0.02em;
-  margin-left: 0.05em;
+  position: relative;
+  top: -0.04em;
+  transition: color 200ms var(--ease-out);
+}
+
+/* ---- Wordmark Hover: Left-to-right color cascade ---- */
+.header__logo:hover .logo-wordmark__d {
+  color: var(--ac);
+  transition-delay: 0ms;
+}
+
+.header__logo:hover .logo-wordmark__onde {
+  color: var(--ac);
+  transition-delay: 50ms;
+}
+
+.header__logo:hover .logo-wordmark__a {
+  color: var(--ac);
+  transition-delay: 100ms;
+}
+
+.header__logo:hover .logo-wordmark__i {
+  color: var(--ac);
+  transition-delay: 150ms;
 }
 
 /* ---- Loading Logo ---- */
@@ -1815,61 +1841,61 @@
   will-change: transform, opacity;
 }
 
-/* ---- Loading Orbit Dots ---- */
-.loading-logo__orbit {
-  position: absolute;
-  inset: -24px;
-  animation: loadingOrbit 3s linear infinite;
-}
-
-.loading-logo__orbit-dot {
-  position: absolute;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--ac);
-}
-
-.loading-logo__orbit-dot:nth-child(1) { top: 0; left: 50%; transform: translateX(-50%); animation: loadingDotPulse 1.5s ease-in-out infinite 0ms; }
-.loading-logo__orbit-dot:nth-child(2) { top: 50%; right: 0; transform: translateY(-50%); animation: loadingDotPulse 1.5s ease-in-out infinite 375ms; }
-.loading-logo__orbit-dot:nth-child(3) { bottom: 0; left: 50%; transform: translateX(-50%); animation: loadingDotPulse 1.5s ease-in-out infinite 750ms; }
-.loading-logo__orbit-dot:nth-child(4) { top: 50%; left: 0; transform: translateY(-50%); animation: loadingDotPulse 1.5s ease-in-out infinite 1125ms; }
-
+/* ---- Loading Logo Text ---- */
 .loading-logo__text {
-  font-family: var(--font-emotional);
-  font-style: italic;
-  font-weight: 700;
-  font-size: var(--text-lg);
+  font-size: var(--text-xl);
   color: var(--fg);
   opacity: 0;
-  animation: contentFadeIn 400ms ease-out 600ms forwards;
+  transform: translateY(8px);
+  animation: wordmarkFadeIn 300ms cubic-bezier(0.4, 0, 0.2, 1) 600ms forwards;
 }
 
-/* ---- Loading Logo: Draw-In ---- */
-.logo-mark--loading .logo-mark__pin--draw {
-  stroke-dasharray: 80;
-  stroke-dashoffset: 80;
-  animation: pinDraw 1s cubic-bezier(0.2, 1, 0.4, 1) forwards;
+.loading-logo__text .logo-wordmark__d,
+.loading-logo__text .logo-wordmark__onde {
+  font-style: italic;
 }
 
-.logo-mark--loading .logo-mark__tine--draw {
-  stroke-dasharray: 9;
-  stroke-dashoffset: 9;
-  animation: tineDraw 400ms cubic-bezier(0.2, 1, 0.4, 1) forwards;
+/* ---- Loading Logo: Stroke Draw-In ---- */
+.logo-mark--loading .logo-mark__tine--draw,
+.logo-mark--loading .logo-mark__curve--draw {
+  /* stroke-dasharray/offset set by JS via getTotalLength() */
 }
 
-.logo-mark--loading .logo-mark__tine--draw:nth-child(2) {
-  animation-delay: 400ms;
+.logo-mark--loading .logo-mark__tine--left.logo-mark__tine--draw {
+  animation: strokeDraw 400ms cubic-bezier(0.2, 1, 0.4, 1) 0ms forwards;
 }
 
-.logo-mark--loading .logo-mark__tine--draw:nth-child(3) {
-  animation-delay: 550ms;
+.logo-mark--loading .logo-mark__tine--right.logo-mark__tine--draw {
+  animation: strokeDraw 400ms cubic-bezier(0.2, 1, 0.4, 1) 200ms forwards;
 }
 
-.logo-mark--loading .logo-mark__dot--pulse {
+.logo-mark--loading .logo-mark__curve--draw {
+  animation: strokeDraw 450ms cubic-bezier(0.2, 1, 0.4, 1) 350ms forwards;
+}
+
+.logo-mark--loading .logo-mark__dot--draw {
   opacity: 0;
-  animation: dotReveal 300ms ease-out 700ms forwards,
-             dotPulseLoading 1.5s ease-in-out 1000ms infinite;
+  transform: scale(0);
+  transform-origin: 16px 40px;
+  animation: dotSpringIn 300ms cubic-bezier(0.34, 1.56, 0.64, 1) 600ms forwards;
+}
+
+/* ---- Search Pulse State (Act 2 — looping during API call) ---- */
+.logo-mark--searching .logo-mark__dot {
+  animation: searchPulse 1.2s ease-in-out infinite;
+  transform-origin: 16px 40px;
+}
+
+.logo-mark--searching .logo-mark__curve {
+  animation: curveBreathe 2s ease-in-out infinite;
+  transform-origin: 16px 22px;
+}
+
+/* ---- Sonar Ring (dynamically created SVG circle) ---- */
+.logo-mark__sonar {
+  transform-origin: 16px 40px;
+  animation: sonarRing 1.5s ease-out infinite;
+  pointer-events: none;
 }
 
 /* ---- Custom Focus Rings (Spring-animated) ---- */

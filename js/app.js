@@ -14,7 +14,7 @@ import { initShare, shareResult, closeShareSheet, handleShareChannel } from './s
 import { initOffline, isOnline } from './offline.js';
 import { initAccessibility, announce } from './accessibility.js';
 import { fetchRecommendation } from './api.js';
-import { animateScoreRing, renderRadar, animateGoogleRating, animateBadge, startParticles, stopParticles, chaosToOrderReveal, initLogoAnimation, startChaosLogo, settleLogoToRest, stopChaosLogo, startFoodOrbit, stopFoodOrbit } from './animations.js';
+import { animateScoreRing, renderRadar, animateGoogleRating, animateBadge, startParticles, stopParticles, chaosToOrderReveal, initLogoAnimation, startSearchPulse, stopSearchPulse, resolveLogoToFound, cleanupLoadingLogo } from './animations.js';
 import {
   getGreeting, getCuisineFromResult, svgIcon,
   getScoreTier, getScoreColor, buildGoogleStars, buildMapsUrl, relativeTime, matchCuisine
@@ -528,12 +528,10 @@ function toggleLoading(loading) {
     // === ACT 2: SEARCH ===
     // Start particle drift
     if ($particleCanvas) startParticles($particleCanvas);
-    // Pin-fork SVG draw-in
+    // Question Pin SVG stroke draw-in
     initLogoAnimation();
-    // Chaotic logo movement
-    startChaosLogo();
-    // Food emoji orbit
-    if ($loadingState) startFoodOrbit($loadingState);
+    // Start search pulse (sonar ring + dot pulse) after draw-in completes
+    setTimeout(() => startSearchPulse(), 800);
 
     // Animated searching dots
     if ($loadingStatus) {
@@ -550,7 +548,7 @@ function toggleLoading(loading) {
     // Stop animations
     clearSearchingDots();
     stopParticles();
-    stopChaosLogo();
+    cleanupLoadingLogo();
 
     // Remove defocus from input page
     if ($step0) $step0.classList.remove('step--defocused');
@@ -577,11 +575,9 @@ function clearSearchingDots() {
 async function orchestrateReveal(data) {
   const $header = document.querySelector('.header');
 
-  // 1. Settle logo + scatter food emoji simultaneously
-  const settlePromise = settleLogoToRest();
-  const scatterPromise = stopFoodOrbit();
+  // 1. Resolve logo "found" confirmation pulse
   clearSearchingDots();
-  await Promise.all([settlePromise, scatterPromise]);
+  await resolveLogoToFound();
 
   // 2. Render the result card (still hidden)
   renderResult(data);
@@ -618,7 +614,7 @@ async function orchestrateReveal(data) {
 
   // Stop particles, remove overlay, clean up
   stopParticles();
-  stopChaosLogo();
+  cleanupLoadingLogo();
 
   const $step0 = document.querySelector('.step[data-step="0"]');
   if ($step0) $step0.classList.remove('step--defocused');

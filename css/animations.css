@@ -188,48 +188,51 @@
   }
 }
 
-/* ---- Pin Seek (header hover — pin rocks ±8deg) ---- */
-@keyframes pinSeek {
-  0%, 100% { transform: rotate(0deg); }
-  25%      { transform: rotate(-8deg); }
-  75%      { transform: rotate(8deg); }
+/* ---- Logo Nod (header hover — single confident nod) ---- */
+@keyframes logoNod {
+  0%   { transform: rotate(0deg); }
+  40%  { transform: rotate(3deg); }
+  100% { transform: rotate(0deg); }
 }
 
-/* ---- Dot Pulse (header hover — accent dot scales) ---- */
-@keyframes dotPulse {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50%      { transform: scale(1.4); opacity: 0.6; }
+/* ---- Gentle Breathe (ambient life at rest — pin dot) ---- */
+@keyframes gentleBreathe {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.7; transform: scale(1.1); }
 }
 
-/* ---- Logo Dot Breathe (ambient life at rest) ---- */
-@keyframes logoDotBreathe {
-  0%, 100% { opacity: 1; }
-  50%      { opacity: 0.6; }
+/* ---- Stroke Draw (loading — generic path draw-in) ---- */
+@keyframes strokeDraw {
+  to { stroke-dashoffset: 0; }
 }
 
-/* ---- Pin Draw-In (loading — stroke then fill) ---- */
-@keyframes pinDraw {
-  from { stroke-dashoffset: 80; fill: transparent; }
-  70%  { stroke-dashoffset: 0; fill: transparent; }
-  to   { stroke-dashoffset: 0; fill: currentColor; }
+/* ---- Dot Spring In (loading — scale spring) ---- */
+@keyframes dotSpringIn {
+  to { opacity: 1; transform: scale(1); }
 }
 
-/* ---- Tine Draw-In (loading — fork tines reveal) ---- */
-@keyframes tineDraw {
-  from { stroke-dashoffset: 9; }
-  to   { stroke-dashoffset: 0; }
+/* ---- Wordmark Fade In (loading — text appears) ---- */
+@keyframes wordmarkFadeIn {
+  to { opacity: 1; transform: translateY(0); }
 }
 
-/* ---- Dot Reveal (loading — scale spring in) ---- */
-@keyframes dotReveal {
-  from { opacity: 0; transform: scale(0); }
-  to   { opacity: 1; transform: scale(1); }
+/* ---- Search Pulse (Act 2 — dot rhythmic pulse during search) ---- */
+@keyframes searchPulse {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.3); }
+  100% { transform: scale(1); }
 }
 
-/* ---- Dot Pulse Loading (continuous during loading) ---- */
-@keyframes dotPulseLoading {
+/* ---- Sonar Ring (Act 2 — expanding ring from pin dot) ---- */
+@keyframes sonarRing {
+  0%   { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(3); opacity: 0; }
+}
+
+/* ---- Curve Breathe (Act 2 — subtle question curve scale) ---- */
+@keyframes curveBreathe {
   0%, 100% { transform: scale(1); }
-  50%      { transform: scale(1.3); }
+  50%      { transform: scale(1.02) translateY(-1px); }
 }
 
 /* ---- Focus Ring Spring-In ---- */
@@ -324,16 +327,7 @@
   to   { border-image: linear-gradient(to bottom, var(--amber) 100%, transparent 100%) 1; }
 }
 
-/* ---- Loading Orbit (dots circling the centered loading logo) ---- */
-@keyframes loadingOrbit {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
-}
-
-@keyframes loadingDotPulse {
-  0%, 100% { opacity: 0.3; transform: scale(0.6); }
-  50%      { opacity: 1;   transform: scale(1); }
-}
+/* ---- (Loading orbit removed — replaced by sonar ring) ---- */
 
 /* ---- Reduced Motion: Gentle fallback (100ms linear, not 0ms) ---- */
 @media (prefers-reduced-motion: reduce) {
@@ -343,15 +337,15 @@
   .shimmer,
   .smart-chip,
   .filter-section,
-  .logo-mark--loading .logo-mark__pin--draw,
   .logo-mark--loading .logo-mark__tine--draw,
-  .logo-mark--loading .logo-mark__dot--pulse,
+  .logo-mark--loading .logo-mark__curve--draw,
+  .logo-mark--loading .logo-mark__dot--draw,
   .logo-mark__dot,
+  .logo-mark__sonar,
+  .logo-mark--searching .logo-mark__dot,
+  .logo-mark--searching .logo-mark__curve,
   .loading-logo__text,
-  .loading-logo__orbit,
-  .loading-logo__orbit-dot,
   .loading-status,
-  .food-orbit__emoji,
   .result-card--revealing > *,
   .result-card--revealing .score-tile,
   .result-card--revealing .score-tile--details,
