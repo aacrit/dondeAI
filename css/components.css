@@ -791,6 +791,7 @@
 .result-links {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   align-items: center;
   gap: var(--space-sm) var(--space-md);
   margin-top: calc(-1 * var(--space-sm));
@@ -962,7 +963,7 @@
   display: flex;
   gap: var(--space-sm);
   width: 100%;
-  margin-top: calc(-1 * var(--space-sm));
+  margin-top: calc(-1 * var(--space-lg));
 }
 
 .result-actions .cta-btn {
