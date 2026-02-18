@@ -622,14 +622,10 @@ function renderResult(data) {
   if (!data?.restaurant) return;
   const r = data.restaurant;
 
-  // Cuisine badge (SVG icon, no emoji)
+  // Cuisine detection (for accent color + Details tile)
   const cuisine = getCuisineFromResult(data);
-  const $emojiEl = document.getElementById('result-emoji');
-  const $cuisineLabel = document.getElementById('result-cuisine-label');
-  if ($emojiEl) $emojiEl.innerHTML = svgIcon(cuisine.icon, 20);
-  if ($cuisineLabel) $cuisineLabel.textContent = r.cuisine_type || cuisine.label || '';
 
-  // Cuisine accent color on card
+  // Cuisine accent color on card border
   if ($resultCard && cuisine.hue !== null) {
     $resultCard.classList.add('result-card--cuisine-accent');
     $resultCard.style.setProperty('--cuisine-hue', cuisine.hue);
@@ -660,8 +656,8 @@ function renderResult(data) {
   }
   if ($scoreTileDonde) $scoreTileDonde.setAttribute('data-tier', tier.tier);
   if ($percentile) $percentile.textContent = `Top ${Math.round((tier.integer / 10) * 100)}%`;
-  // Delay score ring to after tile entrance
-  setTimeout(() => animateScoreRing(data.donde_score), 400);
+  // Delay score ring to after tile entrance (tiles now below recommendation)
+  setTimeout(() => animateScoreRing(data.donde_score), 700);
 
   // ---- Google Rating Tile ----
   const $googleStars = document.getElementById('google-stars');
@@ -673,54 +669,52 @@ function renderResult(data) {
     if ($googleCount) $googleCount.textContent = r.google_review_count ? `(${r.google_review_count})` : '';
     if ($scoreTileGoogle) $scoreTileGoogle.style.display = '';
     // Animate count-up after tile entrance
-    setTimeout(() => animateGoogleRating(r.google_rating), 500);
+    setTimeout(() => animateGoogleRating(r.google_rating), 800);
   } else {
     if ($scoreTileGoogle) $scoreTileGoogle.style.display = 'none';
   }
 
   // ---- Radar Tile ----
   const $scoreTileRadar = document.getElementById('score-tile-radar');
-  // Radar tile is always visible (mock data fallback if <3 real dimensions)
   if ($scoreTileRadar) $scoreTileRadar.style.display = '';
   renderRadar(data.scores || {}, r);
 
-  // Grid is always 3-col when radar is present
-  const $scoreTiles = document.getElementById('score-tiles');
-  if ($scoreTiles) {
-    $scoreTiles.classList.remove('score-tiles--two-col');
-  }
+  // ---- Details Tile (Cuisine, Price, Parking, Noise badges) ----
+  const $detailsGrid = document.getElementById('details-badge-grid');
+  const $detailsTile = document.getElementById('score-tile-details');
+  if ($detailsGrid) {
+    $detailsGrid.innerHTML = '';
+    const badges = [];
 
-  // ---- Price Badge (inside DondeAI Score tile) ----
-  if (r.price_level) {
-    const $priceBadge = document.getElementById('price-badge');
-    const $priceIcon = document.getElementById('price-icon');
-    const $priceValue = document.getElementById('price-value');
-    if ($priceIcon) $priceIcon.innerHTML = svgIcon('dollarSign', 14);
-    if ($priceValue) $priceValue.textContent = r.price_level;
-    animateBadge($priceBadge, 600);
-  }
+    if (r.cuisine_type) {
+      badges.push({ icon: cuisine.icon || 'plate', label: 'Cuisine', value: r.cuisine_type, mod: '' });
+    }
+    if (r.price_level) {
+      badges.push({ icon: 'dollarSign', label: 'Price', value: r.price_level, mod: '' });
+    }
+    if (r.parking_availability) {
+      parseParkingTypes(r.parking_availability).forEach(pt => {
+        badges.push({ icon: 'car', label: 'Parking', value: pt, mod: 'details-badge--parking' });
+      });
+    }
+    if (r.noise_level && badges.length < 4) {
+      badges.push({ icon: 'speakerWave', label: 'Noise', value: r.noise_level.split(/[\s,]+/).slice(0, 2).join(' '), mod: '' });
+    }
 
-  // ---- Noise Badge (inside Google Rating tile) ----
-  if (r.noise_level) {
-    const $noiseBadge = document.getElementById('noise-badge');
-    const $noiseIcon = document.getElementById('noise-icon');
-    const $noiseValue = document.getElementById('noise-value');
-    const firstWord = r.noise_level.split(/[\s,]+/)[0];
-    if ($noiseIcon) $noiseIcon.innerHTML = svgIcon('speakerWave', 14);
-    if ($noiseValue) $noiseValue.textContent = firstWord;
-    animateBadge($noiseBadge, 650);
-  }
+    badges.slice(0, 4).forEach(b => {
+      const div = document.createElement('div');
+      div.className = `details-badge ${b.mod}`.trim();
+      div.innerHTML = `
+        <span class="details-badge__icon">${svgIcon(b.icon, 16)}</span>
+        <span class="details-badge__label type-data--sm">${b.label}</span>
+        <span class="details-badge__value type-structural">${b.value}</span>`;
+      if (b.label === 'Parking') div.setAttribute('title', r.parking_availability);
+      $detailsGrid.appendChild(div);
+    });
 
-  // ---- Parking Badge (inside Google Rating tile) ----
-  if (r.parking_availability) {
-    const $parkingBadge = document.getElementById('parking-badge');
-    const $parkingIcon = document.getElementById('parking-icon');
-    const $parkingValue = document.getElementById('parking-value');
-    const shortParking = r.parking_availability.split(/\s+/).slice(0, 2).join(' ');
-    if ($parkingIcon) $parkingIcon.innerHTML = svgIcon('car', 14);
-    if ($parkingValue) $parkingValue.textContent = shortParking;
-    if ($parkingBadge) $parkingBadge.setAttribute('title', r.parking_availability);
-    animateBadge($parkingBadge, 700);
+    if ($detailsTile) {
+      $detailsTile.style.display = badges.length > 0 ? '' : 'none';
+    }
   }
 
   // Insider tip
@@ -895,6 +889,19 @@ function renderResult(data) {
     }, 1400);
   }
   // Note: show/hide of loading overlay and result card is handled by orchestrateReveal()
+}
+
+/* ---- Parking Type Parser ---- */
+function parseParkingTypes(parkingStr) {
+  if (!parkingStr) return [];
+  const lower = parkingStr.toLowerCase();
+  const types = [];
+  if (lower.includes('street')) types.push('Street');
+  if (lower.includes('lot') || lower.includes('garage')) types.push('Lot');
+  if (lower.includes('valet')) types.push('Valet');
+  if (lower.includes('metered')) types.push('Metered');
+  if (types.length === 0) types.push(parkingStr.split(/\s+/).slice(0, 2).join(' '));
+  return types;
 }
 
 function createActionBtn(iconSvg, label, href) {

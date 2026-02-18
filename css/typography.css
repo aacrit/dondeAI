@@ -25,6 +25,17 @@
   text-wrap: balance;
 }
 
+.type-emotional--md {
+  font-family: var(--font-emotional);
+  font-style: normal;
+  font-weight: 700;
+  font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1;
+  font-size: var(--text-xl);
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+  text-wrap: balance;
+}
+
 .type-emotional--xl {
   font-family: var(--font-emotional);
   font-style: normal;

@@ -354,6 +354,7 @@
   .food-orbit__emoji,
   .result-card--revealing > *,
   .result-card--revealing .score-tile,
+  .result-card--revealing .score-tile--details,
   .result-card--revealing .result-name,
   .result-card--revealing .result-oneliner {
     animation-duration: 100ms !important;

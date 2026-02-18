@@ -500,7 +500,7 @@
 }
 
 .result-name {
-  font-size: var(--text-2xl);
+  font-size: var(--text-xl);
   color: var(--fg);
   text-wrap: balance;
 }
@@ -510,33 +510,19 @@
   color: var(--fg2);
 }
 
-.result-cuisine-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-xs);
-  padding: var(--space-2xs) var(--space-sm);
-  background: var(--ac-soft);
-  border-radius: var(--radius-pill);
-  font-size: var(--text-sm);
-}
-
 .result-recommendation {
-  font-size: var(--text-base);
+  font-size: var(--text-md);
   color: var(--fg);
   line-height: 1.75;
   max-width: 600px;
 }
 
-/* ---- Score Tiles (3-column grid) ---- */
+/* ---- Score Tiles (2×2 grid) ---- */
 .score-tiles {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: var(--space-sm);
   width: 100%;
-}
-
-.score-tiles--two-col {
-  grid-template-columns: repeat(2, 1fr);
 }
 
 /* ---- Individual Score Tile ---- */
@@ -552,6 +538,8 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
   text-align: center;
+  overflow: hidden;
+  min-height: 0;
 }
 
 .score-tile__label {
@@ -567,8 +555,8 @@
 /* ---- Score Ring (inside tile) ---- */
 .score-tile .score-ring-wrap {
   position: relative;
-  width: 90px;
-  height: 90px;
+  width: 80px;
+  height: 80px;
   flex-shrink: 0;
 }
 
@@ -698,20 +686,81 @@
   padding-top: 0;
 }
 
+/* ---- Details Tile Badge Grid ---- */
+.details-badge-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-xs);
+  width: 100%;
+}
+
+.details-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2xs);
+  padding: var(--space-xs);
+  background: var(--bg3);
+  border-radius: var(--radius-sm);
+  text-align: center;
+  min-width: 0;
+}
+
+.details-badge__icon {
+  display: flex;
+  align-items: center;
+  color: var(--fg3);
+}
+
+.details-badge__icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.details-badge__label {
+  font-size: var(--text-xs);
+  color: var(--fg3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.details-badge__value {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+/* Parking badges highlighted with accent color */
+.details-badge--parking {
+  background: var(--ac-soft);
+  border: 1px solid var(--ac);
+}
+
+.details-badge--parking .details-badge__icon {
+  color: var(--ac);
+}
+
+.details-badge--parking .details-badge__value {
+  color: var(--ac);
+}
+
 /* ---- Score Tiles Responsive ---- */
 @media (max-width: 479px) {
-  .score-tiles,
-  .score-tiles--two-col {
+  .score-tiles {
     grid-template-columns: 1fr;
+  }
+  .score-tiles .score-tile {
+    padding: var(--space-sm);
   }
 }
 
-@media (min-width: 480px) and (max-width: 767px) {
+@media (min-width: 1024px) {
   .score-tiles {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .score-tile--google {
-    grid-column: 1 / -1;
+    grid-template-columns: repeat(4, 1fr);
   }
 }
 
@@ -1446,10 +1495,6 @@
   border-color: hsl(var(--cuisine-hue, 250) 50% 50% / 0.2);
 }
 
-.result-card--cuisine-accent .result-cuisine-badge {
-  background: hsl(var(--cuisine-hue, 250) 65% 55% / 0.12);
-}
-
 /* ---- Logo Mark (Pin-Fork Symbol) ---- */
 .logo-mark {
   display: block;
@@ -1637,87 +1682,91 @@
 }
 
 /* ---- Progressive Result Card Reveal ---- */
+/* Narrative first: recommendation enters early, tiles follow */
 .result-card--revealing > * {
   opacity: 0;
   transform: translateY(12px);
 }
 
-.result-card--revealing .result-cuisine-badge {
-  animation: resultSectionIn 350ms var(--ease-out) 0ms forwards;
-}
-
 .result-card--revealing .result-header {
-  animation: resultSectionIn 350ms var(--ease-out) 80ms forwards;
+  animation: resultSectionIn 350ms var(--ease-out) 0ms forwards;
 }
 
 /* Restaurant name: ink reveal (left-to-right clip) */
 .result-card--revealing .result-name {
   opacity: 1;
   transform: none;
-  animation: inkReveal 600ms cubic-bezier(0.2, 1, 0.4, 1) 100ms both;
+  animation: inkReveal 600ms cubic-bezier(0.2, 1, 0.4, 1) 20ms both;
 }
 
 /* Oneliner: slide in from right after name */
 .result-card--revealing .result-oneliner {
   opacity: 0;
   transform: translateX(20px);
-  animation: slideSettleIn 400ms var(--ease-out) 500ms forwards;
+  animation: slideSettleIn 400ms var(--ease-out) 400ms forwards;
+}
+
+/* Recommendation (HERO — enters early for emphasis) */
+.result-card--revealing .result-recommendation {
+  animation: resultSectionIn 450ms var(--ease-out) 200ms forwards;
+}
+
+.result-card--revealing .insider-tip {
+  animation: resultSectionIn 350ms var(--ease-out) 350ms forwards;
 }
 
 /* Score tiles container */
 .result-card--revealing .score-tiles {
-  animation: resultSectionIn 350ms var(--ease-out) 160ms forwards;
+  animation: resultSectionIn 350ms var(--ease-out) 450ms forwards;
 }
 
-/* Individual tile stagger */
+/* Individual tile stagger (2×2 grid) */
 .result-card--revealing .score-tile--donde {
   opacity: 0;
   transform: translateY(12px);
-  animation: tileRevealIn 400ms var(--ease-out) 200ms forwards;
-}
-
-.result-card--revealing .score-tile--radar {
-  opacity: 0;
-  transform: translateY(12px);
-  animation: tileRevealIn 400ms var(--ease-out) 280ms forwards;
+  animation: tileRevealIn 400ms var(--ease-out) 500ms forwards;
 }
 
 .result-card--revealing .score-tile--google {
   opacity: 0;
   transform: translateY(12px);
-  animation: tileRevealIn 400ms var(--ease-out) 360ms forwards;
+  animation: tileRevealIn 400ms var(--ease-out) 560ms forwards;
 }
 
-.result-card--revealing .result-recommendation {
-  animation: resultSectionIn 350ms var(--ease-out) 480ms forwards;
+.result-card--revealing .score-tile--details {
+  opacity: 0;
+  transform: translateY(12px);
+  animation: tileRevealIn 400ms var(--ease-out) 620ms forwards;
 }
 
-.result-card--revealing .insider-tip {
-  animation: resultSectionIn 350ms var(--ease-out) 580ms forwards;
+.result-card--revealing .score-tile--radar {
+  opacity: 0;
+  transform: translateY(12px);
+  animation: tileRevealIn 400ms var(--ease-out) 680ms forwards;
 }
 
 .result-card--revealing .info-grid {
-  animation: resultSectionIn 350ms var(--ease-out) 660ms forwards;
+  animation: resultSectionIn 350ms var(--ease-out) 760ms forwards;
 }
 
 .result-card--revealing .atmosphere-tags {
-  animation: resultSectionIn 300ms var(--ease-out) 740ms forwards;
+  animation: resultSectionIn 300ms var(--ease-out) 840ms forwards;
 }
 
 .result-card--revealing .tags-cloud {
-  animation: resultSectionIn 300ms var(--ease-out) 780ms forwards;
+  animation: resultSectionIn 300ms var(--ease-out) 880ms forwards;
 }
 
 .result-card--revealing #sentiment-section {
-  animation: resultSectionIn 300ms var(--ease-out) 820ms forwards;
+  animation: resultSectionIn 300ms var(--ease-out) 920ms forwards;
 }
 
 .result-card--revealing .action-btns {
-  animation: resultSectionIn 350ms var(--ease-out) 880ms forwards;
+  animation: resultSectionIn 350ms var(--ease-out) 980ms forwards;
 }
 
 .result-card--revealing .result-actions {
-  animation: resultSectionIn 350ms var(--ease-out) 960ms forwards;
+  animation: resultSectionIn 350ms var(--ease-out) 1060ms forwards;
 }
 
 /* ---- Filter Pill Ink Ripple ---- */
