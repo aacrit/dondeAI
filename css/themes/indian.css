@@ -33,8 +33,8 @@
   --blob-2:      hsl(350 70% 50% / 0.07);
   --blob-3:      hsl(25 90% 50% / 0.06);
   --grain-opacity: 0.04;
-  --textile-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Cpath d='M12 2l4 4-4 4-4-4z' fill='none' stroke='%23000000' stroke-width='0.7' opacity='0.09'/%3E%3Ccircle cx='12' cy='6' r='0.8' fill='%23000000' opacity='0.09'/%3E%3Cpath d='M0 14l4 4-4 4' fill='none' stroke='%23000000' stroke-width='0.7' opacity='0.09'/%3E%3Cpath d='M24 14l-4 4 4 4' fill='none' stroke='%23000000' stroke-width='0.7' opacity='0.09'/%3E%3Ccircle cx='0' cy='18' r='0.8' fill='%23000000' opacity='0.09'/%3E%3Ccircle cx='24' cy='18' r='0.8' fill='%23000000' opacity='0.09'/%3E%3C/svg%3E");
-  --textile-opacity: 0.6;
+  --textile-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72' fill='none' stroke='%23000000' stroke-linecap='round'%3E%3Cpath d='M30 10Q35 4 38 10Q40 16 34 18Q30 15 30 10' stroke-width='0.9' opacity='0.15'/%3E%3Ccircle cx='58' cy='12' r='1.1' fill='%23000000' stroke='none' opacity='0.16'/%3E%3Ccircle cx='55' cy='16' r='0.7' fill='%23000000' stroke='none' opacity='0.12'/%3E%3Ccircle cx='61' cy='16' r='0.6' fill='%23000000' stroke='none' opacity='0.10'/%3E%3Cpath d='M8 30Q12 24 16 30Q12 32 8 30' stroke-width='0.8' opacity='0.13'/%3E%3Cpath d='M34 35Q38 30 42 33Q46 36 44 40' stroke-width='0.7' opacity='0.12'/%3E%3Cpath d='M42 33Q44 30 46 32' stroke-width='0.6' opacity='0.10'/%3E%3Cpath d='M15 55Q12 52 15 49Q18 52 15 55' stroke-width='0.8' opacity='0.14'/%3E%3Cpath d='M13 56l4 0' stroke-width='0.6' opacity='0.11'/%3E%3Ccircle cx='10' cy='10' r='0.5' fill='%23000000' stroke='none' opacity='0.09'/%3E%3Cpath d='M55 52Q58 48 60 52Q59 56 55 55' stroke-width='0.7' opacity='0.11'/%3E%3Cpath d='M62 35Q66 31 68 36' stroke-width='0.5' opacity='0.08'/%3E%3C/svg%3E");
+  --textile-opacity: 0.70;
   --glass-header: hsl(35 25% 99% / 0.7);
   --glass-toast:  hsl(35 20% 98% / 0.88);
   --glass-info:   hsl(38 30% 97% / 0.55);
@@ -72,8 +72,8 @@
   --blob-2:      hsl(350 60% 50% / 0.08);
   --blob-3:      hsl(25 80% 50% / 0.07);
   --grain-opacity: 0.05;
-  --textile-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Cpath d='M12 2l4 4-4 4-4-4z' fill='none' stroke='%23ffffff' stroke-width='0.7' opacity='0.10'/%3E%3Ccircle cx='12' cy='6' r='0.8' fill='%23ffffff' opacity='0.10'/%3E%3Cpath d='M0 14l4 4-4 4' fill='none' stroke='%23ffffff' stroke-width='0.7' opacity='0.10'/%3E%3Cpath d='M24 14l-4 4 4 4' fill='none' stroke='%23ffffff' stroke-width='0.7' opacity='0.10'/%3E%3Ccircle cx='0' cy='18' r='0.8' fill='%23ffffff' opacity='0.10'/%3E%3Ccircle cx='24' cy='18' r='0.8' fill='%23ffffff' opacity='0.10'/%3E%3C/svg%3E");
-  --textile-opacity: 0.65;
+  --textile-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72' fill='none' stroke='%23ffffff' stroke-linecap='round'%3E%3Cpath d='M30 10Q35 4 38 10Q40 16 34 18Q30 15 30 10' stroke-width='0.9' opacity='0.17'/%3E%3Ccircle cx='58' cy='12' r='1.1' fill='%23ffffff' stroke='none' opacity='0.18'/%3E%3Ccircle cx='55' cy='16' r='0.7' fill='%23ffffff' stroke='none' opacity='0.14'/%3E%3Ccircle cx='61' cy='16' r='0.6' fill='%23ffffff' stroke='none' opacity='0.12'/%3E%3Cpath d='M8 30Q12 24 16 30Q12 32 8 30' stroke-width='0.8' opacity='0.15'/%3E%3Cpath d='M34 35Q38 30 42 33Q46 36 44 40' stroke-width='0.7' opacity='0.14'/%3E%3Cpath d='M42 33Q44 30 46 32' stroke-width='0.6' opacity='0.12'/%3E%3Cpath d='M15 55Q12 52 15 49Q18 52 15 55' stroke-width='0.8' opacity='0.16'/%3E%3Cpath d='M13 56l4 0' stroke-width='0.6' opacity='0.13'/%3E%3Ccircle cx='10' cy='10' r='0.5' fill='%23ffffff' stroke='none' opacity='0.11'/%3E%3Cpath d='M55 52Q58 48 60 52Q59 56 55 55' stroke-width='0.7' opacity='0.13'/%3E%3Cpath d='M62 35Q66 31 68 36' stroke-width='0.5' opacity='0.10'/%3E%3C/svg%3E");
+  --textile-opacity: 0.75;
   --glass-header: hsl(25 18% 12% / 0.75);
   --glass-toast:  hsl(25 15% 14% / 0.9);
   --glass-info:   hsl(25 15% 14% / 0.55);
