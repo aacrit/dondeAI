@@ -4,7 +4,7 @@
    ============================================ */
 
 const ENDPOINT = 'https://vwbzkgsxmgwcvmvuxnbe.supabase.co/functions/v1/recommend';
-const TIMEOUT_MS = 15000;
+const TIMEOUT_MS = 25000;
 
 export async function fetchRecommendation({ special_request, occasion, neighborhood, price_level }) {
   const controller = new AbortController();

@@ -653,6 +653,19 @@ function renderResult(data) {
   if ($name) $name.textContent = r.name || '';
   if ($oneliner) $oneliner.textContent = r.best_for_oneliner || '';
 
+  // Verified badge
+  const $verifiedBadge = document.getElementById('result-verified');
+  if ($verifiedBadge) {
+    if (data.verified) {
+      $verifiedBadge.textContent = '\u2713 Verified on Google';
+      $verifiedBadge.className = 'verified-badge verified-badge--yes type-data--sm';
+    } else {
+      $verifiedBadge.textContent = 'Not yet verified';
+      $verifiedBadge.className = 'verified-badge verified-badge--no type-data--sm';
+    }
+    $verifiedBadge.style.display = '';
+  }
+
   // Navigation tile (immediately after name — "What? Where? Why?" flow)
   const $navTileContainer = document.getElementById('result-nav-tile');
   if ($navTileContainer) {
