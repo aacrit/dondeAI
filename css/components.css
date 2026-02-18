@@ -36,6 +36,50 @@
   z-index: 1;
 }
 
+/* ---- Craving Suggestions Dropdown ---- */
+.craving-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  max-height: 220px;
+  overflow-y: auto;
+  background: var(--glass);
+  backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  box-shadow: 0 4px 16px -4px var(--shadow);
+}
+
+.craving-suggestions[hidden] {
+  display: none;
+}
+
+.craving-suggestion {
+  display: flex;
+  align-items: center;
+  padding: var(--space-sm) var(--space-md);
+  font-family: var(--font-structural);
+  font-size: var(--text-sm);
+  color: var(--fg);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out);
+}
+
+.craving-suggestion:hover,
+.craving-suggestion--active {
+  background: var(--ac-soft);
+}
+
+.craving-suggestion mark {
+  background: transparent;
+  font-weight: 600;
+  color: var(--ac);
+}
+
 .craving-wrap:focus-within::after {
   width: 100%;
 }
@@ -662,6 +706,14 @@
   max-width: 100%;
 }
 
+/* Cuisine badge — smaller text + wrapping for multi-type values */
+.details-badge--cuisine .details-badge__value {
+  font-size: var(--text-xs);
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.4;
+}
+
 /* Badge semantic color classes removed — all badges use neutral styling.
    Color is reserved for the score ring only ("Ink Rule"). */
 
@@ -750,6 +802,7 @@
   flex-wrap: wrap;
   gap: var(--space-xs);
   align-items: center;
+  justify-content: center;
 }
 
 /* Profile: Sentiment (upgraded with header + legend) */

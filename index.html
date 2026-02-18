@@ -123,20 +123,19 @@
                 placeholder="cozy ramen with killer sake..."
                 autocomplete="off"
                 aria-label="What are you craving?"
+                aria-autocomplete="list"
+                aria-controls="craving-suggestions"
               >
               <button class="craving-voice-btn" data-action="voice" aria-label="Voice input" hidden>
                 <svg viewBox="0 0 256 256" width="20" height="20">
                   <path fill="currentColor" d="M128,172a44.05,44.05,0,0,0,44-44V64a44,44,0,0,0-88,0v64A44.05,44.05,0,0,0,128,172ZM92,64a36,36,0,0,1,72,0v64a36,36,0,0,1-72,0Zm40,139.89V240a4,4,0,0,1-8,0V203.89A76.09,76.09,0,0,1,52,128a4,4,0,0,1,8,0,68,68,0,0,0,136,0,4,4,0,0,1,8,0A76.09,76.09,0,0,1,132,203.89Z"/>
                 </svg>
               </button>
+              <div class="craving-suggestions" id="craving-suggestions" role="listbox" aria-label="Search suggestions" hidden></div>
             </div>
 
-            <div class="smart-chips smart-chips--visible" aria-label="Quick suggestions">
-              <button class="smart-chip type-structural" data-action="smart-chip" data-value="outdoor seating">outdoor seating</button>
-              <button class="smart-chip type-structural" data-action="smart-chip" data-value="live music">live music</button>
-              <button class="smart-chip type-structural" data-action="smart-chip" data-value="pet friendly">pet friendly</button>
-              <button class="smart-chip type-structural" data-action="smart-chip" data-value="great cocktails">great cocktails</button>
-              <button class="smart-chip type-structural" data-action="smart-chip" data-value="hidden gem">hidden gem</button>
+            <div class="smart-chips" aria-label="Quick suggestions">
+              <!-- Rendered dynamically by renderSmartChips() -->
             </div>
 
             <!-- Collapsible Filter Drawer -->
@@ -276,7 +275,7 @@
                           style="display: none;">Read more</button>
                 </div>
                 <div class="insider-tip" id="insider-tip" style="display: none;">
-                  <div class="insider-tip__label type-data--sm">Insider Tip</div>
+                  <div class="insider-tip__label type-data--sm" data-label="insiderTip">Insider Tip</div>
                   <p class="insider-tip__text type-structural" id="insider-tip-text"></p>
                 </div>
               </div>

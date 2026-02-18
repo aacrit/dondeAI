@@ -30,6 +30,7 @@ const $particleCanvas = document.getElementById('particle-canvas');
 const $toast = document.getElementById('toast');
 const $toastText = document.getElementById('toast-text');
 const $cursorGlow = document.querySelector('.cursor-glow');
+const $suggestions = document.getElementById('craving-suggestions');
 
 /* ---- AbortController for fetch cancellation ---- */
 let currentAbort = null;
@@ -68,6 +69,9 @@ function init() {
   // Wire craving input
   wireCravingInput();
 
+  // Render dynamic smart chips (theme + history aware)
+  renderSmartChips();
+
   // Wire swipe gestures
   wireSwipe();
 
@@ -99,6 +103,10 @@ function init() {
     }
     if (state.error !== prev.error && state.error) {
       showToast(state.error, true);
+    }
+    if (state.theme.culture !== prev.theme.culture) {
+      renderSmartChips();
+      closeSuggestions();
     }
   });
 
@@ -160,6 +168,47 @@ function renderTasteMemory(history) {
   });
 }
 
+/* ---- Dynamic Smart Chips (theme + history aware) ---- */
+function renderSmartChips() {
+  const $container = document.querySelector('.smart-chips');
+  if (!$container) return;
+
+  const culture = getState().theme.culture;
+  const labels = getLabels(culture);
+  const cultureChips = labels.smartChips || ['outdoor seating', 'live music', 'pet friendly', 'great cocktails', 'hidden gem'];
+  const history = loadHistory();
+
+  // Derive up to 2 history-based chips
+  const historyChips = history.slice(0, 2).map(h => h.label.slice(0, 25)).filter(Boolean);
+
+  // Combine: history first, then culture, deduplicate, cap at 5
+  const seen = new Set();
+  const combined = [];
+  for (const chip of [...historyChips, ...cultureChips]) {
+    const key = chip.toLowerCase();
+    if (!seen.has(key) && combined.length < 5) {
+      seen.add(key);
+      combined.push(chip);
+    }
+  }
+
+  // Clear and re-render with stagger animation
+  $container.innerHTML = '';
+  $container.classList.remove('smart-chips--visible');
+  void $container.offsetWidth; // force reflow for animation restart
+
+  combined.forEach(text => {
+    const btn = document.createElement('button');
+    btn.className = 'smart-chip type-structural';
+    btn.setAttribute('data-action', 'smart-chip');
+    btn.setAttribute('data-value', text);
+    btn.textContent = text;
+    $container.appendChild(btn);
+  });
+
+  $container.classList.add('smart-chips--visible');
+}
+
 /* ---- Event Delegation ---- */
 function wireEvents() {
   document.addEventListener('click', (e) => {
@@ -174,6 +223,7 @@ function wireEvents() {
         if ($cravingInput) $cravingInput.value = '';
         clearAllSelections();
         setupLanding();
+        renderSmartChips();
         goToStep(0);
         updateCtaState();
         updateFilterSummary();
@@ -349,8 +399,98 @@ function wireEvents() {
   });
 }
 
-/* ---- Craving Input ---- */
+/* ---- Craving Input + Autocomplete ---- */
 let placeholderInterval = null;
+let activeIndex = -1;
+
+function getSuggestionPool() {
+  const culture = getState().theme.culture;
+  const labels = getLabels(culture);
+  const pool = new Set();
+
+  // Culture suggestions (primary pool)
+  if (labels.suggestions) labels.suggestions.forEach(s => pool.add(s));
+  // Culture smart chips as fallback
+  if (labels.smartChips) labels.smartChips.forEach(s => pool.add(s));
+  // History labels
+  loadHistory().forEach(h => { if (h.label) pool.add(h.label); });
+
+  return [...pool];
+}
+
+function renderSuggestions(matches, query) {
+  if (!$suggestions || matches.length === 0) {
+    closeSuggestions();
+    return;
+  }
+
+  $suggestions.innerHTML = '';
+  activeIndex = -1;
+
+  matches.forEach((text, i) => {
+    const div = document.createElement('div');
+    div.className = 'craving-suggestion';
+    div.setAttribute('role', 'option');
+    div.setAttribute('id', `suggestion-${i}`);
+    div.dataset.value = text;
+
+    // Highlight matching substring
+    const lowerText = text.toLowerCase();
+    const matchStart = lowerText.indexOf(query);
+    if (matchStart >= 0) {
+      const before = text.slice(0, matchStart);
+      const match = text.slice(matchStart, matchStart + query.length);
+      const after = text.slice(matchStart + query.length);
+      div.innerHTML = `${before}<mark>${match}</mark>${after}`;
+    } else {
+      div.textContent = text;
+    }
+
+    $suggestions.appendChild(div);
+  });
+
+  $suggestions.hidden = false;
+}
+
+function closeSuggestions() {
+  if (!$suggestions) return;
+  $suggestions.hidden = true;
+  $suggestions.innerHTML = '';
+  activeIndex = -1;
+  if ($cravingInput) $cravingInput.removeAttribute('aria-activedescendant');
+}
+
+function moveActive(delta) {
+  if (!$suggestions || $suggestions.hidden) return;
+  const items = $suggestions.querySelectorAll('.craving-suggestion');
+  if (items.length === 0) return;
+
+  // Remove current active
+  if (activeIndex >= 0 && activeIndex < items.length) {
+    items[activeIndex].classList.remove('craving-suggestion--active');
+  }
+
+  // Compute new index with wrapping
+  activeIndex = (activeIndex + delta + items.length) % items.length;
+
+  items[activeIndex].classList.add('craving-suggestion--active');
+  items[activeIndex].scrollIntoView({ block: 'nearest' });
+  $cravingInput.setAttribute('aria-activedescendant', `suggestion-${activeIndex}`);
+}
+
+function selectSuggestion(index) {
+  if (!$suggestions) return;
+  const items = $suggestions.querySelectorAll('.craving-suggestion');
+  if (index < 0 || index >= items.length) return;
+
+  const value = items[index].dataset.value;
+  if ($cravingInput) {
+    $cravingInput.value = value;
+    setState({ craving: value });
+    updateCtaState();
+  }
+  closeSuggestions();
+}
 
 function wireCravingInput() {
   if (!$cravingInput) return;
@@ -358,9 +498,42 @@ function wireCravingInput() {
   $cravingInput.addEventListener('input', () => {
     setState({ craving: $cravingInput.value });
     updateCtaState();
+
+    // Autocomplete filtering
+    const query = $cravingInput.value.trim().toLowerCase();
+    if (query.length < 2) {
+      closeSuggestions();
+      return;
+    }
+    const pool = getSuggestionPool();
+    const matches = pool.filter(s => s.toLowerCase().includes(query)).slice(0, 5);
+    renderSuggestions(matches, query);
   });
 
   $cravingInput.addEventListener('keydown', (e) => {
+    // Autocomplete keyboard navigation
+    if ($suggestions && !$suggestions.hidden) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        moveActive(1);
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        moveActive(-1);
+        return;
+      }
+      if (e.key === 'Escape') {
+        closeSuggestions();
+        return;
+      }
+      if (e.key === 'Enter' && activeIndex >= 0) {
+        e.preventDefault();
+        selectSuggestion(activeIndex);
+        return;
+      }
+    }
+
     if (e.key === 'Enter') {
       e.preventDefault();
       handleSubmit();
@@ -372,8 +545,24 @@ function wireCravingInput() {
     if (placeholderInterval) { clearInterval(placeholderInterval); placeholderInterval = null; }
   });
   $cravingInput.addEventListener('blur', () => {
+    setTimeout(() => closeSuggestions(), 150);
     if (!$cravingInput.value.trim()) startPlaceholderRotation();
   });
+
+  // Click handler on suggestions container (event delegation)
+  if ($suggestions) {
+    $suggestions.addEventListener('pointerdown', (e) => {
+      e.preventDefault(); // Prevent blur on input
+      const item = e.target.closest('.craving-suggestion');
+      if (item) {
+        $cravingInput.value = item.dataset.value;
+        setState({ craving: item.dataset.value });
+        updateCtaState();
+        closeSuggestions();
+        $cravingInput.focus();
+      }
+    });
+  }
 
   startPlaceholderRotation();
 }
@@ -528,6 +717,7 @@ async function handleSubmit() {
 
     // Set result — triggers orchestrateReveal() via subscription
     setState({ result: data, loading: false, history: hist });
+    renderSmartChips(); // Refresh chips with new history
     playChime();
     announce(`Recommendation: ${data.restaurant?.name || 'found'}`);
   } catch (err) {
@@ -854,7 +1044,7 @@ function renderResult(data) {
 
     badges.forEach(b => {
       const div = document.createElement('div');
-      div.className = 'details-badge';
+      div.className = 'details-badge' + (b.label === 'Cuisine' ? ' details-badge--cuisine' : '');
       div.innerHTML = `
         <span class="details-badge__icon">${svgIcon(b.icon, 16)}</span>
         <span class="details-badge__label type-data--sm">${b.label}</span>

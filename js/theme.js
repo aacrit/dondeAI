@@ -28,12 +28,19 @@ const THEME_LABELS = {
     again: 'Try Another',
     share: 'Share',
     profile: 'About This Spot',
+    insiderTip: 'Insider Tip',
     loadingPhrases: ['Searching', 'Thinking', 'Exploring', 'Hunting'],
     placeholders: [
       'cozy ramen with killer sake...',
       'somewhere with a great patio...',
       'best tacos in the city...',
       'a hidden gem worth the trip...',
+    ],
+    smartChips: ['outdoor seating', 'live music', 'great cocktails', 'hidden gem', 'cozy date spot'],
+    suggestions: [
+      'outdoor seating', 'live music', 'great cocktails', 'hidden gem', 'cozy date spot',
+      'pet friendly', 'best tacos', 'killer sake', 'great patio', 'brunch spot',
+      'late night bites', 'craft beer', 'vegan options', 'romantic dinner', 'cheap eats',
     ],
   },
   indian: {
@@ -46,12 +53,19 @@ const THEME_LABELS = {
     again: 'One More',
     share: 'Share',
     profile: 'Know Your Spot',
+    insiderTip: "Chef's Secret",
     loadingPhrases: ['Searching', 'Discovering', 'Seeking flavors', 'Finding your spot'],
     placeholders: [
       'rich butter chicken with warm naan...',
       'fragrant biryani for a special night...',
       'street-style chaat and lassi...',
       'a thali that tells a story...',
+    ],
+    smartChips: ['butter chicken spot', 'street food vibes', 'biryani feast', 'chai and conversation', 'thali for two'],
+    suggestions: [
+      'butter chicken spot', 'street food vibes', 'biryani feast', 'chai and conversation', 'thali for two',
+      'rich naan and curry', 'fragrant biryani', 'chaat and lassi', 'tandoori night', 'masala dosa',
+      'paneer tikka', 'samosa cravings', 'mango lassi', 'kebab platter', 'dal makhani',
     ],
   },
   nepalese: {
@@ -64,12 +78,19 @@ const THEME_LABELS = {
     again: 'Seek Again',
     share: 'Share',
     profile: 'The Details',
+    insiderTip: 'Local Wisdom',
     loadingPhrases: ['Searching', 'Seeking', 'Climbing', 'Journeying'],
     placeholders: [
       'warming momos and thukpa...',
       'dal bhat with mountain views...',
       'a quiet spot for yak tea...',
       'hearty Newari feast...',
+    ],
+    smartChips: ['momo house', 'mountain comfort food', 'quiet tea spot', 'dal bhat done right', 'hearty Newari meal'],
+    suggestions: [
+      'momo house', 'mountain comfort food', 'quiet tea spot', 'dal bhat done right', 'hearty Newari meal',
+      'warming thukpa', 'yak butter tea', 'Sherpa stew', 'sel roti', 'Newari feast',
+      'chow mein spot', 'achar and momos', 'choila platter', 'gundruk soup', 'simple dal bhat',
     ],
   },
   japanese: {
@@ -82,12 +103,19 @@ const THEME_LABELS = {
     again: 'Again',
     share: 'Share',
     profile: 'Details',
+    insiderTip: 'Omakase Note',
     loadingPhrases: ['Searching', 'Considering', 'Finding harmony', 'Seeking'],
     placeholders: [
       'perfect omakase with sake pairing...',
       'handmade soba in a quiet room...',
       'izakaya vibes with cold beer...',
       'fresh sashimi at the counter...',
+    ],
+    smartChips: ['late night ramen', 'omakase experience', 'izakaya vibes', 'handmade soba', 'sake pairing'],
+    suggestions: [
+      'late night ramen', 'omakase experience', 'izakaya vibes', 'handmade soba', 'sake pairing',
+      'fresh sashimi', 'tonkotsu broth', 'matcha dessert', 'udon spot', 'tempura bar',
+      'gyoza and beer', 'sushi counter', 'wagyu treat', 'yakitori alley', 'quiet tea room',
     ],
   },
   african: {
@@ -100,12 +128,19 @@ const THEME_LABELS = {
     again: 'Run It Back',
     share: 'Share',
     profile: 'The Rundown',
+    insiderTip: 'The Real Tea',
     loadingPhrases: ['Searching', 'Vibing', 'Manifesting', 'On the hunt'],
     placeholders: [
       'soulful jollof and grilled suya...',
       'fufu and egusi with the crew...',
       'a spot with live music and plates...',
       'comfort food that hits different...',
+    ],
+    smartChips: ['jollof that hits', 'suya and drinks', 'soul food spot', 'live music and plates', 'comfort that slaps'],
+    suggestions: [
+      'jollof that hits', 'suya and drinks', 'soul food spot', 'live music and plates', 'comfort that slaps',
+      'fufu and egusi', 'plantain everything', 'oxtail stew', 'pepper soup', 'pounded yam',
+      'fried chicken spot', 'waakye plate', 'injera spread', 'afrobeats and food', 'late night bites',
     ],
   },
   southamerican: {
@@ -118,12 +153,19 @@ const THEME_LABELS = {
     again: 'Otra Vez',
     share: 'Comparte',
     profile: 'Los Detalles',
+    insiderTip: 'Entre Nos',
     loadingPhrases: ['Buscando', 'Descubriendo', 'Explorando', 'Dale dale'],
     placeholders: [
       'ceviche fresco con un pisco sour...',
       'empanadas y mate en buena compania...',
       'tacos al pastor con salsa verde...',
       'un asado legendario para compartir...',
+    ],
+    smartChips: ['ceviche spot', 'asado for the crew', 'empanadas y mate', 'taco al pastor', 'pisco sour night'],
+    suggestions: [
+      'ceviche spot', 'asado for the crew', 'empanadas y mate', 'taco al pastor', 'pisco sour night',
+      'ceviche fresco', 'arepas con queso', 'mole that slaps', 'churros y chocolate', 'tamales caseros',
+      'pupusas spot', 'elote and esquites', 'birria tacos', 'horchata spot', 'guacamole fresco',
     ],
   },
 };
@@ -257,5 +299,10 @@ function applyLabels(labels) {
   // Profile heading
   document.querySelectorAll('[data-label="profile"]').forEach(el => {
     if (labels.profile) el.textContent = labels.profile;
+  });
+
+  // Insider tip label
+  document.querySelectorAll('[data-label="insiderTip"]').forEach(el => {
+    if (labels.insiderTip) el.textContent = labels.insiderTip;
   });
 }
