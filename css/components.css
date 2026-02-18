@@ -839,7 +839,7 @@
 /* Profile: Facts (badge grid — Cuisine, Price, Parking, Noise) */
 .profile-facts {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: var(--space-xs);
   width: 100%;
 }

@@ -9,7 +9,7 @@ import { saveTheme } from './persistence.js';
 export const CULTURES = ['neutral', 'indian', 'nepalese', 'japanese', 'african', 'southamerican'];
 
 export const CULTURE_DISPLAY_NAMES = {
-  neutral: 'Studio',
+  neutral: 'Monochrome',
   indian: 'Saffron',
   nepalese: 'Summit',
   japanese: 'Inkwell',

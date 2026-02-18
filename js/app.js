@@ -5,8 +5,7 @@
 
 import { getState, setState, subscribe, resetState } from './state.js';
 import { initRouter, goToStep, goToStepInstant } from './router.js';
-import { loadTheme, loadSound, loadHistory } from './persistence.js';
-import { addToHistory } from './persistence.js';
+import { loadTheme, loadSound, loadHistory, addToHistory, saveTheme } from './persistence.js';
 import { initTheme, setTheme, getLabels, CULTURES, CULTURE_DISPLAY_NAMES } from './theme.js';
 import { initAudio, toggleSound, playChime } from './audio.js';
 import { initVoice, startVoice } from './voice.js';
@@ -115,6 +114,15 @@ function init() {
 
   // Sync CTA disabled state
   updateCtaState();
+
+  // First-visit theme discovery nudge
+  try {
+    if (!localStorage.getItem('dondeai-theme')) {
+      setTimeout(() => {
+        document.getElementById('theme-picker')?.classList.add('theme-picker--open');
+      }, 2000);
+    }
+  } catch { /* private browsing — skip nudge */ }
 }
 
 /* ---- Landing Setup ---- */
@@ -296,9 +304,11 @@ function wireEvents() {
         document.getElementById('theme-picker')?.classList.add('theme-picker--open');
         break;
 
-      case 'close-themes':
+      case 'close-themes': {
         document.getElementById('theme-picker')?.classList.remove('theme-picker--open');
+        saveTheme(getState().theme);
         break;
+      }
 
       case 'select-theme': {
         const culture = btn.dataset.theme;
@@ -320,12 +330,7 @@ function wireEvents() {
       }
 
       case 'cycle-theme': {
-        const currentCulture = getState().theme.culture;
-        const currentIndex = CULTURES.indexOf(currentCulture);
-        const nextIndex = (currentIndex + 1) % CULTURES.length;
-        const nextCulture = CULTURES[nextIndex];
-        setTheme(nextCulture, getState().theme.mode);
-        showToast(CULTURE_DISPLAY_NAMES[nextCulture] || nextCulture);
+        document.getElementById('theme-picker')?.classList.add('theme-picker--open');
         break;
       }
 
@@ -1019,9 +1024,8 @@ function renderResult(data) {
       badges.push({ icon: 'tag', label: 'Price', value: r.price_level });
     }
     if (r.parking_availability) {
-      parseParkingTypes(r.parking_availability).forEach(pt => {
-        badges.push({ icon: 'car', label: 'Parking', value: pt });
-      });
+      const pts = parseParkingTypes(r.parking_availability);
+      badges.push({ icon: 'car', label: 'Parking', value: pts.join(' / ') });
     }
     if (r.noise_level) {
       badges.push({ icon: 'speakerWave', label: 'Noise', value: r.noise_level.split(/[\s,]+/).slice(0, 2).join(' ') });
