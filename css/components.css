@@ -472,7 +472,7 @@
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: var(--space-lg);
+  gap: var(--space-md);
   padding: var(--space-lg);
   background: var(--glass);
   backdrop-filter: blur(var(--glass-blur)) saturate(180%);
@@ -506,11 +506,22 @@
   font-size: var(--text-xl);
   color: var(--ac);
   text-wrap: balance;
+  cursor: pointer;
 }
 
 .result-oneliner {
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   color: var(--fg2);
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 350ms cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.result-oneliner--visible {
+  max-height: 3em;
+  opacity: 1;
 }
 
 .result-recommendation {
@@ -519,7 +530,7 @@
   line-height: 1.75;
   max-width: 600px;
   display: -webkit-box;
-  -webkit-line-clamp: 7;
+  -webkit-line-clamp: 5;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -558,7 +569,7 @@
 }
 
 /* ---- DondeAI Score Tile ---- */
-.score-tile--donde { background: var(--ac-soft); }
+.score-tile--donde { background: var(--bg2); }
 
 /* ---- Score Ring (inside tile) ---- */
 .score-tile .score-ring-wrap {
@@ -612,7 +623,7 @@
 
 /* ---- Google Rating Tile ---- */
 .score-tile--google {
-  background: var(--ac-soft);
+  background: var(--bg2);
 }
 
 .google-rating-display {
@@ -631,7 +642,7 @@
 .google-stars {
   display: flex;
   gap: 2px;
-  color: var(--ac);
+  color: var(--amber);
 }
 
 .google-stars__empty {
@@ -692,6 +703,7 @@
 }
 
 /* ---- Details Badges (used inside .profile-facts) ---- */
+/* All badges are neutral — color lives only in the score ring */
 .details-badge {
   display: flex;
   flex-direction: column;
@@ -699,6 +711,7 @@
   gap: var(--space-2xs);
   padding: var(--space-xs);
   background: var(--bg3);
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   text-align: center;
   min-width: 0;
@@ -732,56 +745,8 @@
   max-width: 100%;
 }
 
-/* ---- Badge Semantic Colors ---- */
-/* Green: budget price, quiet noise, parking */
-.details-badge--green {
-  background: var(--green-soft);
-  border: 1px solid var(--green);
-}
-.details-badge--green .details-badge__icon,
-.details-badge--green .details-badge__value {
-  color: var(--green);
-}
-
-/* Accent: mid-range price, parking */
-.details-badge--accent {
-  background: var(--ac-soft);
-  border: 1px solid var(--ac);
-}
-.details-badge--accent .details-badge__icon,
-.details-badge--accent .details-badge__value {
-  color: var(--ac);
-}
-
-/* Amber: upscale price, moderate noise */
-.details-badge--amber {
-  background: var(--amber-soft);
-  border: 1px solid var(--amber);
-}
-.details-badge--amber .details-badge__icon,
-.details-badge--amber .details-badge__value {
-  color: var(--amber);
-}
-
-/* Rose: splurge price, loud noise */
-.details-badge--rose {
-  background: var(--rose-soft);
-  border: 1px solid var(--rose);
-}
-.details-badge--rose .details-badge__icon,
-.details-badge--rose .details-badge__value {
-  color: var(--rose);
-}
-
-/* Cuisine: derives color from --cuisine-hue */
-.details-badge--cuisine {
-  background: hsl(var(--cuisine-hue, 250) 60% 50% / 0.1);
-  border: 1px solid hsl(var(--cuisine-hue, 250) 60% 50% / 0.3);
-}
-.details-badge--cuisine .details-badge__icon,
-.details-badge--cuisine .details-badge__value {
-  color: hsl(var(--cuisine-hue, 250) 60% 50%);
-}
+/* Badge semantic color classes removed — all badges use neutral styling.
+   Color is reserved for the score ring only ("Ink Rule"). */
 
 /* ---- Quick Links (subtle utility row) ---- */
 .result-links {
@@ -870,22 +835,6 @@
   align-items: center;
 }
 
-/* Atmosphere key-value pill (Ambiance, Dress Code) */
-.atmo-detail {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2xs);
-  padding: var(--space-2xs) var(--space-sm);
-  font-size: var(--text-xs);
-  color: var(--fg);
-  background: var(--bg3);
-  border-radius: var(--radius-pill);
-}
-
-.atmo-detail__label {
-  color: var(--fg3);
-}
-
 /* Profile: Sentiment (upgraded with header + legend) */
 .profile-sentiment__header {
   display: flex;
@@ -930,13 +879,6 @@
 .profile-sentiment__dot--neu { background: var(--fg3); }
 .profile-sentiment__dot--neg { background: var(--rose); }
 
-/* Profile: Tags */
-.profile-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-xs);
-}
-
 /* ---- Insider Tip ---- */
 .insider-tip {
   padding: var(--space-md);
@@ -958,15 +900,6 @@
   font-size: var(--text-sm);
   color: var(--fg);
   line-height: 1.6;
-}
-
-/* ---- Tag Pill (used inside .profile-tags) ---- */
-.tag-pill {
-  padding: var(--space-2xs) var(--space-sm);
-  font-size: var(--text-xs);
-  color: var(--fg2);
-  background: var(--bg3);
-  border-radius: var(--radius-pill);
 }
 
 /* ---- Atmosphere Tag (used inside .profile-atmosphere) ---- */
@@ -2011,12 +1944,7 @@
   animation: inkReveal 600ms cubic-bezier(0.2, 1, 0.4, 1) 20ms both;
 }
 
-/* Oneliner: slide in from right after name */
-.result-card--revealing .result-oneliner {
-  opacity: 0;
-  transform: translateX(20px);
-  animation: slideSettleIn 400ms var(--ease-out) 400ms forwards;
-}
+/* Oneliner: hidden by default, revealed on name click — no entrance animation */
 
 /* Block 2: Story */
 .result-card--revealing .result-story {

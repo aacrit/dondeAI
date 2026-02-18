@@ -348,9 +348,7 @@
   .loading-status,
   .result-card--revealing > *,
   .result-card--revealing .score-tile,
-  .result-card--revealing .score-tile--details,
   .result-card--revealing .result-name,
-  .result-card--revealing .result-oneliner,
   .result-card--revealing .result-nav,
   .result-card--revealing .result-rec-wrap {
     animation-duration: 100ms !important;

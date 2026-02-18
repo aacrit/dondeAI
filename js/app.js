@@ -647,11 +647,18 @@ function renderResult(data) {
     $resultCard.classList.remove('result-card--cuisine-accent');
   }
 
-  // Name and oneliner
+  // Name and oneliner (one-liner hidden by default, revealed on name click)
   const $name = document.getElementById('result-name');
   const $oneliner = document.getElementById('result-oneliner');
   if ($name) $name.textContent = r.name || '';
-  if ($oneliner) $oneliner.textContent = r.best_for_oneliner || '';
+  if ($oneliner) {
+    $oneliner.textContent = r.best_for_oneliner || '';
+    $oneliner.classList.remove('result-oneliner--visible');
+  }
+  // Toggle one-liner on name click
+  if ($name && $oneliner && r.best_for_oneliner) {
+    $name.onclick = () => $oneliner.classList.toggle('result-oneliner--visible');
+  }
 
   // Navigation tile (immediately after name — "What? Where? Why?" flow)
   const $navTileContainer = document.getElementById('result-nav-tile');
@@ -754,30 +761,36 @@ function renderResult(data) {
   }
   renderRadar(data.scores || {}, r);
 
-  // ---- Profile Block: Facts (Cuisine, Price, Parking, Noise badges) ----
+  // ---- Profile Block: Facts (all neutral badges — Cuisine, Price, Parking, Noise, Ambiance, Dress) ----
   const $profileFacts = document.getElementById('profile-facts');
   if ($profileFacts) {
     $profileFacts.innerHTML = '';
     const badges = [];
 
     if (r.cuisine_type) {
-      badges.push({ icon: cuisine.icon || 'plate', label: 'Cuisine', value: r.cuisine_type, mod: 'details-badge--cuisine' });
+      badges.push({ icon: cuisine.icon || 'plate', label: 'Cuisine', value: r.cuisine_type });
     }
     if (r.price_level) {
-      badges.push({ icon: 'dollarSign', label: 'Price', value: r.price_level, mod: getPriceBadgeMod(r.price_level) });
+      badges.push({ icon: 'tag', label: 'Price', value: r.price_level });
     }
     if (r.parking_availability) {
       parseParkingTypes(r.parking_availability).forEach(pt => {
-        badges.push({ icon: 'car', label: 'Parking', value: pt, mod: 'details-badge--accent' });
+        badges.push({ icon: 'car', label: 'Parking', value: pt });
       });
     }
     if (r.noise_level) {
-      badges.push({ icon: 'speakerWave', label: 'Noise', value: r.noise_level.split(/[\s,]+/).slice(0, 2).join(' '), mod: getNoiseBadgeMod(r.noise_level) });
+      badges.push({ icon: 'speakerWave', label: 'Noise', value: r.noise_level.split(/[\s,]+/).slice(0, 2).join(' ') });
+    }
+    if (r.lighting_ambiance) {
+      badges.push({ icon: 'sun', label: 'Ambiance', value: r.lighting_ambiance });
+    }
+    if (r.dress_code) {
+      badges.push({ icon: 'shirt', label: 'Dress', value: r.dress_code });
     }
 
     badges.forEach(b => {
       const div = document.createElement('div');
-      div.className = `details-badge ${b.mod}`.trim();
+      div.className = 'details-badge';
       div.innerHTML = `
         <span class="details-badge__icon">${svgIcon(b.icon, 16)}</span>
         <span class="details-badge__label type-data--sm">${b.label}</span>
@@ -816,29 +829,10 @@ function renderResult(data) {
     $tip.style.display = 'none';
   }
 
-  // ---- Profile Block: Atmosphere (merged ambiance + dress code + boolean features) ----
+  // ---- Profile Block: Atmosphere (boolean features only — ambiance/dress moved to badge grid) ----
   const $profileAtmo = document.getElementById('profile-atmosphere');
   if ($profileAtmo) {
     $profileAtmo.innerHTML = '';
-    let hasAtmo = false;
-
-    // Key-value detail pills (Ambiance, Dress Code)
-    if (r.lighting_ambiance) {
-      const pill = document.createElement('span');
-      pill.className = 'atmo-detail';
-      pill.innerHTML = `<span class="atmo-detail__label type-data--sm">Ambiance</span> ${r.lighting_ambiance}`;
-      $profileAtmo.appendChild(pill);
-      hasAtmo = true;
-    }
-    if (r.dress_code) {
-      const pill = document.createElement('span');
-      pill.className = 'atmo-detail';
-      pill.innerHTML = `<span class="atmo-detail__label type-data--sm">Dress</span> ${r.dress_code}`;
-      $profileAtmo.appendChild(pill);
-      hasAtmo = true;
-    }
-
-    // Boolean feature tags (Patio, Live Music, Pet Friendly)
     const atmoItems = [];
     if (r.outdoor_seating) atmoItems.push({ icon: 'patio', label: 'Patio' });
     if (r.live_music) atmoItems.push({ icon: 'music', label: 'Live Music' });
@@ -849,22 +843,21 @@ function renderResult(data) {
       span.className = 'atmo-tag';
       span.innerHTML = `<span class="atmo-tag__icon">${svgIcon(a.icon, 14)}</span><span class="type-data--sm">${a.label}</span>`;
       $profileAtmo.appendChild(span);
-      hasAtmo = true;
     });
 
-    $profileAtmo.style.display = hasAtmo ? '' : 'none';
+    $profileAtmo.style.display = atmoItems.length > 0 ? '' : 'none';
 
-    // Spring pop stagger for atmosphere pills
+    // Spring pop stagger for atmosphere tags
     const REDUCED_MQ = matchMedia('(prefers-reduced-motion: reduce)');
-    if (!REDUCED_MQ.matches && hasAtmo) {
-      const allPills = $profileAtmo.querySelectorAll('.atmo-detail, .atmo-tag');
-      allPills.forEach((pill, i) => {
-        pill.style.opacity = '0';
-        pill.style.transform = 'scale(0.8)';
+    if (!REDUCED_MQ.matches && atmoItems.length > 0) {
+      const allTags = $profileAtmo.querySelectorAll('.atmo-tag');
+      allTags.forEach((tag, i) => {
+        tag.style.opacity = '0';
+        tag.style.transform = 'scale(0.8)';
         animationTimers.push(setTimeout(() => {
-          pill.style.transition = 'opacity 200ms ease-out, transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
-          pill.style.opacity = '1';
-          pill.style.transform = 'scale(1)';
+          tag.style.transition = 'opacity 200ms ease-out, transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
+          tag.style.opacity = '1';
+          tag.style.transform = 'scale(1)';
         }, 980 + i * 60));
       });
     }
@@ -902,28 +895,12 @@ function renderResult(data) {
     $sentSection.style.display = 'none';
   }
 
-  // ---- Profile Block: Tags ----
-  const $tags = document.getElementById('profile-tags');
-  if ($tags && data.tags?.length) {
-    $tags.innerHTML = '';
-    data.tags.forEach(tag => {
-      const span = document.createElement('span');
-      span.className = 'tag-pill type-data--sm';
-      span.textContent = tag;
-      $tags.appendChild(span);
-    });
-    $tags.style.display = '';
-  } else if ($tags) {
-    $tags.style.display = 'none';
-  }
-
   // Hide entire profile block if no sub-sections have content
   const $profile = document.getElementById('result-profile');
   if ($profile) {
     const hasContent = ($profileFacts && $profileFacts.style.display !== 'none' && $profileFacts.children.length > 0)
       || ($profileAtmo && $profileAtmo.style.display !== 'none' && $profileAtmo.children.length > 0)
-      || ($sentSection && $sentSection.style.display !== 'none')
-      || ($tags && $tags.style.display !== 'none' && $tags.children.length > 0);
+      || ($sentSection && $sentSection.style.display !== 'none');
     $profile.style.display = hasContent ? '' : 'none';
   }
 
@@ -965,14 +942,7 @@ function parseParkingTypes(parkingStr) {
   return types;
 }
 
-/* ---- Badge Color Helpers ---- */
-function getPriceBadgeMod() {
-  return 'details-badge--accent';
-}
-
-function getNoiseBadgeMod() {
-  return 'details-badge--accent';
-}
+/* Badge color helpers removed — all badges use neutral styling ("Ink Rule"). */
 
 /* ---- Tile Expand Modal ---- */
 function openTileExpand(tileEl) {
