@@ -754,14 +754,13 @@ function renderResult(data) {
   }
   renderRadar(data.scores || {}, r);
 
-  // ---- Details Tile (Info + Action badges in one grid) ----
+  // ---- Details Tile (Cuisine, Price, Parking, Noise info badges) ----
   const $detailsGrid = document.getElementById('details-badge-grid');
   const $detailsTile = document.getElementById('score-tile-details');
   if ($detailsGrid) {
     $detailsGrid.innerHTML = '';
     const badges = [];
 
-    // Info badges
     if (r.cuisine_type) {
       badges.push({ icon: cuisine.icon || 'plate', label: 'Cuisine', value: r.cuisine_type, mod: 'details-badge--cuisine' });
     }
@@ -777,43 +776,41 @@ function renderResult(data) {
       badges.push({ icon: 'speakerWave', label: 'Noise', value: r.noise_level.split(/[\s,]+/).slice(0, 2).join(' '), mod: getNoiseBadgeMod(r.noise_level) });
     }
 
-    // Action badges (Website, Call, Reviews, Share)
+    badges.forEach(b => {
+      const div = document.createElement('div');
+      div.className = `details-badge ${b.mod}`.trim();
+      div.innerHTML = `
+        <span class="details-badge__icon">${svgIcon(b.icon, 16)}</span>
+        <span class="details-badge__label type-data--sm">${b.label}</span>
+        <span class="details-badge__value type-structural">${b.value}</span>`;
+      if (b.label === 'Parking') div.setAttribute('title', r.parking_availability);
+      $detailsGrid.appendChild(div);
+    });
+
+    if ($detailsTile) {
+      $detailsTile.style.display = badges.length > 0 ? '' : 'none';
+    }
+  }
+
+  // ---- Quick Links (subtle row: Website, Call, Reviews, Share) ----
+  const $resultLinks = document.getElementById('result-links');
+  if ($resultLinks) {
+    $resultLinks.innerHTML = '';
     if (r.website) {
       let hostname = 'Visit';
       try { hostname = new URL(r.website).hostname.replace('www.', ''); } catch { /* keep fallback */ }
-      badges.push({ icon: 'globe', label: 'Website', value: hostname, mod: 'details-badge--action', tag: 'a', href: r.website });
+      $resultLinks.appendChild(createResultLink('a', 'globe', hostname, r.website));
     }
     if (r.phone) {
-      badges.push({ icon: 'phone', label: 'Call', value: r.phone, mod: 'details-badge--action', tag: 'a', href: `tel:${r.phone}` });
+      $resultLinks.appendChild(createResultLink('a', 'phone', r.phone, `tel:${r.phone}`));
     }
     if (r.google_place_id) {
-      const reviewsUrl = `https://www.google.com/maps/place/?q=place_id:${r.google_place_id}`;
-      badges.push({ icon: 'starOutline', label: 'Reviews', value: 'Google', mod: 'details-badge--action', tag: 'a', href: reviewsUrl });
+      const url = `https://www.google.com/maps/place/?q=place_id:${r.google_place_id}`;
+      $resultLinks.appendChild(createResultLink('a', 'starOutline', 'Reviews', url));
     }
-    badges.push({ icon: 'shareNetwork', label: 'Share', value: '', mod: 'details-badge--action', tag: 'button', action: 'share' });
-
-    badges.forEach(b => {
-      const el = document.createElement(b.tag || 'div');
-      el.className = `details-badge ${b.mod}`.trim();
-      if (b.tag === 'a' && b.href) {
-        el.href = b.href;
-        el.target = '_blank';
-        el.rel = 'noopener noreferrer';
-      }
-      if (b.tag === 'button' && b.action) {
-        el.type = 'button';
-        el.setAttribute('data-action', b.action);
-      }
-      el.innerHTML = `
-        <span class="details-badge__icon">${svgIcon(b.icon, 16)}</span>
-        <span class="details-badge__label type-data--sm">${b.label}</span>
-        ${b.value ? `<span class="details-badge__value type-structural">${b.value}</span>` : ''}`;
-      if (b.label === 'Parking') el.setAttribute('title', r.parking_availability);
-      $detailsGrid.appendChild(el);
-    });
-
-    // Always show — at least Share badge is present
-    if ($detailsTile) $detailsTile.style.display = '';
+    const shareLink = createResultLink('button', 'shareNetwork', 'Share');
+    shareLink.setAttribute('data-action', 'share');
+    $resultLinks.appendChild(shareLink);
   }
 
   // Insider tip
@@ -1012,6 +1009,20 @@ function closeTileExpand() {
     // Return focus to the tile that was expanded
     document.querySelector('.score-tile--expandable')?.focus();
   }
+}
+
+/* ---- Quick Link Helper ---- */
+function createResultLink(tag, icon, label, href) {
+  const el = document.createElement(tag);
+  el.className = 'result-link type-structural';
+  if (tag === 'a' && href) {
+    el.href = href;
+    el.target = '_blank';
+    el.rel = 'noopener noreferrer';
+  }
+  if (tag === 'button') el.type = 'button';
+  el.innerHTML = `${svgIcon(icon, 14)}<span>${label}</span>`;
+  return el;
 }
 
 /* ---- Toast ---- */

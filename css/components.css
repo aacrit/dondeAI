@@ -787,39 +787,42 @@
   color: hsl(var(--cuisine-hue, 250) 60% 50%);
 }
 
-/* Action badges (clickable: Website, Call, Reviews, Share) */
-a.details-badge,
-button.details-badge {
-  text-decoration: none;
-  color: inherit;
-  cursor: pointer;
+/* ---- Quick Links (subtle utility row) ---- */
+.result-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm) var(--space-md);
 }
 
-.details-badge--action {
-  background: var(--ac-soft);
-  border: 1px solid var(--ac);
+.result-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  font-size: var(--text-sm);
+  color: var(--fg3);
+  text-decoration: none;
+  background: none;
+  border: none;
+  padding: 2px 0;
   cursor: pointer;
-  transition: transform var(--dur-fast) var(--spring),
-              background var(--dur-fast) var(--ease-out);
+  transition: color var(--dur-fast) var(--ease-out);
 }
-.details-badge--action .details-badge__icon,
-.details-badge--action .details-badge__value {
-  color: var(--ac);
+
+.result-link svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
 }
-.details-badge--action:hover {
-  background: var(--ac);
+
+.result-link:hover {
+  color: var(--fg);
 }
-.details-badge--action:hover .details-badge__icon,
-.details-badge--action:hover .details-badge__label,
-.details-badge--action:hover .details-badge__value {
-  color: var(--bg);
-}
-.details-badge--action:active {
-  transform: scale(0.95);
-}
-.details-badge--action:focus-visible {
+
+.result-link:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--ac);
+  color: var(--ac);
+  box-shadow: 0 1px 0 0 var(--ac);
 }
 
 /* ---- Score Tiles Responsive ---- */
@@ -1993,24 +1996,28 @@ button.details-badge {
   animation: tileRevealIn 400ms var(--ease-out) 780ms forwards;
 }
 
+.result-card--revealing .result-links {
+  animation: resultSectionIn 300ms var(--ease-out) 840ms forwards;
+}
+
 .result-card--revealing .info-grid {
-  animation: resultSectionIn 350ms var(--ease-out) 860ms forwards;
+  animation: resultSectionIn 350ms var(--ease-out) 900ms forwards;
 }
 
 .result-card--revealing .atmosphere-tags {
-  animation: resultSectionIn 300ms var(--ease-out) 920ms forwards;
-}
-
-.result-card--revealing .tags-cloud {
   animation: resultSectionIn 300ms var(--ease-out) 960ms forwards;
 }
 
-.result-card--revealing #sentiment-section {
+.result-card--revealing .tags-cloud {
   animation: resultSectionIn 300ms var(--ease-out) 1000ms forwards;
 }
 
+.result-card--revealing #sentiment-section {
+  animation: resultSectionIn 300ms var(--ease-out) 1040ms forwards;
+}
+
 .result-card--revealing .result-actions {
-  animation: resultSectionIn 350ms var(--ease-out) 1060ms forwards;
+  animation: resultSectionIn 350ms var(--ease-out) 1100ms forwards;
 }
 
 /* ---- Filter Pill Ink Ripple ---- */
