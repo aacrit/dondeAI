@@ -182,6 +182,26 @@
   color: var(--rose);
 }
 
+.craving-voice-btn--recording::before,
+.craving-voice-btn--recording::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  width: 100%;
+  aspect-ratio: 1;
+  border: 2px solid var(--rose);
+  border-radius: 50%;
+  transform: translateY(-50%) scale(1);
+  animation: voicePulse 1.5s ease-out infinite;
+  pointer-events: none;
+}
+
+.craving-voice-btn--recording::after {
+  animation-delay: 750ms;
+}
+
 .craving-voice-btn svg {
   width: 20px;
   height: 20px;
@@ -236,6 +256,22 @@
   color: var(--ac);
   border-color: var(--ac);
   animation: chipPop 350ms var(--spring);
+}
+
+.smart-chip__icon {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  width: 12px;
+  height: 12px;
+  opacity: 0.5;
+  margin-right: var(--space-2xs);
+  color: inherit;
+}
+
+.smart-chip__icon svg {
+  width: 12px;
+  height: 12px;
 }
 
 /* (Quick picks removed — redundant with smart chips) */
@@ -293,6 +329,91 @@
   background: var(--bg);
   opacity: 0.5;
   animation: progressSlide 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* ---- Taste Memory (recent searches on canvas) ---- */
+.taste-memory {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  width: 100%;
+  margin-top: var(--space-sm);
+  opacity: 0;
+  transition: opacity 300ms var(--ease-out);
+}
+
+.taste-memory--visible {
+  opacity: 1;
+}
+
+.taste-memory__label {
+  color: var(--fg3);
+}
+
+.taste-memory__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  justify-content: center;
+}
+
+.taste-memory__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  padding: var(--space-2xs) var(--space-sm);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  color: var(--fg2);
+  font-family: var(--font-structural);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: background var(--dur-fast) var(--ease-out),
+              border-color var(--dur-fast) var(--ease-out),
+              color var(--dur-fast) var(--ease-out);
+}
+
+.taste-memory--visible .taste-memory__chip {
+  animation: chipReveal 200ms var(--ease-out) forwards;
+}
+
+.taste-memory--visible .taste-memory__chip:nth-child(1) { animation-delay: 0ms; }
+.taste-memory--visible .taste-memory__chip:nth-child(2) { animation-delay: 60ms; }
+.taste-memory--visible .taste-memory__chip:nth-child(3) { animation-delay: 120ms; }
+
+.taste-memory__chip:hover {
+  background: var(--ac-soft);
+  border-color: var(--ac-soft);
+  color: var(--ac);
+}
+
+.taste-memory__chip:active {
+  transform: scale(0.95);
+}
+
+.taste-memory__icon {
+  display: flex;
+  align-items: center;
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  color: var(--fg3);
+}
+
+.taste-memory__icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.taste-memory__time {
+  color: var(--fg3);
+  font-family: var(--font-data);
+  font-size: var(--text-xs);
+  margin-left: var(--space-2xs);
 }
 
 /* ---- Filter Drawer ---- */
@@ -2449,5 +2570,140 @@
 
 .google-stars svg {
   flex-shrink: 0;
+}
+
+/* ---- Result Block Hover Lift (desktop only) ---- */
+@media (hover: hover) {
+  .result-identity,
+  .result-story,
+  .score-section,
+  .result-profile,
+  .result-actions-block {
+    transition: transform 200ms var(--ease-out),
+                box-shadow 200ms var(--ease-out);
+  }
+
+  .result-identity:hover,
+  .result-story:hover,
+  .score-section:hover,
+  .result-profile:hover,
+  .result-actions-block:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px -4px var(--shadow);
+  }
+
+  /* Score tile expandable — lift + border hint */
+  .score-tile--expandable:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px -6px var(--shadow);
+    border-color: var(--ac-soft);
+  }
+}
+
+/* ---- Score Section Divider (visual hierarchy) ---- */
+.score-row + .sentiment-bar {
+  position: relative;
+  margin-top: var(--space-xs);
+}
+
+.score-row + .sentiment-bar::before {
+  content: '';
+  position: absolute;
+  top: calc(-1 * var(--space-xs));
+  left: 10%;
+  right: 10%;
+  height: 1px;
+  background: var(--border);
+  opacity: 0.5;
+}
+
+/* ---- Actions Block Visual Hierarchy ---- */
+.result-actions .cta-btn:not(.cta-btn--secondary) {
+  flex: 1.5;
+}
+
+/* ---- Section Heading Ink-Underline Reveal ---- */
+.result-profile__toggle span,
+.sentiment-bar__label,
+.insider-tip__label {
+  position: relative;
+  display: inline-block;
+}
+
+.result-profile__toggle span::after,
+.sentiment-bar__label::after,
+.insider-tip__label::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  height: 1px;
+  width: 100%;
+  background: var(--border);
+  opacity: 0.4;
+}
+
+.result-card--revealing .result-profile__toggle span::after {
+  width: 0;
+  animation: inkUnderline 400ms var(--ease-out) 500ms forwards;
+}
+
+.result-card--revealing .sentiment-bar__label::after {
+  width: 0;
+  animation: inkUnderline 400ms var(--ease-out) 350ms forwards;
+}
+
+.result-card--revealing .insider-tip__label::after {
+  width: 0;
+  animation: inkUnderline 400ms var(--ease-out) 200ms forwards;
+}
+
+/* ---- Insider Tip Callout Personality ---- */
+.insider-tip {
+  transform: rotate(-0.3deg);
+}
+
+.result-card--revealing .insider-tip {
+  transform: rotate(-1deg);
+  animation: tipSettle 400ms var(--spring) 300ms forwards;
+}
+
+@keyframes tipSettle {
+  to { transform: rotate(-0.3deg); }
+}
+
+/* ---- Filter Drawer Expanded Polish ---- */
+.filter-content:not([hidden]) {
+  border-top: 1px solid var(--border);
+  margin-top: var(--space-xs);
+  padding-top: var(--space-sm);
+}
+
+/* ---- Reduced Motion: hover lift ---- */
+@media (prefers-reduced-motion: reduce) {
+  .result-identity:hover,
+  .result-story:hover,
+  .score-section:hover,
+  .result-profile:hover,
+  .result-actions-block:hover,
+  .score-tile--expandable:hover {
+    transform: none !important;
+  }
+
+  .insider-tip {
+    transform: none !important;
+  }
+
+  .result-card--revealing .insider-tip {
+    transform: none !important;
+    animation: none !important;
+  }
+
+  .result-card--revealing .result-profile__toggle span::after,
+  .result-card--revealing .sentiment-bar__label::after,
+  .result-card--revealing .insider-tip__label::after {
+    animation: none !important;
+    width: 100% !important;
+  }
 }
 

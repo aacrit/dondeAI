@@ -71,6 +71,9 @@ function init() {
   // Render dynamic smart chips (theme + history aware)
   renderSmartChips();
 
+  // Render taste memory (recent searches)
+  renderTasteMemory();
+
   // Wire swipe gestures
   wireSwipe();
 
@@ -245,7 +248,15 @@ function renderSmartChips() {
     btn.className = 'smart-chip type-structural';
     btn.setAttribute('data-action', 'smart-chip');
     btn.setAttribute('data-value', text);
-    btn.textContent = text;
+
+    // Cuisine icon hint (neutral, subtle)
+    const cuisine = matchCuisine(text);
+    if (cuisine && cuisine.icon !== 'plate') {
+      btn.innerHTML = `<span class="smart-chip__icon">${svgIcon(cuisine.icon, 12)}</span>${text}`;
+    } else {
+      btn.textContent = text;
+    }
+
     $container.appendChild(btn);
   });
 
@@ -283,9 +294,18 @@ function rotateOneChip() {
   const newText = getRandomChipFromPool(currentTexts);
   if (!newText) return;
 
+  const updateChipContent = (chip, text) => {
+    chip.dataset.value = text;
+    const cuisine = matchCuisine(text);
+    if (cuisine && cuisine.icon !== 'plate') {
+      chip.innerHTML = `<span class="smart-chip__icon">${svgIcon(cuisine.icon, 12)}</span>${text}`;
+    } else {
+      chip.textContent = text;
+    }
+  };
+
   if (REDUCED_MOTION.matches) {
-    oldChip.textContent = newText;
-    oldChip.dataset.value = newText;
+    updateChipContent(oldChip, newText);
     return;
   }
 
@@ -294,8 +314,7 @@ function rotateOneChip() {
   oldChip.style.transform = 'translateY(-8px) scale(0.9)';
 
   setTimeout(() => {
-    oldChip.textContent = newText;
-    oldChip.dataset.value = newText;
+    updateChipContent(oldChip, newText);
     oldChip.style.transform = 'translateY(8px) scale(0.9)';
     requestAnimationFrame(() => {
       oldChip.style.transition = 'opacity 250ms ease, transform 350ms var(--spring)';
@@ -417,6 +436,62 @@ function updateChipsForInput(query) {
   });
 }
 
+/* ---- Taste Memory (recent searches on canvas) ---- */
+function renderTasteMemory() {
+  const $container = document.getElementById('taste-memory');
+  const $list = document.getElementById('taste-memory-list');
+  if (!$container || !$list) return;
+
+  const { history } = getState();
+  if (!history || history.length === 0) {
+    $container.classList.remove('taste-memory--visible');
+    return;
+  }
+
+  $list.innerHTML = '';
+  history.slice(0, 3).forEach(entry => {
+    const btn = document.createElement('button');
+    btn.className = 'taste-memory__chip';
+    btn.setAttribute('data-action', 'taste-memory');
+    btn.setAttribute('data-payload', JSON.stringify(entry.payload));
+
+    const iconHtml = entry.cuisineIcon
+      ? `<span class="taste-memory__icon">${svgIcon(entry.cuisineIcon, 14)}</span>`
+      : '';
+
+    const label = entry.label.length > 22 ? entry.label.slice(0, 20) + '…' : entry.label;
+    const time = entry.timestamp ? relativeTime(entry.timestamp) : '';
+
+    btn.innerHTML = `${iconHtml}<span>${label}</span>${time ? `<span class="taste-memory__time">${time}</span>` : ''}`;
+    $list.appendChild(btn);
+  });
+
+  $container.classList.remove('taste-memory--visible');
+  void $container.offsetWidth;
+  $container.classList.add('taste-memory--visible');
+}
+
+/* ---- Ambient Blob Interaction Pulse ---- */
+function pulseAmbient() {
+  const blobs = document.querySelectorAll('.ambient__blob');
+  if (!blobs.length || REDUCED_MOTION.matches) return;
+
+  blobs.forEach(blob => {
+    blob.style.transition = 'transform 600ms var(--ease-out), opacity 600ms var(--ease-out)';
+    blob.style.transform = 'scale(1.15)';
+    const current = parseFloat(getComputedStyle(blob).opacity) || 0.6;
+    blob.style.opacity = String(Math.min(current + 0.05, 1));
+  });
+
+  setTimeout(() => {
+    blobs.forEach(blob => {
+      blob.style.transform = '';
+      blob.style.opacity = '';
+      setTimeout(() => { blob.style.transition = ''; }, 600);
+    });
+  }, 600);
+}
+
 /* ---- Event Delegation ---- */
 function wireEvents() {
   document.addEventListener('click', (e) => {
@@ -432,6 +507,7 @@ function wireEvents() {
         clearAllSelections();
         setupLanding();
         renderSmartChips();
+        renderTasteMemory();
         goToStep(0);
         updateCtaState();
         updateFilterSummary();
@@ -469,6 +545,23 @@ function wireEvents() {
         ripple.className = 'filter-pill__ripple';
         btn.appendChild(ripple);
         ripple.addEventListener('animationend', () => ripple.remove(), { once: true });
+        break;
+      }
+
+      case 'taste-memory': {
+        try {
+          const payload = JSON.parse(btn.dataset.payload);
+          if ($cravingInput && payload.special_request) {
+            $cravingInput.value = payload.special_request;
+            setState({
+              craving: payload.special_request,
+              occasion: payload.occasion || 'Any',
+              neighborhood: payload.neighborhood || 'Anywhere',
+              priceLevel: payload.price_level || 'Any',
+            });
+            updateCtaState();
+          }
+        } catch { /* ignore parse errors */ }
         break;
       }
 
@@ -954,14 +1047,32 @@ function startPlaceholderRotation() {
   }, 4000);
 }
 
+let ctaBreathTimer = null;
+
 function updateCtaState() {
   const $cta = document.querySelector('.cta-btn[data-action="submit"]');
   const $hint = document.getElementById('cta-hint');
   const isEmpty = !$cravingInput?.value.trim();
+  const wasDisabled = $cta?.disabled;
 
   if ($cta) {
     $cta.disabled = isEmpty;
     $cta.setAttribute('aria-disabled', String(isEmpty));
+
+    if (isEmpty) {
+      // Disable: kill breathing
+      $cta.classList.remove('cta-btn--ready', 'cta-btn--alive');
+      if (ctaBreathTimer) { clearTimeout(ctaBreathTimer); ctaBreathTimer = null; }
+    } else if (wasDisabled && !isEmpty) {
+      // Just enabled: one-shot ready pulse → continuous breathe
+      $cta.classList.remove('cta-btn--alive');
+      $cta.classList.add('cta-btn--ready');
+      if (ctaBreathTimer) clearTimeout(ctaBreathTimer);
+      ctaBreathTimer = setTimeout(() => {
+        $cta.classList.remove('cta-btn--ready');
+        $cta.classList.add('cta-btn--alive');
+      }, 400);
+    }
   }
   if ($hint) {
     $hint.classList.toggle('cta-hint--visible', isEmpty);
@@ -1053,6 +1164,7 @@ async function handleSubmit() {
   // Set CTA to loading state with brief confirmation glow
   const $cta = document.querySelector('.cta-btn[data-action="submit"]');
   if ($cta) {
+    $cta.classList.remove('cta-btn--ready', 'cta-btn--alive');
     $cta.classList.add('cta-btn--confirming');
     await new Promise(r => setTimeout(r, 200));
     $cta.classList.remove('cta-btn--confirming');
@@ -1063,6 +1175,9 @@ async function handleSubmit() {
   setState({ loading: true, error: null, result: null });
   // Don't goToStep(1) — the loading overlay covers everything;
   // step-track positioning happens in orchestrateReveal()
+
+  // Ambient blob pulse on submit (canvas responds to user)
+  pulseAmbient();
 
   try {
     const payload = {
@@ -1087,6 +1202,7 @@ async function handleSubmit() {
     // Set result — triggers orchestrateReveal() via subscription
     setState({ result: data, loading: false, history: hist });
     renderSmartChips(); // Refresh chips with new history
+    renderTasteMemory(); // Refresh taste memory with new entry
     playChime();
     announce(`Recommendation: ${data.restaurant?.name || 'found'}`);
   } catch (err) {

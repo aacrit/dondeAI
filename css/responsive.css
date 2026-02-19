@@ -72,6 +72,11 @@
     max-width: 280px;
   }
 
+  /* Score tile breathing room on tablet+ */
+  .score-tile {
+    padding: var(--space-lg);
+  }
+
   .petal-radar {
     width: 160px;
     height: 160px;
@@ -145,6 +150,10 @@
   }
 
   .smart-chips {
+    display: none;
+  }
+
+  .taste-memory {
     display: none;
   }
 }
