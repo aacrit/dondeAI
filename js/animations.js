@@ -83,85 +83,212 @@ export function animateScoreRing(rawScore) {
   }
 }
 
-/* ---- Vibe Profile (Compact Inline Bars) ---- */
-export function renderVibeTiles(scores, timers = []) {
-  const dimensions = [
-    { key: 'date_friendly_score', label: 'Date' },
-    { key: 'group_friendly_score', label: 'Group' },
-    { key: 'family_friendly_score', label: 'Family' },
-    { key: 'business_lunch_score', label: 'Business' },
-    { key: 'solo_dining_score', label: 'Solo' },
-    { key: 'hole_in_wall_factor', label: 'Gem' },
-    { key: 'romantic_rating', label: 'Romance' },
-  ];
+/* ---- Petal Radar Chart (Ink Blossom — 6-axis vibe profile) ---- */
+import { svgIcon } from './utils.js';
 
-  // Only show dimensions that have data
-  let available = dimensions.filter(d => {
+const RADAR_DIMS = [
+  { key: 'date_friendly_score',    label: 'Date',     icon: 'heart' },
+  { key: 'group_friendly_score',   label: 'Group',    icon: 'usersThree' },
+  { key: 'family_friendly_score',  label: 'Family',   icon: 'house' },
+  { key: 'business_lunch_score',   label: 'Business', icon: 'briefcase' },
+  { key: 'solo_dining_score',      label: 'Solo',     icon: 'user' },
+  { key: 'hole_in_wall_factor',    label: 'Gem',      icon: 'diamond' },
+];
+
+function svgEl(tag) {
+  return document.createElementNS('http://www.w3.org/2000/svg', tag);
+}
+
+function buildTeardropPath(cx, cy, angle, length) {
+  const bulbW = Math.max(length * 0.32, 5);
+  const perp = angle + Math.PI / 2;
+  const tipX = cx + length * Math.cos(angle);
+  const tipY = cy + length * Math.sin(angle);
+  const cp1X = cx + length * 0.55 * Math.cos(angle) + bulbW * Math.cos(perp);
+  const cp1Y = cy + length * 0.55 * Math.sin(angle) + bulbW * Math.sin(perp);
+  const cp2X = cx + length * 0.55 * Math.cos(angle) - bulbW * Math.cos(perp);
+  const cp2Y = cy + length * 0.55 * Math.sin(angle) - bulbW * Math.sin(perp);
+  return `M ${cx} ${cy} Q ${cp1X} ${cp1Y} ${tipX} ${tipY} Q ${cp2X} ${cp2Y} ${cx} ${cy} Z`;
+}
+
+export function renderPetalRadar(scores, timers = []) {
+  const $tile = document.getElementById('score-tile-radar');
+  if (!$tile) return;
+
+  const available = RADAR_DIMS.filter(d => {
     const v = scores[d.key];
     return v != null && v !== '' && !isNaN(parseFloat(v));
   });
 
-  // If both date + romance present, drop romance (redundant)
-  if (available.find(d => d.key === 'date_friendly_score') &&
-      available.find(d => d.key === 'romantic_rating')) {
-    available = available.filter(d => d.key !== 'romantic_rating');
-  }
-
-  // Sort by score descending — show strongest vibes first
-  available.sort((a, b) =>
-    (parseFloat(scores[b.key]) || 0) - (parseFloat(scores[a.key]) || 0));
-
-  // Mobile: top 3, desktop: top 4
-  const limit = window.innerWidth < 768 ? 3 : 4;
-  if (available.length > limit) {
-    available = available.slice(0, limit);
-  }
-
-  const $container = document.getElementById('vibe-tiles');
-  if (!$container) return;
-  $container.innerHTML = '';
-
-  if (available.length < 2) {
-    $container.style.display = 'none';
+  if (available.length < 3) {
+    $tile.style.display = 'none';
     return;
   }
-  $container.style.display = '';
+  $tile.style.display = '';
 
-  available.forEach((dim, i) => {
-    const val = Math.min(parseFloat(scores[dim.key]) || 0, 10);
-    const pct = (val / 10) * 100;
+  const $svg = document.getElementById('petal-radar');
+  if (!$svg) return;
 
-    const tile = document.createElement('div');
-    tile.className = 'vibe-tile';
-    tile.setAttribute('role', 'group');
-    tile.setAttribute('aria-label', `${dim.label}: ${val.toFixed(1)} out of 10`);
-    tile.innerHTML = `
-      <span class="vibe-tile__label type-data--sm">${dim.label}</span>
-      <div class="vibe-tile__bar" role="progressbar"
-           aria-valuenow="${val}" aria-valuemin="0" aria-valuemax="10">
-        <div class="vibe-tile__bar-fill" data-target="${pct}"></div>
-      </div>
-      <span class="vibe-tile__value type-data--sm">${val.toFixed(1)}</span>`;
-    $container.appendChild(tile);
+  const cx = 100, cy = 100;
+  const maxR = 62;
+  const minR = 8;
+  const angleStep = (2 * Math.PI) / 6;
+  const startAngle = -Math.PI / 2;
 
-    // Stagger entrance + bar fill animation
-    const delay = 980 + (i * 60);
-    if (!REDUCED.matches) {
-      tile.style.opacity = '0';
-      tile.style.transform = 'translateX(-8px)';
-      timers.push(setTimeout(() => {
-        tile.style.transition = 'opacity 250ms ease-out, transform 250ms cubic-bezier(0.34, 1.56, 0.64, 1)';
-        tile.style.opacity = '1';
-        tile.style.transform = 'translateX(0)';
-      }, delay));
-      const fill = tile.querySelector('.vibe-tile__bar-fill');
-      timers.push(setTimeout(() => {
-        fill.style.transition = 'width 500ms cubic-bezier(0.4, 0, 0.2, 1)';
-        fill.style.width = pct + '%';
-      }, delay + 80));
-    } else {
-      tile.querySelector('.vibe-tile__bar-fill').style.width = pct + '%';
+  // Build slots — all 6 positions, fill data where available
+  const slots = RADAR_DIMS.map(dim => {
+    const found = available.find(a => a.key === dim.key);
+    const val = found ? Math.min(parseFloat(scores[dim.key]) || 0, 10) : 0;
+    return { ...dim, val, hasData: !!found };
+  });
+
+  // Build aria-label with values
+  const ariaDesc = slots.filter(s => s.hasData)
+    .map(s => `${s.label} ${s.val.toFixed(1)}`).join(', ');
+  $tile.setAttribute('aria-label', `Vibe Profile: ${ariaDesc}`);
+
+  // Get SVG groups
+  const gridG = $svg.querySelector('.petal-radar__grid');
+  const axesG = $svg.querySelector('.petal-radar__axes');
+  const petalsG = document.getElementById('petal-radar-petals');
+  const iconsG = document.getElementById('petal-radar-icons');
+  gridG.innerHTML = '';
+  axesG.innerHTML = '';
+  petalsG.innerHTML = '';
+  iconsG.innerHTML = '';
+
+  // Concentric hexagonal guides at 33% and 66%
+  [0.33, 0.66].forEach(pct => {
+    const r = maxR * pct;
+    const pts = [];
+    for (let i = 0; i < 6; i++) {
+      const a = startAngle + i * angleStep;
+      pts.push(`${cx + r * Math.cos(a)},${cy + r * Math.sin(a)}`);
     }
+    const poly = svgEl('polygon');
+    poly.setAttribute('points', pts.join(' '));
+    poly.classList.add('petal-radar__guide');
+    gridG.appendChild(poly);
+  });
+
+  // Axis lines from center to each vertex
+  for (let i = 0; i < 6; i++) {
+    const a = startAngle + i * angleStep;
+    const line = svgEl('line');
+    line.setAttribute('x1', cx);
+    line.setAttribute('y1', cy);
+    line.setAttribute('x2', cx + maxR * Math.cos(a));
+    line.setAttribute('y2', cy + maxR * Math.sin(a));
+    line.classList.add('petal-radar__axis');
+    axesG.appendChild(line);
+  }
+
+  // Petals
+  slots.forEach((slot, i) => {
+    if (!slot.hasData) return;
+    const angle = startAngle + i * angleStep;
+    const r = minR + (slot.val / 10) * (maxR - minR);
+    const path = svgEl('path');
+    path.setAttribute('d', buildTeardropPath(cx, cy, angle, r));
+    path.classList.add('petal-radar__petal');
+    path.setAttribute('data-dim', slot.key);
+    path.setAttribute('data-value', slot.val.toFixed(1));
+
+    if (!REDUCED.matches) {
+      path.style.transformOrigin = `${cx}px ${cy}px`;
+      path.style.transform = 'scale(0)';
+      path.style.opacity = '0';
+      const delay = 400 + i * 80;
+      timers.push(setTimeout(() => {
+        path.style.transition = 'transform 500ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 300ms ease-out';
+        path.style.transform = 'scale(1)';
+        path.style.opacity = '1';
+      }, delay));
+    }
+    petalsG.appendChild(path);
+  });
+
+  // Icons + labels at axis tips
+  slots.forEach((slot, i) => {
+    if (!slot.hasData) return;
+    const angle = startAngle + i * angleStep;
+    const iconR = maxR + 18;
+    const ix = cx + iconR * Math.cos(angle);
+    const iy = cy + iconR * Math.sin(angle);
+
+    // Icon via foreignObject
+    const fo = svgEl('foreignObject');
+    fo.setAttribute('x', ix - 8);
+    fo.setAttribute('y', iy - 8);
+    fo.setAttribute('width', 16);
+    fo.setAttribute('height', 16);
+    fo.setAttribute('class', 'petal-radar__icon-fo');
+    const div = document.createElement('div');
+    div.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml');
+    div.className = 'petal-radar__icon';
+    div.innerHTML = svgIcon(slot.icon, 14);
+    fo.appendChild(div);
+    iconsG.appendChild(fo);
+
+    // Label text
+    const labelR = maxR + 32;
+    const lx = cx + labelR * Math.cos(angle);
+    const ly = cy + labelR * Math.sin(angle);
+    const text = svgEl('text');
+    text.setAttribute('x', lx);
+    text.setAttribute('y', ly + 3);
+    text.classList.add('petal-radar__label');
+    text.textContent = slot.label;
+    iconsG.appendChild(text);
+  });
+}
+
+/* ---- Sentiment Arc (thin mood ring under score ring) ---- */
+export function renderSentimentArc(pos, neu, neg, timers = []) {
+  const total = pos + neu + neg;
+  if (total === 0) return;
+
+  const arcR = 40;
+  const cx = 50, cy = 4;
+  const segments = [
+    { id: 'sentiment-arc-pos', span: (pos / total) * Math.PI },
+    { id: 'sentiment-arc-neu', span: (neu / total) * Math.PI },
+    { id: 'sentiment-arc-neg', span: (neg / total) * Math.PI },
+  ];
+
+  let currentAngle = Math.PI; // start from left (9 o'clock)
+
+  segments.forEach((seg, i) => {
+    const el = document.getElementById(seg.id);
+    if (!el || seg.span <= 0.01) {
+      if (el) el.setAttribute('d', '');
+      currentAngle -= seg.span;
+      return;
+    }
+
+    const startX = cx + arcR * Math.cos(currentAngle);
+    const startY = cy + arcR * Math.sin(currentAngle);
+    const endAngle = currentAngle - seg.span;
+    const endX = cx + arcR * Math.cos(endAngle);
+    const endY = cy + arcR * Math.sin(endAngle);
+    const largeArc = seg.span > Math.PI / 2 ? 1 : 0;
+
+    el.setAttribute('d',
+      `M ${startX.toFixed(2)} ${startY.toFixed(2)} A ${arcR} ${arcR} 0 ${largeArc} 0 ${endX.toFixed(2)} ${endY.toFixed(2)}`
+    );
+
+    // Animated draw-in
+    if (!REDUCED.matches) {
+      const len = arcR * seg.span;
+      el.style.strokeDasharray = len;
+      el.style.strokeDashoffset = len;
+      timers.push(setTimeout(() => {
+        el.style.transition = 'stroke-dashoffset 600ms cubic-bezier(0.2, 1, 0.4, 1)';
+        el.style.strokeDashoffset = '0';
+      }, 1000 + i * 100));
+    }
+
+    currentAngle -= seg.span;
   });
 }
 

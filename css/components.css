@@ -753,52 +753,157 @@
   background: var(--bg3);
 }
 
-/* ---- Vibe Profile (compact inline bars) ---- */
-.vibe-tiles {
+/* ---- Score Row (Match Ring + Petal Radar side by side) ---- */
+.score-row {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2xs);
+  align-items: center;
+  gap: var(--space-md);
   width: 100%;
 }
 
-.vibe-tile {
-  display: grid;
-  grid-template-columns: 56px 1fr 32px;
+/* ---- Petal Radar Tile ---- */
+.score-tile--radar {
+  display: flex;
+  flex-direction: column;
   align-items: center;
   gap: var(--space-xs);
-  padding: 0;
-  background: none;
-  border: none;
-  border-radius: 0;
+  padding: var(--space-md);
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: transform var(--dur-fast) var(--spring),
+              box-shadow var(--dur-fast) var(--ease-out);
 }
 
-.vibe-tile__label {
+.score-tile--radar:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px var(--shadow);
+}
+
+.score-tile--radar:active {
+  transform: translateY(0);
+}
+
+.score-tile__label {
+  color: var(--fg3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ---- Petal Radar SVG ---- */
+.petal-radar {
+  width: 140px;
+  height: 140px;
+}
+
+.petal-radar__guide {
+  stroke: var(--border);
+  stroke-width: 0.5;
+  fill: none;
+  opacity: 0.4;
+  stroke-dasharray: 3 3;
+}
+
+.petal-radar__axis {
+  stroke: var(--border);
+  stroke-width: 0.5;
+  opacity: 0.3;
+}
+
+.petal-radar__petal {
+  fill: var(--fg3);
+  fill-opacity: 0.12;
+  stroke: var(--fg3);
+  stroke-width: 1;
+  stroke-opacity: 0.4;
+  transition: fill-opacity var(--dur-fast) var(--ease-out);
+}
+
+.petal-radar__petal:hover {
+  fill-opacity: 0.25;
+}
+
+.petal-radar__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: var(--fg2);
+}
+
+.petal-radar__label {
+  font-family: var(--font-data);
+  font-size: 7px;
+  fill: var(--fg3);
+  text-anchor: middle;
   letter-spacing: 0.04em;
-  text-align: left;
 }
 
-.vibe-tile__value {
-  color: var(--fg);
-  font-weight: 700;
-  text-align: right;
+/* ---- Sentiment Arc (thin mood ring under score ring) ---- */
+.sentiment-arc {
+  position: relative;
+  width: 80px;
+  height: 16px;
+  margin-top: calc(-1 * var(--space-2xs));
+  cursor: pointer;
 }
 
-.vibe-tile__bar {
+.sentiment-arc__svg {
   width: 100%;
-  height: 4px;
-  background: var(--border);
-  border-radius: 2px;
-  overflow: hidden;
+  height: 100%;
+  overflow: visible;
 }
 
-.vibe-tile__bar-fill {
-  height: 100%;
-  width: 0;
-  background: var(--fg3);
-  border-radius: 2px;
-  will-change: width;
+.sentiment-arc__tooltip {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%) scale(0.95);
+  transform-origin: top center;
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--glass);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  z-index: var(--z-above);
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease-out),
+              transform var(--dur-fast) var(--spring);
 }
+
+.sentiment-arc:hover .sentiment-arc__tooltip,
+.sentiment-arc--active .sentiment-arc__tooltip {
+  display: flex;
+  opacity: 1;
+  transform: translateX(-50%) scale(1);
+}
+
+.sentiment-arc__tip-item {
+  font-family: var(--font-data);
+  font-size: var(--text-xs);
+  color: var(--fg2);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+}
+
+.sentiment-arc__tip-item::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.sentiment-arc__tip-item:nth-child(1)::before { background: var(--green); }
+.sentiment-arc__tip-item:nth-child(2)::before { background: var(--fg3); }
+.sentiment-arc__tip-item:nth-child(3)::before { background: var(--rose); }
 
 /* ---- Tile Badge (Price/Noise at bottom) ---- */
 .score-tile__badge {
@@ -972,69 +1077,96 @@
   transform: rotate(180deg);
 }
 
-/* ---- Compact Preview (organized grid rows) ---- */
-.profile-compact {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+/* ---- Glyph Bar (icon-only compact detail row — mobile) ---- */
+.glyph-bar {
+  display: flex;
+  flex-wrap: wrap;
   gap: var(--space-xs);
+  justify-content: center;
+  align-items: center;
   width: 100%;
 }
 
-.profile-compact__item {
+.glyph-bar__item {
+  position: relative;
+  width: 32px;
+  height: 32px;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 2px;
-  padding: var(--space-2xs) var(--space-xs);
+  justify-content: center;
   background: var(--bg3);
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  text-align: center;
-  min-width: 0;
+  color: var(--fg2);
+  cursor: pointer;
+  padding: 0;
+  transition: transform var(--dur-fast) var(--spring),
+              background var(--dur-fast) var(--ease-out);
 }
 
-.profile-compact__item svg {
-  width: 14px;
-  height: 14px;
-  color: var(--fg3);
-  flex-shrink: 0;
+.glyph-bar__item--atmo {
+  background: var(--ac-soft);
+  border-color: transparent;
 }
 
-.profile-compact__label {
-  font-size: 0.55rem;
+.glyph-bar__item:hover {
+  transform: scale(1.12);
+  background: var(--bg3);
+  border-color: var(--fg3);
+}
+
+.glyph-bar__item:active {
+  transform: scale(0.93);
+}
+
+.glyph-bar__item svg {
+  width: 16px;
+  height: 16px;
+}
+
+.glyph-bar__tooltip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%) scale(0.9);
+  transform-origin: bottom center;
+  display: none;
+  align-items: center;
+  gap: var(--space-2xs);
+  padding: var(--space-2xs) var(--space-xs);
+  background: var(--glass);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  z-index: var(--z-above);
+  transition: opacity var(--dur-fast) var(--ease-out),
+              transform var(--dur-fast) var(--spring);
+}
+
+.glyph-bar__item--active .glyph-bar__tooltip {
+  display: flex;
+  opacity: 1;
+  transform: translateX(-50%) scale(1);
+  pointer-events: auto;
+}
+
+.glyph-bar__tooltip-label {
+  font-family: var(--font-data);
+  font-size: var(--text-xs);
   color: var(--fg3);
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  line-height: 1.2;
 }
 
-.profile-compact__value {
+.glyph-bar__tooltip-value {
+  font-family: var(--font-structural);
   font-size: var(--text-xs);
-  font-weight: 600;
   color: var(--fg);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 100%;
-}
-
-/* Atmosphere items in compact view: span full width as inline tags */
-.profile-compact__atmo-row {
-  grid-column: 1 / -1;
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2xs);
-  justify-content: center;
-}
-
-.profile-compact__atmo-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  padding: 2px var(--space-xs);
-  font-size: var(--text-xs);
-  color: var(--fg2);
-  background: var(--bg3);
-  border-radius: var(--radius-pill);
+  font-weight: 600;
 }
 
 /* ---- Collapsed/Expanded States ---- */
@@ -1047,7 +1179,7 @@
     flex-direction: column;
     gap: var(--space-md);
   }
-  .result-profile--expanded .profile-compact {
+  .result-profile--expanded .glyph-bar {
     display: none;
   }
   .result-profile {
@@ -1056,9 +1188,9 @@
   }
 }
 
-/* Tablet+: always expanded, hide toggle chrome */
+/* Tablet+: always expanded, hide glyph bar */
 @media (min-width: 768px) {
-  .profile-compact {
+  .glyph-bar {
     display: none;
   }
   .result-profile__chevron {
@@ -1082,58 +1214,15 @@
   width: 100%;
 }
 
-/* Profile: Atmosphere (merged ambiance + dress code + boolean features) */
-.profile-atmosphere {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-xs);
-  align-items: center;
-  justify-content: center;
+/* Atmosphere badge variant (subtle accent wash) */
+.details-badge--atmo {
+  background: var(--ac-soft);
+  border-color: transparent;
 }
 
-/* Profile: Sentiment (upgraded with header + legend) */
-.profile-sentiment__header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.details-badge--atmo .details-badge__icon {
+  color: var(--fg2);
 }
-
-.profile-sentiment__label {
-  color: var(--fg3);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.profile-sentiment__score {
-  color: var(--green);
-  font-weight: 600;
-}
-
-.profile-sentiment__legend {
-  display: flex;
-  gap: var(--space-md);
-  flex-wrap: wrap;
-  margin-top: var(--space-2xs);
-}
-
-.profile-sentiment__legend-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  color: var(--fg3);
-}
-
-.profile-sentiment__dot {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  margin-right: 4px;
-}
-
-.profile-sentiment__dot--pos { background: var(--green); }
-.profile-sentiment__dot--neu { background: var(--fg3); }
-.profile-sentiment__dot--neg { background: var(--rose); }
 
 /* ---- Insider Tip ---- */
 .insider-tip {
@@ -1189,45 +1278,59 @@
   }
 }
 
-/* ---- Atmosphere Tag (used inside .profile-atmosphere) ---- */
-.atmo-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2xs);
-  padding: var(--space-2xs) var(--space-sm);
-  font-size: var(--text-xs);
-  color: var(--fg2);
-  background: var(--bg3);
-  border-radius: var(--radius-pill);
+/* ---- Tile Expand: Radar dimension list ---- */
+.tile-expand__title {
+  color: var(--fg3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  text-align: center;
+  display: block;
+  margin-bottom: var(--space-sm);
 }
 
-.atmo-tag__icon {
-  font-size: var(--text-sm);
-}
-
-/* ---- Sentiment Bar ---- */
-.sentiment-bar {
-  width: 100%;
-  height: 8px;
-  border-radius: 4px;
-  overflow: hidden;
+.tile-expand__dims {
   display: flex;
-  background: var(--bg3);
+  flex-direction: column;
+  gap: var(--space-xs);
+  width: 100%;
 }
 
-.sentiment-bar__pos {
-  background: var(--green);
-  transition: width var(--dur-slow) var(--ease-out);
+.tile-expand__dim {
+  display: grid;
+  grid-template-columns: 20px 56px 1fr 36px;
+  align-items: center;
+  gap: var(--space-xs);
 }
 
-.sentiment-bar__neu {
+.tile-expand__dim-icon {
+  color: var(--fg2);
+  display: flex;
+  align-items: center;
+}
+
+.tile-expand__dim-label {
+  color: var(--fg2);
+  letter-spacing: 0.04em;
+}
+
+.tile-expand__dim-bar {
+  width: 100%;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.tile-expand__dim-fill {
+  height: 100%;
   background: var(--fg3);
-  transition: width var(--dur-slow) var(--ease-out);
+  border-radius: 2px;
 }
 
-.sentiment-bar__neg {
-  background: var(--rose);
-  transition: width var(--dur-slow) var(--ease-out);
+.tile-expand__dim-value {
+  color: var(--fg);
+  font-weight: 700;
+  text-align: right;
 }
 
 /* ---- Result Actions Block (links + buttons) ---- */
@@ -2244,7 +2347,13 @@
   transform: translateY(12px);
   animation: tileRevealIn 400ms var(--ease-out) 350ms forwards;
 }
-/* Vibe tiles + Google inline animate via JS timers — no CSS keyframes */
+
+.result-card--revealing .score-tile--radar {
+  opacity: 0;
+  transform: translateY(12px);
+  animation: tileRevealIn 400ms var(--ease-out) 380ms forwards;
+}
+/* Petals + Google inline animate via JS timers — no CSS keyframes */
 
 /* Block 4: Profile (450ms) */
 .result-card--revealing .result-profile {

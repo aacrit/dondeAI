@@ -281,43 +281,71 @@
                 </div>
               </div>
 
-              <!-- Block 3: Scores — DondeAI Match hero + Vibe Profile -->
+              <!-- Block 3: Scores — DondeAI Match + Petal Radar side-by-side -->
               <div class="score-section" id="score-section">
-                <!-- Hero: DondeAI Match Ring -->
-                <div class="score-tile score-tile--donde" id="score-tile-donde" role="group" aria-label="DondeAI Match">
-                  <div class="score-tile__brand" aria-label="DondeAI Match">
-                    <svg class="score-tile__logo-mark" viewBox="0 0 32 44" width="16" height="22" aria-hidden="true">
-                      <path d="M10.5 1C10.5 1 10 8.5 12.5 11.5Q14 13 14.5 13.5"
-                            fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-                      <path d="M21.5 1C21.5 1 22 8.5 19.5 11.5Q18 13 17.5 13.5"
-                            fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-                      <path d="M16 13.5C22 11 29 14 28 21C27 27 19 29 16 31L16 34"
-                            fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>
-                      <circle cx="16" cy="40" r="2.8" fill="var(--ac)"/>
-                    </svg>
-                    <span class="score-tile__wordmark">
-                      <span class="score-tile__wordmark-d">D</span><span
-                        class="score-tile__wordmark-onde">onde</span><span
-                        class="score-tile__wordmark-a">A</span><span
-                        class="score-tile__wordmark-i">I</span>
-                    </span>
-                    <span class="score-tile__score-label type-data--sm">Match<sup>™</sup></span>
-                  </div>
-                  <button class="score-tile__info" data-action="show-match-info" aria-label="How is this match calculated?" title="How is this match calculated?">
-                    <svg viewBox="0 0 256 256" width="16" height="16" aria-hidden="true">
-                      <path fill="currentColor" d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm16-40a8,8,0,0,1-8,8,16,16,0,0,1-16-16V128a8,8,0,0,1,0-16,16,16,0,0,1,16,16v40A8,8,0,0,1,144,176ZM112,84a12,12,0,1,1,12,12A12,12,0,0,1,112,84Z"/>
-                    </svg>
-                  </button>
-                  <div class="score-ring-wrap">
-                    <svg class="score-ring" viewBox="0 0 100 100">
-                      <circle class="score-ring__bg" cx="50" cy="50" r="45"></circle>
-                      <circle class="score-ring__fill" id="score-ring-fill" cx="50" cy="50" r="45"></circle>
-                    </svg>
-                    <div class="score-ring__number">
-                      <span class="type-data--lg" id="score-number">0%</span>
+                <div class="score-row">
+                  <!-- Hero: DondeAI Match Ring -->
+                  <div class="score-tile score-tile--donde" id="score-tile-donde" role="group" aria-label="DondeAI Match">
+                    <div class="score-tile__brand" aria-label="DondeAI Match">
+                      <svg class="score-tile__logo-mark" viewBox="0 0 32 44" width="16" height="22" aria-hidden="true">
+                        <path d="M10.5 1C10.5 1 10 8.5 12.5 11.5Q14 13 14.5 13.5"
+                              fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                        <path d="M21.5 1C21.5 1 22 8.5 19.5 11.5Q18 13 17.5 13.5"
+                              fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                        <path d="M16 13.5C22 11 29 14 28 21C27 27 19 29 16 31L16 34"
+                              fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>
+                        <circle cx="16" cy="40" r="2.8" fill="var(--ac)"/>
+                      </svg>
+                      <span class="score-tile__wordmark">
+                        <span class="score-tile__wordmark-d">D</span><span
+                          class="score-tile__wordmark-onde">onde</span><span
+                          class="score-tile__wordmark-a">A</span><span
+                          class="score-tile__wordmark-i">I</span>
+                      </span>
+                      <span class="score-tile__score-label type-data--sm">Match<sup>™</sup></span>
                     </div>
+                    <button class="score-tile__info" data-action="show-match-info" aria-label="How is this match calculated?" title="How is this match calculated?">
+                      <svg viewBox="0 0 256 256" width="16" height="16" aria-hidden="true">
+                        <path fill="currentColor" d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm16-40a8,8,0,0,1-8,8,16,16,0,0,1-16-16V128a8,8,0,0,1,0-16,16,16,0,0,1,16,16v40A8,8,0,0,1,144,176ZM112,84a12,12,0,1,1,12,12A12,12,0,0,1,112,84Z"/>
+                      </svg>
+                    </button>
+                    <div class="score-ring-wrap">
+                      <svg class="score-ring" viewBox="0 0 100 100">
+                        <circle class="score-ring__bg" cx="50" cy="50" r="45"></circle>
+                        <circle class="score-ring__fill" id="score-ring-fill" cx="50" cy="50" r="45"></circle>
+                      </svg>
+                      <div class="score-ring__number">
+                        <span class="type-data--lg" id="score-number">0%</span>
+                      </div>
+                    </div>
+                    <!-- Sentiment Arc: thin mood arc under ring -->
+                    <div class="sentiment-arc" id="sentiment-arc" style="display: none;"
+                         role="img" aria-label="Review sentiment breakdown">
+                      <svg class="sentiment-arc__svg" viewBox="0 0 100 20">
+                        <path class="sentiment-arc__seg" id="sentiment-arc-pos" fill="none" stroke="var(--green)" stroke-width="4" stroke-linecap="round"/>
+                        <path class="sentiment-arc__seg" id="sentiment-arc-neu" fill="none" stroke="var(--fg3)" stroke-width="4"/>
+                        <path class="sentiment-arc__seg" id="sentiment-arc-neg" fill="none" stroke="var(--rose)" stroke-width="4" stroke-linecap="round"/>
+                      </svg>
+                      <div class="sentiment-arc__tooltip" id="sentiment-arc-tooltip" role="tooltip">
+                        <span class="sentiment-arc__tip-item" id="sentiment-tip-pos"></span>
+                        <span class="sentiment-arc__tip-item" id="sentiment-tip-neu"></span>
+                        <span class="sentiment-arc__tip-item" id="sentiment-tip-neg"></span>
+                      </div>
+                    </div>
+                    <span class="score-verdict type-structural--bold" id="score-verdict"></span>
                   </div>
-                  <span class="score-verdict type-structural--bold" id="score-verdict"></span>
+
+                  <!-- Petal Radar Chart (Vibe Profile) -->
+                  <div class="score-tile score-tile--radar score-tile--expandable" id="score-tile-radar"
+                       role="button" tabindex="0" aria-label="Vibe Profile radar chart" style="display: none;">
+                    <span class="score-tile__label type-data--sm">Vibe Profile</span>
+                    <svg class="petal-radar" id="petal-radar" viewBox="0 0 200 200" aria-hidden="true">
+                      <g class="petal-radar__grid"></g>
+                      <g class="petal-radar__axes"></g>
+                      <g class="petal-radar__petals" id="petal-radar-petals"></g>
+                      <g class="petal-radar__icons" id="petal-radar-icons"></g>
+                    </svg>
+                  </div>
                 </div>
 
                 <!-- Google Rating — subtle inline, not a tile -->
@@ -326,9 +354,6 @@
                   <span class="google-rating-number type-data--sm" id="google-rating-num"></span>
                   <span class="google-count type-data--sm" id="google-count"></span>
                 </div>
-
-                <!-- Vibe Profile: Individual dimension tiles (rendered by JS) -->
-                <div class="vibe-tiles" id="vibe-tiles" role="group" aria-label="Vibe Profile"></div>
               </div>
 
               <!-- Block 4: Profile — "About This Spot" -->
@@ -341,26 +366,11 @@
                     <path fill="currentColor" d="M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z"/>
                   </svg>
                 </button>
-                <div class="profile-compact" id="profile-compact"></div>
+                <!-- Compact: icon-only glyph bar (mobile) -->
+                <div class="glyph-bar" id="glyph-bar" role="group" aria-label="Restaurant details"></div>
+                <!-- Expanded: full detail badges grid (atmosphere merged in) -->
                 <div class="profile-details" id="profile-details">
                   <div class="profile-facts" id="profile-facts"></div>
-                  <div class="profile-atmosphere" id="profile-atmosphere"></div>
-                  <div class="profile-sentiment" id="profile-sentiment" style="display: none;">
-                    <div class="profile-sentiment__header">
-                      <span class="profile-sentiment__label type-data--sm">Review Sentiment</span>
-                      <span class="profile-sentiment__score type-data--sm" id="sentiment-score-label"></span>
-                    </div>
-                    <div class="sentiment-bar">
-                      <div class="sentiment-bar__pos" id="sentiment-pos"></div>
-                      <div class="sentiment-bar__neu" id="sentiment-neu"></div>
-                      <div class="sentiment-bar__neg" id="sentiment-neg"></div>
-                    </div>
-                    <div class="profile-sentiment__legend type-data--sm">
-                      <span class="profile-sentiment__legend-item"><span class="profile-sentiment__dot profile-sentiment__dot--pos"></span> Positive <span id="sentiment-pos-pct"></span></span>
-                      <span class="profile-sentiment__legend-item"><span class="profile-sentiment__dot profile-sentiment__dot--neu"></span> Neutral <span id="sentiment-neu-pct"></span></span>
-                      <span class="profile-sentiment__legend-item"><span class="profile-sentiment__dot profile-sentiment__dot--neg"></span> Negative <span id="sentiment-neg-pct"></span></span>
-                    </div>
-                  </div>
                 </div>
               </div>
 

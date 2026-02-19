@@ -13,7 +13,7 @@ import { initShare, shareResult, closeShareSheet, handleShareChannel } from './s
 import { initOffline, isOnline } from './offline.js';
 import { initAccessibility, announce } from './accessibility.js';
 import { fetchRecommendation } from './api.js';
-import { animateScoreRing, renderVibeTiles, animateBadge, startParticles, stopParticles, chaosToOrderReveal, initLogoAnimation, startSearchPulse, stopSearchPulse, resolveLogoToFound, cleanupLoadingLogo } from './animations.js';
+import { animateScoreRing, renderPetalRadar, renderSentimentArc, animateBadge, startParticles, stopParticles, chaosToOrderReveal, initLogoAnimation, startSearchPulse, stopSearchPulse, resolveLogoToFound, cleanupLoadingLogo } from './animations.js';
 import {
   getGreeting, getCuisineFromResult, svgIcon,
   getScoreTier, getScoreColor, buildGoogleStars, buildMapsUrl, relativeTime, matchCuisine
@@ -1038,44 +1038,62 @@ function renderResult(data) {
     $googleInline.style.display = 'none';
   }
 
-  // ---- Vibe Profile Tiles ----
-  renderVibeTiles(data.scores || {}, animationTimers);
+  // ---- Petal Radar (Vibe Profile) ----
+  renderPetalRadar(data.scores || {}, animationTimers);
 
-  // ---- Profile Block: Facts (all neutral badges — Cuisine, Price, Parking, Noise, Ambiance, Dress) ----
+  // ---- Profile Block: Unified badges (facts + atmosphere merged) ----
   const $profileFacts = document.getElementById('profile-facts');
+  const $glyphBar = document.getElementById('glyph-bar');
+  const allBadges = [];
+
   if ($profileFacts) {
     $profileFacts.innerHTML = '';
-    const badges = [];
 
+    // Fact badges
     if (r.cuisine_type) {
-      badges.push({ icon: cuisine.icon || 'plate', label: 'Cuisine',
-        value: shortenBadgeValue(r.cuisine_type), raw: r.cuisine_type });
+      allBadges.push({ icon: cuisine.icon || 'plate', label: 'Cuisine',
+        value: shortenBadgeValue(r.cuisine_type), raw: r.cuisine_type, isAtmo: false });
     }
     if (r.price_level) {
-      badges.push({ icon: 'tag', label: 'Price',
-        value: r.price_level, raw: r.price_level });
+      allBadges.push({ icon: 'tag', label: 'Price',
+        value: r.price_level, raw: r.price_level, isAtmo: false });
     }
     if (r.parking_availability) {
       const pts = parseParkingTypes(r.parking_availability).slice(0, 2);
-      badges.push({ icon: 'car', label: 'Parking',
-        value: pts.join(' / '), raw: r.parking_availability });
+      allBadges.push({ icon: 'car', label: 'Parking',
+        value: pts.join(' / '), raw: r.parking_availability, isAtmo: false });
     }
     if (r.noise_level) {
-      badges.push({ icon: 'speakerWave', label: 'Noise',
-        value: shortenBadgeValue(r.noise_level), raw: r.noise_level });
+      allBadges.push({ icon: 'speakerWave', label: 'Noise',
+        value: shortenBadgeValue(r.noise_level), raw: r.noise_level, isAtmo: false });
     }
     if (r.lighting_ambiance) {
-      badges.push({ icon: 'sun', label: 'Ambiance',
-        value: shortenBadgeValue(r.lighting_ambiance), raw: r.lighting_ambiance });
+      allBadges.push({ icon: 'sun', label: 'Ambiance',
+        value: shortenBadgeValue(r.lighting_ambiance), raw: r.lighting_ambiance, isAtmo: false });
     }
     if (r.dress_code) {
-      badges.push({ icon: 'shirt', label: 'Dress',
-        value: shortenBadgeValue(r.dress_code), raw: r.dress_code });
+      allBadges.push({ icon: 'shirt', label: 'Dress',
+        value: shortenBadgeValue(r.dress_code), raw: r.dress_code, isAtmo: false });
     }
 
-    badges.forEach(b => {
+    // Atmosphere badges (merged in)
+    if (r.outdoor_seating) {
+      allBadges.push({ icon: 'patio', label: 'Patio', value: 'Yes', raw: 'Outdoor seating', isAtmo: true });
+    }
+    if (r.live_music) {
+      allBadges.push({ icon: 'music', label: 'Live Music', value: 'Yes', raw: 'Live music venue', isAtmo: true });
+    }
+    if (r.pet_friendly) {
+      allBadges.push({ icon: 'pet', label: 'Pet Friendly', value: 'Yes', raw: 'Pet-friendly', isAtmo: true });
+    }
+
+    // Render expanded badge grid (all badges)
+    allBadges.forEach(b => {
       const div = document.createElement('div');
-      div.className = 'details-badge' + (b.label === 'Cuisine' ? ' details-badge--cuisine' : '');
+      const cls = ['details-badge'];
+      if (b.label === 'Cuisine') cls.push('details-badge--cuisine');
+      if (b.isAtmo) cls.push('details-badge--atmo');
+      div.className = cls.join(' ');
       div.innerHTML = `
         <span class="details-badge__icon">${svgIcon(b.icon, 16)}</span>
         <span class="details-badge__label type-data--sm">${b.label}</span>
@@ -1084,20 +1102,62 @@ function renderResult(data) {
       $profileFacts.appendChild(div);
     });
 
-    $profileFacts.style.display = badges.length > 0 ? '' : 'none';
+    $profileFacts.style.display = allBadges.length > 0 ? '' : 'none';
+  }
 
-    // Render compact profile preview (organized grid with labels)
-    const $profileCompact = document.getElementById('profile-compact');
-    if ($profileCompact) {
-      $profileCompact.innerHTML = '';
-      badges.forEach(b => {
-        const item = document.createElement('span');
-        item.className = 'profile-compact__item';
-        if (b.raw && b.raw !== b.value) item.setAttribute('title', b.raw);
-        item.innerHTML = `${svgIcon(b.icon, 14)}<span class="profile-compact__label">${b.label}</span><span class="profile-compact__value type-data--sm">${b.value}</span>`;
-        $profileCompact.appendChild(item);
+  // ---- Glyph Bar (icon-only compact view for mobile) ----
+  if ($glyphBar) {
+    $glyphBar.innerHTML = '';
+    const REDUCED_MQ = matchMedia('(prefers-reduced-motion: reduce)');
+
+    allBadges.forEach((b, i) => {
+      const glyph = document.createElement('button');
+      glyph.className = 'glyph-bar__item' + (b.isAtmo ? ' glyph-bar__item--atmo' : '');
+      glyph.setAttribute('aria-label', `${b.label}: ${b.value}`);
+      glyph.setAttribute('type', 'button');
+
+      // Handwritten jitter rotation
+      const rotation = ((Math.random() - 0.5) * 4).toFixed(1);
+
+      glyph.innerHTML = `
+        ${svgIcon(b.icon, 16)}
+        <div class="glyph-bar__tooltip">
+          <span class="glyph-bar__tooltip-label">${b.label}</span>
+          <span class="glyph-bar__tooltip-value">${b.value}</span>
+        </div>`;
+
+      // Tap to toggle tooltip
+      glyph.addEventListener('click', (e) => {
+        e.stopPropagation();
+        $glyphBar.querySelectorAll('.glyph-bar__item--active').forEach(g => {
+          if (g !== glyph) g.classList.remove('glyph-bar__item--active');
+        });
+        glyph.classList.toggle('glyph-bar__item--active');
       });
-    }
+
+      // Spring pop stagger entrance
+      if (!REDUCED_MQ.matches) {
+        glyph.style.opacity = '0';
+        const baseTransform = `rotate(${rotation}deg)`;
+        glyph.style.transform = `${baseTransform} scale(0.7)`;
+        animationTimers.push(setTimeout(() => {
+          glyph.style.transition = 'opacity 200ms ease-out, transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
+          glyph.style.opacity = '1';
+          glyph.style.transform = `${baseTransform} scale(1)`;
+        }, 500 + i * 50));
+      } else {
+        glyph.style.transform = `rotate(${rotation}deg)`;
+      }
+
+      $glyphBar.appendChild(glyph);
+    });
+
+    // Close tooltips when clicking outside glyph bar
+    document.addEventListener('click', () => {
+      $glyphBar.querySelectorAll('.glyph-bar__item--active').forEach(g => {
+        g.classList.remove('glyph-bar__item--active');
+      });
+    }, { once: true });
   }
 
   // ---- Quick Links (Website, Call, Share) ----
@@ -1127,94 +1187,40 @@ function renderResult(data) {
     $tip.style.display = 'none';
   }
 
-  // ---- Profile Block: Atmosphere (boolean features only — ambiance/dress moved to badge grid) ----
-  const $profileAtmo = document.getElementById('profile-atmosphere');
-  if ($profileAtmo) {
-    $profileAtmo.innerHTML = '';
-    const atmoItems = [];
-    if (r.outdoor_seating) atmoItems.push({ icon: 'patio', label: 'Patio' });
-    if (r.live_music) atmoItems.push({ icon: 'music', label: 'Live Music' });
-    if (r.pet_friendly) atmoItems.push({ icon: 'pet', label: 'Pet Friendly' });
-
-    atmoItems.forEach(a => {
-      const span = document.createElement('span');
-      span.className = 'atmo-tag';
-      span.innerHTML = `<span class="atmo-tag__icon">${svgIcon(a.icon, 14)}</span><span class="type-data--sm">${a.label}</span>`;
-      $profileAtmo.appendChild(span);
-    });
-
-    $profileAtmo.style.display = atmoItems.length > 0 ? '' : 'none';
-
-    // Add atmosphere items to compact preview as a row of tags
-    const $profileCompact2 = document.getElementById('profile-compact');
-    if ($profileCompact2 && atmoItems.length > 0) {
-      const atmoRow = document.createElement('div');
-      atmoRow.className = 'profile-compact__atmo-row';
-      atmoItems.forEach(a => {
-        const tag = document.createElement('span');
-        tag.className = 'profile-compact__atmo-tag';
-        tag.innerHTML = `${svgIcon(a.icon, 12)}<span class="type-data--sm">${a.label}</span>`;
-        atmoRow.appendChild(tag);
-      });
-      $profileCompact2.appendChild(atmoRow);
-    }
-
-    // Spring pop stagger for atmosphere tags (organic jitter for handwritten feel)
-    const REDUCED_MQ = matchMedia('(prefers-reduced-motion: reduce)');
-    if (!REDUCED_MQ.matches && atmoItems.length > 0) {
-      const allTags = $profileAtmo.querySelectorAll('.atmo-tag');
-      allTags.forEach((tag, i) => {
-        const jitter = Math.floor(Math.random() * 40);
-        const rotation = ((Math.random() - 0.5) * 6).toFixed(1);
-        tag.style.opacity = '0';
-        tag.style.transform = `scale(0.8) rotate(${rotation}deg)`;
-        animationTimers.push(setTimeout(() => {
-          tag.style.transition = 'opacity 200ms ease-out, transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
-          tag.style.opacity = '1';
-          tag.style.transform = 'scale(1) rotate(0deg)';
-        }, 980 + i * 80 + jitter));
-      });
-    }
-  }
-
-  // ---- Profile Block: Sentiment (with legend + score label) ----
-  const $sentSection = document.getElementById('profile-sentiment');
-  if ($sentSection && r.sentiment_breakdown) {
-    $sentSection.style.display = 'block';
+  // ---- Sentiment Arc (subtle under score ring) ----
+  const $sentArc = document.getElementById('sentiment-arc');
+  if ($sentArc && r.sentiment_breakdown) {
+    $sentArc.style.display = '';
     const parts = r.sentiment_breakdown.toLowerCase();
     const posMatch = parts.match(/positive[:\s]+(\d+)/);
     const neuMatch = parts.match(/neutral[:\s]+(\d+)/);
     const negMatch = parts.match(/negative[:\s]+(\d+)/);
-    const posVal = posMatch?.[1] || '33';
-    const neuVal = neuMatch?.[1] || '34';
-    const negVal = negMatch?.[1] || '33';
+    const posVal = parseInt(posMatch?.[1] || '33', 10);
+    const neuVal = parseInt(neuMatch?.[1] || '34', 10);
+    const negVal = parseInt(negMatch?.[1] || '33', 10);
 
-    const $pos = document.getElementById('sentiment-pos');
-    const $neu = document.getElementById('sentiment-neu');
-    const $neg = document.getElementById('sentiment-neg');
-    if ($pos) $pos.style.width = `${posVal}%`;
-    if ($neu) $neu.style.width = `${neuVal}%`;
-    if ($neg) $neg.style.width = `${negVal}%`;
+    renderSentimentArc(posVal, neuVal, negVal, animationTimers);
 
-    // Populate legend labels
-    const $scoreLabel = document.getElementById('sentiment-score-label');
-    const $posPct = document.getElementById('sentiment-pos-pct');
-    const $neuPct = document.getElementById('sentiment-neu-pct');
-    const $negPct = document.getElementById('sentiment-neg-pct');
-    if ($scoreLabel) $scoreLabel.textContent = `${posVal}% Positive`;
-    if ($posPct) $posPct.textContent = `${posVal}%`;
-    if ($neuPct) $neuPct.textContent = `${neuVal}%`;
-    if ($negPct) $negPct.textContent = `${negVal}%`;
-  } else if ($sentSection) {
-    $sentSection.style.display = 'none';
+    // Tooltip labels
+    const $tipPos = document.getElementById('sentiment-tip-pos');
+    const $tipNeu = document.getElementById('sentiment-tip-neu');
+    const $tipNeg = document.getElementById('sentiment-tip-neg');
+    if ($tipPos) $tipPos.textContent = `${posVal}% Positive`;
+    if ($tipNeu) $tipNeu.textContent = `${neuVal}% Neutral`;
+    if ($tipNeg) $tipNeg.textContent = `${negVal}% Negative`;
+
+    // Tap toggle for mobile tooltip
+    $sentArc.addEventListener('click', () => {
+      $sentArc.classList.toggle('sentiment-arc--active');
+    });
+  } else if ($sentArc) {
+    $sentArc.style.display = 'none';
   }
 
-  // Hide entire profile block if no sub-sections have content
+  // Hide entire profile block if no badges
   const $profile = document.getElementById('result-profile');
   if ($profile) {
-    const hasContent = ($profileFacts && $profileFacts.style.display !== 'none' && $profileFacts.children.length > 0)
-      || ($profileAtmo && $profileAtmo.style.display !== 'none' && $profileAtmo.children.length > 0)
-      || ($sentSection && $sentSection.style.display !== 'none');
+    const hasContent = allBadges.length > 0;
     $profile.style.display = hasContent ? '' : 'none';
   }
 
@@ -1314,11 +1320,43 @@ function openTileExpand(tileEl) {
         </div>
       </div>
       <span class="score-verdict type-structural--bold ${tier.cssClass}" style="font-size: var(--text-lg);">${tier.verdict}</span>`;
+  } else if (tileEl.id === 'score-tile-radar') {
+    // Expanded petal radar with dimension list
+    const scores = data.scores || {};
+    const dims = [
+      { key: 'date_friendly_score',  label: 'Date',     icon: 'heart' },
+      { key: 'group_friendly_score', label: 'Group',    icon: 'usersThree' },
+      { key: 'family_friendly_score',label: 'Family',   icon: 'house' },
+      { key: 'business_lunch_score', label: 'Business', icon: 'briefcase' },
+      { key: 'solo_dining_score',    label: 'Solo',     icon: 'user' },
+      { key: 'hole_in_wall_factor',  label: 'Gem',      icon: 'diamond' },
+    ];
+    const available = dims.filter(d => {
+      const v = scores[d.key];
+      return v != null && v !== '' && !isNaN(parseFloat(v));
+    });
+    const dimListHtml = available.map(d => {
+      const val = Math.min(parseFloat(scores[d.key]) || 0, 10);
+      const pct = (val / 10) * 100;
+      return `
+        <div class="tile-expand__dim">
+          <span class="tile-expand__dim-icon">${svgIcon(d.icon, 16)}</span>
+          <span class="tile-expand__dim-label type-data--sm">${d.label}</span>
+          <div class="tile-expand__dim-bar">
+            <div class="tile-expand__dim-fill" style="width: ${pct}%"></div>
+          </div>
+          <span class="tile-expand__dim-value type-data--sm">${val.toFixed(1)}</span>
+        </div>`;
+    }).join('');
+
+    $content.innerHTML = `
+      <span class="tile-expand__title type-data--sm">Vibe Profile</span>
+      <div class="tile-expand__dims">${dimListHtml}</div>`;
   }
 
   $modal.classList.add('tile-expand--open');
   $modal.querySelector('.tile-expand__close')?.focus();
-  announce('Match details expanded');
+  announce(tileEl.id === 'score-tile-radar' ? 'Vibe profile expanded' : 'Match details expanded');
 }
 
 function closeTileExpand() {

@@ -22,6 +22,16 @@
   }
 }
 
+/* ---- Mobile: score tile chrome stripping ---- */
+@media (max-width: 767px) {
+  .score-tile--radar {
+    background: transparent;
+    border: none;
+    padding: var(--space-xs) 0;
+    border-radius: 0;
+  }
+}
+
 /* ---- 768px: Tablet ---- */
 @media (min-width: 768px) {
   :root {
@@ -50,6 +60,25 @@
 
   .result-card {
     padding: var(--space-xl);
+  }
+
+  /* Score row: side by side on tablet+ */
+  .score-row {
+    flex-direction: row;
+    justify-content: center;
+    align-items: stretch;
+  }
+
+  .score-row .score-tile--donde,
+  .score-row .score-tile--radar {
+    flex: 1 1 0;
+    max-width: 280px;
+    min-width: 0;
+  }
+
+  .petal-radar {
+    width: 160px;
+    height: 160px;
   }
 }
 
@@ -80,6 +109,11 @@
   .ambient__blob--2 {
     max-width: 450px;
     max-height: 450px;
+  }
+
+  .petal-radar {
+    width: 180px;
+    height: 180px;
   }
 }
 
