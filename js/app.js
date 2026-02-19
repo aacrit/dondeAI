@@ -696,7 +696,15 @@ function wireEvents() {
         break;
       }
 
-      /* toggle-profile removed — profile heading eliminated */
+      case 'toggle-profile-details': {
+        const $details = document.getElementById('profile-details');
+        const isExpanded = btn.getAttribute('aria-expanded') === 'true';
+        btn.setAttribute('aria-expanded', String(!isExpanded));
+        if ($details) $details.classList.toggle('profile-details--visible');
+        btn.querySelector('.profile-expand-btn__text').textContent =
+          isExpanded ? 'View details' : 'Hide details';
+        break;
+      }
     }
   });
 
@@ -1315,7 +1323,7 @@ async function orchestrateReveal(data) {
 
   // 4. Show result card with scale-in animation
   if ($resultCard) {
-    $resultCard.style.display = 'flex';
+    $resultCard.style.display = '';
     $resultCard.style.opacity = '0';
     $resultCard.style.transform = 'scale(0.95)';
   }
@@ -1365,7 +1373,15 @@ function renderResult(data) {
   if (!data?.restaurant) return;
   const r = data.restaurant;
 
-  // Profile toggle removed — details always visible on tablet+, glyph bar on mobile
+  // Reset profile details to collapsed on mobile
+  const $profileDetails = document.getElementById('profile-details');
+  if ($profileDetails) $profileDetails.classList.remove('profile-details--visible');
+  const $expandBtn = document.querySelector('[data-action="toggle-profile-details"]');
+  if ($expandBtn) {
+    $expandBtn.setAttribute('aria-expanded', 'false');
+    const $btnText = $expandBtn.querySelector('.profile-expand-btn__text');
+    if ($btnText) $btnText.textContent = 'View details';
+  }
 
   // Cancel any in-flight animation timeouts from a previous render
   animationTimers.forEach(clearTimeout);

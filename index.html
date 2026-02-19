@@ -377,11 +377,17 @@
                 </div>
               </div>
 
-              <!-- Block 4: Profile — "About This Spot" -->
+              <!-- Block 4: Profile -->
               <div class="result-profile" id="result-profile">
                 <!-- Compact: icon-only glyph bar (mobile) -->
                 <div class="glyph-bar" id="glyph-bar" role="group" aria-label="Restaurant details"></div>
-                <!-- Expanded: full detail badges grid (atmosphere merged in) -->
+                <!-- Mobile expand link -->
+                <button class="profile-expand-btn type-data--sm"
+                        data-action="toggle-profile-details"
+                        aria-expanded="false" aria-controls="profile-details">
+                  <span class="profile-expand-btn__text">View details</span>
+                </button>
+                <!-- Full detail badges grid -->
                 <div class="profile-details" id="profile-details">
                   <div class="profile-facts" id="profile-facts"></div>
                 </div>

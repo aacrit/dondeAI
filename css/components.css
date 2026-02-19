@@ -1410,10 +1410,37 @@
   font-weight: 600;
 }
 
-/* ---- Profile Visibility (no toggle — glyph bar on mobile, badge grid on tablet+) ---- */
+/* ---- Profile Expand Button (mobile only) ---- */
+.profile-expand-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2xs);
+  background: none;
+  border: none;
+  padding: var(--space-2xs) 0;
+  color: var(--fg3);
+  cursor: pointer;
+  font-family: var(--font-data);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  transition: color var(--dur-fast) var(--ease-out);
+}
+
+.profile-expand-btn:hover {
+  color: var(--fg2);
+}
+
+/* ---- Profile Visibility (glyph bar + expand on mobile, badge grid on tablet+) ---- */
 @media (max-width: 767px) {
   .profile-details {
     display: none;
+  }
+  .profile-details--visible {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
   }
   .glyph-bar {
     display: flex;
@@ -1426,6 +1453,9 @@
 
 @media (min-width: 768px) {
   .glyph-bar {
+    display: none;
+  }
+  .profile-expand-btn {
     display: none;
   }
   .profile-details {
