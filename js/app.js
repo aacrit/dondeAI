@@ -1065,11 +1065,11 @@ function renderResult(data) {
         value: pts.join(' / '), raw: r.parking_availability, isAtmo: false });
     }
     if (r.noise_level) {
-      allBadges.push({ icon: 'speakerWave', label: 'Noise',
+      allBadges.push({ icon: getNoiseIcon(r.noise_level), label: 'Noise',
         value: shortenBadgeValue(r.noise_level), raw: r.noise_level, isAtmo: false });
     }
     if (r.lighting_ambiance) {
-      allBadges.push({ icon: 'sun', label: 'Ambiance',
+      allBadges.push({ icon: getAmbianceIcon(r.lighting_ambiance), label: 'Ambiance',
         value: shortenBadgeValue(r.lighting_ambiance), raw: r.lighting_ambiance, isAtmo: false });
     }
     if (r.dress_code) {
@@ -1120,8 +1120,14 @@ function renderResult(data) {
       // Handwritten jitter rotation
       const rotation = ((Math.random() - 0.5) * 4).toFixed(1);
 
+      const glyphContent = b.label === 'Price'
+        ? `<span class="glyph-bar__text">${b.value}</span>`
+        : svgIcon(b.icon, 16);
+
+      if (b.label === 'Price') glyph.classList.add('glyph-bar__item--text');
+
       glyph.innerHTML = `
-        ${svgIcon(b.icon, 16)}
+        ${glyphContent}
         <div class="glyph-bar__tooltip">
           <span class="glyph-bar__tooltip-label">${b.label}</span>
           <span class="glyph-bar__tooltip-value">${b.value}</span>
@@ -1269,7 +1275,26 @@ function shortenBadgeValue(value) {
   return value.split(/[,/;]/).at(0).trim();
 }
 
-/* Badge color helpers removed — all badges use neutral styling ("Ink Rule"). */
+/* ---- Noise Level → Speaker Icon Mapper ---- */
+function getNoiseIcon(noiseStr) {
+  if (!noiseStr) return 'speakerWave';
+  const lower = noiseStr.toLowerCase();
+  if (lower.includes('quiet') || lower.includes('soft') || lower.includes('hushed'))
+    return 'speakerNone';
+  if (lower.includes('loud') || lower.includes('boisterous') || lower.includes('lively'))
+    return 'speakerHigh';
+  return 'speakerWave';
+}
+
+/* ---- Ambiance → Icon Mapper ---- */
+function getAmbianceIcon(ambianceStr) {
+  if (!ambianceStr) return 'sun';
+  const lower = ambianceStr.toLowerCase();
+  if (lower.includes('dim') || lower.includes('cozy') || lower.includes('warm') ||
+      lower.includes('intimate') || lower.includes('candlelit'))
+    return 'moon';
+  return 'sun';
+}
 
 /* ---- Tile Expand Modal ---- */
 function openTileExpand(tileEl) {

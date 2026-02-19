@@ -76,6 +76,11 @@
     width: 160px;
     height: 160px;
   }
+
+  .score-tile .score-ring-wrap {
+    width: 120px;
+    height: 120px;
+  }
 }
 
 /* ---- 1024px: Desktop ---- */
