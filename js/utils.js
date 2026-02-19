@@ -617,3 +617,39 @@ export function normalizeNoiseLevel(noiseStr) {
   if (lower.includes('moderate') || lower.includes('normal') || lower.includes('average')) return 5;
   return 5; // default moderate
 }
+
+/* ---- Vibe Summary Builder (creative prose from dimension scores) ---- */
+const VIBE_DESCRIPTORS = {
+  date_friendly_score:    'romantic dates',
+  group_friendly_score:   'group outings',
+  family_friendly_score:  'family dinners',
+  business_lunch_score:   'business lunches',
+  solo_dining_score:      'solo dining',
+  hole_in_wall_factor:    'hidden gem seekers',
+};
+
+export function buildVibeSummary(scores) {
+  if (!scores) return '';
+
+  const dims = Object.entries(VIBE_DESCRIPTORS)
+    .map(([key, descriptor]) => {
+      const val = parseFloat(scores[key]);
+      return (!isNaN(val) && val > 0) ? { val, descriptor } : null;
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.val - a.val);
+
+  if (dims.length === 0) return '';
+
+  // Top 2-3 dimensions above threshold
+  const top = dims.filter(d => d.val >= 4.0).slice(0, 3);
+  if (top.length === 0) top.push(dims[0]);
+
+  const maxVal = top[0].val;
+  const prefix = maxVal >= 8 ? 'Ideal for' : maxVal >= 6 ? 'Great for' : 'Good for';
+  const labels = top.map(d => d.descriptor);
+
+  if (labels.length === 1) return `${prefix} ${labels[0]}`;
+  if (labels.length === 2) return `${prefix} ${labels[0]} and ${labels[1]}`;
+  return `${prefix} ${labels.slice(0, -1).join(', ')}, and ${labels[labels.length - 1]}`;
+}

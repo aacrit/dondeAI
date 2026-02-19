@@ -696,13 +696,7 @@ function wireEvents() {
         break;
       }
 
-      case 'toggle-profile': {
-        const $profile = document.getElementById('result-profile');
-        const isExpanded = btn.getAttribute('aria-expanded') === 'true';
-        btn.setAttribute('aria-expanded', String(!isExpanded));
-        if ($profile) $profile.classList.toggle('result-profile--expanded');
-        break;
-      }
+      /* toggle-profile removed — profile heading eliminated */
     }
   });
 
@@ -1371,11 +1365,7 @@ function renderResult(data) {
   if (!data?.restaurant) return;
   const r = data.restaurant;
 
-  // Reset profile to collapsed
-  const $profileToggle = document.querySelector('[data-action="toggle-profile"]');
-  if ($profileToggle) $profileToggle.setAttribute('aria-expanded', 'false');
-  const $profileEl = document.getElementById('result-profile');
-  if ($profileEl) $profileEl.classList.remove('result-profile--expanded');
+  // Profile toggle removed — details always visible on tablet+, glyph bar on mobile
 
   // Cancel any in-flight animation timeouts from a previous render
   animationTimers.forEach(clearTimeout);
@@ -1488,7 +1478,7 @@ function renderResult(data) {
       };
     }
     $googleInline.style.display = '';
-    animationTimers.push(setTimeout(() => { $googleInline.style.opacity = '1'; }, 900));
+    animationTimers.push(setTimeout(() => { $googleInline.style.opacity = '1'; }, 800));
   } else if ($googleInline) {
     $googleInline.style.display = 'none';
   }
@@ -1499,55 +1489,58 @@ function renderResult(data) {
   // ---- Profile Block: Unified badges (facts + atmosphere merged) ----
   const $profileFacts = document.getElementById('profile-facts');
   const $glyphBar = document.getElementById('glyph-bar');
-  const allBadges = [];
+
+  // Canonical 9-slot badge order — always render all, dim missing data
+  const parkingPts = r.parking_availability
+    ? parseParkingTypes(r.parking_availability).slice(0, 2).join(' / ') : null;
+  const CANONICAL_BADGES = [
+    { icon: cuisine.icon || 'plate', label: 'Cuisine',
+      value: r.cuisine_type ? shortenBadgeValue(r.cuisine_type) : null,
+      raw: r.cuisine_type || '', isCuisine: true, isAtmo: false },
+    { icon: 'tag', label: 'Price',
+      value: r.price_level || null,
+      raw: r.price_level || '', isAtmo: false },
+    { icon: 'car', label: 'Parking',
+      value: parkingPts,
+      raw: r.parking_availability || '', isAtmo: false },
+    { icon: getNoiseIcon(r.noise_level), label: 'Noise',
+      value: r.noise_level ? shortenBadgeValue(r.noise_level) : null,
+      raw: r.noise_level || '', isAtmo: false },
+    { icon: getAmbianceIcon(r.lighting_ambiance), label: 'Ambiance',
+      value: r.lighting_ambiance ? normalizeAmbiance(r.lighting_ambiance) : null,
+      raw: r.lighting_ambiance || '', isAtmo: false },
+    { icon: 'shirt', label: 'Dress',
+      value: r.dress_code ? shortenBadgeValue(r.dress_code) : null,
+      raw: r.dress_code || '', isAtmo: false },
+    { icon: 'patio', label: 'Patio',
+      value: r.outdoor_seating === true ? 'Yes' : (r.outdoor_seating === false ? 'No' : null),
+      raw: r.outdoor_seating != null ? (r.outdoor_seating ? 'Outdoor seating' : 'No patio') : '',
+      isAtmo: true },
+    { icon: 'music', label: 'Live Music',
+      value: r.live_music === true ? 'Yes' : (r.live_music === false ? 'No' : null),
+      raw: r.live_music != null ? (r.live_music ? 'Live music venue' : 'No live music') : '',
+      isAtmo: true },
+    { icon: 'pet', label: 'Pet Friendly',
+      value: r.pet_friendly === true ? 'Yes' : (r.pet_friendly === false ? 'No' : null),
+      raw: r.pet_friendly != null ? (r.pet_friendly ? 'Pet-friendly' : 'Not pet-friendly') : '',
+      isAtmo: true },
+  ];
+
+  const allBadges = CANONICAL_BADGES.map(b => ({
+    ...b,
+    isNA: b.value == null,
+    value: b.value != null ? b.value : '\u2014',
+  }));
 
   if ($profileFacts) {
     $profileFacts.innerHTML = '';
 
-    // Fact badges
-    if (r.cuisine_type) {
-      allBadges.push({ icon: cuisine.icon || 'plate', label: 'Cuisine',
-        value: shortenBadgeValue(r.cuisine_type), raw: r.cuisine_type, isAtmo: false });
-    }
-    if (r.price_level) {
-      allBadges.push({ icon: 'tag', label: 'Price',
-        value: r.price_level, raw: r.price_level, isAtmo: false });
-    }
-    if (r.parking_availability) {
-      const pts = parseParkingTypes(r.parking_availability).slice(0, 2);
-      allBadges.push({ icon: 'car', label: 'Parking',
-        value: pts.join(' / '), raw: r.parking_availability, isAtmo: false });
-    }
-    if (r.noise_level) {
-      allBadges.push({ icon: getNoiseIcon(r.noise_level), label: 'Noise',
-        value: shortenBadgeValue(r.noise_level), raw: r.noise_level, isAtmo: false });
-    }
-    if (r.lighting_ambiance) {
-      allBadges.push({ icon: getAmbianceIcon(r.lighting_ambiance), label: 'Ambiance',
-        value: shortenBadgeValue(r.lighting_ambiance), raw: r.lighting_ambiance, isAtmo: false });
-    }
-    if (r.dress_code) {
-      allBadges.push({ icon: 'shirt', label: 'Dress',
-        value: shortenBadgeValue(r.dress_code), raw: r.dress_code, isAtmo: false });
-    }
-
-    // Atmosphere badges (merged in)
-    if (r.outdoor_seating) {
-      allBadges.push({ icon: 'patio', label: 'Patio', value: 'Yes', raw: 'Outdoor seating', isAtmo: true });
-    }
-    if (r.live_music) {
-      allBadges.push({ icon: 'music', label: 'Live Music', value: 'Yes', raw: 'Live music venue', isAtmo: true });
-    }
-    if (r.pet_friendly) {
-      allBadges.push({ icon: 'pet', label: 'Pet Friendly', value: 'Yes', raw: 'Pet-friendly', isAtmo: true });
-    }
-
-    // Render expanded badge grid (all badges)
     allBadges.forEach(b => {
       const div = document.createElement('div');
       const cls = ['details-badge'];
-      if (b.label === 'Cuisine') cls.push('details-badge--cuisine');
+      if (b.isCuisine) cls.push('details-badge--cuisine');
       if (b.isAtmo) cls.push('details-badge--atmo');
+      if (b.isNA) cls.push('details-badge--na');
       div.className = cls.join(' ');
       div.innerHTML = `
         <span class="details-badge__icon">${svgIcon(b.icon, 16)}</span>
@@ -1557,7 +1550,7 @@ function renderResult(data) {
       $profileFacts.appendChild(div);
     });
 
-    $profileFacts.style.display = allBadges.length > 0 ? '' : 'none';
+    $profileFacts.style.display = '';
   }
 
   // ---- Glyph Bar (icon-only compact view for mobile) ----
@@ -1567,7 +1560,9 @@ function renderResult(data) {
 
     allBadges.forEach((b, i) => {
       const glyph = document.createElement('button');
-      glyph.className = 'glyph-bar__item' + (b.isAtmo ? ' glyph-bar__item--atmo' : '');
+      glyph.className = 'glyph-bar__item'
+        + (b.isAtmo ? ' glyph-bar__item--atmo' : '')
+        + (b.isNA ? ' glyph-bar__item--na' : '');
       glyph.setAttribute('aria-label', `${b.label}: ${b.value}`);
       glyph.setAttribute('type', 'button');
 
@@ -1748,6 +1743,24 @@ function getAmbianceIcon(ambianceStr) {
       lower.includes('intimate') || lower.includes('candlelit'))
     return 'moon';
   return 'sun';
+}
+
+/* ---- Ambiance → Concise Label Normalizer ---- */
+function normalizeAmbiance(ambianceStr) {
+  if (!ambianceStr) return '';
+  const lower = ambianceStr.toLowerCase();
+  if (lower.includes('candlelit')) return 'Candlelit';
+  if (lower.includes('dim') && lower.includes('warm')) return 'Dim & Warm';
+  if (lower.includes('dim') && lower.includes('intimate')) return 'Intimate';
+  if (lower.includes('dim')) return 'Dim';
+  if (lower.includes('cozy')) return 'Cozy';
+  if (lower.includes('warm') && lower.includes('intimate')) return 'Warm';
+  if (lower.includes('bright') && lower.includes('modern')) return 'Bright';
+  if (lower.includes('bright')) return 'Bright';
+  if (lower.includes('modern')) return 'Modern';
+  if (lower.includes('rustic')) return 'Rustic';
+  if (lower.includes('elegant')) return 'Elegant';
+  return shortenBadgeValue(ambianceStr);
 }
 
 /* ---- Tile Expand Modal ---- */

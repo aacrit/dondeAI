@@ -78,20 +78,20 @@
   }
 
   .petal-radar {
-    width: 160px;
-    height: 160px;
+    width: 180px;
+    height: 180px;
   }
 
   .score-tile .score-ring-wrap {
-    width: 120px;
-    height: 120px;
+    width: 140px;
+    height: 140px;
   }
 }
 
 /* ---- 1024px: Desktop ---- */
 @media (min-width: 1024px) {
   :root {
-    --content-max: 720px;
+    --content-max: 960px;
   }
 
   .header {
@@ -118,15 +118,61 @@
   }
 
   .petal-radar {
-    width: 180px;
-    height: 180px;
+    width: 200px;
+    height: 200px;
+  }
+
+  /* Two-column result card: narrative left, data right */
+  .result-card {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    grid-template-rows: auto auto 1fr auto;
+    gap: var(--space-md) var(--space-xl);
+    align-items: start;
+  }
+
+  .result-card .result-identity {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .result-card .result-story {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .result-card .score-section {
+    grid-column: 2;
+    grid-row: 1 / 3;
+  }
+
+  .result-card .result-profile {
+    grid-column: 2;
+    grid-row: 3;
+  }
+
+  .result-card .result-actions-block {
+    grid-column: 1 / -1;
+    grid-row: 4;
+  }
+
+  /* Score tiles stack vertically in right column (full width) */
+  .score-row {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .score-row .score-tile--donde,
+  .score-row .score-tile--radar {
+    max-width: 100%;
+    width: 100%;
   }
 }
 
 /* ---- 2560px: Large displays ---- */
 @media (min-width: 2560px) {
   :root {
-    --content-max: 800px;
+    --content-max: 1100px;
   }
 }
 

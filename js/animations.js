@@ -84,7 +84,7 @@ export function animateScoreRing(rawScore) {
 }
 
 /* ---- Petal Radar Chart (Ink Blossom — 6-axis vibe profile) ---- */
-import { svgIcon } from './utils.js';
+import { svgIcon, buildVibeSummary } from './utils.js';
 
 const RADAR_DIMS = [
   { key: 'date_friendly_score',    label: 'Date',     icon: 'heart' },
@@ -129,7 +129,7 @@ export function renderPetalRadar(scores, timers = []) {
   const $svg = document.getElementById('petal-radar');
   if (!$svg) return;
 
-  const cx = 100, cy = 100;
+  const cx = 120, cy = 120;
   const maxR = 62;
   const minR = 8;
   const angleStep = (2 * Math.PI) / 6;
@@ -212,26 +212,26 @@ export function renderPetalRadar(scores, timers = []) {
   slots.forEach((slot, i) => {
     if (!slot.hasData) return;
     const angle = startAngle + i * angleStep;
-    const iconR = maxR + 18;
+    const iconR = maxR + 22;
     const ix = cx + iconR * Math.cos(angle);
     const iy = cy + iconR * Math.sin(angle);
 
     // Icon via foreignObject
     const fo = svgEl('foreignObject');
-    fo.setAttribute('x', ix - 8);
-    fo.setAttribute('y', iy - 8);
-    fo.setAttribute('width', 16);
-    fo.setAttribute('height', 16);
+    fo.setAttribute('x', ix - 10);
+    fo.setAttribute('y', iy - 10);
+    fo.setAttribute('width', 20);
+    fo.setAttribute('height', 20);
     fo.setAttribute('class', 'petal-radar__icon-fo');
     const div = document.createElement('div');
     div.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml');
     div.className = 'petal-radar__icon';
-    div.innerHTML = svgIcon(slot.icon, 14);
+    div.innerHTML = svgIcon(slot.icon, 16);
     fo.appendChild(div);
     iconsG.appendChild(fo);
 
     // Label text
-    const labelR = maxR + 32;
+    const labelR = maxR + 40;
     const lx = cx + labelR * Math.cos(angle);
     const ly = cy + labelR * Math.sin(angle);
     const text = svgEl('text');
@@ -242,16 +242,16 @@ export function renderPetalRadar(scores, timers = []) {
     iconsG.appendChild(text);
   });
 
-  // Dominant vibe label below radar
-  const topSlot = slots.filter(s => s.hasData).sort((a, b) => b.val - a.val)[0];
-  if (topSlot) {
+  // Creative vibe summary below radar
+  const vibeSummary = buildVibeSummary(scores);
+  if (vibeSummary) {
     let $topVibe = $tile.querySelector('.score-tile__top-vibe');
     if (!$topVibe) {
       $topVibe = document.createElement('span');
-      $topVibe.className = 'score-tile__top-vibe type-data--sm';
+      $topVibe.className = 'score-tile__top-vibe type-structural';
       $tile.appendChild($topVibe);
     }
-    $topVibe.textContent = `Top: ${topSlot.label} ${topSlot.val.toFixed(1)}`;
+    $topVibe.textContent = vibeSummary;
   }
 }
 

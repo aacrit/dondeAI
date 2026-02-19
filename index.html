@@ -342,7 +342,7 @@
                       </span>
                       <span class="score-tile__score-label type-data--sm">Vibe<sup>™</sup></span>
                     </div>
-                    <svg class="petal-radar" id="petal-radar" viewBox="0 0 200 200" aria-hidden="true">
+                    <svg class="petal-radar" id="petal-radar" viewBox="0 0 240 240" aria-hidden="true">
                       <g class="petal-radar__grid"></g>
                       <g class="petal-radar__axes"></g>
                       <g class="petal-radar__petals" id="petal-radar-petals"></g>
@@ -351,40 +351,34 @@
                   </div>
                 </div>
 
-                <!-- Sentiment Bar: subtle horizontal mood indicator -->
-                <div class="sentiment-bar" id="sentiment-bar"
-                     role="img" aria-label="Review sentiment breakdown">
-                  <span class="sentiment-bar__label type-data--sm">Review Sentiment</span>
-                  <div class="sentiment-bar__track">
-                    <span class="sentiment-bar__seg sentiment-bar__seg--pos" id="sentiment-bar-pos"></span>
-                    <span class="sentiment-bar__seg sentiment-bar__seg--neu" id="sentiment-bar-neu"></span>
-                    <span class="sentiment-bar__seg sentiment-bar__seg--neg" id="sentiment-bar-neg"></span>
+                <!-- Reviews Unit: Google Rating + Sentiment merged -->
+                <div class="reviews-unit" id="reviews-unit">
+                  <span class="reviews-unit__label type-data--sm">Reviews</span>
+                  <div class="reviews-unit__row">
+                    <div class="google-rating-inline" id="google-rating-inline" style="display: none;">
+                      <div class="google-stars" id="google-stars"></div>
+                      <span class="google-rating-number type-data--sm" id="google-rating-num"></span>
+                      <span class="google-count type-data--sm" id="google-count"></span>
+                    </div>
+                    <div class="sentiment-bar" id="sentiment-bar"
+                         role="img" aria-label="Review sentiment breakdown">
+                      <div class="sentiment-bar__track">
+                        <span class="sentiment-bar__seg sentiment-bar__seg--pos" id="sentiment-bar-pos"></span>
+                        <span class="sentiment-bar__seg sentiment-bar__seg--neu" id="sentiment-bar-neu"></span>
+                        <span class="sentiment-bar__seg sentiment-bar__seg--neg" id="sentiment-bar-neg"></span>
+                      </div>
+                      <div class="sentiment-bar__tooltip" id="sentiment-bar-tooltip" role="tooltip">
+                        <span class="sentiment-bar__tip-item sentiment-bar__tip-item--pos" id="sentiment-tip-pos"></span>
+                        <span class="sentiment-bar__tip-item sentiment-bar__tip-item--neu" id="sentiment-tip-neu"></span>
+                        <span class="sentiment-bar__tip-item sentiment-bar__tip-item--neg" id="sentiment-tip-neg"></span>
+                      </div>
+                    </div>
                   </div>
-                  <div class="sentiment-bar__tooltip" id="sentiment-bar-tooltip" role="tooltip">
-                    <span class="sentiment-bar__tip-item sentiment-bar__tip-item--pos" id="sentiment-tip-pos"></span>
-                    <span class="sentiment-bar__tip-item sentiment-bar__tip-item--neu" id="sentiment-tip-neu"></span>
-                    <span class="sentiment-bar__tip-item sentiment-bar__tip-item--neg" id="sentiment-tip-neg"></span>
-                  </div>
-                </div>
-
-                <!-- Google Rating — subtle inline, not a tile -->
-                <div class="google-rating-inline" id="google-rating-inline" style="display: none;">
-                  <div class="google-stars" id="google-stars"></div>
-                  <span class="google-rating-number type-data--sm" id="google-rating-num"></span>
-                  <span class="google-count type-data--sm" id="google-count"></span>
                 </div>
               </div>
 
               <!-- Block 4: Profile — "About This Spot" -->
               <div class="result-profile" id="result-profile">
-                <button class="result-profile__toggle type-data--sm"
-                        data-action="toggle-profile"
-                        aria-expanded="false" aria-controls="profile-details">
-                  <span data-label="profile">About This Spot</span>
-                  <svg class="result-profile__chevron" viewBox="0 0 256 256" width="14" height="14" aria-hidden="true">
-                    <path fill="currentColor" d="M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z"/>
-                  </svg>
-                </button>
                 <!-- Compact: icon-only glyph bar (mobile) -->
                 <div class="glyph-bar" id="glyph-bar" role="group" aria-label="Restaurant details"></div>
                 <!-- Expanded: full detail badges grid (atmosphere merged in) -->
