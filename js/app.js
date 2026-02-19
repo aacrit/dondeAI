@@ -692,7 +692,12 @@ function wireEvents() {
       }
 
       case 'show-match-info': {
-        showToast('DondeAI Match\u2122 shows how likely you are to love this spot \u2014 based on cuisine quality, vibe fit, and hundreds of local reviews.');
+        showToast('Donde Match\u2122 shows how likely you are to love this spot \u2014 based on cuisine quality, vibe fit, and hundreds of local reviews.');
+        break;
+      }
+
+      case 'show-vibe-info': {
+        showToast('Donde Vibe\u2122 maps how this spot scores across date nights, groups, family, business, solo dining, and hidden gem factor.');
         break;
       }
 
@@ -1464,7 +1469,7 @@ function renderResult(data) {
     $scoreTileDonde.classList.add('score-tile--expandable');
     $scoreTileDonde.setAttribute('tabindex', '0');
     $scoreTileDonde.setAttribute('role', 'button');
-    $scoreTileDonde.setAttribute('aria-label', 'Expand DondeAI Match');
+    $scoreTileDonde.setAttribute('aria-label', 'Expand Donde Match');
   }
   // Delay score ring to after tile entrance
   animationTimers.push(setTimeout(() => animateScoreRing(data.donde_match), 800));
@@ -1632,21 +1637,34 @@ function renderResult(data) {
     }, { once: true });
   }
 
-  // ---- Quick Links (Website, Call, Share) ----
+  // ---- Quick Links (Website, Call, Share) — pill badges with dot separators ----
   const $resultLinks = document.getElementById('result-links');
   if ($resultLinks) {
     $resultLinks.innerHTML = '';
+    const links = [];
     if (r.website) {
       let hostname = 'Visit';
       try { hostname = new URL(r.website).hostname.replace('www.', ''); } catch { /* keep fallback */ }
-      $resultLinks.appendChild(createResultLink('a', 'globe', hostname, r.website));
+      links.push(createResultLink('a', 'globe', hostname, r.website));
     }
     if (r.phone) {
-      $resultLinks.appendChild(createResultLink('a', 'phone', r.phone, `tel:${r.phone}`));
+      links.push(createResultLink('a', 'phone', r.phone, `tel:${r.phone}`));
     }
     const shareLink = createResultLink('button', 'shareNetwork', 'Share');
     shareLink.setAttribute('data-action', 'share');
-    $resultLinks.appendChild(shareLink);
+    shareLink.classList.add('result-link--accent');
+    links.push(shareLink);
+
+    links.forEach((link, i) => {
+      if (i > 0) {
+        const sep = document.createElement('span');
+        sep.className = 'result-links__sep';
+        sep.textContent = '\u00b7';
+        sep.setAttribute('aria-hidden', 'true');
+        $resultLinks.appendChild(sep);
+      }
+      $resultLinks.appendChild(link);
+    });
   }
 
   // Insider tip
@@ -1797,7 +1815,7 @@ function openTileExpand(tileEl) {
     const offset = circumference - (pct / 100) * circumference;
     const strokeColor = 'var(--ac)';
     $content.innerHTML = `
-      <div class="score-tile__brand" aria-label="DondeAI Match">
+      <div class="score-tile__brand" aria-label="Donde Match">
         <svg class="score-tile__logo-mark" viewBox="0 0 32 44" width="20" height="28" aria-hidden="true">
           <path d="M10.5 1C10.5 1 10 8.5 12.5 11.5Q14 13 14.5 13.5"
                 fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
@@ -1809,9 +1827,8 @@ function openTileExpand(tileEl) {
         </svg>
         <span class="score-tile__wordmark" style="font-size: var(--text-sm);">
           <span class="score-tile__wordmark-d">D</span><span
-            class="score-tile__wordmark-onde">onde</span><span
-            class="score-tile__wordmark-a">A</span><span
-            class="score-tile__wordmark-i">I</span>
+            class="score-tile__wordmark-ond">ond</span><span
+            class="score-tile__wordmark-e">e</span>
         </span>
         <span class="score-tile__score-label type-data--sm">Match<sup>™</sup></span>
       </div>
@@ -1856,7 +1873,7 @@ function openTileExpand(tileEl) {
     }).join('');
 
     $content.innerHTML = `
-      <div class="score-tile__brand" aria-label="DondeAI Vibe" style="justify-content: center;">
+      <div class="score-tile__brand" aria-label="Donde Vibe" style="justify-content: center;">
         <svg class="score-tile__logo-mark" viewBox="0 0 32 44" width="20" height="28" aria-hidden="true">
           <path d="M10.5 1C10.5 1 10 8.5 12.5 11.5Q14 13 14.5 13.5"
                 fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
@@ -1868,9 +1885,8 @@ function openTileExpand(tileEl) {
         </svg>
         <span class="score-tile__wordmark" style="font-size: var(--text-sm);">
           <span class="score-tile__wordmark-d">D</span><span
-            class="score-tile__wordmark-onde">onde</span><span
-            class="score-tile__wordmark-a">A</span><span
-            class="score-tile__wordmark-i">I</span>
+            class="score-tile__wordmark-ond">ond</span><span
+            class="score-tile__wordmark-e">e</span>
         </span>
         <span class="score-tile__score-label type-data--sm">Vibe<sup>\u2122</sup></span>
       </div>
@@ -1879,7 +1895,7 @@ function openTileExpand(tileEl) {
 
   $modal.classList.add('tile-expand--open');
   $modal.querySelector('.tile-expand__close')?.focus();
-  announce(tileEl.id === 'score-tile-radar' ? 'DondeAI Vibe expanded' : 'Match details expanded');
+  announce(tileEl.id === 'score-tile-radar' ? 'Donde Vibe expanded' : 'Match details expanded');
 }
 
 function closeTileExpand() {
@@ -2107,7 +2123,7 @@ function renderShareCanvas(format = 'post') {
   ctx.textAlign = 'left';
   ctx.font = `600 14px "Inter", sans-serif`;
   ctx.fillStyle = fg2;
-  ctx.fillText('DondeAI Match', scoreX + 44, scoreY + 4);
+  ctx.fillText('Donde Match', scoreX + 44, scoreY + 4);
 
   y += 80;
 
@@ -2115,7 +2131,7 @@ function renderShareCanvas(format = 'post') {
   ctx.fillStyle = fg2;
   ctx.font = `italic 500 14px "Playfair Display", serif`;
   ctx.textAlign = 'right';
-  ctx.fillText('via DondeAI', w - pad, h - pad);
+  ctx.fillText('via Donde', w - pad, h - pad);
 }
 
 // Expose for share module

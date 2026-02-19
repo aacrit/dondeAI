@@ -602,7 +602,7 @@ export function buildShareText(result) {
     result.insider_tip ? `\nTip: ${result.insider_tip}` : '',
     r.address ? `\n${r.address}` : '',
     r.website || '',
-    '\n— via DondeAI',
+    '\n— via Donde',
   ];
   return parts.filter(Boolean).join('\n');
 }

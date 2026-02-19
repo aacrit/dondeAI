@@ -17,7 +17,7 @@ export async function shareResult() {
   if (!result) return;
 
   const text = buildShareText(result);
-  const title = `${result.restaurant?.name} — DondeAI Pick`;
+  const title = `${result.restaurant?.name} — Donde Pick`;
 
   // Try native share first
   if (navigator.share) {
@@ -81,7 +81,7 @@ export function handleShareChannel(channel) {
       window.open(`https://x.com/intent/tweet?text=${encodeURIComponent(`${name} — check this spot! via @DondeAI`)}`, '_blank');
       break;
     case 'email':
-      window.open(`mailto:?subject=${encodeURIComponent(`${name} — DondeAI Pick`)}&body=${encoded}`, '_blank');
+      window.open(`mailto:?subject=${encodeURIComponent(`${name} — Donde Pick`)}&body=${encoded}`, '_blank');
       break;
     case 'telegram':
       window.open(`https://t.me/share/url?url=&text=${encoded}`, '_blank');

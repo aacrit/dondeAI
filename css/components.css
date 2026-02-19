@@ -658,7 +658,7 @@
   font-size: var(--text-base);
   color: var(--fg);
   line-height: 1.7;
-  max-width: 600px;
+  max-width: 100%;
   display: -webkit-box;
   -webkit-line-clamp: 5;
   -webkit-box-orient: vertical;
@@ -747,7 +747,7 @@
   letter-spacing: -0.03em;
 }
 
-.score-tile__wordmark-onde {
+.score-tile__wordmark-ond {
   font-family: var(--font-emotional);
   font-weight: 400;
   font-size: 1em;
@@ -755,24 +755,13 @@
   letter-spacing: -0.02em;
 }
 
-.score-tile__wordmark-a {
-  font-family: var(--font-structural);
+.score-tile__wordmark-e {
+  font-family: var(--font-emotional);
   font-weight: 700;
-  font-size: 0.78em;
-  color: var(--fg);
-  letter-spacing: 0.04em;
-  position: relative;
-  top: -0.04em;
-}
-
-.score-tile__wordmark-i {
-  font-family: var(--font-data);
-  font-weight: 600;
-  font-size: 0.72em;
+  font-style: italic;
+  font-size: 1.05em;
   color: var(--ac);
-  letter-spacing: 0.02em;
-  position: relative;
-  top: -0.04em;
+  letter-spacing: -0.01em;
 }
 
 .score-tile__score-label {
@@ -898,32 +887,26 @@
 .reviews-unit {
   display: flex;
   flex-direction: column;
-  align-items: center;
   gap: var(--space-xs);
   width: 100%;
   max-width: 340px;
   margin: 0 auto;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
 }
 
-.reviews-unit__label {
-  color: var(--fg3);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.reviews-unit__row {
+.reviews-unit__stars-row {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-md);
-  width: 100%;
 }
 
-@media (max-width: 479px) {
-  .reviews-unit__row {
-    flex-direction: column;
-    gap: var(--space-xs);
-  }
+.reviews-unit__source {
+  color: var(--fg3);
+  opacity: 0.6;
+  margin-left: var(--space-xs);
 }
 
 /* ---- Google Rating Inline ---- */
@@ -985,6 +968,7 @@
 
 /* ---- Petal Radar Tile ---- */
 .score-tile--radar {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1074,8 +1058,7 @@
 /* ---- Sentiment Bar (horizontal mood indicator — inside reviews-unit) ---- */
 .sentiment-bar {
   position: relative;
-  flex: 1;
-  min-width: 80px;
+  width: 100%;
   cursor: pointer;
   display: flex;
   flex-direction: column;
@@ -1252,7 +1235,7 @@
   flex-wrap: wrap;
   justify-content: center;
   align-items: center;
-  gap: var(--space-sm) var(--space-md);
+  gap: var(--space-2xs);
 }
 
 .result-link {
@@ -1260,13 +1243,16 @@
   align-items: center;
   gap: var(--space-2xs);
   font-size: var(--text-sm);
-  color: var(--fg3);
+  color: var(--fg2);
   text-decoration: none;
-  background: none;
-  border: none;
-  padding: 2px 0;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: var(--space-2xs) var(--space-sm);
   cursor: pointer;
-  transition: color var(--dur-fast) var(--ease-out);
+  transition: color var(--dur-fast) var(--ease-out),
+              background var(--dur-fast) var(--ease-out),
+              border-color var(--dur-fast) var(--ease-out);
 }
 
 .result-link svg {
@@ -1277,12 +1263,31 @@
 
 .result-link:hover {
   color: var(--fg);
+  background: var(--bg3);
+}
+
+.result-link--accent {
+  background: var(--ac-soft);
+  color: var(--ac);
+  border-color: transparent;
+}
+
+.result-link--accent:hover {
+  background: var(--ac);
+  color: var(--bg);
+}
+
+.result-links__sep {
+  color: var(--fg3);
+  opacity: 0.3;
+  font-size: var(--text-xs);
+  user-select: none;
 }
 
 .result-link:focus-visible {
   outline: none;
   color: var(--ac);
-  box-shadow: 0 1px 0 0 var(--ac);
+  box-shadow: 0 0 0 2px var(--ac-soft);
 }
 
 /* ---- Vibe Tiles Responsive ---- */
@@ -1622,6 +1627,9 @@
   display: flex;
   gap: var(--space-sm);
   width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  justify-content: center;
 }
 
 .result-actions .cta-btn {
@@ -2318,7 +2326,7 @@
   transition: color 200ms var(--ease-out);
 }
 
-.logo-wordmark__onde {
+.logo-wordmark__ond {
   font-family: var(--font-emotional);
   font-weight: 400;
   font-size: 1em;
@@ -2327,25 +2335,13 @@
   transition: color 200ms var(--ease-out);
 }
 
-.logo-wordmark__a {
-  font-family: var(--font-structural);
+.logo-wordmark__e {
+  font-family: var(--font-emotional);
   font-weight: 700;
-  font-size: 0.78em;
-  color: var(--fg);
-  letter-spacing: 0.04em;
-  position: relative;
-  top: -0.04em;
-  transition: color 200ms var(--ease-out);
-}
-
-.logo-wordmark__i {
-  font-family: var(--font-data);
-  font-weight: 600;
-  font-size: 0.72em;
+  font-style: italic;
+  font-size: 1.05em;
   color: var(--ac);
-  letter-spacing: 0.02em;
-  position: relative;
-  top: -0.04em;
+  letter-spacing: -0.01em;
   transition: color 200ms var(--ease-out);
 }
 
@@ -2355,19 +2351,14 @@
   transition-delay: 0ms;
 }
 
-.header__logo:hover .logo-wordmark__onde {
+.header__logo:hover .logo-wordmark__ond {
   color: var(--ac);
   transition-delay: 50ms;
 }
 
-.header__logo:hover .logo-wordmark__a {
+.header__logo:hover .logo-wordmark__e {
   color: var(--ac);
   transition-delay: 100ms;
-}
-
-.header__logo:hover .logo-wordmark__i {
-  color: var(--ac);
-  transition-delay: 150ms;
 }
 
 /* ---- Logo Nod + Wordmark on Focus-Visible (keyboard parity) ---- */
@@ -2380,19 +2371,29 @@
   transition-delay: 0ms;
 }
 
-.header__logo:focus-visible .logo-wordmark__onde {
+.header__logo:focus-visible .logo-wordmark__ond {
   color: var(--ac);
   transition-delay: 50ms;
 }
 
-.header__logo:focus-visible .logo-wordmark__a {
+.header__logo:focus-visible .logo-wordmark__e {
   color: var(--ac);
   transition-delay: 100ms;
 }
 
-.header__logo:focus-visible .logo-wordmark__i {
-  color: var(--ac);
-  transition-delay: 150ms;
+/* ---- Logo Tagline ---- */
+.logo-tagline {
+  color: var(--fg3);
+  font-size: 0.45em;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-left: var(--space-xs);
+  opacity: 0.6;
+  white-space: nowrap;
+}
+
+@media (max-width: 479px) {
+  .logo-tagline { display: none; }
 }
 
 /* ---- Loading Logo ---- */
@@ -2663,18 +2664,13 @@
 }
 
 /* ---- Actions Block Visual Hierarchy ---- */
-.result-actions .cta-btn:not(.cta-btn--secondary) {
-  flex: 1.5;
-}
 
 /* ---- Section Heading Ink-Underline Reveal ---- */
-.reviews-unit__label,
 .insider-tip__label {
   position: relative;
   display: inline-block;
 }
 
-.reviews-unit__label::after,
 .insider-tip__label::after {
   content: '';
   position: absolute;
@@ -2684,11 +2680,6 @@
   width: 100%;
   background: var(--border);
   opacity: 0.4;
-}
-
-.result-card--revealing .reviews-unit__label::after {
-  width: 0;
-  animation: inkUnderline 400ms var(--ease-out) 350ms forwards;
 }
 
 .result-card--revealing .insider-tip__label::after {
@@ -2737,7 +2728,6 @@
     animation: none !important;
   }
 
-  .result-card--revealing .reviews-unit__label::after,
   .result-card--revealing .insider-tip__label::after {
     animation: none !important;
     width: 100% !important;
