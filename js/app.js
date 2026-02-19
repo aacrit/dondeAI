@@ -991,7 +991,7 @@ function renderResult(data) {
   }
 
   // ---- Match Tile (DondeAI Match) ----
-  const tier = getScoreTier(data.donde_score);
+  const tier = getScoreTier(data.donde_match);
   const $verdict = document.getElementById('score-verdict');
   const $scoreTileDonde = document.getElementById('score-tile-donde');
   if ($verdict) {
@@ -1006,7 +1006,7 @@ function renderResult(data) {
     $scoreTileDonde.setAttribute('aria-label', 'Expand DondeAI Match');
   }
   // Delay score ring to after tile entrance
-  animationTimers.push(setTimeout(() => animateScoreRing(data.donde_score), 800));
+  animationTimers.push(setTimeout(() => animateScoreRing(data.donde_match), 800));
 
   // ---- Google Rating (inline display below ring) ----
   const $googleInline = document.getElementById('google-rating-inline');
@@ -1279,8 +1279,8 @@ function openTileExpand(tileEl) {
   if (!data) return;
 
   if (tileEl.id === 'score-tile-donde') {
-    const tier = getScoreTier(data.donde_score);
-    const pct = Math.round(parseFloat(data.donde_score) || 80);
+    const tier = getScoreTier(data.donde_match);
+    const pct = Math.round(parseFloat(data.donde_match) || 80);
     const circumference = 2 * Math.PI * 45;
     const offset = circumference - (pct / 100) * circumference;
     const strokeColor = 'var(--ac)';
@@ -1487,7 +1487,7 @@ function renderShareCanvas(format = 'post') {
   ctx.fillRect(0, 0, w, h);
 
   const r = result.restaurant;
-  const score = Math.round(parseFloat(result.donde_score) || 80);
+  const score = Math.round(parseFloat(result.donde_match) || 80);
   const pad = 40;
   let y = isStory ? 120 : 80;
 
