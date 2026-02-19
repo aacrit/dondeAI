@@ -520,7 +520,6 @@
 }
 
 .score-section .score-tile--donde {
-  width: 100%;
   max-width: 280px;
 }
 
@@ -537,6 +536,10 @@
   text-align: center;
   overflow: hidden;
   min-height: 0;
+}
+
+.score-tile--donde {
+  overflow: visible;
 }
 
 .score-tile__label {
@@ -844,9 +847,10 @@
 .sentiment-arc {
   position: relative;
   width: 80px;
-  height: 16px;
-  margin-top: calc(-1 * var(--space-2xs));
+  height: 20px;
+  margin-top: -2px;
   cursor: pointer;
+  overflow: hidden;
 }
 
 .sentiment-arc__svg {
