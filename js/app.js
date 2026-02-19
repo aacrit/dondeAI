@@ -15,7 +15,7 @@ import { initAccessibility, announce } from './accessibility.js';
 import { fetchRecommendation } from './api.js';
 import { animateScoreRing, renderPetalRadar, renderSentimentBar, animateBadge, startParticles, stopParticles, chaosToOrderReveal, initLogoAnimation, startSearchPulse, stopSearchPulse, resolveLogoToFound, cleanupLoadingLogo } from './animations.js';
 import {
-  getGreeting, getCuisineFromResult, svgIcon,
+  getGreeting, getTimePeriod, getCuisineFromResult, svgIcon,
   getScoreTier, getScoreColor, buildGoogleStars, buildMapsUrl, relativeTime, matchCuisine
 } from './utils.js';
 
@@ -106,6 +106,9 @@ function init() {
     if (state.theme.culture !== prev.theme.culture) {
       renderSmartChips();
       closeSuggestions();
+      // Update greeting for new culture
+      const $greeting = document.querySelector('[data-step="0"] .step__title');
+      if ($greeting) $greeting.textContent = getGreeting(state.theme.culture);
     }
   });
 
@@ -127,85 +130,117 @@ function init() {
 
 /* ---- Landing Setup ---- */
 function setupLanding() {
-  const state = getState();
-  const greeting = document.querySelector('[data-step="0"] .step__title');
-  if (greeting) greeting.textContent = getGreeting();
-
-  // Render taste memory (recent searches)
-  renderTasteMemory(state.history);
+  const culture = getState().theme.culture;
+  const $greeting = document.querySelector('[data-step="0"] .step__title');
+  if ($greeting) {
+    typewriterReveal($greeting, getGreeting(culture));
+  }
+  startGreetingRotation();
 }
 
-/* ---- Taste Memory Rendering ---- */
-function renderTasteMemory(history) {
-  const $mem = document.getElementById('taste-memory');
-  const $list = document.getElementById('taste-memory-list');
-  if (!$mem || !$list) return;
+/* ---- Typewriter Reveal (handwritten entrance) ---- */
+const REDUCED_MOTION = matchMedia('(prefers-reduced-motion: reduce)');
 
-  if (!history || history.length === 0) {
-    $mem.style.display = 'none';
+function typewriterReveal(element, text) {
+  if (REDUCED_MOTION.matches) {
+    element.textContent = text;
     return;
   }
-
-  $mem.style.display = 'block';
-  $list.innerHTML = '';
-
-  history.forEach(entry => {
-    const item = document.createElement('div');
-    item.className = 'taste-memory__item';
-    item.setAttribute('data-action', 'taste-memory');
-    item.setAttribute('data-value', entry.payload?.special_request || entry.label);
-
-    const iconEl = document.createElement('span');
-    iconEl.className = 'taste-memory__emoji';
-    // Backward compat: old entries may have cuisineEmoji but no cuisineIcon
-    const iconName = entry.cuisineIcon || 'plate';
-    iconEl.innerHTML = svgIcon(iconName, 18);
-    item.appendChild(iconEl);
-
-    const text = document.createElement('span');
-    text.className = 'taste-memory__text type-structural';
-    text.textContent = entry.label;
-    item.appendChild(text);
-
-    const time = document.createElement('span');
-    time.className = 'taste-memory__time type-data--sm';
-    time.textContent = relativeTime(entry.timestamp);
-    item.appendChild(time);
-
-    $list.appendChild(item);
-  });
+  element.textContent = '';
+  element.style.minHeight = '2.4em';
+  let i = 0;
+  const speed = 35;
+  function type() {
+    if (i < text.length) {
+      element.textContent += text.charAt(i);
+      i++;
+      const jitter = speed + (Math.random() - 0.5) * 20;
+      setTimeout(type, jitter);
+    } else {
+      element.style.minHeight = '';
+    }
+  }
+  setTimeout(type, 300);
 }
 
-/* ---- Dynamic Smart Chips (theme + history aware) ---- */
+/* ---- Greeting Rotation (crossfade every 45s) ---- */
+let greetingRotationTimer = null;
+
+function startGreetingRotation() {
+  stopGreetingRotation();
+  greetingRotationTimer = setInterval(() => {
+    const state = getState();
+    if (state.step !== 0 || state.loading || state.craving.trim()) return;
+    const $greeting = document.querySelector('[data-step="0"] .step__title');
+    if (!$greeting) return;
+    const newText = getGreeting(state.theme.culture);
+    if (newText === $greeting.textContent) return;
+    $greeting.style.transition = 'opacity 400ms ease';
+    $greeting.style.opacity = '0';
+    setTimeout(() => {
+      $greeting.textContent = newText;
+      $greeting.style.opacity = '1';
+    }, 400);
+  }, 45000);
+}
+
+function stopGreetingRotation() {
+  if (greetingRotationTimer) {
+    clearInterval(greetingRotationTimer);
+    greetingRotationTimer = null;
+  }
+}
+
+/* ---- Dynamic Smart Chips (rotating, input-reactive) ---- */
+let chipRotationTimer = null;
+
 function renderSmartChips() {
   const $container = document.querySelector('.smart-chips');
   if (!$container) return;
 
   const culture = getState().theme.culture;
   const labels = getLabels(culture);
-  const cultureChips = labels.smartChips || ['outdoor seating', 'live music', 'pet friendly', 'great cocktails', 'hidden gem'];
-  const history = loadHistory();
+  const pool = labels.chipPool;
+  const timePeriod = getTimePeriod();
 
-  // Derive up to 2 history-based chips
-  const historyChips = history.slice(0, 2).map(h => h.label.slice(0, 25)).filter(Boolean);
-
-  // Combine: history first, then culture, deduplicate, cap at 5
+  const chips = [];
   const seen = new Set();
-  const combined = [];
-  for (const chip of [...historyChips, ...cultureChips]) {
-    const key = chip.toLowerCase();
-    if (!seen.has(key) && combined.length < 5) {
-      seen.add(key);
-      combined.push(chip);
+
+  function pickFrom(arr, count) {
+    if (!arr) return;
+    const shuffled = [...arr].sort(() => Math.random() - 0.5);
+    let added = 0;
+    for (const item of shuffled) {
+      if (!seen.has(item.toLowerCase()) && added < count) {
+        seen.add(item.toLowerCase());
+        chips.push(item);
+        added++;
+      }
     }
   }
 
-  // Clear and re-render with stagger animation
+  if (pool) {
+    pickFrom(pool.time?.[timePeriod], 2);
+    pickFrom(pool.vibe, 1);
+    pickFrom(pool.cuisine, 1);
+    pickFrom(pool.style, 1);
+  }
+
+  // Fallback to legacy smartChips
+  if (chips.length < 5 && labels.smartChips) {
+    for (const c of labels.smartChips) {
+      if (!seen.has(c.toLowerCase()) && chips.length < 5) {
+        seen.add(c.toLowerCase());
+        chips.push(c);
+      }
+    }
+  }
+
   $container.innerHTML = '';
   $container.classList.remove('smart-chips--visible');
-  void $container.offsetWidth; // force reflow for animation restart
+  void $container.offsetWidth;
 
-  combined.forEach(text => {
+  chips.slice(0, 5).forEach(text => {
     const btn = document.createElement('button');
     btn.className = 'smart-chip type-structural';
     btn.setAttribute('data-action', 'smart-chip');
@@ -215,6 +250,171 @@ function renderSmartChips() {
   });
 
   $container.classList.add('smart-chips--visible');
+  startChipRotation();
+}
+
+/* ---- Chip Ambient Rotation (swap one chip every 5s) ---- */
+function startChipRotation() {
+  stopChipRotation();
+  chipRotationTimer = setInterval(() => {
+    if ($cravingInput && $cravingInput.value.trim().length > 0) return;
+    if (document.activeElement === $cravingInput) return;
+    rotateOneChip();
+  }, 5000);
+}
+
+function stopChipRotation() {
+  if (chipRotationTimer) {
+    clearInterval(chipRotationTimer);
+    chipRotationTimer = null;
+  }
+}
+
+function rotateOneChip() {
+  const $container = document.querySelector('.smart-chips');
+  if (!$container) return;
+  const chips = [...$container.querySelectorAll('.smart-chip')];
+  if (chips.length < 2) return;
+
+  const replaceIndex = 1 + Math.floor(Math.random() * (chips.length - 1));
+  const oldChip = chips[replaceIndex];
+
+  const currentTexts = new Set(chips.map(c => c.dataset.value.toLowerCase()));
+  const newText = getRandomChipFromPool(currentTexts);
+  if (!newText) return;
+
+  if (REDUCED_MOTION.matches) {
+    oldChip.textContent = newText;
+    oldChip.dataset.value = newText;
+    return;
+  }
+
+  oldChip.style.transition = 'opacity 200ms ease, transform 200ms ease';
+  oldChip.style.opacity = '0';
+  oldChip.style.transform = 'translateY(-8px) scale(0.9)';
+
+  setTimeout(() => {
+    oldChip.textContent = newText;
+    oldChip.dataset.value = newText;
+    oldChip.style.transform = 'translateY(8px) scale(0.9)';
+    requestAnimationFrame(() => {
+      oldChip.style.transition = 'opacity 250ms ease, transform 350ms var(--spring)';
+      oldChip.style.opacity = '1';
+      oldChip.style.transform = 'translateY(0) scale(1)';
+    });
+  }, 220);
+}
+
+function getRandomChipFromPool(excludeSet) {
+  const culture = getState().theme.culture;
+  const labels = getLabels(culture);
+  const pool = labels.chipPool;
+  if (!pool) return null;
+
+  const timePeriod = getTimePeriod();
+  const timeChips = pool.time?.[timePeriod] || [];
+  const allChips = [
+    ...timeChips, ...timeChips,
+    ...(pool.cuisine || []),
+    ...(pool.vibe || []),
+    ...(pool.style || []),
+  ];
+
+  const available = allChips.filter(c => !excludeSet.has(c.toLowerCase()));
+  if (available.length === 0) return null;
+  return available[Math.floor(Math.random() * available.length)];
+}
+
+/* ---- Chip Input Reactivity ---- */
+const CHIP_REACTIONS = {
+  'taco': ['salsa verde', 'al pastor', 'late night', 'margaritas', 'street food'],
+  'ramen': ['tonkotsu', 'late night', 'sake pairing', 'spicy miso', 'tsukemen'],
+  'sushi': ['omakase', 'sake flight', 'counter seat', 'fresh catch', 'chirashi'],
+  'pasta': ['handmade', 'wine pairing', 'truffle', 'al dente', 'bolognese'],
+  'pizza': ['wood-fired', 'Neapolitan', 'deep dish', 'late night slice', 'craft beer'],
+  'burger': ['smash burger', 'craft beer', 'loaded fries', 'late night', 'double stack'],
+  'curry': ['naan fresh', 'spice level', 'vindaloo', 'coconut curry', 'rice and curry'],
+  'steak': ['dry aged', 'wine list', 'special occasion', 'steakhouse', 'bone-in'],
+  'seafood': ['raw bar', 'oyster happy hour', 'catch of the day', 'lobster roll', 'waterfront'],
+  'brunch': ['bottomless mimosas', 'eggs benny', 'avocado toast', 'bloody mary bar', 'french toast'],
+  'coffee': ['pour over', 'latte art', 'cozy corner', 'pastry pairing', 'espresso bar'],
+  'cocktail': ['speakeasy', 'craft mixology', 'rooftop bar', 'happy hour', 'signature drinks'],
+  'pho': ['bone broth', 'fresh herbs', 'sriracha', 'banh mi too', 'comfort soup'],
+  'dim sum': ['cart service', 'weekend special', 'tea pairing', 'dumpling feast', 'har gow'],
+  'romantic': ['candlelit', 'quiet corner', 'wine bar', 'tasting menu', 'intimate'],
+  'date': ['cozy booth', 'wine list', 'ambiance', 'shareable plates', 'prix fixe'],
+  'group': ['family style', 'shareable', 'long table', 'lively', 'big portions'],
+  'solo': ['counter seat', 'bar dining', 'chef\'s table', 'quick and quality', 'book-friendly'],
+  'quiet': ['intimate setting', 'soft lighting', 'conversation-friendly', 'tucked away', 'peaceful'],
+  'lively': ['buzzing crowd', 'open kitchen', 'music and food', 'energetic', 'happy hour'],
+  'outdoor': ['patio seating', 'rooftop', 'garden dining', 'al fresco', 'sidewalk cafe'],
+  'cozy': ['warm lighting', 'fireplace', 'comfort food', 'neighborhood spot', 'intimate'],
+  'upscale': ['tasting menu', 'sommelier pick', 'fine dining', 'special occasion', 'jacket optional'],
+  'cheap': ['hidden gem', 'cash only', 'hole in the wall', 'budget feast', 'byob'],
+  'hidden': ['off the beaten path', 'locals only', 'no sign outside', 'word of mouth', 'secret menu'],
+  'vegan': ['plant-based', 'creative veggies', 'impossible burger', 'raw bar', 'juice bar'],
+  'spicy': ['bring the heat', 'ghost pepper', 'szechuan numbing', 'habanero', 'thai hot'],
+  'comfort': ['mac and cheese', 'soul food', 'fried chicken', 'warm and hearty', 'grandma\'s recipe'],
+  'healthy': ['grain bowl', 'fresh juice', 'salad bar', 'light and clean', 'organic'],
+  'trendy': ['new opening', 'Instagram-worthy', 'chef-driven', 'reservation required', 'buzzworthy'],
+};
+
+let chipDebounce = null;
+
+function updateChipsForInput(query) {
+  if (!query || query.length < 2) {
+    renderSmartChips();
+    return;
+  }
+
+  stopChipRotation();
+  const lowerQuery = query.toLowerCase();
+  let reactionChips = [];
+
+  for (const [keyword, chips] of Object.entries(CHIP_REACTIONS)) {
+    if (lowerQuery.includes(keyword)) {
+      reactionChips.push(...chips);
+    }
+  }
+
+  if (reactionChips.length === 0) return;
+
+  const seen = new Set();
+  const filtered = [];
+  for (const chip of reactionChips) {
+    const key = chip.toLowerCase();
+    if (!seen.has(key) && !lowerQuery.includes(key) && filtered.length < 5) {
+      seen.add(key);
+      filtered.push(chip);
+    }
+  }
+
+  if (filtered.length === 0) return;
+
+  const $container = document.querySelector('.smart-chips');
+  if (!$container) return;
+
+  const existing = [...$container.querySelectorAll('.smart-chip')];
+  filtered.forEach((text, i) => {
+    if (i < existing.length && existing[i].dataset.value !== text) {
+      const chip = existing[i];
+      if (REDUCED_MOTION.matches) {
+        chip.textContent = text;
+        chip.dataset.value = text;
+        return;
+      }
+      chip.style.transition = 'opacity 150ms ease, transform 150ms ease';
+      chip.style.opacity = '0';
+      chip.style.transform = 'scale(0.9)';
+      setTimeout(() => {
+        chip.textContent = text;
+        chip.dataset.value = text;
+        chip.style.transition = 'opacity 200ms ease, transform 250ms var(--spring)';
+        chip.style.opacity = '1';
+        chip.style.transform = 'scale(1)';
+      }, 160);
+    }
+  });
 }
 
 /* ---- Event Delegation ---- */
@@ -359,13 +559,7 @@ function wireEvents() {
         handleShareChannel(btn.dataset.channel);
         break;
 
-      case 'taste-memory': {
-        const val = btn.dataset.value;
-        if ($cravingInput) $cravingInput.value = val;
-        setState({ craving: val });
-        updateCtaState();
-        break;
-      }
+
 
       case 'randomize': {
         // Pick random occasion, neighborhood, budget
@@ -432,21 +626,124 @@ function wireEvents() {
 let placeholderInterval = null;
 let activeIndex = -1;
 
-function getSuggestionPool() {
-  const culture = getState().theme.culture;
-  const labels = getLabels(culture);
-  const pool = new Set();
+/* ---- Suggestion Scoring Engine ---- */
+function scoreSuggestion(item, query) {
+  const text = item.text.toLowerCase();
+  const q = query.toLowerCase();
+  let score = 0;
 
-  // Culture suggestions (primary pool)
-  if (labels.suggestions) labels.suggestions.forEach(s => pool.add(s));
-  // Culture smart chips as fallback
-  if (labels.smartChips) labels.smartChips.forEach(s => pool.add(s));
-  // History labels
-  loadHistory().forEach(h => { if (h.label) pool.add(h.label); });
+  // Exact prefix match → 100 pts
+  if (text.startsWith(q)) {
+    score += 100;
+  }
+  // Word-start match ("rom" → "romantic dinner") → 75 pts
+  else if (text.split(/\s+/).some(word => word.startsWith(q))) {
+    score += 75;
+  }
+  // Multi-word partial (each query word matches a suggestion word start) → 30-60 pts
+  else {
+    const queryWords = q.split(/\s+/).filter(Boolean);
+    const textWords = text.split(/\s+/);
+    let matched = 0;
+    for (const qw of queryWords) {
+      if (textWords.some(tw => tw.startsWith(qw))) matched++;
+    }
+    if (matched > 0 && queryWords.length > 0) {
+      score += 30 + (matched / queryWords.length) * 30;
+    }
+    // Contains match → 20 pts
+    else if (text.includes(q)) {
+      score += 20;
+    }
+  }
 
-  return [...pool];
+  // Precision bonus: shorter suggestions rank higher when scores tie
+  if (score > 0) {
+    score += Math.max(0, 10 - text.length * 0.2);
+  }
+
+  return score;
 }
 
+function getFilteredSuggestions(query) {
+  const culture = getState().theme.culture;
+  const labels = getLabels(culture);
+  const corpus = labels.suggestionCorpus;
+
+  // Flatten corpus into single array
+  const items = [];
+  if (corpus) {
+    for (const [, category] of Object.entries(corpus)) {
+      if (Array.isArray(category)) items.push(...category);
+    }
+  }
+
+  // Add history items as suggestions
+  loadHistory().forEach(h => {
+    if (h.label) {
+      items.push({ text: h.label, icon: h.cuisineIcon || 'plate', category: 'Recent' });
+    }
+  });
+
+  // Legacy suggestions as fallback
+  if (labels.suggestions) {
+    labels.suggestions.forEach(s => {
+      if (!items.some(i => i.text.toLowerCase() === s.toLowerCase())) {
+        items.push({ text: s, icon: 'plate', category: 'Suggestion' });
+      }
+    });
+  }
+  if (labels.smartChips) {
+    labels.smartChips.forEach(s => {
+      if (!items.some(i => i.text.toLowerCase() === s.toLowerCase())) {
+        items.push({ text: s, icon: 'plate', category: 'Suggestion' });
+      }
+    });
+  }
+
+  // Score all items
+  const scored = items
+    .map(item => ({ ...item, score: scoreSuggestion(item, query) }))
+    .filter(item => item.score > 0);
+
+  // Deduplicate by text
+  const seen = new Set();
+  const deduped = [];
+  for (const item of scored.sort((a, b) => b.score - a.score)) {
+    const key = item.text.toLowerCase();
+    if (!seen.has(key)) {
+      seen.add(key);
+      deduped.push(item);
+    }
+  }
+
+  return deduped.slice(0, 7);
+}
+
+/* ---- Contextual Suggestions (on focus with empty input) ---- */
+function showContextualSuggestions() {
+  const culture = getState().theme.culture;
+  const labels = getLabels(culture);
+  const corpus = labels.suggestionCorpus;
+  if (!corpus || !$suggestions) return;
+
+  const items = [];
+  const combos = corpus.combos || [];
+  const vibes = corpus.vibes || [];
+  const cuisines = corpus.cuisines || [];
+
+  // "Right Now" — 3 contextual picks (combos + vibes shuffled)
+  const contextual = [...combos, ...vibes].sort(() => Math.random() - 0.5);
+  items.push(...contextual.slice(0, 3).map(i => ({ ...i, category: 'Right Now' })));
+
+  // "Popular" — 4 cuisine picks
+  const popular = [...cuisines].sort(() => Math.random() - 0.5);
+  items.push(...popular.slice(0, 4).map(i => ({ ...i, category: 'Popular' })));
+
+  renderSuggestions(items, '');
+}
+
+/* ---- Rich Suggestion Rendering (icons + categories + highlights) ---- */
 function renderSuggestions(matches, query) {
   if (!$suggestions || matches.length === 0) {
     closeSuggestions();
@@ -456,24 +753,56 @@ function renderSuggestions(matches, query) {
   $suggestions.innerHTML = '';
   activeIndex = -1;
 
-  matches.forEach((text, i) => {
+  let lastCategory = null;
+
+  matches.forEach((item, i) => {
+    // Handle both string and object items
+    const text = typeof item === 'string' ? item : item.text;
+    const iconName = typeof item === 'object' ? item.icon : null;
+    const category = typeof item === 'object' ? item.category : null;
+
+    // Category separator
+    if (category && category !== lastCategory) {
+      lastCategory = category;
+      const sep = document.createElement('div');
+      sep.className = 'craving-suggestion__category type-data--sm';
+      sep.textContent = category;
+      $suggestions.appendChild(sep);
+    }
+
     const div = document.createElement('div');
     div.className = 'craving-suggestion';
     div.setAttribute('role', 'option');
     div.setAttribute('id', `suggestion-${i}`);
     div.dataset.value = text;
 
-    // Highlight matching substring
-    const lowerText = text.toLowerCase();
-    const matchStart = lowerText.indexOf(query);
-    if (matchStart >= 0) {
-      const before = text.slice(0, matchStart);
-      const match = text.slice(matchStart, matchStart + query.length);
-      const after = text.slice(matchStart + query.length);
-      div.innerHTML = `${before}<mark>${match}</mark>${after}`;
-    } else {
-      div.textContent = text;
+    // SVG icon
+    if (iconName) {
+      const iconSpan = document.createElement('span');
+      iconSpan.className = 'craving-suggestion__icon';
+      iconSpan.innerHTML = svgIcon(iconName, 14);
+      div.appendChild(iconSpan);
     }
+
+    // Text with match highlighting
+    const textSpan = document.createElement('span');
+    textSpan.className = 'craving-suggestion__text';
+    if (query) {
+      const lowerText = text.toLowerCase();
+      const q = query.toLowerCase();
+      const matchStart = lowerText.indexOf(q);
+      if (matchStart >= 0) {
+        const before = text.slice(0, matchStart);
+        const match = text.slice(matchStart, matchStart + query.length);
+        const after = text.slice(matchStart + query.length);
+        textSpan.innerHTML = `${before}<mark>${match}</mark>${after}`;
+      } else {
+        textSpan.textContent = text;
+      }
+    } else {
+      textSpan.textContent = text;
+    }
+    div.appendChild(textSpan);
 
     $suggestions.appendChild(div);
   });
@@ -528,14 +857,19 @@ function wireCravingInput() {
     setState({ craving: $cravingInput.value });
     updateCtaState();
 
-    // Autocomplete filtering
-    const query = $cravingInput.value.trim().toLowerCase();
-    if (query.length < 2) {
+    // Debounced chip reactivity
+    clearTimeout(chipDebounce);
+    chipDebounce = setTimeout(() => {
+      updateChipsForInput($cravingInput.value.trim());
+    }, 300);
+
+    // Scored autocomplete (1-char trigger)
+    const query = $cravingInput.value.trim();
+    if (query.length < 1) {
       closeSuggestions();
       return;
     }
-    const pool = getSuggestionPool();
-    const matches = pool.filter(s => s.toLowerCase().includes(query)).slice(0, 5);
+    const matches = getFilteredSuggestions(query);
     renderSuggestions(matches, query);
   });
 
@@ -569,9 +903,13 @@ function wireCravingInput() {
     }
   });
 
-  // Stop placeholder rotation on focus, restart on blur
+  // Stop placeholder rotation on focus, show contextual suggestions if empty
   $cravingInput.addEventListener('focus', () => {
     if (placeholderInterval) { clearInterval(placeholderInterval); placeholderInterval = null; }
+    // Show "Right Now" / "Popular" picks when input is empty
+    if (!$cravingInput.value.trim()) {
+      showContextualSuggestions();
+    }
   });
   $cravingInput.addEventListener('blur', () => {
     setTimeout(() => closeSuggestions(), 150);

@@ -61,6 +61,7 @@
 .craving-suggestion {
   display: flex;
   align-items: center;
+  gap: var(--space-xs);
   padding: var(--space-sm) var(--space-md);
   font-family: var(--font-structural);
   font-size: var(--text-sm);
@@ -78,6 +79,43 @@
   background: transparent;
   font-weight: 600;
   color: var(--ac);
+}
+
+.craving-suggestion__icon {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--fg3);
+}
+
+.craving-suggestion__icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.craving-suggestion__text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.craving-suggestion__category {
+  padding: var(--space-2xs) var(--space-md);
+  font-size: var(--text-xs);
+  color: var(--fg3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-top: 1px solid var(--border);
+  user-select: none;
+}
+
+.craving-suggestion__category:first-child {
+  border-top: none;
 }
 
 .craving-wrap:focus-within::after {
@@ -235,6 +273,7 @@
   background: transparent;
   color: var(--fg2);
   border-color: var(--border);
+  cursor: not-allowed;
   box-shadow: none;
   opacity: 1;
   cursor: not-allowed;
@@ -468,6 +507,15 @@
   color: var(--ac);
   text-wrap: balance;
   cursor: pointer;
+  text-decoration-line: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1.5px;
+  transition: text-decoration-color 200ms var(--ease-out);
+}
+
+.result-name:hover {
+  text-decoration-color: var(--ac);
 }
 
 .result-oneliner {
@@ -1091,9 +1139,7 @@
   gap: var(--space-md);
   width: 100%;
   padding: var(--space-md);
-  background: var(--glass-info);
-  backdrop-filter: blur(calc(var(--glass-blur) * 0.5));
-  -webkit-backdrop-filter: blur(calc(var(--glass-blur) * 0.5));
+  background: transparent;
   border: 1px solid var(--border);
   border-radius: var(--radius);
 }
@@ -1152,8 +1198,8 @@
 }
 
 .glyph-bar__item--atmo {
-  background: var(--ac-soft);
-  border-color: transparent;
+  background: var(--bg3);
+  border-color: var(--border);
 }
 
 .glyph-bar__item:hover {
@@ -1874,76 +1920,6 @@
 
 /* ---- (Food orbit removed — replaced by logo-driven animation) ---- */
 
-/* ---- Taste Memory (Enhancement 9) ---- */
-.taste-memory {
-  width: 100%;
-  max-width: var(--content-max, 560px);
-}
-
-.taste-memory__title {
-  font-size: var(--text-xs);
-  color: var(--fg3);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin-bottom: var(--space-xs);
-}
-
-.taste-memory__list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-}
-
-.taste-memory__item {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  padding: var(--space-sm) var(--space-md);
-  background: var(--glass);
-  backdrop-filter: blur(calc(var(--glass-blur) * 0.5));
-  -webkit-backdrop-filter: blur(calc(var(--glass-blur) * 0.5));
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: border-color 150ms ease, transform 150ms var(--spring);
-}
-
-.taste-memory__item:hover {
-  border-color: var(--ac);
-  transform: translateX(4px);
-}
-
-.taste-memory__item:active {
-  transform: scale(0.98);
-}
-
-.taste-memory__emoji {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--ac-soft);
-  border-radius: var(--radius-sm);
-  color: var(--ac);
-  flex-shrink: 0;
-}
-
-.taste-memory__text {
-  flex: 1;
-  font-size: var(--text-sm);
-  color: var(--fg);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.taste-memory__time {
-  font-size: var(--text-xs);
-  color: var(--fg3);
-  white-space: nowrap;
-}
-
 /* ---- Randomize Link ---- */
 .randomize-link {
   display: inline-flex;
@@ -2324,8 +2300,7 @@
 .theme-card:focus-visible,
 .share-btn:focus-visible,
 .header__btn:focus-visible,
-.back-btn:focus-visible,
-.taste-memory__item:focus-visible {
+.back-btn:focus-visible {
   outline: none;
   box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--ac);
   animation: focusRingIn 300ms var(--spring) forwards;
@@ -2476,10 +2451,3 @@
   flex-shrink: 0;
 }
 
-/* ---- Taste Memory Icon ---- */
-.taste-memory__emoji {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--fg2);
-}
