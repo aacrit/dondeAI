@@ -318,20 +318,6 @@
                         <span class="type-data--lg" id="score-number">0%</span>
                       </div>
                     </div>
-                    <!-- Sentiment Arc: thin mood arc under ring -->
-                    <div class="sentiment-arc" id="sentiment-arc" style="display: none;"
-                         role="img" aria-label="Review sentiment breakdown">
-                      <svg class="sentiment-arc__svg" viewBox="0 0 100 46">
-                        <path class="sentiment-arc__seg" id="sentiment-arc-pos" fill="none" stroke="var(--green)" stroke-width="4" stroke-linecap="round"/>
-                        <path class="sentiment-arc__seg" id="sentiment-arc-neu" fill="none" stroke="var(--fg3)" stroke-width="4"/>
-                        <path class="sentiment-arc__seg" id="sentiment-arc-neg" fill="none" stroke="var(--rose)" stroke-width="4" stroke-linecap="round"/>
-                      </svg>
-                      <div class="sentiment-arc__tooltip" id="sentiment-arc-tooltip" role="tooltip">
-                        <span class="sentiment-arc__tip-item" id="sentiment-tip-pos"></span>
-                        <span class="sentiment-arc__tip-item" id="sentiment-tip-neu"></span>
-                        <span class="sentiment-arc__tip-item" id="sentiment-tip-neg"></span>
-                      </div>
-                    </div>
                     <span class="score-verdict type-structural--bold" id="score-verdict"></span>
                   </div>
 
@@ -345,6 +331,21 @@
                       <g class="petal-radar__petals" id="petal-radar-petals"></g>
                       <g class="petal-radar__icons" id="petal-radar-icons"></g>
                     </svg>
+                  </div>
+                </div>
+
+                <!-- Sentiment Bar: subtle horizontal mood indicator -->
+                <div class="sentiment-bar" id="sentiment-bar"
+                     role="img" aria-label="Review sentiment breakdown">
+                  <div class="sentiment-bar__track">
+                    <span class="sentiment-bar__seg sentiment-bar__seg--pos" id="sentiment-bar-pos"></span>
+                    <span class="sentiment-bar__seg sentiment-bar__seg--neu" id="sentiment-bar-neu"></span>
+                    <span class="sentiment-bar__seg sentiment-bar__seg--neg" id="sentiment-bar-neg"></span>
+                  </div>
+                  <div class="sentiment-bar__tooltip" id="sentiment-bar-tooltip" role="tooltip">
+                    <span class="sentiment-bar__tip-item sentiment-bar__tip-item--pos" id="sentiment-tip-pos"></span>
+                    <span class="sentiment-bar__tip-item sentiment-bar__tip-item--neu" id="sentiment-tip-neu"></span>
+                    <span class="sentiment-bar__tip-item sentiment-bar__tip-item--neg" id="sentiment-tip-neg"></span>
                   </div>
                 </div>
 

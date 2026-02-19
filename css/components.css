@@ -539,7 +539,7 @@
 }
 
 .score-tile--donde {
-  overflow: visible;
+  overflow: hidden;
 }
 
 .score-tile__label {
@@ -670,8 +670,8 @@
 /* ---- Score Ring (inside tile) ---- */
 .score-tile .score-ring-wrap {
   position: relative;
-  width: 80px;
-  height: 80px;
+  width: 96px;
+  height: 96px;
   flex-shrink: 0;
 }
 
@@ -705,9 +705,9 @@
   justify-content: center;
 }
 
-/* Percentage text fits inside 80px inline ring */
+/* Percentage text fits inside 96px ring */
 .score-tile .score-ring__number .type-data--lg {
-  font-size: var(--text-lg);
+  font-size: var(--text-xl);
 }
 
 .score-verdict {
@@ -716,12 +716,21 @@
   color: var(--ac);
 }
 
+.score-verdict[data-tier="mid"] {
+  color: var(--fg2);
+}
+
+.score-verdict[data-tier="low"] {
+  color: var(--fg3);
+}
+
 
 /* ---- Google Rating Inline ---- */
 .google-rating-inline {
   display: flex;
   align-items: center;
   gap: var(--space-xs);
+  margin-top: var(--space-xs);
   opacity: 0;
   transition: opacity 300ms var(--ease-out);
 }
@@ -759,10 +768,18 @@
 /* ---- Score Row (Match Ring + Petal Radar side by side) ---- */
 .score-row {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-md);
+  flex-direction: row;
+  justify-content: center;
+  align-items: stretch;
+  gap: var(--space-sm);
   width: 100%;
+}
+
+.score-row .score-tile--donde,
+.score-row .score-tile--radar {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 200px;
 }
 
 /* ---- Petal Radar Tile ---- */
@@ -816,16 +833,16 @@
 }
 
 .petal-radar__petal {
-  fill: var(--fg3);
-  fill-opacity: 0.12;
-  stroke: var(--fg3);
+  fill: var(--ac);
+  fill-opacity: 0.08;
+  stroke: var(--ac);
   stroke-width: 1;
-  stroke-opacity: 0.4;
+  stroke-opacity: 0.25;
   transition: fill-opacity var(--dur-fast) var(--ease-out);
 }
 
 .petal-radar__petal:hover {
-  fill-opacity: 0.25;
+  fill-opacity: 0.18;
 }
 
 .petal-radar__icon {
@@ -837,31 +854,47 @@
 
 .petal-radar__label {
   font-family: var(--font-data);
-  font-size: 7px;
+  font-size: 8px;
   fill: var(--fg3);
   text-anchor: middle;
   letter-spacing: 0.04em;
 }
 
-/* ---- Sentiment Arc (thin mood ring under score ring) ---- */
-.sentiment-arc {
+.score-tile__top-vibe {
+  color: var(--fg3);
+  letter-spacing: 0.03em;
+  margin-top: auto;
+}
+
+/* ---- Sentiment Bar (horizontal mood indicator between tiles and google rating) ---- */
+.sentiment-bar {
   position: relative;
-  width: 80px;
-  height: 20px;
-  margin-top: -2px;
-  cursor: pointer;
-  overflow: hidden;
-}
-
-.sentiment-arc__svg {
   width: 100%;
-  height: 100%;
-  overflow: visible;
+  max-width: 280px;
+  margin: 0 auto;
+  cursor: pointer;
 }
 
-.sentiment-arc__tooltip {
+.sentiment-bar__track {
+  display: flex;
+  height: 4px;
+  border-radius: 2px;
+  overflow: hidden;
+  gap: 1px;
+}
+
+.sentiment-bar__seg {
+  height: 100%;
+  transition: flex var(--dur-normal) var(--ease-out);
+}
+
+.sentiment-bar__seg--pos { background: hsl(152 50% 50% / 0.5); }
+.sentiment-bar__seg--neu { background: var(--fg3); opacity: 0.3; }
+.sentiment-bar__seg--neg { background: hsl(350 60% 58% / 0.5); }
+
+.sentiment-bar__tooltip {
   position: absolute;
-  top: calc(100% + 6px);
+  top: calc(100% + 8px);
   left: 50%;
   transform: translateX(-50%) scale(0.95);
   transform-origin: top center;
@@ -881,14 +914,14 @@
               transform var(--dur-fast) var(--spring);
 }
 
-.sentiment-arc:hover .sentiment-arc__tooltip,
-.sentiment-arc--active .sentiment-arc__tooltip {
+.sentiment-bar:hover .sentiment-bar__tooltip,
+.sentiment-bar--active .sentiment-bar__tooltip {
   display: flex;
   opacity: 1;
   transform: translateX(-50%) scale(1);
 }
 
-.sentiment-arc__tip-item {
+.sentiment-bar__tip-item {
   font-family: var(--font-data);
   font-size: var(--text-xs);
   color: var(--fg2);
@@ -897,7 +930,7 @@
   gap: var(--space-2xs);
 }
 
-.sentiment-arc__tip-item::before {
+.sentiment-bar__tip-item::before {
   content: '';
   width: 6px;
   height: 6px;
@@ -905,9 +938,9 @@
   flex-shrink: 0;
 }
 
-.sentiment-arc__tip-item:nth-child(1)::before { background: var(--green); }
-.sentiment-arc__tip-item:nth-child(2)::before { background: var(--fg3); }
-.sentiment-arc__tip-item:nth-child(3)::before { background: var(--rose); }
+.sentiment-bar__tip-item--pos::before { background: hsl(152 50% 50% / 0.5); }
+.sentiment-bar__tip-item--neu::before { background: var(--fg3); }
+.sentiment-bar__tip-item--neg::before { background: hsl(350 60% 58% / 0.5); }
 
 /* ---- Tile Badge (Price/Noise at bottom) ---- */
 .score-tile__badge {
@@ -982,10 +1015,9 @@
   font-size: var(--text-sm);
   font-weight: 600;
   color: var(--fg);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 100%;
+  line-height: 1.3;
+  text-align: center;
+  word-break: break-word;
 }
 
 /* Cuisine badge — smaller text + wrapping for multi-type values */

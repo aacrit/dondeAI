@@ -13,7 +13,7 @@ import { initShare, shareResult, closeShareSheet, handleShareChannel } from './s
 import { initOffline, isOnline } from './offline.js';
 import { initAccessibility, announce } from './accessibility.js';
 import { fetchRecommendation } from './api.js';
-import { animateScoreRing, renderPetalRadar, renderSentimentArc, animateBadge, startParticles, stopParticles, chaosToOrderReveal, initLogoAnimation, startSearchPulse, stopSearchPulse, resolveLogoToFound, cleanupLoadingLogo } from './animations.js';
+import { animateScoreRing, renderPetalRadar, renderSentimentBar, animateBadge, startParticles, stopParticles, chaosToOrderReveal, initLogoAnimation, startSearchPulse, stopSearchPulse, resolveLogoToFound, cleanupLoadingLogo } from './animations.js';
 import {
   getGreeting, getCuisineFromResult, svgIcon,
   getScoreTier, getScoreColor, buildGoogleStars, buildMapsUrl, relativeTime, matchCuisine
@@ -997,6 +997,7 @@ function renderResult(data) {
   if ($verdict) {
     $verdict.textContent = tier.verdict;
     $verdict.className = `score-verdict type-structural--bold ${tier.cssClass}`;
+    $verdict.setAttribute('data-tier', tier.tier);
   }
   if ($scoreTileDonde) {
     $scoreTileDonde.setAttribute('data-tier', tier.tier);
@@ -1187,19 +1188,21 @@ function renderResult(data) {
     $tip.style.display = 'none';
   }
 
-  // ---- Sentiment Arc (subtle under score ring) ----
-  const $sentArc = document.getElementById('sentiment-arc');
-  if ($sentArc && r.sentiment_breakdown) {
-    $sentArc.style.display = '';
-    const parts = r.sentiment_breakdown.toLowerCase();
-    const posMatch = parts.match(/positive[:\s]+(\d+)/);
-    const neuMatch = parts.match(/neutral[:\s]+(\d+)/);
-    const negMatch = parts.match(/negative[:\s]+(\d+)/);
-    const posVal = parseInt(posMatch?.[1] || '33', 10);
-    const neuVal = parseInt(neuMatch?.[1] || '34', 10);
-    const negVal = parseInt(negMatch?.[1] || '33', 10);
+  // ---- Sentiment Bar (subtle horizontal indicator) ----
+  const $sentBar = document.getElementById('sentiment-bar');
+  if ($sentBar) {
+    let posVal = 33, neuVal = 34, negVal = 33;
+    if (r.sentiment_breakdown) {
+      const parts = r.sentiment_breakdown.toLowerCase();
+      const posMatch = parts.match(/positive[:\s]+(\d+)/);
+      const neuMatch = parts.match(/neutral[:\s]+(\d+)/);
+      const negMatch = parts.match(/negative[:\s]+(\d+)/);
+      posVal = parseInt(posMatch?.[1] || '33', 10);
+      neuVal = parseInt(neuMatch?.[1] || '34', 10);
+      negVal = parseInt(negMatch?.[1] || '33', 10);
+    }
 
-    renderSentimentArc(posVal, neuVal, negVal, animationTimers);
+    renderSentimentBar(posVal, neuVal, negVal, animationTimers);
 
     // Tooltip labels
     const $tipPos = document.getElementById('sentiment-tip-pos');
@@ -1210,11 +1213,9 @@ function renderResult(data) {
     if ($tipNeg) $tipNeg.textContent = `${negVal}% Negative`;
 
     // Tap toggle for mobile tooltip
-    $sentArc.addEventListener('click', () => {
-      $sentArc.classList.toggle('sentiment-arc--active');
+    $sentBar.addEventListener('click', () => {
+      $sentBar.classList.toggle('sentiment-bar--active');
     });
-  } else if ($sentArc) {
-    $sentArc.style.display = 'none';
   }
 
   // Hide entire profile block if no badges
@@ -1262,13 +1263,10 @@ function parseParkingTypes(parkingStr) {
   return types;
 }
 
-/* ---- Badge Value Shortener (1-2 words max) ---- */
+/* ---- Badge Value Shortener (first segment, no word cap) ---- */
 function shortenBadgeValue(value) {
   if (!value) return '';
-  // Split on comma, slash, or semicolon — take first segment
-  const first = value.split(/[,/;]/).at(0).trim();
-  // Cap at 2 words
-  return first.split(/\s+/).slice(0, 2).join(' ');
+  return value.split(/[,/;]/).at(0).trim();
 }
 
 /* Badge color helpers removed — all badges use neutral styling ("Ink Rule"). */

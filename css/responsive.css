@@ -62,19 +62,14 @@
     padding: var(--space-xl);
   }
 
-  /* Score row: side by side on tablet+ */
+  /* Score row: wider tiles on tablet+ */
   .score-row {
-    flex-direction: row;
-    justify-content: center;
-    align-items: stretch;
+    gap: var(--space-md);
   }
 
   .score-row .score-tile--donde,
   .score-row .score-tile--radar {
-    flex: 1 1 0;
     max-width: 280px;
-    min-width: 0;
-    width: auto;
   }
 
   .petal-radar {

@@ -89,7 +89,7 @@ import { svgIcon } from './utils.js';
 const RADAR_DIMS = [
   { key: 'date_friendly_score',    label: 'Date',     icon: 'heart' },
   { key: 'group_friendly_score',   label: 'Group',    icon: 'usersThree' },
-  { key: 'family_friendly_score',  label: 'Family',   icon: 'house' },
+  { key: 'family_friendly_score',  label: 'Family',   icon: 'home' },
   { key: 'business_lunch_score',   label: 'Business', icon: 'briefcase' },
   { key: 'solo_dining_score',      label: 'Solo',     icon: 'user' },
   { key: 'hole_in_wall_factor',    label: 'Gem',      icon: 'diamond' },
@@ -241,55 +241,51 @@ export function renderPetalRadar(scores, timers = []) {
     text.textContent = slot.label;
     iconsG.appendChild(text);
   });
+
+  // Dominant vibe label below radar
+  const topSlot = slots.filter(s => s.hasData).sort((a, b) => b.val - a.val)[0];
+  if (topSlot) {
+    let $topVibe = $tile.querySelector('.score-tile__top-vibe');
+    if (!$topVibe) {
+      $topVibe = document.createElement('span');
+      $topVibe.className = 'score-tile__top-vibe type-data--sm';
+      $tile.appendChild($topVibe);
+    }
+    $topVibe.textContent = `Top: ${topSlot.label} ${topSlot.val.toFixed(1)}`;
+  }
 }
 
-/* ---- Sentiment Arc (thin mood ring under score ring) ---- */
-export function renderSentimentArc(pos, neu, neg, timers = []) {
+/* ---- Sentiment Bar (horizontal mood indicator) ---- */
+export function renderSentimentBar(pos, neu, neg, timers = []) {
   const total = pos + neu + neg;
   if (total === 0) return;
 
-  const arcR = 40;
-  const cx = 50, cy = 4;
-  const segments = [
-    { id: 'sentiment-arc-pos', span: (pos / total) * Math.PI },
-    { id: 'sentiment-arc-neu', span: (neu / total) * Math.PI },
-    { id: 'sentiment-arc-neg', span: (neg / total) * Math.PI },
-  ];
+  const $bar = document.getElementById('sentiment-bar');
+  if (!$bar) return;
+  $bar.style.display = '';
 
-  let currentAngle = Math.PI; // start from left (9 o'clock)
+  const posEl = document.getElementById('sentiment-bar-pos');
+  const neuEl = document.getElementById('sentiment-bar-neu');
+  const negEl = document.getElementById('sentiment-bar-neg');
 
-  segments.forEach((seg, i) => {
-    const el = document.getElementById(seg.id);
-    if (!el || seg.span <= 0.01) {
-      if (el) el.setAttribute('d', '');
-      currentAngle -= seg.span;
-      return;
-    }
+  const posPct = pos / total;
+  const neuPct = neu / total;
+  const negPct = neg / total;
 
-    const startX = cx + arcR * Math.cos(currentAngle);
-    const startY = cy + arcR * Math.sin(currentAngle);
-    const endAngle = currentAngle - seg.span;
-    const endX = cx + arcR * Math.cos(endAngle);
-    const endY = cy + arcR * Math.sin(endAngle);
-    const largeArc = seg.span > Math.PI / 2 ? 1 : 0;
+  // Animated width grow
+  [posEl, neuEl, negEl].forEach(el => { if (el) el.style.flex = '0'; });
 
-    el.setAttribute('d',
-      `M ${startX.toFixed(2)} ${startY.toFixed(2)} A ${arcR} ${arcR} 0 ${largeArc} 0 ${endX.toFixed(2)} ${endY.toFixed(2)}`
-    );
-
-    // Animated draw-in
-    if (!REDUCED.matches) {
-      const len = arcR * seg.span;
-      el.style.strokeDasharray = len;
-      el.style.strokeDashoffset = len;
-      timers.push(setTimeout(() => {
-        el.style.transition = 'stroke-dashoffset 600ms cubic-bezier(0.2, 1, 0.4, 1)';
-        el.style.strokeDashoffset = '0';
-      }, 1000 + i * 100));
-    }
-
-    currentAngle -= seg.span;
-  });
+  if (!REDUCED.matches) {
+    timers.push(setTimeout(() => {
+      if (posEl) posEl.style.flex = String(posPct);
+      if (neuEl) neuEl.style.flex = String(neuPct);
+      if (negEl) negEl.style.flex = String(negPct);
+    }, 800));
+  } else {
+    if (posEl) posEl.style.flex = String(posPct);
+    if (neuEl) neuEl.style.flex = String(neuPct);
+    if (negEl) negEl.style.flex = String(negPct);
+  }
 }
 
 /* ---- Badge Fade-In with Scale Spring ---- */
