@@ -703,12 +703,12 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
   text-align: center;
-  overflow: visible;
-  min-height: auto;
+  overflow: hidden;
+  min-height: 0;
 }
 
 .score-tile--donde {
-  overflow: visible;
+  overflow: hidden;
 }
 
 .score-tile__label {
