@@ -1373,13 +1373,30 @@ function openTileExpand(tileEl) {
     }).join('');
 
     $content.innerHTML = `
-      <span class="tile-expand__title type-data--sm">Vibe Profile</span>
+      <div class="score-tile__brand" aria-label="DondeAI Vibe" style="justify-content: center;">
+        <svg class="score-tile__logo-mark" viewBox="0 0 32 44" width="20" height="28" aria-hidden="true">
+          <path d="M10.5 1C10.5 1 10 8.5 12.5 11.5Q14 13 14.5 13.5"
+                fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M21.5 1C21.5 1 22 8.5 19.5 11.5Q18 13 17.5 13.5"
+                fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M16 13.5C22 11 29 14 28 21C27 27 19 29 16 31L16 34"
+                fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>
+          <circle cx="16" cy="40" r="2.8" fill="var(--ac)"/>
+        </svg>
+        <span class="score-tile__wordmark" style="font-size: var(--text-sm);">
+          <span class="score-tile__wordmark-d">D</span><span
+            class="score-tile__wordmark-onde">onde</span><span
+            class="score-tile__wordmark-a">A</span><span
+            class="score-tile__wordmark-i">I</span>
+        </span>
+        <span class="score-tile__score-label type-data--sm">Vibe<sup>\u2122</sup></span>
+      </div>
       <div class="tile-expand__dims">${dimListHtml}</div>`;
   }
 
   $modal.classList.add('tile-expand--open');
   $modal.querySelector('.tile-expand__close')?.focus();
-  announce(tileEl.id === 'score-tile-radar' ? 'Vibe profile expanded' : 'Match details expanded');
+  announce(tileEl.id === 'score-tile-radar' ? 'DondeAI Vibe expanded' : 'Match details expanded');
 }
 
 function closeTileExpand() {

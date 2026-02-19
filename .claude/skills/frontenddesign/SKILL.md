@@ -34,6 +34,7 @@ This is the most important visual rule. Accent color (`--ac`) is **earned, not g
 - Selected filter pills (`aria-checked="true"`)
 - Logo pin dot
 - Input caret
+- Petal radar petals (very subtle: 8% fill, 25% stroke opacity — tints with cultural theme color)
 
 **ALWAYS neutral (grayscale foreground/background tokens):**
 - All detail badges (cuisine, price, parking, noise, ambiance, dress)
@@ -87,27 +88,39 @@ Between them, a **3-act loading overlay** covers both views:
 ```
 Identity  → name (click = toggle one-liner) + navigation tile
 Story     → recommendation (7-line clamp + read more) + insider tip
-Scores    → DondeAI ring + Google stars + Vibe radar (3 tiles)
-Profile   → neutral fact badges + atmosphere tags + sentiment bar
-Actions   → quick links + Try Another / Start Over CTAs
+Scores    → score-row (DondeAI Match™ ring + DondeAI Vibe™ petal radar — side by side),
+            sentiment-bar (labeled "Review Sentiment" RAG horizontal bar),
+            google-rating-inline (stars + count)
+Profile   → glyph-bar (icon-only collapsed, value-based symbols) +
+            profile-facts (expandable badge grid — facts + atmosphere merged)
+Actions   → quick links (website, call, share) + Try Another / Start Over CTAs
 ```
 
-Progressive reveal: blocks stagger in at 120ms intervals. Score ring at 800ms, Google at 900ms, atmo tags at 980ms + 60ms each.
+Progressive reveal: blocks stagger in at 0ms, 120ms, 240ms, 360ms, 480ms. Score ring animates at 800ms, sentiment bar grows at 800ms, Google rating at 900ms. Petal radar petals spring-scale at 400ms + 80ms stagger. Glyph bar icons spring-pop at 500ms + 50ms stagger.
 
-## Score Tiles
+## Score Section
 
-Three tiles in a responsive grid: DondeAI Score | Google Rating | Vibe Radar.
+Two tiles side-by-side in a flex row, followed by a sentiment bar and inline Google rating:
 
-- DondeAI Score + Vibe Radar are **expandable** (tap opens modal)
-- Google tile links to Google Maps when `google_place_id` present
-- Score ring always uses `--ac` for stroke (this is one of the few accent-allowed elements)
-- When radar has <3 dimensions, hide radar tile
+- **DondeAI Match™** ring (112px mobile, 120px tablet+, 160px expanded modal). Expandable (tap opens modal). Score ring uses `--ac` for stroke. Verdict label color varies by tier: accent (high), `--fg2` (mid), `--fg3` (low).
+- **DondeAI Vibe™** petal radar ("Ink Blossom"). 6-axis teardrop petals with subtle accent color (8% fill, 25% stroke). Shows "Top: Label X.X" for dominant dimension. Hidden when <3 dimensions present. Expandable (tap opens modal with dimension bar chart).
+- **Sentiment bar**: Always visible, 4px horizontal RAG bar (green/gray/rose at 50% opacity). Labeled "Review Sentiment" above the track. Defaults to 33/33/34 when no sentiment data. Tooltip on hover/tap shows percentages.
+- **Google rating**: Inline stars + numeric + review count. Links to Google Maps when `google_place_id` present.
 
 ## SVG Icon System
 
 Icons live in `ICON_SVG` registry in `utils.js`. Phosphor-compatible 256x256 viewBox. Render via `svgIcon(name, size)`.
 
 Never use emoji in the result card UI. Use SVG icons from the registry for all visual indicators.
+
+### Value-Based Glyph Rendering
+
+The collapsed glyph bar uses context-aware icons rather than generic ones:
+
+- **Price:** Shows "$"/"$$"/"$$$"/"$$$$" as bold monospace text (not tag icon)
+- **Noise:** Maps to `speakerNone` (quiet), `speakerWave` (moderate), `speakerHigh` (loud)
+- **Ambiance:** Maps to `moon` (dim/cozy/warm/intimate/candlelit) or `sun` (bright/modern)
+- **Others:** Cuisine (dynamic), parking (`car`), dress (`shirt`), atmosphere (`patio`/`music`/`pet`)
 
 ## Cultural Theme Awareness
 

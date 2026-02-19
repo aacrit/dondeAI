@@ -107,8 +107,13 @@ dondeAI/
 [View 1: Result]
   ├── Block 1: Identity (name + click-to-reveal one-liner + navigation tile)
   ├── Block 2: Story (recommendation paragraph + read more + insider tip)
-  ├── Block 3: Scores (DondeAI ring + Google stars + Vibe Radar — 3 tiles)
-  ├── Block 4: Profile (fact badges + atmosphere tags + sentiment bar)
+  ├── Block 3: Scores
+  │   ├── Score Row (DondeAI Match ring + Petal Radar — side by side)
+  │   ├── Sentiment Bar ("Review Sentiment" label + RAG color bar + tooltip)
+  │   └── Google Rating (inline stars + count)
+  ├── Block 4: Profile
+  │   ├── Glyph Bar (icon-only collapsed view — value-based symbols)
+  │   └── Detail Badges Grid (expandable — facts + atmosphere merged)
   └── Block 5: Actions (quick links + Try Another / Start Over CTAs)
 ```
 
@@ -123,16 +128,19 @@ POST https://vwbzkgsxmgwcvmvuxnbe.supabase.co/functions/v1/recommend
 Content-Type: application/json
 ```
 
-### Request — exactly 4 fields:
+### Request — 4 required fields + 1 optional:
 
 ```json
 {
   "special_request": "string",     // from craving input (required, non-empty)
   "occasion": "string",            // from vibe filter (default: "Any")
   "neighborhood": "string",        // from hood filter (default: "Anywhere")
-  "price_level": "string"          // from budget filter (default: "Any")
+  "price_level": "string",         // from budget filter (default: "Any")
+  "exclude": ["uuid", ...]         // optional — previously seen restaurant IDs to skip
 }
 ```
+
+The `exclude` field is sent on "Try Another" — the frontend accumulates `restaurant.id` UUIDs from prior results and passes them so the backend filters out repeats. Fresh "Submit" resets the exclude list.
 
 ### Response shape:
 
@@ -140,6 +148,7 @@ Content-Type: application/json
 {
   "success": true,
   "restaurant": {
+    "id": "uuid string",
     "name": "string",
     "best_for_oneliner": "string",
     "address": "string",
@@ -199,6 +208,7 @@ Accent color (`--ac`) is scarce and intentional. This creates visual hierarchy t
 - Selected filter pills (`aria-checked="true"`)
 - Logo pin dot
 - Cursor caret
+- Petal radar petals (very subtle: 8% fill, 25% stroke opacity — tints with cultural theme color)
 
 **Always neutral (grayscale):**
 - All detail badges (cuisine, price, parking, noise, ambiance, dress)
@@ -253,21 +263,22 @@ Accent color (`--ac`) is scarce and intentional. This creates visual hierarchy t
 |---|---|---|
 | **Identity** | "What? Where?" | Restaurant name (click toggles one-liner), navigation tile (address -> maps) |
 | **Story** | "Why this spot?" | AI recommendation (collapsible, 7-line clamp), insider tip callout |
-| **Scores** | Evaluative metrics | DondeAI Score ring, Google Rating stars, Vibe Radar chart (3 tiles) |
-| **Profile** | "About This Spot" | Neutral fact badges, boolean atmosphere tags, sentiment stacked bar |
+| **Scores** | Evaluative metrics | Score row (DondeAI Match™ ring + DondeAI Vibe™ petal radar side-by-side), Sentiment bar, Google Rating |
+| **Profile** | "About This Spot" | Glyph bar (icon-only collapsed, tooltips on tap) + expandable detail badges grid |
 | **Actions** | "Now what?" | Quick links (website, call, share), Try Another + Start Over CTAs |
 
 ### Progressive reveal timing:
 - Blocks stagger in: 0ms, 120ms, 240ms, 360ms, 480ms
-- Score ring animates at 800ms, Google rating at 900ms
-- Atmosphere tags spring-pop stagger at 980ms + 60ms intervals
-- Reveal class auto-removes at 1600ms
+- Score ring animates at 800ms, Sentiment bar grows at 800ms, Google rating at 900ms
+- Petal radar petals spring-scale at 400ms + 80ms stagger
+- Glyph bar icons spring-pop at 500ms + 50ms stagger
+- Reveal class auto-removes at 1200ms
 
 ---
 
 ## Score Visualization
 
-### DondeAI Score (0-10):
+### DondeAI Match™ (0-10):
 
 | Range | Tier | Verdict Label |
 |---|---|---|
@@ -277,20 +288,32 @@ Accent color (`--ac`) is scarce and intentional. This creates visual hierarchy t
 | 4-5 | Mid | "Worth a Try" |
 | 0-3 | Low | "Adventurous" |
 
-Score ring always uses `--ac` for fill stroke. Ring is expandable (tap opens modal).
+Score ring uses `--ac` for fill stroke. Ring is 112px on mobile, 120px on tablet+, 160px in expanded modal. Verdict label uses tier-appropriate colors: accent for high (85%+), `--fg2` for mid (75-84%), `--fg3` for low (<75%).
 
-### Radar Chart (Vibe Profile):
+### DondeAI Vibe™ Petal Radar ("Ink Blossom"):
 
-6 dimensions. Render only if >=3 are present. Also expandable.
+6 teardrop-shaped petals radiating from center. Each petal length maps to the dimension score. Render only if >=3 dimensions present. Uses subtle accent color (`--ac` at 8% fill / 25% stroke). Shows "Top: Label X.X" below chart for the dominant vibe.
 
-| Backend Key | Short Label |
-|---|---|
-| `date_friendly_score` | Date |
-| `group_friendly_score` | Group |
-| `family_friendly_score` | Family |
-| `business_lunch_score` | Business |
-| `solo_dining_score` | Solo |
-| `hole_in_wall_factor` | Gem |
+| Backend Key | Short Label | Icon |
+|---|---|---|
+| `date_friendly_score` | Date | heart |
+| `group_friendly_score` | Group | usersThree |
+| `family_friendly_score` | Family | home |
+| `business_lunch_score` | Business | briefcase |
+| `solo_dining_score` | Solo | user |
+| `hole_in_wall_factor` | Gem | diamond |
+
+### Sentiment Bar:
+
+Horizontal 4px bar between score row and Google rating. Always visible (defaults to 33/33/34 when no sentiment data). Uses dimmed RAG colors (green/gray/rose at 50% opacity). Labeled "Review Sentiment" above the track. Tooltip on hover/tap shows percentages.
+
+### Glyph Bar (Collapsed Profile View):
+
+32px icon squares with spring-pop stagger entrance. Tap toggles tooltip (label + value). Value-based symbols:
+- **Price:** Shows "$"/"$$"/"$$$"/"$$$$" as bold monospace text (not tag icon)
+- **Noise:** Maps to `speakerNone` (quiet), `speakerWave` (moderate), `speakerHigh` (loud)
+- **Ambiance:** Maps to `moon` (dim/cozy/warm) or `sun` (bright/modern)
+- **Others:** Cuisine (dynamic), parking (`car`), dress (`shirt`), atmosphere (`patio`/`music`/`pet`)
 
 ---
 
@@ -300,7 +323,8 @@ Icons are inline SVG paths stored in `ICON_SVG` registry in `utils.js`. Phosphor
 
 - **Cuisine:** sushi, taco, pasta, curry, noodles, dumpling, meat, croissant, seafood, burger, coffee, cocktail, salad, brunch, plate
 - **Atmosphere:** patio, music, pet
-- **Facts:** tag, car, speakerWave, sun, shirt
+- **Facts:** tag, car, speakerWave, speakerNone, speakerHigh, sun, moon, shirt
+- **DondeAI Vibe™:** heart, usersThree, home, briefcase, user, diamond
 - **Stars:** starFull, starHalf, starEmpty
 - **Actions:** globe, phone, shareNetwork, pin, refresh, home, chevronRight
 
@@ -320,6 +344,7 @@ Single source of truth in `state.js`. Plain object + pub/sub.
   result: null,               // full API response object
   loading: false,
   error: null,
+  excludeIds: [],             // restaurant UUIDs to exclude on "Try Another"
   theme: { culture: "neutral", mode: "light" },
   soundEnabled: false,
   history: []                 // last 3 searches (FIFO)

@@ -145,7 +145,7 @@ export function renderPetalRadar(scores, timers = []) {
   // Build aria-label with values
   const ariaDesc = slots.filter(s => s.hasData)
     .map(s => `${s.label} ${s.val.toFixed(1)}`).join(', ');
-  $tile.setAttribute('aria-label', `Vibe Profile: ${ariaDesc}`);
+  $tile.setAttribute('aria-label', `DondeAI Vibe: ${ariaDesc}`);
 
   // Get SVG groups
   const gridG = $svg.querySelector('.petal-radar__grid');

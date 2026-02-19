@@ -136,19 +136,18 @@ After submission, the app must display the AI-generated restaurant recommendatio
 | Restaurant name | Must show | Animated reveal recommended |
 | One-liner description | Must show | |
 | AI recommendation paragraph | Must show | |
-| DondeAI Score (0-10) | Must show | Animated score visualization with color tiers: ≥8 (excellent), ≥5 (good), <5 (risky) |
-| Google rating + stars | Must show | 5-star visualization + numeric rating + review count |
+| DondeAI Match™ (0-100%) | Must show | Animated score ring (112px mobile, 120px tablet+) with verdict label and color tiers |
+| DondeAI Vibe™ radar | Show if ≥3 dimensions | Petal radar ("Ink Blossom") side-by-side with Match ring, subtle accent petals |
+| Sentiment bar | Always show | Horizontal RAG bar labeled "Review Sentiment" (defaults to 33/33/34 when no data) |
+| Google rating + stars | Must show | 5-star visualization + numeric rating + review count (inline, below sentiment) |
 | Price level | Must show | |
 | Address | Must show | Tappable — opens navigation/maps |
 | Insider tip | Show if present | |
-| Vibe profile radar | Show if ≥3 dimensions present | Radar/spider chart of 6 vibe scores |
-| Cuisine emoji + gradient | Show (computed) | Derived from cuisine keywords in response |
-| Action buttons (Website, Call, Reviews) | Show if data present | |
-| Atmosphere tags (lighting, dress code, patio, live music, pets) | Show if data present | |
+| Cuisine icon | Show (computed) | SVG icon derived from cuisine keywords (no emoji) |
+| Action buttons (Website, Call, Share) | Show if data present | |
+| Glyph bar + detail badges | Show if data present | Collapsed icon-only view with value-based symbols + expandable full badge grid |
 | Parking info | Show if present | |
-| Sentiment breakdown | Show if present | Positive/neutral/negative bar |
 | Tags | Show if present | |
-| Noise level | Show if present | |
 
 ---
 
@@ -159,7 +158,8 @@ The user must be able to dismiss the current recommendation and request an alter
 | Requirement | Detail |
 |---|---|
 | Mechanism | Swipe-to-dismiss gesture (mobile) and/or explicit "Again" button |
-| Behavior | Re-submits the same payload to get a different result |
+| Behavior | Re-submits the same payload with `exclude` array containing previously returned `restaurant.id` UUIDs, so the backend returns a different result |
+| Exclusion tracking | Frontend accumulates restaurant IDs in `excludeIds` state. Fresh "Submit" resets the list; "Try Another" appends to it. |
 | Visual feedback | Card dismissal must have clear exit animation |
 
 ---
@@ -330,7 +330,7 @@ Content-Type: application/json
 
 ### 3.2 Request Payload
 
-Exactly 4 fields. No additional fields should be sent.
+4 required fields + 1 optional.
 
 | Field | Type | Source | Default |
 |---|---|---|---|
@@ -338,6 +338,9 @@ Exactly 4 fields. No additional fields should be sent.
 | `occasion` | `string` | Selected vibe/occasion | `"Any"` |
 | `neighborhood` | `string` | Selected neighborhood | `"Anywhere"` |
 | `price_level` | `string` | Selected budget tier | `"Any"` |
+| `exclude` | `string[]` | Previously seen restaurant UUIDs (optional) | `[]` |
+
+The `exclude` field is sent on "Try Another" — the frontend accumulates `restaurant.id` UUIDs from prior results and passes them so the backend filters out repeats. A fresh "Submit" resets the exclude list.
 
 **Example request:**
 ```json
@@ -345,7 +348,8 @@ Exactly 4 fields. No additional fields should be sent.
   "special_request": "cozy ramen with killer sake",
   "occasion": "Date Night",
   "neighborhood": "Wicker Park",
-  "price_level": "$$$"
+  "price_level": "$$$",
+  "exclude": ["8c35232b-2a65-4bb1-856b-3bd8c18545ab"]
 }
 ```
 
@@ -356,6 +360,7 @@ Exactly 4 fields. No additional fields should be sent.
   "success": boolean,
 
   "restaurant": {
+    "id": "uuid string",
     "name": "string",
     "best_for_oneliner": "string",
     "address": "string",
@@ -512,9 +517,9 @@ The UI should attempt to derive a visual identity (color hue and emoji) for each
 
 ---
 
-## 8. Radar Chart Dimension Reference
+## 8. DondeAI Vibe™ Radar Dimension Reference
 
-The vibe profile radar requires at minimum 3 of the following 6 dimensions to render. If fewer than 3 are present in the response, the radar should be hidden.
+The DondeAI Vibe™ petal radar ("Ink Blossom") requires at minimum 3 of the following 6 dimensions to render. If fewer than 3 are present in the response, the radar tile should be hidden. The radar uses teardrop-shaped petals with subtle accent color (`--ac` at 8% fill / 25% stroke). Displayed side-by-side with the DondeAI Match™ ring. A "Top: Label X.X" line appears below the chart for the dominant vibe dimension.
 
 | Backend Key | Short Label | Full Label |
 |---|---|---|
@@ -546,14 +551,12 @@ Each cultural theme overrides the following UI labels. A new UI implementation m
 
 ---
 
-## 10. Score Color Tier Reference
+## 10. DondeAI Match™ Score Color Tier Reference
 
-The DondeAI Score (0-10) must use color tiers to communicate quality at a glance:
+The DondeAI Match™ score (displayed as 0-100%) must use color tiers to communicate quality at a glance. The score ring uses `--ac` for the fill stroke; the verdict label color varies by tier.
 
-| Score Range | Tier | Color Token | Verdict Label |
+| Score Range | Tier | Verdict Label | Verdict Color |
 |---|---|---|---|
-| 9-10 | High | `--green` | "Outstanding" |
-| 8 | High | `--green` | "Excellent" |
-| 6-7 | Mid | `--ac` (accent) | "Solid Pick" |
-| 4-5 | Mid | `--ac` (accent) | "Worth a Try" |
-| 0-3 | Low | `--rose` | "Adventurous" |
+| 85-100% | High | "Outstanding" (≥90%) or "Excellent" (≥85%) | `--ac` (accent) |
+| 75-84% | Mid | "Solid Pick" (≥75%) or "Worth a Try" (≥60%) | `--fg2` |
+| 0-74% | Low | "Adventurous" | `--fg3` |
