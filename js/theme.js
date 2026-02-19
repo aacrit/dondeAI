@@ -9,12 +9,12 @@ import { saveTheme } from './persistence.js';
 export const CULTURES = ['neutral', 'indian', 'nepalese', 'japanese', 'african', 'southamerican'];
 
 export const CULTURE_DISPLAY_NAMES = {
-  neutral: 'Monochrome',
-  indian: 'Saffron',
-  nepalese: 'Summit',
-  japanese: 'Inkwell',
+  neutral: 'Studio',
+  indian: 'Desi',
+  nepalese: 'Himalayan',
+  japanese: 'Zen',
   african: 'Kente',
-  southamerican: 'Fiesta',
+  southamerican: 'Sabor',
 };
 
 const THEME_LABELS = {
@@ -551,30 +551,19 @@ function applyTheme(culture, mode) {
   const root = document.documentElement;
   const wash = document.getElementById('theme-wash');
 
-  // Radial clip-path wash transition (skip on first load)
+  // Subtle crossfade wash transition (skip on first load)
   if (!isFirstApply && wash && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    // Get the cycle-theme button position for wash origin
-    const btn = document.querySelector('[data-action="cycle-theme"]');
-    if (btn) {
-      const rect = btn.getBoundingClientRect();
-      const x = ((rect.left + rect.width / 2) / window.innerWidth * 100).toFixed(1);
-      const y = ((rect.top + rect.height / 2) / window.innerHeight * 100).toFixed(1);
-      wash.style.setProperty('--wash-x', `${x}%`);
-      wash.style.setProperty('--wash-y', `${y}%`);
-    }
-
-    // Apply new theme to wash div first
+    // Apply new theme to wash div first, then crossfade
     wash.setAttribute('data-theme', culture);
     wash.setAttribute('data-mode', mode);
-    wash.style.background = '';  // will pick up from new theme
     wash.classList.add('theme-wash--active');
 
-    // After transition, apply to root and hide wash
+    // After crossfade completes, apply to root and hide wash
     setTimeout(() => {
       root.setAttribute('data-theme', culture);
       root.setAttribute('data-mode', mode);
       wash.classList.remove('theme-wash--active');
-    }, 420);
+    }, 220);
   } else {
     root.setAttribute('data-theme', culture);
     root.setAttribute('data-mode', mode);

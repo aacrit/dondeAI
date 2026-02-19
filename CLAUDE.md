@@ -228,11 +228,11 @@ Accent color (`--ac`) is scarce and intentional. This creates visual hierarchy t
 | ID | Display Name | Personality |
 |---|---|---|
 | `neutral` | Studio | Clean, minimal, universally accessible default |
-| `indian` | Saffron | Warm golds, marigold, ornate patterns |
-| `nepalese` | Summit | Prayer flag colors, mountain earth tones |
-| `japanese` | Inkwell | Ink wash, cherry blossom accents, wabi-sabi restraint |
+| `indian` | Desi | Warm golds, marigold, ornate patterns — "from the homeland" |
+| `nepalese` | Himalayan | Prayer flag colors, mountain earth tones — spiritual heights |
+| `japanese` | Zen | Ink wash, cherry blossom accents, wabi-sabi restraint — minimalist philosophy |
 | `african` | Kente | Bold geometry, warm earth + bold accent, Afrofuturist energy |
-| `southamerican` | Fiesta | Tropical vivid palette, fiesta energy, hand-painted tiles |
+| `southamerican` | Sabor | Tropical vivid palette, fiesta energy — "flavor runs through everything" |
 
 ### Theme label keys (override per culture in `THEME_LABELS`):
 

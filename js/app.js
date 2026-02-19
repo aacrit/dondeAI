@@ -615,6 +615,12 @@ function wireEvents() {
       case 'select-theme': {
         const culture = btn.dataset.theme;
         setTheme(culture, getState().theme.mode);
+        // Brief pop feedback on selected card, then auto-close picker
+        btn.classList.add('chip-pop');
+        btn.addEventListener('animationend', () => btn.classList.remove('chip-pop'), { once: true });
+        setTimeout(() => {
+          document.getElementById('theme-picker')?.classList.remove('theme-picker--open');
+        }, 350);
         break;
       }
 
