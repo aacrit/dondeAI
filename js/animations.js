@@ -6,22 +6,22 @@
 
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)');
 
-/* ---- Score Ring Animation (Integer-only) ---- */
+/* ---- Match Ring Animation (Percentage-based, 0-100) ---- */
 export function animateScoreRing(rawScore) {
-  const n = Math.round(parseFloat(rawScore) || 8); // default 8
+  const pct = Math.round(parseFloat(rawScore) || 80);
   const fill = document.getElementById('score-ring-fill');
   const numEl = document.getElementById('score-number');
   const verdictEl = document.getElementById('score-verdict');
   if (!fill || !numEl) return;
 
   const circumference = 2 * Math.PI * 45; // r=45
-  const target = circumference - (n / 10) * circumference;
+  const target = circumference - (pct / 100) * circumference;
 
   fill.style.stroke = 'var(--ac)';
 
   if (REDUCED.matches) {
     fill.style.strokeDashoffset = target;
-    numEl.textContent = n;
+    numEl.textContent = pct + '%';
     return;
   }
 
@@ -34,16 +34,16 @@ export function animateScoreRing(rawScore) {
     fill.style.strokeDashoffset = target;
   });
 
-  // Count-up to integer
+  // Count-up to percentage
   const duration = 1200;
   const start = performance.now();
   function tick(now) {
     const elapsed = now - start;
     const progress = Math.min(elapsed / duration, 1);
     const eased = 1 - Math.pow(1 - progress, 3);
-    numEl.textContent = Math.round(n * eased);
+    numEl.textContent = Math.round(pct * eased) + '%';
     if (progress < 1) requestAnimationFrame(tick);
-    else numEl.textContent = n; // ensure final integer
+    else numEl.textContent = pct + '%';
   }
   requestAnimationFrame(tick);
 
@@ -70,8 +70,8 @@ export function animateScoreRing(rawScore) {
     }
   }
 
-  // Celebration glow for exceptional scores (9+)
-  if (!REDUCED.matches && n >= 9) {
+  // Celebration glow for exceptional matches (90%+)
+  if (!REDUCED.matches && pct >= 90) {
     setTimeout(() => {
       const tile = document.getElementById('score-tile-donde');
       if (tile) {
@@ -83,78 +83,209 @@ export function animateScoreRing(rawScore) {
   }
 }
 
-/* ---- Vibe Profile Tiles ---- */
-export function renderVibeTiles(scores, timers = []) {
-  const dimensions = [
-    { key: 'date_friendly_score', label: 'Date' },
-    { key: 'group_friendly_score', label: 'Group' },
-    { key: 'family_friendly_score', label: 'Family' },
-    { key: 'business_lunch_score', label: 'Business' },
-    { key: 'solo_dining_score', label: 'Solo' },
-    { key: 'hole_in_wall_factor', label: 'Hidden Gem' },
-    { key: 'romantic_rating', label: 'Romance' },
-  ];
+/* ---- Petal Radar Chart (Ink Blossom — 6-axis vibe profile) ---- */
+import { svgIcon } from './utils.js';
 
-  // Only show dimensions that have data
-  let available = dimensions.filter(d => {
+const RADAR_DIMS = [
+  { key: 'date_friendly_score',    label: 'Date',     icon: 'heart' },
+  { key: 'group_friendly_score',   label: 'Group',    icon: 'usersThree' },
+  { key: 'family_friendly_score',  label: 'Family',   icon: 'home' },
+  { key: 'business_lunch_score',   label: 'Business', icon: 'briefcase' },
+  { key: 'solo_dining_score',      label: 'Solo',     icon: 'user' },
+  { key: 'hole_in_wall_factor',    label: 'Gem',      icon: 'diamond' },
+];
+
+function svgEl(tag) {
+  return document.createElementNS('http://www.w3.org/2000/svg', tag);
+}
+
+function buildTeardropPath(cx, cy, angle, length) {
+  const bulbW = Math.max(length * 0.32, 5);
+  const perp = angle + Math.PI / 2;
+  const tipX = cx + length * Math.cos(angle);
+  const tipY = cy + length * Math.sin(angle);
+  const cp1X = cx + length * 0.55 * Math.cos(angle) + bulbW * Math.cos(perp);
+  const cp1Y = cy + length * 0.55 * Math.sin(angle) + bulbW * Math.sin(perp);
+  const cp2X = cx + length * 0.55 * Math.cos(angle) - bulbW * Math.cos(perp);
+  const cp2Y = cy + length * 0.55 * Math.sin(angle) - bulbW * Math.sin(perp);
+  return `M ${cx} ${cy} Q ${cp1X} ${cp1Y} ${tipX} ${tipY} Q ${cp2X} ${cp2Y} ${cx} ${cy} Z`;
+}
+
+export function renderPetalRadar(scores, timers = []) {
+  const $tile = document.getElementById('score-tile-radar');
+  if (!$tile) return;
+
+  const available = RADAR_DIMS.filter(d => {
     const v = scores[d.key];
     return v != null && v !== '' && !isNaN(parseFloat(v));
   });
 
-  // If both date + romance present, drop romance (redundant)
-  if (available.find(d => d.key === 'date_friendly_score') &&
-      available.find(d => d.key === 'romantic_rating')) {
-    available = available.filter(d => d.key !== 'romantic_rating');
-  }
-
-  const $container = document.getElementById('vibe-tiles');
-  if (!$container) return;
-  $container.innerHTML = '';
-
-  if (available.length < 2) {
-    $container.style.display = 'none';
+  if (available.length < 3) {
+    $tile.style.display = 'none';
     return;
   }
-  $container.style.display = '';
+  $tile.style.display = '';
 
-  available.forEach((dim, i) => {
-    const val = Math.min(parseFloat(scores[dim.key]) || 0, 10);
-    const pct = (val / 10) * 100;
+  const $svg = document.getElementById('petal-radar');
+  if (!$svg) return;
 
-    const tile = document.createElement('div');
-    tile.className = 'vibe-tile';
-    tile.setAttribute('role', 'group');
-    tile.setAttribute('aria-label', `${dim.label}: ${val.toFixed(1)} out of 10`);
-    tile.innerHTML = `
-      <div class="vibe-tile__header">
-        <span class="vibe-tile__label type-data--sm">${dim.label}</span>
-        <span class="vibe-tile__value type-data--sm">${val.toFixed(1)}</span>
-      </div>
-      <div class="vibe-tile__bar" role="progressbar"
-           aria-valuenow="${val}" aria-valuemin="0" aria-valuemax="10">
-        <div class="vibe-tile__bar-fill" data-target="${pct}"></div>
-      </div>`;
-    $container.appendChild(tile);
+  const cx = 100, cy = 100;
+  const maxR = 62;
+  const minR = 8;
+  const angleStep = (2 * Math.PI) / 6;
+  const startAngle = -Math.PI / 2;
 
-    // Stagger entrance + bar fill animation
-    const delay = 980 + (i * 60);
-    if (!REDUCED.matches) {
-      tile.style.opacity = '0';
-      tile.style.transform = 'translateY(8px)';
-      timers.push(setTimeout(() => {
-        tile.style.transition = 'opacity 300ms ease-out, transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
-        tile.style.opacity = '1';
-        tile.style.transform = 'translateY(0)';
-      }, delay));
-      const fill = tile.querySelector('.vibe-tile__bar-fill');
-      timers.push(setTimeout(() => {
-        fill.style.transition = 'width 500ms cubic-bezier(0.4, 0, 0.2, 1)';
-        fill.style.width = pct + '%';
-      }, delay + 100));
-    } else {
-      tile.querySelector('.vibe-tile__bar-fill').style.width = pct + '%';
-    }
+  // Build slots — all 6 positions, fill data where available
+  const slots = RADAR_DIMS.map(dim => {
+    const found = available.find(a => a.key === dim.key);
+    const val = found ? Math.min(parseFloat(scores[dim.key]) || 0, 10) : 0;
+    return { ...dim, val, hasData: !!found };
   });
+
+  // Build aria-label with values
+  const ariaDesc = slots.filter(s => s.hasData)
+    .map(s => `${s.label} ${s.val.toFixed(1)}`).join(', ');
+  $tile.setAttribute('aria-label', `DondeAI Vibe: ${ariaDesc}`);
+
+  // Get SVG groups
+  const gridG = $svg.querySelector('.petal-radar__grid');
+  const axesG = $svg.querySelector('.petal-radar__axes');
+  const petalsG = document.getElementById('petal-radar-petals');
+  const iconsG = document.getElementById('petal-radar-icons');
+  gridG.innerHTML = '';
+  axesG.innerHTML = '';
+  petalsG.innerHTML = '';
+  iconsG.innerHTML = '';
+
+  // Concentric hexagonal guides at 33% and 66%
+  [0.33, 0.66].forEach(pct => {
+    const r = maxR * pct;
+    const pts = [];
+    for (let i = 0; i < 6; i++) {
+      const a = startAngle + i * angleStep;
+      pts.push(`${cx + r * Math.cos(a)},${cy + r * Math.sin(a)}`);
+    }
+    const poly = svgEl('polygon');
+    poly.setAttribute('points', pts.join(' '));
+    poly.classList.add('petal-radar__guide');
+    gridG.appendChild(poly);
+  });
+
+  // Axis lines from center to each vertex
+  for (let i = 0; i < 6; i++) {
+    const a = startAngle + i * angleStep;
+    const line = svgEl('line');
+    line.setAttribute('x1', cx);
+    line.setAttribute('y1', cy);
+    line.setAttribute('x2', cx + maxR * Math.cos(a));
+    line.setAttribute('y2', cy + maxR * Math.sin(a));
+    line.classList.add('petal-radar__axis');
+    axesG.appendChild(line);
+  }
+
+  // Petals
+  slots.forEach((slot, i) => {
+    if (!slot.hasData) return;
+    const angle = startAngle + i * angleStep;
+    const r = minR + (slot.val / 10) * (maxR - minR);
+    const path = svgEl('path');
+    path.setAttribute('d', buildTeardropPath(cx, cy, angle, r));
+    path.classList.add('petal-radar__petal');
+    path.setAttribute('data-dim', slot.key);
+    path.setAttribute('data-value', slot.val.toFixed(1));
+
+    if (!REDUCED.matches) {
+      path.style.transformOrigin = `${cx}px ${cy}px`;
+      path.style.transform = 'scale(0)';
+      path.style.opacity = '0';
+      const delay = 400 + i * 80;
+      timers.push(setTimeout(() => {
+        path.style.transition = 'transform 500ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 300ms ease-out';
+        path.style.transform = 'scale(1)';
+        path.style.opacity = '1';
+      }, delay));
+    }
+    petalsG.appendChild(path);
+  });
+
+  // Icons + labels at axis tips
+  slots.forEach((slot, i) => {
+    if (!slot.hasData) return;
+    const angle = startAngle + i * angleStep;
+    const iconR = maxR + 18;
+    const ix = cx + iconR * Math.cos(angle);
+    const iy = cy + iconR * Math.sin(angle);
+
+    // Icon via foreignObject
+    const fo = svgEl('foreignObject');
+    fo.setAttribute('x', ix - 8);
+    fo.setAttribute('y', iy - 8);
+    fo.setAttribute('width', 16);
+    fo.setAttribute('height', 16);
+    fo.setAttribute('class', 'petal-radar__icon-fo');
+    const div = document.createElement('div');
+    div.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml');
+    div.className = 'petal-radar__icon';
+    div.innerHTML = svgIcon(slot.icon, 14);
+    fo.appendChild(div);
+    iconsG.appendChild(fo);
+
+    // Label text
+    const labelR = maxR + 32;
+    const lx = cx + labelR * Math.cos(angle);
+    const ly = cy + labelR * Math.sin(angle);
+    const text = svgEl('text');
+    text.setAttribute('x', lx);
+    text.setAttribute('y', ly + 3);
+    text.classList.add('petal-radar__label');
+    text.textContent = slot.label;
+    iconsG.appendChild(text);
+  });
+
+  // Dominant vibe label below radar
+  const topSlot = slots.filter(s => s.hasData).sort((a, b) => b.val - a.val)[0];
+  if (topSlot) {
+    let $topVibe = $tile.querySelector('.score-tile__top-vibe');
+    if (!$topVibe) {
+      $topVibe = document.createElement('span');
+      $topVibe.className = 'score-tile__top-vibe type-data--sm';
+      $tile.appendChild($topVibe);
+    }
+    $topVibe.textContent = `Top: ${topSlot.label} ${topSlot.val.toFixed(1)}`;
+  }
+}
+
+/* ---- Sentiment Bar (horizontal mood indicator) ---- */
+export function renderSentimentBar(pos, neu, neg, timers = []) {
+  const total = pos + neu + neg;
+  if (total === 0) return;
+
+  const $bar = document.getElementById('sentiment-bar');
+  if (!$bar) return;
+  $bar.style.display = '';
+
+  const posEl = document.getElementById('sentiment-bar-pos');
+  const neuEl = document.getElementById('sentiment-bar-neu');
+  const negEl = document.getElementById('sentiment-bar-neg');
+
+  const posPct = pos / total;
+  const neuPct = neu / total;
+  const negPct = neg / total;
+
+  // Animated width grow
+  [posEl, neuEl, negEl].forEach(el => { if (el) el.style.flex = '0'; });
+
+  if (!REDUCED.matches) {
+    timers.push(setTimeout(() => {
+      if (posEl) posEl.style.flex = String(posPct);
+      if (neuEl) neuEl.style.flex = String(neuPct);
+      if (negEl) negEl.style.flex = String(negPct);
+    }, 800));
+  } else {
+    if (posEl) posEl.style.flex = String(posPct);
+    if (neuEl) neuEl.style.flex = String(neuPct);
+    if (negEl) negEl.style.flex = String(negPct);
+  }
 }
 
 /* ---- Badge Fade-In with Scale Spring ---- */

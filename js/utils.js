@@ -30,6 +30,13 @@ export const ICON_SVG = {
   music:         '<path fill="currentColor" d="M212.92,17.69a8,8,0,0,0-6.86-1.45l-128,32A8,8,0,0,0,72,56V166.08A36,36,0,1,0,88,196V62.32l112-28v99.76A36,36,0,1,0,216,168V24A8,8,0,0,0,212.92,17.69ZM52,216a20,20,0,1,1,20-20A20,20,0,0,1,52,216Zm128-32a20,20,0,1,1,20-20A20,20,0,0,1,180,184Z"/>',
   pet:           '<path fill="currentColor" d="M212,80a28,28,0,1,0-28,28A28,28,0,0,0,212,80Zm-28,12a12,12,0,1,1,12-12A12,12,0,0,1,184,92ZM72,108A28,28,0,1,0,44,80,28,28,0,0,0,72,108Zm-28-12a12,12,0,1,1,12-12A12,12,0,0,1,72,96ZM92,60A28,28,0,1,0,64,32,28,28,0,0,0,92,60Zm0-40A12,12,0,1,1,80,32,12,12,0,0,1,92,20Zm72,40a28,28,0,1,0-28-28A28,28,0,0,0,164,60Zm0-40a12,12,0,1,1-12,12A12,12,0,0,1,164,20Zm36.77,143.25a44,44,0,0,1-73.54,0C115.08,145.49,100.36,120,128,120S140.92,145.49,200.77,163.25Z"/>',
 
+  // Vibe radar dimension icons
+  heart:         '<path fill="currentColor" d="M178,40c-20.65,0-38.73,8.88-50,23.89C116.73,48.88,98.65,40,78,40a62.07,62.07,0,0,0-62,62c0,70,103.79,126.66,108.21,129a8,8,0,0,0,7.58,0C136.21,228.66,240,172,240,102A62.07,62.07,0,0,0,178,40Z"/>',
+  usersThree:    '<path fill="currentColor" d="M244.8,150.4a8,8,0,0,1-11.2-1.6A51.6,51.6,0,0,0,192,128a8,8,0,0,1-7.37-4.89,8,8,0,0,1,0-6.22A8,8,0,0,1,192,112a24,24,0,1,0-23.24-30,8,8,0,1,1-15.5-4A40,40,0,1,1,219,117.51a67.94,67.94,0,0,1,27.43,21.68A8,8,0,0,1,244.8,150.4ZM190.92,212a8,8,0,1,1-13.84,8,57,57,0,0,0-98.16,0,8,8,0,1,1-13.84-8,72.06,72.06,0,0,1,27.77-27.85,48,48,0,1,1,70.3,0A72.06,72.06,0,0,1,190.92,212ZM128,176a32,32,0,1,0-32-32A32,32,0,0,0,128,176ZM64,112a24,24,0,1,0-23.24-30A8,8,0,1,0,56.27,86,24,24,0,0,0,64,112Zm8.53,37.52A8,8,0,0,0,64,144a51.6,51.6,0,0,0-41.6,20.8,8,8,0,1,0,12.8,9.6A67.94,67.94,0,0,1,62.68,152.89,8,8,0,0,0,72.53,149.52Z"/>',
+  briefcase:     '<path fill="currentColor" d="M216,56H176V48a24,24,0,0,0-24-24H104A24,24,0,0,0,80,48v8H40A16,16,0,0,0,24,72V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V72A16,16,0,0,0,216,56ZM96,48a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8v8H96ZM216,200H40V72H216V200Zm-40-64a8,8,0,0,1-8,8H88a8,8,0,0,1,0-16h80A8,8,0,0,1,176,136Z"/>',
+  user:          '<path fill="currentColor" d="M230.92,212c-15.23-26.33-38.7-45.21-66.09-54.16a72,72,0,1,0-73.66,0C63.78,166.78,40.31,185.66,25.08,212a8,8,0,1,0,13.85,8C55.71,189.82,89.55,168,128,168s72.29,21.82,89.07,52a8,8,0,1,0,13.85-8ZM72,96a56,56,0,1,1,56,56A56.06,56.06,0,0,1,72,96Z"/>',
+  diamond:       '<path fill="currentColor" d="M235.33,104,179.33,40.89A16,16,0,0,0,167.11,36H88.89a16,16,0,0,0-12.22,5.69L20.67,104a16,16,0,0,0,1.32,21.29l96,104a16,16,0,0,0,23.54.06l96-104A16,16,0,0,0,235.33,104ZM128,224,32,120,88.89,52h78.22L224,120Z"/>',
+
   // Star icons for Google rating
   starFull:      '<path fill="currentColor" d="M234.29,114.85l-45,38.83L203,211.75a16.4,16.4,0,0,1-24.5,17.82L128,198.49,77.47,229.57A16.4,16.4,0,0,1,53,211.75l13.76-58.07-45-38.83A16.46,16.46,0,0,1,31.08,92l59.46-5.15,23.21-55.36a16.4,16.4,0,0,1,30.5,0l23.21,55.36L226.92,92a16.46,16.46,0,0,1,7.37,22.83Z"/>',
   starHalf:      '<path fill="currentColor" d="M234.29,114.85l-45,38.83L203,211.75a16.4,16.4,0,0,1-24.5,17.82L128,198.49V31.51a16.41,16.41,0,0,1,15.25,10l23.21,55.36L226.92,92a16.46,16.46,0,0,1,7.37,22.83ZM128,198.49,77.47,229.57A16.4,16.4,0,0,1,53,211.75l13.76-58.07-45-38.83A16.46,16.46,0,0,1,31.08,92l59.46-5.15,23.21-55.36A16.41,16.41,0,0,1,128,31.51Z" opacity="0.3"/>',
@@ -38,6 +45,11 @@ export const ICON_SVG = {
   // Price & Noise icons
   dollarSign:    '<path fill="currentColor" d="M152,120H136V56h8a32,32,0,0,1,32,32,8,8,0,0,0,16,0,48.05,48.05,0,0,0-48-48h-8V24a8,8,0,0,0-16,0V40h-8a48,48,0,0,0,0,96h8v64H104a32,32,0,0,1-32-32,8,8,0,0,0-16,0,48.05,48.05,0,0,0,48,48h16v16a8,8,0,0,0,16,0V216h16a48,48,0,0,0,0-96Zm-40,0a32,32,0,0,1,0-64h8v64Zm24,80V136h16a32,32,0,0,1,0,64Z"/>',
   speakerWave:   '<path fill="currentColor" d="M155.51,24.81a8,8,0,0,0-8.42.88L77.25,80H32A16,16,0,0,0,16,96v64a16,16,0,0,0,16,16H77.25l69.84,54.31A8,8,0,0,0,160,224V32A8,8,0,0,0,155.51,24.81ZM144,207.64,84.91,161.69A7.94,7.94,0,0,0,80,160H32V96H80a7.94,7.94,0,0,0,4.91-1.69L144,48.36ZM192,128a24,24,0,0,0-24-24,8,8,0,0,0,0,16,8,8,0,0,1,0,16,8,8,0,0,0,0,16A24,24,0,0,0,192,128Zm40,0a64,64,0,0,0-64-64,8,8,0,0,0,0,16,48,48,0,0,1,0,96,8,8,0,0,0,0,16A64,64,0,0,0,232,128Z"/>',
+  speakerNone:   '<path fill="currentColor" d="M155.51,24.81a8,8,0,0,0-8.42.88L77.25,80H32A16,16,0,0,0,16,96v64a16,16,0,0,0,16,16H77.25l69.84,54.31A8,8,0,0,0,160,224V32A8,8,0,0,0,155.51,24.81ZM144,207.64,84.91,161.69A7.94,7.94,0,0,0,80,160H32V96H80a7.94,7.94,0,0,0,4.91-1.69L144,48.36Z"/>',
+  speakerHigh:   '<path fill="currentColor" d="M155.51,24.81a8,8,0,0,0-8.42.88L77.25,80H32A16,16,0,0,0,16,96v64a16,16,0,0,0,16,16H77.25l69.84,54.31A8,8,0,0,0,160,224V32A8,8,0,0,0,155.51,24.81ZM144,207.64,84.91,161.69A7.94,7.94,0,0,0,80,160H32V96H80a7.94,7.94,0,0,0,4.91-1.69L144,48.36ZM192,128a24,24,0,0,0-24-24,8,8,0,0,0,0,16,8,8,0,0,1,0,16,8,8,0,0,0,0,16A24,24,0,0,0,192,128Zm40,0a64,64,0,0,0-64-64,8,8,0,0,0,0,16,48,48,0,0,1,0,96,8,8,0,0,0,0,16A64,64,0,0,0,232,128Zm-24,0a40,40,0,0,0-40-40,8,8,0,0,0,0,16,24,24,0,0,1,0,48,8,8,0,0,0,0,16A40,40,0,0,0,208,128Z"/>',
+
+  // Ambiance icons
+  moon:          '<path fill="currentColor" d="M233.54,142.23a8,8,0,0,0-8-2,88.08,88.08,0,0,1-109.8-109.8,8,8,0,0,0-10-10,104.84,104.84,0,0,0-52.91,37A104,104,0,0,0,128,232a103.09,103.09,0,0,0,62.52-20.88,104.84,104.84,0,0,0,37-52.91A8,8,0,0,0,233.54,142.23ZM128,216A88,88,0,0,1,65.73,69.73a89.28,89.28,0,0,0,36.82-25,88.09,88.09,0,0,0,108.69,108.69,89.28,89.28,0,0,0-25,36.82A87.42,87.42,0,0,1,128,216Z"/>',
 
   // Price tag icon
   tag:           '<path fill="currentColor" d="M243.31,136,144,36.69A15.86,15.86,0,0,0,132.69,32H40a8,8,0,0,0-8,8v92.69A15.86,15.86,0,0,0,36.69,144L136,243.31a16,16,0,0,0,22.63,0l84.68-84.68A16,16,0,0,0,243.31,136Zm-96,96L48,132.69V48h84.69L232,147.31ZM96,84A12,12,0,1,1,84,72,12,12,0,0,1,96,84Z"/>',
@@ -126,16 +138,365 @@ export function getTimePeriod() {
   return 'latenight';
 }
 
-export function getGreeting() {
+/* ---- Culture-Aware Greetings (8 per period × 5 periods × 6 cultures) ---- */
+const GREETINGS = {
+  neutral: {
+    morning: [
+      'Good morning — what sounds good?',
+      'Rise and shine. What are we eating?',
+      'Morning hunger is the best hunger.',
+      'Start the day right. What are you craving?',
+      'Fresh morning, fresh cravings.',
+      'The day is young. Feed it well.',
+      'Breakfast thoughts? We have ideas.',
+      'Morning appetite, activated.',
+    ],
+    lunch: [
+      'Lunchtime — what are you craving?',
+      'Midday hunger? We got you.',
+      'The lunch hour calls. Answer it.',
+      'Your afternoon fuel awaits.',
+      'Lunch break. Make it count.',
+      'Feed the focus. What sounds good?',
+      'Midday mission: find the perfect bite.',
+      'The clock says lunch. Your stomach agrees.',
+    ],
+    afternoon: [
+      'Afternoon pick-me-up?',
+      'That 3pm craving is real.',
+      'Afternoon snack attack? Same.',
+      'The afternoon slump needs food.',
+      'Between meals, between moods — what do you want?',
+      'Afternoon cravings deserve attention.',
+      'Something to carry you into the evening?',
+      'Fuel the rest of the day.',
+    ],
+    dinner: [
+      'Good evening, what sounds good?',
+      'Dinner plans? Let us inspire you.',
+      'Evening appetite: engaged.',
+      'The night is young. Eat accordingly.',
+      'Sunset cravings — what speaks to you?',
+      'Tonight deserves something special.',
+      'Dinner awaits. What direction?',
+      'Evening calls for a great meal.',
+    ],
+    latenight: [
+      'Late night cravings? We got you.',
+      'The city sleeps. Your hunger doesn\'t.',
+      'Midnight munchies? Say no more.',
+      'The best food decisions happen after dark.',
+      'Night owl appetites, served.',
+      'Late night. Big cravings.',
+      'Can\'t sleep? Might as well eat well.',
+      'After-hours eats. Let\'s find your spot.',
+    ],
+  },
+  indian: {
+    morning: [
+      'Good morning — what does your heart want?',
+      'Subah ka nashta? Start with something special.',
+      'Morning spice, morning life.',
+      'Wake up to flavor.',
+      'A fresh start deserves fresh masala.',
+      'Morning chai and... what else?',
+      'The kitchen is awake. What are you craving?',
+      'Aaj kya khaayenge?',
+    ],
+    lunch: [
+      'Dopahar ka khaana — what\'s calling?',
+      'Lunchtime. Make it aromatic.',
+      'Midday heat deserves bold flavors.',
+      'The thali of the day awaits you.',
+      'Lunch hour. Spice level?',
+      'Feed the afternoon with flavor.',
+      'Hunger is the best chutney.',
+      'Something warm, something bold?',
+    ],
+    afternoon: [
+      'Chai time — what else sounds good?',
+      'The afternoon calls for something warm.',
+      'Samosa o\'clock.',
+      'Between lunch and dinner, magic happens.',
+      'Afternoon snack with chai?',
+      'A sweet treat or something savory?',
+      'Evening tea with a side of...?',
+      'The in-between hunger. Feed it.',
+    ],
+    dinner: [
+      'Shaam ho gayi — what does your heart want?',
+      'Evening raga. What melody of flavor?',
+      'Dinner should be an event.',
+      'The night calls for something extraordinary.',
+      'Fragrant evenings deserve fragrant food.',
+      'Tonight, we feast.',
+      'Spice up your night.',
+      'Dinner is a love language.',
+    ],
+    latenight: [
+      'Late night kebab run?',
+      'Midnight biryani thoughts.',
+      'The night is long. The naan is warm.',
+      'Can\'t sleep without one more bite.',
+      'After-hours chai and conversation.',
+      'Late night. Butter chicken energy.',
+      'The city sleeps but the tandoor glows.',
+      'Night cravings, met with warmth.',
+    ],
+  },
+  nepalese: {
+    morning: [
+      'Good morning — what are you seeking?',
+      'The mountains wake. What stirs your appetite?',
+      'Morning warmth. What do you need?',
+      'A new dawn, a new flavor.',
+      'Start the climb. Fuel up first.',
+      'Morning peace, morning hunger.',
+      'The teahouse is open. What calls?',
+      'Fresh air, fresh cravings.',
+    ],
+    lunch: [
+      'Midday — what nourishes you?',
+      'Dal bhat power — what sounds good?',
+      'The afternoon sun calls for sustenance.',
+      'Lunch on the trail. What fuels you?',
+      'Simple and hearty. What do you seek?',
+      'Midday warmth for the soul.',
+      'The lunch bell rings.',
+      'Eat well, walk far.',
+    ],
+    afternoon: [
+      'Afternoon chai — what pairs with it?',
+      'The valley grows quiet. What are you craving?',
+      'Between peaks, a moment to eat.',
+      'Afternoon rest, afternoon flavors.',
+      'A warm cup and...?',
+      'The afternoon trail snack.',
+      'Peaceful afternoon cravings.',
+      'Something warm for the soul.',
+    ],
+    dinner: [
+      'Evening approaches — what are you seeking?',
+      'The sun sets. The appetite rises.',
+      'Dinner around the fire.',
+      'Evening warmth and hearty food.',
+      'The stars appear. What do you crave?',
+      'Dinner should warm the soul.',
+      'Night descends. Eat well.',
+      'An evening feast awaits.',
+    ],
+    latenight: [
+      'Late night warmth? We\'ve got you.',
+      'The mountain night is cold. The food is warm.',
+      'Midnight momos? Say the word.',
+      'Still up? Something warm awaits.',
+      'The lodge is still open.',
+      'Late night comfort in a bowl.',
+      'When sleep escapes, food arrives.',
+      'Night hunger. Mountain comfort.',
+    ],
+  },
+  japanese: {
+    morning: [
+      'Ohayou. What sounds good?',
+      'Morning. Simplicity. What do you seek?',
+      'A new day. A clean plate.',
+      'The morning is quiet. What stirs your appetite?',
+      'Begin with intention. What do you crave?',
+      'Fresh morning, fresh start.',
+      'Quiet hunger. What will you choose?',
+      'The first meal sets the day.',
+    ],
+    lunch: [
+      'Lunch. What sounds right?',
+      'Midday. What nourishes you?',
+      'A moment to pause and eat well.',
+      'Simple or complex — what do you need?',
+      'The afternoon meal. Choose carefully.',
+      'Lunch is a meditation.',
+      'Feed the craft of your day.',
+      'Precision in every bite.',
+    ],
+    afternoon: [
+      'Afternoon pause. Matcha and...?',
+      'The space between. What fills it?',
+      'A quiet afternoon craving.',
+      'Something small. Something perfect.',
+      'Afternoon light, afternoon appetite.',
+      'Rest. Reflect. Eat something beautiful.',
+      'The in-between hours.',
+      'An afternoon moment of nourishment.',
+    ],
+    dinner: [
+      'Konbanwa. What sounds good?',
+      'Evening. What calls to you?',
+      'The day winds down. The appetite sharpens.',
+      'Dinner. Craft. Care.',
+      'An evening meal, intentionally chosen.',
+      'Night falls. Hunger rises.',
+      'What will the evening bring to your table?',
+      'Dinner should be savored.',
+    ],
+    latenight: [
+      'Late night. What comforts you?',
+      'The quiet hours. A bowl of warmth.',
+      'Midnight hunger. Answer it simply.',
+      'After hours. Steam rising.',
+      'The night is patient. Your ramen is not.',
+      'Late night contemplation and noodles.',
+      'Still awake? A perfect time to eat.',
+      'When the city sleeps, the kitchen glows.',
+    ],
+  },
+  african: {
+    morning: [
+      'Good morning — what\'s calling you?',
+      'Rise and grind. What\'s on the menu?',
+      'Morning energy. Feed it right.',
+      'Start the day with something that hits.',
+      'Breakfast mode: activated.',
+      'New day, new flavor.',
+      'Morning hunger don\'t play.',
+      'First meal of the day. Make it count.',
+    ],
+    lunch: [
+      'Lunchtime — what\'s calling you?',
+      'Feed the hustle. What sounds good?',
+      'Midday vibes. What are we eating?',
+      'The lunch hour is yours.',
+      'Fuel up. The day isn\'t done.',
+      'Lunch should slap. Always.',
+      'Break bread. Break monotony.',
+      'Midday, full flavor.',
+    ],
+    afternoon: [
+      'Afternoon vibes — snack time?',
+      'The afternoon calls for flavor.',
+      'Between meals but still hungry.',
+      'Something to hold you down.',
+      'Afternoon cravings hit different.',
+      'A little something-something?',
+      'The in-between hunger.',
+      'Afternoon fuel required.',
+    ],
+    dinner: [
+      'Evening time — what\'s the move?',
+      'Dinner plans? Let\'s manifest.',
+      'The night calls for a spread.',
+      'Feed the vibe. What\'s your craving?',
+      'Tonight is for good food and good energy.',
+      'Dinner should be an experience.',
+      'What are we feeling tonight?',
+      'The evening table is set.',
+    ],
+    latenight: [
+      'Late night — what\'s the vibe?',
+      'After hours. The real ones eat.',
+      'Midnight cravings? Say less.',
+      'The night is young. Your appetite isn\'t.',
+      'Late night bites hit different.',
+      'Can\'t stop, won\'t stop eating.',
+      'After dark, the flavor comes alive.',
+      'Night owl appetites, satisfied.',
+    ],
+  },
+  southamerican: {
+    morning: [
+      'Buenos dias — que quieres?',
+      'Morning vibes. Que se te antoja?',
+      'Fresh morning, fresh cravings.',
+      'Desayuno time. What sounds good?',
+      'Wake up and taste the day.',
+      'Morning sun, morning hunger.',
+      'Start the day con sabor.',
+      'Cafe y... que mas?',
+    ],
+    lunch: [
+      'Hora de comer — what sounds good?',
+      'Lunchtime sabor. Que te provoca?',
+      'Midday hunger con ganas.',
+      'The lunch hour. Make it count.',
+      'Feed the afternoon con flavor.',
+      'Almuerzo time. What are you craving?',
+      'Midday cravings con todo.',
+      'Lunch should make you smile.',
+    ],
+    afternoon: [
+      'Afternoon antojo? We feel you.',
+      'Merienda time. What sounds good?',
+      'The afternoon calls for a snack.',
+      'Between meals, between worlds.',
+      'Afternoon cravings con sabor.',
+      'A little algo-algo?',
+      'The afternoon wants flavor.',
+      'Snack attack? Dale.',
+    ],
+    dinner: [
+      'Buenas noches — que se te antoja?',
+      'Dinner vibes. What\'s the move?',
+      'La cena awaits. What calls?',
+      'Night falls. Flavors rise.',
+      'Tonight, we feast con todo.',
+      'Evening appetite: activated.',
+      'Dinner should be a celebration.',
+      'What does your heart want tonight?',
+    ],
+    latenight: [
+      'Late night antojo? Dale.',
+      'Midnight cravings con ganas.',
+      'The night is still young. Eat accordingly.',
+      'After-hours flavor? Say no more.',
+      'Late night tacos o que?',
+      'Can\'t sleep, might as well eat.',
+      'The city doesn\'t sleep. Neither do we.',
+      'Night owl appetites, served.',
+    ],
+  },
+};
+
+const DAY_GREETINGS = {
+  neutral: {
+    5: ['Happy Friday — what are we eating tonight?', 'TGIF. Reward yourself.'],
+    6: ['Saturday vibes. What sounds good?', 'Weekend mode. Eat something amazing.'],
+    0: ['Lazy Sunday? Perfect eating weather.', 'Sunday supper starts with a craving.'],
+  },
+  indian: {
+    5: ['Shukravaar mubarak — feast tonight?', 'Friday night calls for a biryani.'],
+    6: ['Weekend thali vibes.', 'Saturday means extra naan.'],
+    0: ['Sunday slow-cook energy.', 'A Sunday spread with all the sides.'],
+  },
+  japanese: {
+    5: ['Friday evening. Izakaya time?', 'The week ends. The appetite begins.'],
+    6: ['Saturday. A day for omakase.', 'Weekend pace. Choose well.'],
+    0: ['Sunday rest. Sunday nourishment.', 'A quiet Sunday meal.'],
+  },
+  african: {
+    5: ['It\'s Friday — time to eat for real.', 'TGIF. What\'s the move?'],
+    6: ['Saturday spread incoming.', 'Weekend vibes. Full plates.'],
+    0: ['Sunday soul food energy.', 'Sunday supper hits different.'],
+  },
+  nepalese: {
+    5: ['Friday evening. Momo time.', 'The week descends. Feast awaits.'],
+    6: ['Saturday. The trail leads to food.', 'Weekend warmth and hearty food.'],
+    0: ['Sunday rest. Sunday dal bhat.', 'A peaceful Sunday meal.'],
+  },
+  southamerican: {
+    5: ['Viernes — hora de comer bien!', 'TGIF. Dale, que comemos?'],
+    6: ['Sabado de asado.', 'Weekend con sabor.'],
+    0: ['Domingo tranquilo. Que comemos?', 'Sunday family meal vibes.'],
+  },
+};
+
+export function getGreeting(culture = 'neutral') {
   const period = getTimePeriod();
-  const greetings = {
-    morning: 'Good morning, what sounds good?',
-    lunch: 'Lunchtime — what are you craving?',
-    afternoon: 'Afternoon pick-me-up?',
-    dinner: 'Good evening, what sounds good?',
-    latenight: 'Late night cravings? We got you.',
-  };
-  return greetings[period];
+  const dayOfWeek = new Date().getDay();
+  const cultureGreetings = GREETINGS[culture] || GREETINGS.neutral;
+  const pool = [...(cultureGreetings[period] || cultureGreetings.dinner)];
+
+  const dayPool = DAY_GREETINGS[culture]?.[dayOfWeek] || DAY_GREETINGS.neutral?.[dayOfWeek];
+  if (dayPool) pool.push(...dayPool);
+
+  return pool[Math.floor(Math.random() * pool.length)];
 }
 
 // Quick picks data retained for potential future use (smart chips, etc.)
@@ -173,30 +534,31 @@ const QUICK_PICKS = {
   ],
 };
 
-/* ---- Score System (Integer-only, word labels) ---- */
-const SCORE_WORDS = {
-  10: 'Legendary', 9: 'Outstanding', 8: 'Excellent',
-  7: 'Great', 6: 'Solid', 5: 'Decent',
-  4: 'Fair', 3: 'Meh', 2: 'Rough',
-  1: 'Yikes', 0: 'Run',
+/* ---- Match System (Percentage-based, 60-99%) ---- */
+const MATCH_WORDS = {
+  93: 'Perfect Match',
+  85: 'Great Match',
+  75: 'Good Match',
+  60: 'Worth Exploring',
 };
+const MATCH_THRESHOLDS = [93, 85, 75, 60];
 
 export function getScoreTier(score) {
-  const n = Math.round(parseFloat(score) || 8); // default 8 if missing/NaN
-  const clamped = Math.max(0, Math.min(10, n));
-  const verdict = SCORE_WORDS[clamped];
+  const pct = Math.round(parseFloat(score) || 80);
+  const clamped = Math.max(0, Math.min(100, pct));
+  const matched = MATCH_THRESHOLDS.find(t => clamped >= t) ?? 60;
+  const verdict = MATCH_WORDS[matched];
   let tier, cssClass;
-  if (clamped >= 8) { tier = 'high'; cssClass = 'score-verdict--high'; }
-  else if (clamped >= 5) { tier = 'mid'; cssClass = 'score-verdict--mid'; }
+  if (clamped >= 85) { tier = 'high'; cssClass = 'score-verdict--high'; }
+  else if (clamped >= 75) { tier = 'mid'; cssClass = 'score-verdict--mid'; }
   else { tier = 'low'; cssClass = 'score-verdict--low'; }
   return { tier, verdict, cssClass, integer: clamped };
 }
 
 export function getScoreColor(score) {
-  const n = Math.round(parseFloat(score) || 8);
-  if (n >= 8) return 'var(--green)';
-  if (n >= 5) return 'var(--ac)';
-  return 'var(--rose)';
+  const pct = Math.round(parseFloat(score) || 80);
+  if (pct >= 85) return 'var(--green)';
+  return 'var(--ac)';
 }
 
 export function buildGoogleStars(rating) {

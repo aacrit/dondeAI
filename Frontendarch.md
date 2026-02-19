@@ -15,7 +15,7 @@ index.html
         ├── js/theme.js          (← state, persistence)
         ├── js/audio.js          (← state, persistence)
         ├── js/voice.js          (← state)
-        ├── js/animations.js     (← no state dep, pure DOM)
+        ├── js/animations.js     (← imports svgIcon from utils.js, pure DOM)
         ├── js/share.js          (← state)
         ├── js/offline.js        (← no deps)
         ├── js/accessibility.js  (← no deps)
@@ -77,8 +77,11 @@ All input consolidated into one scrollable view:
 ```
 .result-identity    → name, one-liner toggle, navigation tile
 .result-story       → recommendation (collapsible), insider tip
-.score-tiles        → 3 tiles: DondeAI ring, Google stars, vibe radar
-.result-profile     → fact badges, atmosphere tags, sentiment bar
+.score-section      → score-row (DondeAI Match™ ring + DondeAI Vibe™ radar side-by-side),
+                      sentiment-bar (labeled RAG horizontal bar),
+                      google-rating-inline (stars + count)
+.result-profile     → glyph-bar (icon-only collapsed, value-based symbols),
+                      profile-details > profile-facts (expandable badge grid)
 .result-actions-block → quick links, Try Another / Start Over
 ```
 
@@ -143,11 +146,16 @@ Theme switch triggers a **radial clip-path wash** transition: a fullscreen div g
 
 ### JS Animations (animations.js)
 - `animateScoreRing()`: stroke-dashoffset + count-up via rAF
-- `animateGoogleRating()`: number count-up
-- `renderRadar()`: SVG polygon generation for spider chart
+- `renderPetalRadar()`: 6-axis teardrop SVG petals with spring-scale entrance + icon/label placement
+- `renderSentimentBar()`: horizontal flex bar with animated segment grow
 - `startParticles()` / `stopParticles()`: canvas-based particle system
 - `initLogoAnimation()`: SVG stroke draw-in via dasharray manipulation
 - `chaosToOrderReveal()`: text scramble → settle animation
+
+### Value-Based Glyph Rendering (app.js)
+- `getNoiseIcon()`: maps noise level keywords → `speakerNone` / `speakerWave` / `speakerHigh`
+- `getAmbianceIcon()`: maps ambiance keywords → `moon` (dim/cozy) / `sun` (bright)
+- Price badge renders "$"/"$$" as text instead of tag icon in glyph bar
 
 ### Reduced Motion
 All duration tokens in `tokens.css` zero out under `prefers-reduced-motion: reduce`. JS animations check `matchMedia('(prefers-reduced-motion: reduce)')` and skip to final state.

@@ -13,9 +13,9 @@ import { initShare, shareResult, closeShareSheet, handleShareChannel } from './s
 import { initOffline, isOnline } from './offline.js';
 import { initAccessibility, announce } from './accessibility.js';
 import { fetchRecommendation } from './api.js';
-import { animateScoreRing, renderVibeTiles, animateBadge, startParticles, stopParticles, chaosToOrderReveal, initLogoAnimation, startSearchPulse, stopSearchPulse, resolveLogoToFound, cleanupLoadingLogo } from './animations.js';
+import { animateScoreRing, renderPetalRadar, renderSentimentBar, animateBadge, startParticles, stopParticles, chaosToOrderReveal, initLogoAnimation, startSearchPulse, stopSearchPulse, resolveLogoToFound, cleanupLoadingLogo } from './animations.js';
 import {
-  getGreeting, getCuisineFromResult, svgIcon,
+  getGreeting, getTimePeriod, getCuisineFromResult, svgIcon,
   getScoreTier, getScoreColor, buildGoogleStars, buildMapsUrl, relativeTime, matchCuisine
 } from './utils.js';
 
@@ -106,6 +106,9 @@ function init() {
     if (state.theme.culture !== prev.theme.culture) {
       renderSmartChips();
       closeSuggestions();
+      // Update greeting for new culture
+      const $greeting = document.querySelector('[data-step="0"] .step__title');
+      if ($greeting) $greeting.textContent = getGreeting(state.theme.culture);
     }
   });
 
@@ -127,85 +130,117 @@ function init() {
 
 /* ---- Landing Setup ---- */
 function setupLanding() {
-  const state = getState();
-  const greeting = document.querySelector('[data-step="0"] .step__title');
-  if (greeting) greeting.textContent = getGreeting();
-
-  // Render taste memory (recent searches)
-  renderTasteMemory(state.history);
+  const culture = getState().theme.culture;
+  const $greeting = document.querySelector('[data-step="0"] .step__title');
+  if ($greeting) {
+    typewriterReveal($greeting, getGreeting(culture));
+  }
+  startGreetingRotation();
 }
 
-/* ---- Taste Memory Rendering ---- */
-function renderTasteMemory(history) {
-  const $mem = document.getElementById('taste-memory');
-  const $list = document.getElementById('taste-memory-list');
-  if (!$mem || !$list) return;
+/* ---- Typewriter Reveal (handwritten entrance) ---- */
+const REDUCED_MOTION = matchMedia('(prefers-reduced-motion: reduce)');
 
-  if (!history || history.length === 0) {
-    $mem.style.display = 'none';
+function typewriterReveal(element, text) {
+  if (REDUCED_MOTION.matches) {
+    element.textContent = text;
     return;
   }
-
-  $mem.style.display = 'block';
-  $list.innerHTML = '';
-
-  history.forEach(entry => {
-    const item = document.createElement('div');
-    item.className = 'taste-memory__item';
-    item.setAttribute('data-action', 'taste-memory');
-    item.setAttribute('data-value', entry.payload?.special_request || entry.label);
-
-    const iconEl = document.createElement('span');
-    iconEl.className = 'taste-memory__emoji';
-    // Backward compat: old entries may have cuisineEmoji but no cuisineIcon
-    const iconName = entry.cuisineIcon || 'plate';
-    iconEl.innerHTML = svgIcon(iconName, 18);
-    item.appendChild(iconEl);
-
-    const text = document.createElement('span');
-    text.className = 'taste-memory__text type-structural';
-    text.textContent = entry.label;
-    item.appendChild(text);
-
-    const time = document.createElement('span');
-    time.className = 'taste-memory__time type-data--sm';
-    time.textContent = relativeTime(entry.timestamp);
-    item.appendChild(time);
-
-    $list.appendChild(item);
-  });
+  element.textContent = '';
+  element.style.minHeight = '2.4em';
+  let i = 0;
+  const speed = 35;
+  function type() {
+    if (i < text.length) {
+      element.textContent += text.charAt(i);
+      i++;
+      const jitter = speed + (Math.random() - 0.5) * 20;
+      setTimeout(type, jitter);
+    } else {
+      element.style.minHeight = '';
+    }
+  }
+  setTimeout(type, 300);
 }
 
-/* ---- Dynamic Smart Chips (theme + history aware) ---- */
+/* ---- Greeting Rotation (crossfade every 45s) ---- */
+let greetingRotationTimer = null;
+
+function startGreetingRotation() {
+  stopGreetingRotation();
+  greetingRotationTimer = setInterval(() => {
+    const state = getState();
+    if (state.step !== 0 || state.loading || state.craving.trim()) return;
+    const $greeting = document.querySelector('[data-step="0"] .step__title');
+    if (!$greeting) return;
+    const newText = getGreeting(state.theme.culture);
+    if (newText === $greeting.textContent) return;
+    $greeting.style.transition = 'opacity 400ms ease';
+    $greeting.style.opacity = '0';
+    setTimeout(() => {
+      $greeting.textContent = newText;
+      $greeting.style.opacity = '1';
+    }, 400);
+  }, 45000);
+}
+
+function stopGreetingRotation() {
+  if (greetingRotationTimer) {
+    clearInterval(greetingRotationTimer);
+    greetingRotationTimer = null;
+  }
+}
+
+/* ---- Dynamic Smart Chips (rotating, input-reactive) ---- */
+let chipRotationTimer = null;
+
 function renderSmartChips() {
   const $container = document.querySelector('.smart-chips');
   if (!$container) return;
 
   const culture = getState().theme.culture;
   const labels = getLabels(culture);
-  const cultureChips = labels.smartChips || ['outdoor seating', 'live music', 'pet friendly', 'great cocktails', 'hidden gem'];
-  const history = loadHistory();
+  const pool = labels.chipPool;
+  const timePeriod = getTimePeriod();
 
-  // Derive up to 2 history-based chips
-  const historyChips = history.slice(0, 2).map(h => h.label.slice(0, 25)).filter(Boolean);
-
-  // Combine: history first, then culture, deduplicate, cap at 5
+  const chips = [];
   const seen = new Set();
-  const combined = [];
-  for (const chip of [...historyChips, ...cultureChips]) {
-    const key = chip.toLowerCase();
-    if (!seen.has(key) && combined.length < 5) {
-      seen.add(key);
-      combined.push(chip);
+
+  function pickFrom(arr, count) {
+    if (!arr) return;
+    const shuffled = [...arr].sort(() => Math.random() - 0.5);
+    let added = 0;
+    for (const item of shuffled) {
+      if (!seen.has(item.toLowerCase()) && added < count) {
+        seen.add(item.toLowerCase());
+        chips.push(item);
+        added++;
+      }
     }
   }
 
-  // Clear and re-render with stagger animation
+  if (pool) {
+    pickFrom(pool.time?.[timePeriod], 2);
+    pickFrom(pool.vibe, 1);
+    pickFrom(pool.cuisine, 1);
+    pickFrom(pool.style, 1);
+  }
+
+  // Fallback to legacy smartChips
+  if (chips.length < 5 && labels.smartChips) {
+    for (const c of labels.smartChips) {
+      if (!seen.has(c.toLowerCase()) && chips.length < 5) {
+        seen.add(c.toLowerCase());
+        chips.push(c);
+      }
+    }
+  }
+
   $container.innerHTML = '';
   $container.classList.remove('smart-chips--visible');
-  void $container.offsetWidth; // force reflow for animation restart
+  void $container.offsetWidth;
 
-  combined.forEach(text => {
+  chips.slice(0, 5).forEach(text => {
     const btn = document.createElement('button');
     btn.className = 'smart-chip type-structural';
     btn.setAttribute('data-action', 'smart-chip');
@@ -215,6 +250,171 @@ function renderSmartChips() {
   });
 
   $container.classList.add('smart-chips--visible');
+  startChipRotation();
+}
+
+/* ---- Chip Ambient Rotation (swap one chip every 5s) ---- */
+function startChipRotation() {
+  stopChipRotation();
+  chipRotationTimer = setInterval(() => {
+    if ($cravingInput && $cravingInput.value.trim().length > 0) return;
+    if (document.activeElement === $cravingInput) return;
+    rotateOneChip();
+  }, 5000);
+}
+
+function stopChipRotation() {
+  if (chipRotationTimer) {
+    clearInterval(chipRotationTimer);
+    chipRotationTimer = null;
+  }
+}
+
+function rotateOneChip() {
+  const $container = document.querySelector('.smart-chips');
+  if (!$container) return;
+  const chips = [...$container.querySelectorAll('.smart-chip')];
+  if (chips.length < 2) return;
+
+  const replaceIndex = 1 + Math.floor(Math.random() * (chips.length - 1));
+  const oldChip = chips[replaceIndex];
+
+  const currentTexts = new Set(chips.map(c => c.dataset.value.toLowerCase()));
+  const newText = getRandomChipFromPool(currentTexts);
+  if (!newText) return;
+
+  if (REDUCED_MOTION.matches) {
+    oldChip.textContent = newText;
+    oldChip.dataset.value = newText;
+    return;
+  }
+
+  oldChip.style.transition = 'opacity 200ms ease, transform 200ms ease';
+  oldChip.style.opacity = '0';
+  oldChip.style.transform = 'translateY(-8px) scale(0.9)';
+
+  setTimeout(() => {
+    oldChip.textContent = newText;
+    oldChip.dataset.value = newText;
+    oldChip.style.transform = 'translateY(8px) scale(0.9)';
+    requestAnimationFrame(() => {
+      oldChip.style.transition = 'opacity 250ms ease, transform 350ms var(--spring)';
+      oldChip.style.opacity = '1';
+      oldChip.style.transform = 'translateY(0) scale(1)';
+    });
+  }, 220);
+}
+
+function getRandomChipFromPool(excludeSet) {
+  const culture = getState().theme.culture;
+  const labels = getLabels(culture);
+  const pool = labels.chipPool;
+  if (!pool) return null;
+
+  const timePeriod = getTimePeriod();
+  const timeChips = pool.time?.[timePeriod] || [];
+  const allChips = [
+    ...timeChips, ...timeChips,
+    ...(pool.cuisine || []),
+    ...(pool.vibe || []),
+    ...(pool.style || []),
+  ];
+
+  const available = allChips.filter(c => !excludeSet.has(c.toLowerCase()));
+  if (available.length === 0) return null;
+  return available[Math.floor(Math.random() * available.length)];
+}
+
+/* ---- Chip Input Reactivity ---- */
+const CHIP_REACTIONS = {
+  'taco': ['salsa verde', 'al pastor', 'late night', 'margaritas', 'street food'],
+  'ramen': ['tonkotsu', 'late night', 'sake pairing', 'spicy miso', 'tsukemen'],
+  'sushi': ['omakase', 'sake flight', 'counter seat', 'fresh catch', 'chirashi'],
+  'pasta': ['handmade', 'wine pairing', 'truffle', 'al dente', 'bolognese'],
+  'pizza': ['wood-fired', 'Neapolitan', 'deep dish', 'late night slice', 'craft beer'],
+  'burger': ['smash burger', 'craft beer', 'loaded fries', 'late night', 'double stack'],
+  'curry': ['naan fresh', 'spice level', 'vindaloo', 'coconut curry', 'rice and curry'],
+  'steak': ['dry aged', 'wine list', 'special occasion', 'steakhouse', 'bone-in'],
+  'seafood': ['raw bar', 'oyster happy hour', 'catch of the day', 'lobster roll', 'waterfront'],
+  'brunch': ['bottomless mimosas', 'eggs benny', 'avocado toast', 'bloody mary bar', 'french toast'],
+  'coffee': ['pour over', 'latte art', 'cozy corner', 'pastry pairing', 'espresso bar'],
+  'cocktail': ['speakeasy', 'craft mixology', 'rooftop bar', 'happy hour', 'signature drinks'],
+  'pho': ['bone broth', 'fresh herbs', 'sriracha', 'banh mi too', 'comfort soup'],
+  'dim sum': ['cart service', 'weekend special', 'tea pairing', 'dumpling feast', 'har gow'],
+  'romantic': ['candlelit', 'quiet corner', 'wine bar', 'tasting menu', 'intimate'],
+  'date': ['cozy booth', 'wine list', 'ambiance', 'shareable plates', 'prix fixe'],
+  'group': ['family style', 'shareable', 'long table', 'lively', 'big portions'],
+  'solo': ['counter seat', 'bar dining', 'chef\'s table', 'quick and quality', 'book-friendly'],
+  'quiet': ['intimate setting', 'soft lighting', 'conversation-friendly', 'tucked away', 'peaceful'],
+  'lively': ['buzzing crowd', 'open kitchen', 'music and food', 'energetic', 'happy hour'],
+  'outdoor': ['patio seating', 'rooftop', 'garden dining', 'al fresco', 'sidewalk cafe'],
+  'cozy': ['warm lighting', 'fireplace', 'comfort food', 'neighborhood spot', 'intimate'],
+  'upscale': ['tasting menu', 'sommelier pick', 'fine dining', 'special occasion', 'jacket optional'],
+  'cheap': ['hidden gem', 'cash only', 'hole in the wall', 'budget feast', 'byob'],
+  'hidden': ['off the beaten path', 'locals only', 'no sign outside', 'word of mouth', 'secret menu'],
+  'vegan': ['plant-based', 'creative veggies', 'impossible burger', 'raw bar', 'juice bar'],
+  'spicy': ['bring the heat', 'ghost pepper', 'szechuan numbing', 'habanero', 'thai hot'],
+  'comfort': ['mac and cheese', 'soul food', 'fried chicken', 'warm and hearty', 'grandma\'s recipe'],
+  'healthy': ['grain bowl', 'fresh juice', 'salad bar', 'light and clean', 'organic'],
+  'trendy': ['new opening', 'Instagram-worthy', 'chef-driven', 'reservation required', 'buzzworthy'],
+};
+
+let chipDebounce = null;
+
+function updateChipsForInput(query) {
+  if (!query || query.length < 2) {
+    renderSmartChips();
+    return;
+  }
+
+  stopChipRotation();
+  const lowerQuery = query.toLowerCase();
+  let reactionChips = [];
+
+  for (const [keyword, chips] of Object.entries(CHIP_REACTIONS)) {
+    if (lowerQuery.includes(keyword)) {
+      reactionChips.push(...chips);
+    }
+  }
+
+  if (reactionChips.length === 0) return;
+
+  const seen = new Set();
+  const filtered = [];
+  for (const chip of reactionChips) {
+    const key = chip.toLowerCase();
+    if (!seen.has(key) && !lowerQuery.includes(key) && filtered.length < 5) {
+      seen.add(key);
+      filtered.push(chip);
+    }
+  }
+
+  if (filtered.length === 0) return;
+
+  const $container = document.querySelector('.smart-chips');
+  if (!$container) return;
+
+  const existing = [...$container.querySelectorAll('.smart-chip')];
+  filtered.forEach((text, i) => {
+    if (i < existing.length && existing[i].dataset.value !== text) {
+      const chip = existing[i];
+      if (REDUCED_MOTION.matches) {
+        chip.textContent = text;
+        chip.dataset.value = text;
+        return;
+      }
+      chip.style.transition = 'opacity 150ms ease, transform 150ms ease';
+      chip.style.opacity = '0';
+      chip.style.transform = 'scale(0.9)';
+      setTimeout(() => {
+        chip.textContent = text;
+        chip.dataset.value = text;
+        chip.style.transition = 'opacity 200ms ease, transform 250ms var(--spring)';
+        chip.style.opacity = '1';
+        chip.style.transform = 'scale(1)';
+      }, 160);
+    }
+  });
 }
 
 /* ---- Event Delegation ---- */
@@ -293,12 +493,21 @@ function wireEvents() {
       }
 
       case 'submit':
+        setState({ excludeIds: [] });
         handleSubmit();
         break;
 
-      case 'try-again':
+      case 'try-again': {
+        // Track current restaurant ID so backend can exclude it
+        const prevId = getState().result?.restaurant?.id;
+        if (prevId) {
+          const exclude = [...getState().excludeIds];
+          if (!exclude.includes(prevId)) exclude.push(prevId);
+          setState({ excludeIds: exclude });
+        }
         handleSubmit();
         break;
+      }
 
       case 'open-themes':
         document.getElementById('theme-picker')?.classList.add('theme-picker--open');
@@ -350,13 +559,7 @@ function wireEvents() {
         handleShareChannel(btn.dataset.channel);
         break;
 
-      case 'taste-memory': {
-        const val = btn.dataset.value;
-        if ($cravingInput) $cravingInput.value = val;
-        setState({ craving: val });
-        updateCtaState();
-        break;
-      }
+
 
       case 'randomize': {
         // Pick random occasion, neighborhood, budget
@@ -394,11 +597,26 @@ function wireEvents() {
         btn.textContent = isExpanded ? 'Read more' : 'Read less';
         break;
       }
+
+      case 'show-match-info': {
+        showToast('DondeAI Match\u2122 shows how likely you are to love this spot \u2014 based on cuisine quality, vibe fit, and hundreds of local reviews.');
+        break;
+      }
+
+      case 'toggle-profile': {
+        const $profile = document.getElementById('result-profile');
+        const isExpanded = btn.getAttribute('aria-expanded') === 'true';
+        btn.setAttribute('aria-expanded', String(!isExpanded));
+        if ($profile) $profile.classList.toggle('result-profile--expanded');
+        break;
+      }
     }
   });
 
-  // Expandable tile click delegation (DondeAI Score + Vibe Radar)
+  // Expandable tile click delegation (DondeAI Match + Vibe Radar)
   document.addEventListener('click', (e) => {
+    // Skip if click was on the info button (handled by data-action delegation)
+    if (e.target.closest('[data-action]')) return;
     const tile = e.target.closest('.score-tile--expandable');
     if (tile) openTileExpand(tile);
   });
@@ -408,21 +626,124 @@ function wireEvents() {
 let placeholderInterval = null;
 let activeIndex = -1;
 
-function getSuggestionPool() {
-  const culture = getState().theme.culture;
-  const labels = getLabels(culture);
-  const pool = new Set();
+/* ---- Suggestion Scoring Engine ---- */
+function scoreSuggestion(item, query) {
+  const text = item.text.toLowerCase();
+  const q = query.toLowerCase();
+  let score = 0;
 
-  // Culture suggestions (primary pool)
-  if (labels.suggestions) labels.suggestions.forEach(s => pool.add(s));
-  // Culture smart chips as fallback
-  if (labels.smartChips) labels.smartChips.forEach(s => pool.add(s));
-  // History labels
-  loadHistory().forEach(h => { if (h.label) pool.add(h.label); });
+  // Exact prefix match → 100 pts
+  if (text.startsWith(q)) {
+    score += 100;
+  }
+  // Word-start match ("rom" → "romantic dinner") → 75 pts
+  else if (text.split(/\s+/).some(word => word.startsWith(q))) {
+    score += 75;
+  }
+  // Multi-word partial (each query word matches a suggestion word start) → 30-60 pts
+  else {
+    const queryWords = q.split(/\s+/).filter(Boolean);
+    const textWords = text.split(/\s+/);
+    let matched = 0;
+    for (const qw of queryWords) {
+      if (textWords.some(tw => tw.startsWith(qw))) matched++;
+    }
+    if (matched > 0 && queryWords.length > 0) {
+      score += 30 + (matched / queryWords.length) * 30;
+    }
+    // Contains match → 20 pts
+    else if (text.includes(q)) {
+      score += 20;
+    }
+  }
 
-  return [...pool];
+  // Precision bonus: shorter suggestions rank higher when scores tie
+  if (score > 0) {
+    score += Math.max(0, 10 - text.length * 0.2);
+  }
+
+  return score;
 }
 
+function getFilteredSuggestions(query) {
+  const culture = getState().theme.culture;
+  const labels = getLabels(culture);
+  const corpus = labels.suggestionCorpus;
+
+  // Flatten corpus into single array
+  const items = [];
+  if (corpus) {
+    for (const [, category] of Object.entries(corpus)) {
+      if (Array.isArray(category)) items.push(...category);
+    }
+  }
+
+  // Add history items as suggestions
+  loadHistory().forEach(h => {
+    if (h.label) {
+      items.push({ text: h.label, icon: h.cuisineIcon || 'plate', category: 'Recent' });
+    }
+  });
+
+  // Legacy suggestions as fallback
+  if (labels.suggestions) {
+    labels.suggestions.forEach(s => {
+      if (!items.some(i => i.text.toLowerCase() === s.toLowerCase())) {
+        items.push({ text: s, icon: 'plate', category: 'Suggestion' });
+      }
+    });
+  }
+  if (labels.smartChips) {
+    labels.smartChips.forEach(s => {
+      if (!items.some(i => i.text.toLowerCase() === s.toLowerCase())) {
+        items.push({ text: s, icon: 'plate', category: 'Suggestion' });
+      }
+    });
+  }
+
+  // Score all items
+  const scored = items
+    .map(item => ({ ...item, score: scoreSuggestion(item, query) }))
+    .filter(item => item.score > 0);
+
+  // Deduplicate by text
+  const seen = new Set();
+  const deduped = [];
+  for (const item of scored.sort((a, b) => b.score - a.score)) {
+    const key = item.text.toLowerCase();
+    if (!seen.has(key)) {
+      seen.add(key);
+      deduped.push(item);
+    }
+  }
+
+  return deduped.slice(0, 7);
+}
+
+/* ---- Contextual Suggestions (on focus with empty input) ---- */
+function showContextualSuggestions() {
+  const culture = getState().theme.culture;
+  const labels = getLabels(culture);
+  const corpus = labels.suggestionCorpus;
+  if (!corpus || !$suggestions) return;
+
+  const items = [];
+  const combos = corpus.combos || [];
+  const vibes = corpus.vibes || [];
+  const cuisines = corpus.cuisines || [];
+
+  // "Right Now" — 3 contextual picks (combos + vibes shuffled)
+  const contextual = [...combos, ...vibes].sort(() => Math.random() - 0.5);
+  items.push(...contextual.slice(0, 3).map(i => ({ ...i, category: 'Right Now' })));
+
+  // "Popular" — 4 cuisine picks
+  const popular = [...cuisines].sort(() => Math.random() - 0.5);
+  items.push(...popular.slice(0, 4).map(i => ({ ...i, category: 'Popular' })));
+
+  renderSuggestions(items, '');
+}
+
+/* ---- Rich Suggestion Rendering (icons + categories + highlights) ---- */
 function renderSuggestions(matches, query) {
   if (!$suggestions || matches.length === 0) {
     closeSuggestions();
@@ -432,24 +753,56 @@ function renderSuggestions(matches, query) {
   $suggestions.innerHTML = '';
   activeIndex = -1;
 
-  matches.forEach((text, i) => {
+  let lastCategory = null;
+
+  matches.forEach((item, i) => {
+    // Handle both string and object items
+    const text = typeof item === 'string' ? item : item.text;
+    const iconName = typeof item === 'object' ? item.icon : null;
+    const category = typeof item === 'object' ? item.category : null;
+
+    // Category separator
+    if (category && category !== lastCategory) {
+      lastCategory = category;
+      const sep = document.createElement('div');
+      sep.className = 'craving-suggestion__category type-data--sm';
+      sep.textContent = category;
+      $suggestions.appendChild(sep);
+    }
+
     const div = document.createElement('div');
     div.className = 'craving-suggestion';
     div.setAttribute('role', 'option');
     div.setAttribute('id', `suggestion-${i}`);
     div.dataset.value = text;
 
-    // Highlight matching substring
-    const lowerText = text.toLowerCase();
-    const matchStart = lowerText.indexOf(query);
-    if (matchStart >= 0) {
-      const before = text.slice(0, matchStart);
-      const match = text.slice(matchStart, matchStart + query.length);
-      const after = text.slice(matchStart + query.length);
-      div.innerHTML = `${before}<mark>${match}</mark>${after}`;
-    } else {
-      div.textContent = text;
+    // SVG icon
+    if (iconName) {
+      const iconSpan = document.createElement('span');
+      iconSpan.className = 'craving-suggestion__icon';
+      iconSpan.innerHTML = svgIcon(iconName, 14);
+      div.appendChild(iconSpan);
     }
+
+    // Text with match highlighting
+    const textSpan = document.createElement('span');
+    textSpan.className = 'craving-suggestion__text';
+    if (query) {
+      const lowerText = text.toLowerCase();
+      const q = query.toLowerCase();
+      const matchStart = lowerText.indexOf(q);
+      if (matchStart >= 0) {
+        const before = text.slice(0, matchStart);
+        const match = text.slice(matchStart, matchStart + query.length);
+        const after = text.slice(matchStart + query.length);
+        textSpan.innerHTML = `${before}<mark>${match}</mark>${after}`;
+      } else {
+        textSpan.textContent = text;
+      }
+    } else {
+      textSpan.textContent = text;
+    }
+    div.appendChild(textSpan);
 
     $suggestions.appendChild(div);
   });
@@ -504,14 +857,19 @@ function wireCravingInput() {
     setState({ craving: $cravingInput.value });
     updateCtaState();
 
-    // Autocomplete filtering
-    const query = $cravingInput.value.trim().toLowerCase();
-    if (query.length < 2) {
+    // Debounced chip reactivity
+    clearTimeout(chipDebounce);
+    chipDebounce = setTimeout(() => {
+      updateChipsForInput($cravingInput.value.trim());
+    }, 300);
+
+    // Scored autocomplete (1-char trigger)
+    const query = $cravingInput.value.trim();
+    if (query.length < 1) {
       closeSuggestions();
       return;
     }
-    const pool = getSuggestionPool();
-    const matches = pool.filter(s => s.toLowerCase().includes(query)).slice(0, 5);
+    const matches = getFilteredSuggestions(query);
     renderSuggestions(matches, query);
   });
 
@@ -545,9 +903,13 @@ function wireCravingInput() {
     }
   });
 
-  // Stop placeholder rotation on focus, restart on blur
+  // Stop placeholder rotation on focus, show contextual suggestions if empty
   $cravingInput.addEventListener('focus', () => {
     if (placeholderInterval) { clearInterval(placeholderInterval); placeholderInterval = null; }
+    // Show "Right Now" / "Popular" picks when input is empty
+    if (!$cravingInput.value.trim()) {
+      showContextualSuggestions();
+    }
   });
   $cravingInput.addEventListener('blur', () => {
     setTimeout(() => closeSuggestions(), 150);
@@ -703,12 +1065,14 @@ async function handleSubmit() {
   // step-track positioning happens in orchestrateReveal()
 
   try {
-    const data = await fetchRecommendation({
+    const payload = {
       special_request: s.craving,
       occasion: s.occasion,
       neighborhood: s.neighborhood,
       price_level: s.priceLevel,
-    });
+    };
+    if (s.excludeIds.length) payload.exclude = s.excludeIds;
+    const data = await fetchRecommendation(payload);
 
     // Save to history with cuisine icon
     const cuisine = getCuisineFromResult(data);
@@ -891,6 +1255,12 @@ function renderResult(data) {
   if (!data?.restaurant) return;
   const r = data.restaurant;
 
+  // Reset profile to collapsed
+  const $profileToggle = document.querySelector('[data-action="toggle-profile"]');
+  if ($profileToggle) $profileToggle.setAttribute('aria-expanded', 'false');
+  const $profileEl = document.getElementById('result-profile');
+  if ($profileEl) $profileEl.classList.remove('result-profile--expanded');
+
   // Cancel any in-flight animation timeouts from a previous render
   animationTimers.forEach(clearTimeout);
   animationTimers = [];
@@ -958,25 +1328,24 @@ function renderResult(data) {
     }
   }
 
-  // ---- Score Tile (DondeAI Score) ----
-  const tier = getScoreTier(data.donde_score);
+  // ---- Match Tile (DondeAI Match) ----
+  const tier = getScoreTier(data.donde_match);
   const $verdict = document.getElementById('score-verdict');
   const $scoreTileDonde = document.getElementById('score-tile-donde');
-  const $percentile = document.getElementById('score-percentile');
   if ($verdict) {
     $verdict.textContent = tier.verdict;
     $verdict.className = `score-verdict type-structural--bold ${tier.cssClass}`;
+    $verdict.setAttribute('data-tier', tier.tier);
   }
   if ($scoreTileDonde) {
     $scoreTileDonde.setAttribute('data-tier', tier.tier);
     $scoreTileDonde.classList.add('score-tile--expandable');
     $scoreTileDonde.setAttribute('tabindex', '0');
     $scoreTileDonde.setAttribute('role', 'button');
-    $scoreTileDonde.setAttribute('aria-label', 'Expand DondeAI Score');
+    $scoreTileDonde.setAttribute('aria-label', 'Expand DondeAI Match');
   }
-  if ($percentile) $percentile.textContent = `Top ${Math.round((tier.integer / 10) * 100)}%`;
   // Delay score ring to after tile entrance
-  animationTimers.push(setTimeout(() => animateScoreRing(data.donde_score), 800));
+  animationTimers.push(setTimeout(() => animateScoreRing(data.donde_match), 800));
 
   // ---- Google Rating (inline display below ring) ----
   const $googleInline = document.getElementById('google-rating-inline');
@@ -1008,47 +1377,132 @@ function renderResult(data) {
     $googleInline.style.display = 'none';
   }
 
-  // ---- Vibe Profile Tiles ----
-  renderVibeTiles(data.scores || {}, animationTimers);
+  // ---- Petal Radar (Vibe Profile) ----
+  renderPetalRadar(data.scores || {}, animationTimers);
 
-  // ---- Profile Block: Facts (all neutral badges — Cuisine, Price, Parking, Noise, Ambiance, Dress) ----
+  // ---- Profile Block: Unified badges (facts + atmosphere merged) ----
   const $profileFacts = document.getElementById('profile-facts');
+  const $glyphBar = document.getElementById('glyph-bar');
+  const allBadges = [];
+
   if ($profileFacts) {
     $profileFacts.innerHTML = '';
-    const badges = [];
 
+    // Fact badges
     if (r.cuisine_type) {
-      badges.push({ icon: cuisine.icon || 'plate', label: 'Cuisine', value: r.cuisine_type });
+      allBadges.push({ icon: cuisine.icon || 'plate', label: 'Cuisine',
+        value: shortenBadgeValue(r.cuisine_type), raw: r.cuisine_type, isAtmo: false });
     }
     if (r.price_level) {
-      badges.push({ icon: 'tag', label: 'Price', value: r.price_level });
+      allBadges.push({ icon: 'tag', label: 'Price',
+        value: r.price_level, raw: r.price_level, isAtmo: false });
     }
     if (r.parking_availability) {
-      const pts = parseParkingTypes(r.parking_availability);
-      badges.push({ icon: 'car', label: 'Parking', value: pts.join(' / ') });
+      const pts = parseParkingTypes(r.parking_availability).slice(0, 2);
+      allBadges.push({ icon: 'car', label: 'Parking',
+        value: pts.join(' / '), raw: r.parking_availability, isAtmo: false });
     }
     if (r.noise_level) {
-      badges.push({ icon: 'speakerWave', label: 'Noise', value: r.noise_level.split(/[\s,]+/).slice(0, 2).join(' ') });
+      allBadges.push({ icon: getNoiseIcon(r.noise_level), label: 'Noise',
+        value: shortenBadgeValue(r.noise_level), raw: r.noise_level, isAtmo: false });
     }
     if (r.lighting_ambiance) {
-      badges.push({ icon: 'sun', label: 'Ambiance', value: r.lighting_ambiance });
+      allBadges.push({ icon: getAmbianceIcon(r.lighting_ambiance), label: 'Ambiance',
+        value: shortenBadgeValue(r.lighting_ambiance), raw: r.lighting_ambiance, isAtmo: false });
     }
     if (r.dress_code) {
-      badges.push({ icon: 'shirt', label: 'Dress', value: r.dress_code });
+      allBadges.push({ icon: 'shirt', label: 'Dress',
+        value: shortenBadgeValue(r.dress_code), raw: r.dress_code, isAtmo: false });
     }
 
-    badges.forEach(b => {
+    // Atmosphere badges (merged in)
+    if (r.outdoor_seating) {
+      allBadges.push({ icon: 'patio', label: 'Patio', value: 'Yes', raw: 'Outdoor seating', isAtmo: true });
+    }
+    if (r.live_music) {
+      allBadges.push({ icon: 'music', label: 'Live Music', value: 'Yes', raw: 'Live music venue', isAtmo: true });
+    }
+    if (r.pet_friendly) {
+      allBadges.push({ icon: 'pet', label: 'Pet Friendly', value: 'Yes', raw: 'Pet-friendly', isAtmo: true });
+    }
+
+    // Render expanded badge grid (all badges)
+    allBadges.forEach(b => {
       const div = document.createElement('div');
-      div.className = 'details-badge' + (b.label === 'Cuisine' ? ' details-badge--cuisine' : '');
+      const cls = ['details-badge'];
+      if (b.label === 'Cuisine') cls.push('details-badge--cuisine');
+      if (b.isAtmo) cls.push('details-badge--atmo');
+      div.className = cls.join(' ');
       div.innerHTML = `
         <span class="details-badge__icon">${svgIcon(b.icon, 16)}</span>
         <span class="details-badge__label type-data--sm">${b.label}</span>
         <span class="details-badge__value type-structural">${b.value}</span>`;
-      if (b.label === 'Parking') div.setAttribute('title', r.parking_availability);
+      if (b.raw && b.raw !== b.value) div.setAttribute('title', b.raw);
       $profileFacts.appendChild(div);
     });
 
-    $profileFacts.style.display = badges.length > 0 ? '' : 'none';
+    $profileFacts.style.display = allBadges.length > 0 ? '' : 'none';
+  }
+
+  // ---- Glyph Bar (icon-only compact view for mobile) ----
+  if ($glyphBar) {
+    $glyphBar.innerHTML = '';
+    const REDUCED_MQ = matchMedia('(prefers-reduced-motion: reduce)');
+
+    allBadges.forEach((b, i) => {
+      const glyph = document.createElement('button');
+      glyph.className = 'glyph-bar__item' + (b.isAtmo ? ' glyph-bar__item--atmo' : '');
+      glyph.setAttribute('aria-label', `${b.label}: ${b.value}`);
+      glyph.setAttribute('type', 'button');
+
+      // Handwritten jitter rotation
+      const rotation = ((Math.random() - 0.5) * 4).toFixed(1);
+
+      const glyphContent = b.label === 'Price'
+        ? `<span class="glyph-bar__text">${b.value}</span>`
+        : svgIcon(b.icon, 16);
+
+      if (b.label === 'Price') glyph.classList.add('glyph-bar__item--text');
+
+      glyph.innerHTML = `
+        ${glyphContent}
+        <div class="glyph-bar__tooltip">
+          <span class="glyph-bar__tooltip-label">${b.label}</span>
+          <span class="glyph-bar__tooltip-value">${b.value}</span>
+        </div>`;
+
+      // Tap to toggle tooltip
+      glyph.addEventListener('click', (e) => {
+        e.stopPropagation();
+        $glyphBar.querySelectorAll('.glyph-bar__item--active').forEach(g => {
+          if (g !== glyph) g.classList.remove('glyph-bar__item--active');
+        });
+        glyph.classList.toggle('glyph-bar__item--active');
+      });
+
+      // Spring pop stagger entrance
+      if (!REDUCED_MQ.matches) {
+        glyph.style.opacity = '0';
+        const baseTransform = `rotate(${rotation}deg)`;
+        glyph.style.transform = `${baseTransform} scale(0.7)`;
+        animationTimers.push(setTimeout(() => {
+          glyph.style.transition = 'opacity 200ms ease-out, transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
+          glyph.style.opacity = '1';
+          glyph.style.transform = `${baseTransform} scale(1)`;
+        }, 500 + i * 50));
+      } else {
+        glyph.style.transform = `rotate(${rotation}deg)`;
+      }
+
+      $glyphBar.appendChild(glyph);
+    });
+
+    // Close tooltips when clicking outside glyph bar
+    document.addEventListener('click', () => {
+      $glyphBar.querySelectorAll('.glyph-bar__item--active').forEach(g => {
+        g.classList.remove('glyph-bar__item--active');
+      });
+    }, { once: true });
   }
 
   // ---- Quick Links (Website, Call, Share) ----
@@ -1078,80 +1532,40 @@ function renderResult(data) {
     $tip.style.display = 'none';
   }
 
-  // ---- Profile Block: Atmosphere (boolean features only — ambiance/dress moved to badge grid) ----
-  const $profileAtmo = document.getElementById('profile-atmosphere');
-  if ($profileAtmo) {
-    $profileAtmo.innerHTML = '';
-    const atmoItems = [];
-    if (r.outdoor_seating) atmoItems.push({ icon: 'patio', label: 'Patio' });
-    if (r.live_music) atmoItems.push({ icon: 'music', label: 'Live Music' });
-    if (r.pet_friendly) atmoItems.push({ icon: 'pet', label: 'Pet Friendly' });
-
-    atmoItems.forEach(a => {
-      const span = document.createElement('span');
-      span.className = 'atmo-tag';
-      span.innerHTML = `<span class="atmo-tag__icon">${svgIcon(a.icon, 14)}</span><span class="type-data--sm">${a.label}</span>`;
-      $profileAtmo.appendChild(span);
-    });
-
-    $profileAtmo.style.display = atmoItems.length > 0 ? '' : 'none';
-
-    // Spring pop stagger for atmosphere tags (organic jitter for handwritten feel)
-    const REDUCED_MQ = matchMedia('(prefers-reduced-motion: reduce)');
-    if (!REDUCED_MQ.matches && atmoItems.length > 0) {
-      const allTags = $profileAtmo.querySelectorAll('.atmo-tag');
-      allTags.forEach((tag, i) => {
-        const jitter = Math.floor(Math.random() * 40);
-        const rotation = ((Math.random() - 0.5) * 6).toFixed(1);
-        tag.style.opacity = '0';
-        tag.style.transform = `scale(0.8) rotate(${rotation}deg)`;
-        animationTimers.push(setTimeout(() => {
-          tag.style.transition = 'opacity 200ms ease-out, transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
-          tag.style.opacity = '1';
-          tag.style.transform = 'scale(1) rotate(0deg)';
-        }, 980 + i * 80 + jitter));
-      });
+  // ---- Sentiment Bar (subtle horizontal indicator) ----
+  const $sentBar = document.getElementById('sentiment-bar');
+  if ($sentBar) {
+    let posVal = 33, neuVal = 34, negVal = 33;
+    if (r.sentiment_breakdown) {
+      const parts = r.sentiment_breakdown.toLowerCase();
+      const posMatch = parts.match(/positive[:\s]+(\d+)/);
+      const neuMatch = parts.match(/neutral[:\s]+(\d+)/);
+      const negMatch = parts.match(/negative[:\s]+(\d+)/);
+      posVal = parseInt(posMatch?.[1] || '33', 10);
+      neuVal = parseInt(neuMatch?.[1] || '34', 10);
+      negVal = parseInt(negMatch?.[1] || '33', 10);
     }
+
+    renderSentimentBar(posVal, neuVal, negVal, animationTimers);
+
+    // Tooltip labels
+    const $tipPos = document.getElementById('sentiment-tip-pos');
+    const $tipNeu = document.getElementById('sentiment-tip-neu');
+    const $tipNeg = document.getElementById('sentiment-tip-neg');
+    if ($tipPos) $tipPos.textContent = `${posVal}% Positive`;
+    if ($tipNeu) $tipNeu.textContent = `${neuVal}% Neutral`;
+    if ($tipNeg) $tipNeg.textContent = `${negVal}% Negative`;
+
+    // Tap toggle for mobile tooltip
+    $sentBar.addEventListener('click', () => {
+      $sentBar.classList.toggle('sentiment-bar--active');
+    });
   }
 
-  // ---- Profile Block: Sentiment (with legend + score label) ----
-  const $sentSection = document.getElementById('profile-sentiment');
-  if ($sentSection && r.sentiment_breakdown) {
-    $sentSection.style.display = 'block';
-    const parts = r.sentiment_breakdown.toLowerCase();
-    const posMatch = parts.match(/positive[:\s]+(\d+)/);
-    const neuMatch = parts.match(/neutral[:\s]+(\d+)/);
-    const negMatch = parts.match(/negative[:\s]+(\d+)/);
-    const posVal = posMatch?.[1] || '33';
-    const neuVal = neuMatch?.[1] || '34';
-    const negVal = negMatch?.[1] || '33';
-
-    const $pos = document.getElementById('sentiment-pos');
-    const $neu = document.getElementById('sentiment-neu');
-    const $neg = document.getElementById('sentiment-neg');
-    if ($pos) $pos.style.width = `${posVal}%`;
-    if ($neu) $neu.style.width = `${neuVal}%`;
-    if ($neg) $neg.style.width = `${negVal}%`;
-
-    // Populate legend labels
-    const $scoreLabel = document.getElementById('sentiment-score-label');
-    const $posPct = document.getElementById('sentiment-pos-pct');
-    const $neuPct = document.getElementById('sentiment-neu-pct');
-    const $negPct = document.getElementById('sentiment-neg-pct');
-    if ($scoreLabel) $scoreLabel.textContent = `${posVal}% Positive`;
-    if ($posPct) $posPct.textContent = `${posVal}%`;
-    if ($neuPct) $neuPct.textContent = `${neuVal}%`;
-    if ($negPct) $negPct.textContent = `${negVal}%`;
-  } else if ($sentSection) {
-    $sentSection.style.display = 'none';
-  }
-
-  // Hide entire profile block if no sub-sections have content
+  // Hide entire profile block if no badges
   const $profile = document.getElementById('result-profile');
   if ($profile) {
-    const hasContent = ($profileFacts && $profileFacts.style.display !== 'none' && $profileFacts.children.length > 0)
-      || ($profileAtmo && $profileAtmo.style.display !== 'none' && $profileAtmo.children.length > 0)
-      || ($sentSection && $sentSection.style.display !== 'none');
+    const hasContent = allBadges.length > 0;
     $profile.style.display = hasContent ? '' : 'none';
   }
 
@@ -1193,7 +1607,32 @@ function parseParkingTypes(parkingStr) {
   return types;
 }
 
-/* Badge color helpers removed — all badges use neutral styling ("Ink Rule"). */
+/* ---- Badge Value Shortener (first segment, no word cap) ---- */
+function shortenBadgeValue(value) {
+  if (!value) return '';
+  return value.split(/[,/;]/).at(0).trim();
+}
+
+/* ---- Noise Level → Speaker Icon Mapper ---- */
+function getNoiseIcon(noiseStr) {
+  if (!noiseStr) return 'speakerWave';
+  const lower = noiseStr.toLowerCase();
+  if (lower.includes('quiet') || lower.includes('soft') || lower.includes('hushed'))
+    return 'speakerNone';
+  if (lower.includes('loud') || lower.includes('boisterous') || lower.includes('lively'))
+    return 'speakerHigh';
+  return 'speakerWave';
+}
+
+/* ---- Ambiance → Icon Mapper ---- */
+function getAmbianceIcon(ambianceStr) {
+  if (!ambianceStr) return 'sun';
+  const lower = ambianceStr.toLowerCase();
+  if (lower.includes('dim') || lower.includes('cozy') || lower.includes('warm') ||
+      lower.includes('intimate') || lower.includes('candlelit'))
+    return 'moon';
+  return 'sun';
+}
 
 /* ---- Tile Expand Modal ---- */
 function openTileExpand(tileEl) {
@@ -1207,13 +1646,30 @@ function openTileExpand(tileEl) {
   if (!data) return;
 
   if (tileEl.id === 'score-tile-donde') {
-    const tier = getScoreTier(data.donde_score);
-    const n = Math.round(parseFloat(data.donde_score) || 8);
+    const tier = getScoreTier(data.donde_match);
+    const pct = Math.round(parseFloat(data.donde_match) || 80);
     const circumference = 2 * Math.PI * 45;
-    const offset = circumference - (n / 10) * circumference;
+    const offset = circumference - (pct / 100) * circumference;
     const strokeColor = 'var(--ac)';
     $content.innerHTML = `
-      <span class="score-tile__label type-data--sm">DondeAI Score</span>
+      <div class="score-tile__brand" aria-label="DondeAI Match">
+        <svg class="score-tile__logo-mark" viewBox="0 0 32 44" width="20" height="28" aria-hidden="true">
+          <path d="M10.5 1C10.5 1 10 8.5 12.5 11.5Q14 13 14.5 13.5"
+                fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M21.5 1C21.5 1 22 8.5 19.5 11.5Q18 13 17.5 13.5"
+                fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M16 13.5C22 11 29 14 28 21C27 27 19 29 16 31L16 34"
+                fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>
+          <circle cx="16" cy="40" r="2.8" fill="var(--ac)"/>
+        </svg>
+        <span class="score-tile__wordmark" style="font-size: var(--text-sm);">
+          <span class="score-tile__wordmark-d">D</span><span
+            class="score-tile__wordmark-onde">onde</span><span
+            class="score-tile__wordmark-a">A</span><span
+            class="score-tile__wordmark-i">I</span>
+        </span>
+        <span class="score-tile__score-label type-data--sm">Match<sup>™</sup></span>
+      </div>
       <div class="score-ring-wrap">
         <svg class="score-ring" viewBox="0 0 100 100">
           <circle class="score-ring__bg" cx="50" cy="50" r="45"></circle>
@@ -1221,16 +1677,64 @@ function openTileExpand(tileEl) {
             style="stroke: ${strokeColor}; stroke-dasharray: ${circumference}; stroke-dashoffset: ${offset}"></circle>
         </svg>
         <div class="score-ring__number">
-          <span class="type-data--lg" style="font-size: var(--text-2xl);">${n}</span>
+          <span class="type-data--lg" style="font-size: var(--text-xl);">${pct}%</span>
         </div>
       </div>
-      <span class="score-verdict type-structural--bold ${tier.cssClass}" style="font-size: var(--text-lg);">${tier.verdict}</span>
-      <span class="score-percentile type-data--sm">Top ${Math.round((tier.integer / 10) * 100)}%</span>`;
+      <span class="score-verdict type-structural--bold ${tier.cssClass}" style="font-size: var(--text-lg);">${tier.verdict}</span>`;
+  } else if (tileEl.id === 'score-tile-radar') {
+    // Expanded petal radar with dimension list
+    const scores = data.scores || {};
+    const dims = [
+      { key: 'date_friendly_score',  label: 'Date',     icon: 'heart' },
+      { key: 'group_friendly_score', label: 'Group',    icon: 'usersThree' },
+      { key: 'family_friendly_score',label: 'Family',   icon: 'house' },
+      { key: 'business_lunch_score', label: 'Business', icon: 'briefcase' },
+      { key: 'solo_dining_score',    label: 'Solo',     icon: 'user' },
+      { key: 'hole_in_wall_factor',  label: 'Gem',      icon: 'diamond' },
+    ];
+    const available = dims.filter(d => {
+      const v = scores[d.key];
+      return v != null && v !== '' && !isNaN(parseFloat(v));
+    });
+    const dimListHtml = available.map(d => {
+      const val = Math.min(parseFloat(scores[d.key]) || 0, 10);
+      const pct = (val / 10) * 100;
+      return `
+        <div class="tile-expand__dim">
+          <span class="tile-expand__dim-icon">${svgIcon(d.icon, 16)}</span>
+          <span class="tile-expand__dim-label type-data--sm">${d.label}</span>
+          <div class="tile-expand__dim-bar">
+            <div class="tile-expand__dim-fill" style="width: ${pct}%"></div>
+          </div>
+          <span class="tile-expand__dim-value type-data--sm">${val.toFixed(1)}</span>
+        </div>`;
+    }).join('');
+
+    $content.innerHTML = `
+      <div class="score-tile__brand" aria-label="DondeAI Vibe" style="justify-content: center;">
+        <svg class="score-tile__logo-mark" viewBox="0 0 32 44" width="20" height="28" aria-hidden="true">
+          <path d="M10.5 1C10.5 1 10 8.5 12.5 11.5Q14 13 14.5 13.5"
+                fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M21.5 1C21.5 1 22 8.5 19.5 11.5Q18 13 17.5 13.5"
+                fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M16 13.5C22 11 29 14 28 21C27 27 19 29 16 31L16 34"
+                fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>
+          <circle cx="16" cy="40" r="2.8" fill="var(--ac)"/>
+        </svg>
+        <span class="score-tile__wordmark" style="font-size: var(--text-sm);">
+          <span class="score-tile__wordmark-d">D</span><span
+            class="score-tile__wordmark-onde">onde</span><span
+            class="score-tile__wordmark-a">A</span><span
+            class="score-tile__wordmark-i">I</span>
+        </span>
+        <span class="score-tile__score-label type-data--sm">Vibe<sup>\u2122</sup></span>
+      </div>
+      <div class="tile-expand__dims">${dimListHtml}</div>`;
   }
 
   $modal.classList.add('tile-expand--open');
   $modal.querySelector('.tile-expand__close')?.focus();
-  announce('Score details expanded');
+  announce(tileEl.id === 'score-tile-radar' ? 'DondeAI Vibe expanded' : 'Match details expanded');
 }
 
 function closeTileExpand() {
@@ -1399,7 +1903,7 @@ function renderShareCanvas(format = 'post') {
   ctx.fillRect(0, 0, w, h);
 
   const r = result.restaurant;
-  const score = Math.round(parseFloat(result.donde_score) || 8);
+  const score = Math.round(parseFloat(result.donde_match) || 80);
   const pad = 40;
   let y = isStory ? 120 : 80;
 
@@ -1450,15 +1954,15 @@ function renderShareCanvas(format = 'post') {
   ctx.globalAlpha = 1;
 
   ctx.fillStyle = fg;
-  ctx.font = `700 28px "JetBrains Mono", monospace`;
+  ctx.font = `700 22px "JetBrains Mono", monospace`;
   ctx.textAlign = 'center';
-  ctx.fillText(String(score), scoreX, scoreY + 10);
+  ctx.fillText(score + '%', scoreX, scoreY + 10);
 
-  // Score label
+  // Match label
   ctx.textAlign = 'left';
   ctx.font = `600 14px "Inter", sans-serif`;
   ctx.fillStyle = fg2;
-  ctx.fillText('DondeAI Score', scoreX + 44, scoreY + 4);
+  ctx.fillText('DondeAI Match', scoreX + 44, scoreY + 4);
 
   y += 80;
 
