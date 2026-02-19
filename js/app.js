@@ -71,6 +71,9 @@ function init() {
   // Render dynamic smart chips (theme + history aware)
   renderSmartChips();
 
+  // Render taste memory (recent searches)
+  renderTasteMemory();
+
   // Wire swipe gestures
   wireSwipe();
 
@@ -245,7 +248,15 @@ function renderSmartChips() {
     btn.className = 'smart-chip type-structural';
     btn.setAttribute('data-action', 'smart-chip');
     btn.setAttribute('data-value', text);
-    btn.textContent = text;
+
+    // Cuisine icon hint (neutral, subtle)
+    const cuisine = matchCuisine(text);
+    if (cuisine && cuisine.icon !== 'plate') {
+      btn.innerHTML = `<span class="smart-chip__icon">${svgIcon(cuisine.icon, 12)}</span>${text}`;
+    } else {
+      btn.textContent = text;
+    }
+
     $container.appendChild(btn);
   });
 
@@ -283,9 +294,18 @@ function rotateOneChip() {
   const newText = getRandomChipFromPool(currentTexts);
   if (!newText) return;
 
+  const updateChipContent = (chip, text) => {
+    chip.dataset.value = text;
+    const cuisine = matchCuisine(text);
+    if (cuisine && cuisine.icon !== 'plate') {
+      chip.innerHTML = `<span class="smart-chip__icon">${svgIcon(cuisine.icon, 12)}</span>${text}`;
+    } else {
+      chip.textContent = text;
+    }
+  };
+
   if (REDUCED_MOTION.matches) {
-    oldChip.textContent = newText;
-    oldChip.dataset.value = newText;
+    updateChipContent(oldChip, newText);
     return;
   }
 
@@ -294,8 +314,7 @@ function rotateOneChip() {
   oldChip.style.transform = 'translateY(-8px) scale(0.9)';
 
   setTimeout(() => {
-    oldChip.textContent = newText;
-    oldChip.dataset.value = newText;
+    updateChipContent(oldChip, newText);
     oldChip.style.transform = 'translateY(8px) scale(0.9)';
     requestAnimationFrame(() => {
       oldChip.style.transition = 'opacity 250ms ease, transform 350ms var(--spring)';
@@ -417,6 +436,62 @@ function updateChipsForInput(query) {
   });
 }
 
+/* ---- Taste Memory (recent searches on canvas) ---- */
+function renderTasteMemory() {
+  const $container = document.getElementById('taste-memory');
+  const $list = document.getElementById('taste-memory-list');
+  if (!$container || !$list) return;
+
+  const { history } = getState();
+  if (!history || history.length === 0) {
+    $container.classList.remove('taste-memory--visible');
+    return;
+  }
+
+  $list.innerHTML = '';
+  history.slice(0, 3).forEach(entry => {
+    const btn = document.createElement('button');
+    btn.className = 'taste-memory__chip';
+    btn.setAttribute('data-action', 'taste-memory');
+    btn.setAttribute('data-payload', JSON.stringify(entry.payload));
+
+    const iconHtml = entry.cuisineIcon
+      ? `<span class="taste-memory__icon">${svgIcon(entry.cuisineIcon, 14)}</span>`
+      : '';
+
+    const label = entry.label.length > 22 ? entry.label.slice(0, 20) + '…' : entry.label;
+    const time = entry.timestamp ? relativeTime(entry.timestamp) : '';
+
+    btn.innerHTML = `${iconHtml}<span>${label}</span>${time ? `<span class="taste-memory__time">${time}</span>` : ''}`;
+    $list.appendChild(btn);
+  });
+
+  $container.classList.remove('taste-memory--visible');
+  void $container.offsetWidth;
+  $container.classList.add('taste-memory--visible');
+}
+
+/* ---- Ambient Blob Interaction Pulse ---- */
+function pulseAmbient() {
+  const blobs = document.querySelectorAll('.ambient__blob');
+  if (!blobs.length || REDUCED_MOTION.matches) return;
+
+  blobs.forEach(blob => {
+    blob.style.transition = 'transform 600ms var(--ease-out), opacity 600ms var(--ease-out)';
+    blob.style.transform = 'scale(1.15)';
+    const current = parseFloat(getComputedStyle(blob).opacity) || 0.6;
+    blob.style.opacity = String(Math.min(current + 0.05, 1));
+  });
+
+  setTimeout(() => {
+    blobs.forEach(blob => {
+      blob.style.transform = '';
+      blob.style.opacity = '';
+      setTimeout(() => { blob.style.transition = ''; }, 600);
+    });
+  }, 600);
+}
+
 /* ---- Event Delegation ---- */
 function wireEvents() {
   document.addEventListener('click', (e) => {
@@ -432,6 +507,7 @@ function wireEvents() {
         clearAllSelections();
         setupLanding();
         renderSmartChips();
+        renderTasteMemory();
         goToStep(0);
         updateCtaState();
         updateFilterSummary();
@@ -469,6 +545,23 @@ function wireEvents() {
         ripple.className = 'filter-pill__ripple';
         btn.appendChild(ripple);
         ripple.addEventListener('animationend', () => ripple.remove(), { once: true });
+        break;
+      }
+
+      case 'taste-memory': {
+        try {
+          const payload = JSON.parse(btn.dataset.payload);
+          if ($cravingInput && payload.special_request) {
+            $cravingInput.value = payload.special_request;
+            setState({
+              craving: payload.special_request,
+              occasion: payload.occasion || 'Any',
+              neighborhood: payload.neighborhood || 'Anywhere',
+              priceLevel: payload.price_level || 'Any',
+            });
+            updateCtaState();
+          }
+        } catch { /* ignore parse errors */ }
         break;
       }
 
@@ -599,15 +692,22 @@ function wireEvents() {
       }
 
       case 'show-match-info': {
-        showToast('DondeAI Match\u2122 shows how likely you are to love this spot \u2014 based on cuisine quality, vibe fit, and hundreds of local reviews.');
+        showToast('Donde Match\u2122 shows how likely you are to love this spot \u2014 based on cuisine quality, vibe fit, and hundreds of local reviews.');
         break;
       }
 
-      case 'toggle-profile': {
-        const $profile = document.getElementById('result-profile');
+      case 'show-vibe-info': {
+        showToast('Donde Vibe\u2122 maps how this spot scores across date nights, groups, family, business, solo dining, and hidden gem factor.');
+        break;
+      }
+
+      case 'toggle-profile-details': {
+        const $details = document.getElementById('profile-details');
         const isExpanded = btn.getAttribute('aria-expanded') === 'true';
         btn.setAttribute('aria-expanded', String(!isExpanded));
-        if ($profile) $profile.classList.toggle('result-profile--expanded');
+        if ($details) $details.classList.toggle('profile-details--visible');
+        btn.querySelector('.profile-expand-btn__text').textContent =
+          isExpanded ? 'View details' : 'Hide details';
         break;
       }
     }
@@ -954,14 +1054,32 @@ function startPlaceholderRotation() {
   }, 4000);
 }
 
+let ctaBreathTimer = null;
+
 function updateCtaState() {
   const $cta = document.querySelector('.cta-btn[data-action="submit"]');
   const $hint = document.getElementById('cta-hint');
   const isEmpty = !$cravingInput?.value.trim();
+  const wasDisabled = $cta?.disabled;
 
   if ($cta) {
     $cta.disabled = isEmpty;
     $cta.setAttribute('aria-disabled', String(isEmpty));
+
+    if (isEmpty) {
+      // Disable: kill breathing
+      $cta.classList.remove('cta-btn--ready', 'cta-btn--alive');
+      if (ctaBreathTimer) { clearTimeout(ctaBreathTimer); ctaBreathTimer = null; }
+    } else if (wasDisabled && !isEmpty) {
+      // Just enabled: one-shot ready pulse → continuous breathe
+      $cta.classList.remove('cta-btn--alive');
+      $cta.classList.add('cta-btn--ready');
+      if (ctaBreathTimer) clearTimeout(ctaBreathTimer);
+      ctaBreathTimer = setTimeout(() => {
+        $cta.classList.remove('cta-btn--ready');
+        $cta.classList.add('cta-btn--alive');
+      }, 400);
+    }
   }
   if ($hint) {
     $hint.classList.toggle('cta-hint--visible', isEmpty);
@@ -1053,6 +1171,7 @@ async function handleSubmit() {
   // Set CTA to loading state with brief confirmation glow
   const $cta = document.querySelector('.cta-btn[data-action="submit"]');
   if ($cta) {
+    $cta.classList.remove('cta-btn--ready', 'cta-btn--alive');
     $cta.classList.add('cta-btn--confirming');
     await new Promise(r => setTimeout(r, 200));
     $cta.classList.remove('cta-btn--confirming');
@@ -1063,6 +1182,9 @@ async function handleSubmit() {
   setState({ loading: true, error: null, result: null });
   // Don't goToStep(1) — the loading overlay covers everything;
   // step-track positioning happens in orchestrateReveal()
+
+  // Ambient blob pulse on submit (canvas responds to user)
+  pulseAmbient();
 
   try {
     const payload = {
@@ -1087,6 +1209,7 @@ async function handleSubmit() {
     // Set result — triggers orchestrateReveal() via subscription
     setState({ result: data, loading: false, history: hist });
     renderSmartChips(); // Refresh chips with new history
+    renderTasteMemory(); // Refresh taste memory with new entry
     playChime();
     announce(`Recommendation: ${data.restaurant?.name || 'found'}`);
   } catch (err) {
@@ -1205,7 +1328,7 @@ async function orchestrateReveal(data) {
 
   // 4. Show result card with scale-in animation
   if ($resultCard) {
-    $resultCard.style.display = 'flex';
+    $resultCard.style.display = '';
     $resultCard.style.opacity = '0';
     $resultCard.style.transform = 'scale(0.95)';
   }
@@ -1255,11 +1378,15 @@ function renderResult(data) {
   if (!data?.restaurant) return;
   const r = data.restaurant;
 
-  // Reset profile to collapsed
-  const $profileToggle = document.querySelector('[data-action="toggle-profile"]');
-  if ($profileToggle) $profileToggle.setAttribute('aria-expanded', 'false');
-  const $profileEl = document.getElementById('result-profile');
-  if ($profileEl) $profileEl.classList.remove('result-profile--expanded');
+  // Reset profile details to collapsed on mobile
+  const $profileDetails = document.getElementById('profile-details');
+  if ($profileDetails) $profileDetails.classList.remove('profile-details--visible');
+  const $expandBtn = document.querySelector('[data-action="toggle-profile-details"]');
+  if ($expandBtn) {
+    $expandBtn.setAttribute('aria-expanded', 'false');
+    const $btnText = $expandBtn.querySelector('.profile-expand-btn__text');
+    if ($btnText) $btnText.textContent = 'View details';
+  }
 
   // Cancel any in-flight animation timeouts from a previous render
   animationTimers.forEach(clearTimeout);
@@ -1342,7 +1469,7 @@ function renderResult(data) {
     $scoreTileDonde.classList.add('score-tile--expandable');
     $scoreTileDonde.setAttribute('tabindex', '0');
     $scoreTileDonde.setAttribute('role', 'button');
-    $scoreTileDonde.setAttribute('aria-label', 'Expand DondeAI Match');
+    $scoreTileDonde.setAttribute('aria-label', 'Expand Donde Match');
   }
   // Delay score ring to after tile entrance
   animationTimers.push(setTimeout(() => animateScoreRing(data.donde_match), 800));
@@ -1372,7 +1499,7 @@ function renderResult(data) {
       };
     }
     $googleInline.style.display = '';
-    animationTimers.push(setTimeout(() => { $googleInline.style.opacity = '1'; }, 900));
+    animationTimers.push(setTimeout(() => { $googleInline.style.opacity = '1'; }, 800));
   } else if ($googleInline) {
     $googleInline.style.display = 'none';
   }
@@ -1383,55 +1510,58 @@ function renderResult(data) {
   // ---- Profile Block: Unified badges (facts + atmosphere merged) ----
   const $profileFacts = document.getElementById('profile-facts');
   const $glyphBar = document.getElementById('glyph-bar');
-  const allBadges = [];
+
+  // Canonical 9-slot badge order — always render all, dim missing data
+  const parkingPts = r.parking_availability
+    ? parseParkingTypes(r.parking_availability).slice(0, 2).join(' / ') : null;
+  const CANONICAL_BADGES = [
+    { icon: cuisine.icon || 'plate', label: 'Cuisine',
+      value: r.cuisine_type ? shortenBadgeValue(r.cuisine_type) : null,
+      raw: r.cuisine_type || '', isCuisine: true, isAtmo: false },
+    { icon: 'tag', label: 'Price',
+      value: r.price_level || null,
+      raw: r.price_level || '', isAtmo: false },
+    { icon: 'car', label: 'Parking',
+      value: parkingPts,
+      raw: r.parking_availability || '', isAtmo: false },
+    { icon: getNoiseIcon(r.noise_level), label: 'Noise',
+      value: r.noise_level ? shortenBadgeValue(r.noise_level) : null,
+      raw: r.noise_level || '', isAtmo: false },
+    { icon: getAmbianceIcon(r.lighting_ambiance), label: 'Ambiance',
+      value: r.lighting_ambiance ? normalizeAmbiance(r.lighting_ambiance) : null,
+      raw: r.lighting_ambiance || '', isAtmo: false },
+    { icon: 'shirt', label: 'Dress',
+      value: r.dress_code ? shortenBadgeValue(r.dress_code) : null,
+      raw: r.dress_code || '', isAtmo: false },
+    { icon: 'patio', label: 'Patio',
+      value: r.outdoor_seating === true ? 'Yes' : (r.outdoor_seating === false ? 'No' : null),
+      raw: r.outdoor_seating != null ? (r.outdoor_seating ? 'Outdoor seating' : 'No patio') : '',
+      isAtmo: true },
+    { icon: 'music', label: 'Live Music',
+      value: r.live_music === true ? 'Yes' : (r.live_music === false ? 'No' : null),
+      raw: r.live_music != null ? (r.live_music ? 'Live music venue' : 'No live music') : '',
+      isAtmo: true },
+    { icon: 'pet', label: 'Pet Friendly',
+      value: r.pet_friendly === true ? 'Yes' : (r.pet_friendly === false ? 'No' : null),
+      raw: r.pet_friendly != null ? (r.pet_friendly ? 'Pet-friendly' : 'Not pet-friendly') : '',
+      isAtmo: true },
+  ];
+
+  const allBadges = CANONICAL_BADGES.map(b => ({
+    ...b,
+    isNA: b.value == null,
+    value: b.value != null ? b.value : '\u2014',
+  }));
 
   if ($profileFacts) {
     $profileFacts.innerHTML = '';
 
-    // Fact badges
-    if (r.cuisine_type) {
-      allBadges.push({ icon: cuisine.icon || 'plate', label: 'Cuisine',
-        value: shortenBadgeValue(r.cuisine_type), raw: r.cuisine_type, isAtmo: false });
-    }
-    if (r.price_level) {
-      allBadges.push({ icon: 'tag', label: 'Price',
-        value: r.price_level, raw: r.price_level, isAtmo: false });
-    }
-    if (r.parking_availability) {
-      const pts = parseParkingTypes(r.parking_availability).slice(0, 2);
-      allBadges.push({ icon: 'car', label: 'Parking',
-        value: pts.join(' / '), raw: r.parking_availability, isAtmo: false });
-    }
-    if (r.noise_level) {
-      allBadges.push({ icon: getNoiseIcon(r.noise_level), label: 'Noise',
-        value: shortenBadgeValue(r.noise_level), raw: r.noise_level, isAtmo: false });
-    }
-    if (r.lighting_ambiance) {
-      allBadges.push({ icon: getAmbianceIcon(r.lighting_ambiance), label: 'Ambiance',
-        value: shortenBadgeValue(r.lighting_ambiance), raw: r.lighting_ambiance, isAtmo: false });
-    }
-    if (r.dress_code) {
-      allBadges.push({ icon: 'shirt', label: 'Dress',
-        value: shortenBadgeValue(r.dress_code), raw: r.dress_code, isAtmo: false });
-    }
-
-    // Atmosphere badges (merged in)
-    if (r.outdoor_seating) {
-      allBadges.push({ icon: 'patio', label: 'Patio', value: 'Yes', raw: 'Outdoor seating', isAtmo: true });
-    }
-    if (r.live_music) {
-      allBadges.push({ icon: 'music', label: 'Live Music', value: 'Yes', raw: 'Live music venue', isAtmo: true });
-    }
-    if (r.pet_friendly) {
-      allBadges.push({ icon: 'pet', label: 'Pet Friendly', value: 'Yes', raw: 'Pet-friendly', isAtmo: true });
-    }
-
-    // Render expanded badge grid (all badges)
     allBadges.forEach(b => {
       const div = document.createElement('div');
       const cls = ['details-badge'];
-      if (b.label === 'Cuisine') cls.push('details-badge--cuisine');
+      if (b.isCuisine) cls.push('details-badge--cuisine');
       if (b.isAtmo) cls.push('details-badge--atmo');
+      if (b.isNA) cls.push('details-badge--na');
       div.className = cls.join(' ');
       div.innerHTML = `
         <span class="details-badge__icon">${svgIcon(b.icon, 16)}</span>
@@ -1441,7 +1571,7 @@ function renderResult(data) {
       $profileFacts.appendChild(div);
     });
 
-    $profileFacts.style.display = allBadges.length > 0 ? '' : 'none';
+    $profileFacts.style.display = '';
   }
 
   // ---- Glyph Bar (icon-only compact view for mobile) ----
@@ -1451,7 +1581,9 @@ function renderResult(data) {
 
     allBadges.forEach((b, i) => {
       const glyph = document.createElement('button');
-      glyph.className = 'glyph-bar__item' + (b.isAtmo ? ' glyph-bar__item--atmo' : '');
+      glyph.className = 'glyph-bar__item'
+        + (b.isAtmo ? ' glyph-bar__item--atmo' : '')
+        + (b.isNA ? ' glyph-bar__item--na' : '');
       glyph.setAttribute('aria-label', `${b.label}: ${b.value}`);
       glyph.setAttribute('type', 'button');
 
@@ -1505,21 +1637,34 @@ function renderResult(data) {
     }, { once: true });
   }
 
-  // ---- Quick Links (Website, Call, Share) ----
+  // ---- Quick Links (Website, Call, Share) — pill badges with dot separators ----
   const $resultLinks = document.getElementById('result-links');
   if ($resultLinks) {
     $resultLinks.innerHTML = '';
+    const links = [];
     if (r.website) {
       let hostname = 'Visit';
       try { hostname = new URL(r.website).hostname.replace('www.', ''); } catch { /* keep fallback */ }
-      $resultLinks.appendChild(createResultLink('a', 'globe', hostname, r.website));
+      links.push(createResultLink('a', 'globe', hostname, r.website));
     }
     if (r.phone) {
-      $resultLinks.appendChild(createResultLink('a', 'phone', r.phone, `tel:${r.phone}`));
+      links.push(createResultLink('a', 'phone', r.phone, `tel:${r.phone}`));
     }
     const shareLink = createResultLink('button', 'shareNetwork', 'Share');
     shareLink.setAttribute('data-action', 'share');
-    $resultLinks.appendChild(shareLink);
+    shareLink.classList.add('result-link--accent');
+    links.push(shareLink);
+
+    links.forEach((link, i) => {
+      if (i > 0) {
+        const sep = document.createElement('span');
+        sep.className = 'result-links__sep';
+        sep.textContent = '\u00b7';
+        sep.setAttribute('aria-hidden', 'true');
+        $resultLinks.appendChild(sep);
+      }
+      $resultLinks.appendChild(link);
+    });
   }
 
   // Insider tip
@@ -1634,6 +1779,24 @@ function getAmbianceIcon(ambianceStr) {
   return 'sun';
 }
 
+/* ---- Ambiance → Concise Label Normalizer ---- */
+function normalizeAmbiance(ambianceStr) {
+  if (!ambianceStr) return '';
+  const lower = ambianceStr.toLowerCase();
+  if (lower.includes('candlelit')) return 'Candlelit';
+  if (lower.includes('dim') && lower.includes('warm')) return 'Dim & Warm';
+  if (lower.includes('dim') && lower.includes('intimate')) return 'Intimate';
+  if (lower.includes('dim')) return 'Dim';
+  if (lower.includes('cozy')) return 'Cozy';
+  if (lower.includes('warm') && lower.includes('intimate')) return 'Warm';
+  if (lower.includes('bright') && lower.includes('modern')) return 'Bright';
+  if (lower.includes('bright')) return 'Bright';
+  if (lower.includes('modern')) return 'Modern';
+  if (lower.includes('rustic')) return 'Rustic';
+  if (lower.includes('elegant')) return 'Elegant';
+  return shortenBadgeValue(ambianceStr);
+}
+
 /* ---- Tile Expand Modal ---- */
 function openTileExpand(tileEl) {
   const $modal = document.getElementById('tile-expand');
@@ -1652,7 +1815,7 @@ function openTileExpand(tileEl) {
     const offset = circumference - (pct / 100) * circumference;
     const strokeColor = 'var(--ac)';
     $content.innerHTML = `
-      <div class="score-tile__brand" aria-label="DondeAI Match">
+      <div class="score-tile__brand" aria-label="Donde Match">
         <svg class="score-tile__logo-mark" viewBox="0 0 32 44" width="20" height="28" aria-hidden="true">
           <path d="M10.5 1C10.5 1 10 8.5 12.5 11.5Q14 13 14.5 13.5"
                 fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
@@ -1664,9 +1827,8 @@ function openTileExpand(tileEl) {
         </svg>
         <span class="score-tile__wordmark" style="font-size: var(--text-sm);">
           <span class="score-tile__wordmark-d">D</span><span
-            class="score-tile__wordmark-onde">onde</span><span
-            class="score-tile__wordmark-a">A</span><span
-            class="score-tile__wordmark-i">I</span>
+            class="score-tile__wordmark-ond">ond</span><span
+            class="score-tile__wordmark-e">e</span>
         </span>
         <span class="score-tile__score-label type-data--sm">Match<sup>™</sup></span>
       </div>
@@ -1711,7 +1873,7 @@ function openTileExpand(tileEl) {
     }).join('');
 
     $content.innerHTML = `
-      <div class="score-tile__brand" aria-label="DondeAI Vibe" style="justify-content: center;">
+      <div class="score-tile__brand" aria-label="Donde Vibe" style="justify-content: center;">
         <svg class="score-tile__logo-mark" viewBox="0 0 32 44" width="20" height="28" aria-hidden="true">
           <path d="M10.5 1C10.5 1 10 8.5 12.5 11.5Q14 13 14.5 13.5"
                 fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
@@ -1723,9 +1885,8 @@ function openTileExpand(tileEl) {
         </svg>
         <span class="score-tile__wordmark" style="font-size: var(--text-sm);">
           <span class="score-tile__wordmark-d">D</span><span
-            class="score-tile__wordmark-onde">onde</span><span
-            class="score-tile__wordmark-a">A</span><span
-            class="score-tile__wordmark-i">I</span>
+            class="score-tile__wordmark-ond">ond</span><span
+            class="score-tile__wordmark-e">e</span>
         </span>
         <span class="score-tile__score-label type-data--sm">Vibe<sup>\u2122</sup></span>
       </div>
@@ -1734,7 +1895,7 @@ function openTileExpand(tileEl) {
 
   $modal.classList.add('tile-expand--open');
   $modal.querySelector('.tile-expand__close')?.focus();
-  announce(tileEl.id === 'score-tile-radar' ? 'DondeAI Vibe expanded' : 'Match details expanded');
+  announce(tileEl.id === 'score-tile-radar' ? 'Donde Vibe expanded' : 'Match details expanded');
 }
 
 function closeTileExpand() {
@@ -1962,7 +2123,7 @@ function renderShareCanvas(format = 'post') {
   ctx.textAlign = 'left';
   ctx.font = `600 14px "Inter", sans-serif`;
   ctx.fillStyle = fg2;
-  ctx.fillText('DondeAI Match', scoreX + 44, scoreY + 4);
+  ctx.fillText('Donde Match', scoreX + 44, scoreY + 4);
 
   y += 80;
 
@@ -1970,7 +2131,7 @@ function renderShareCanvas(format = 'post') {
   ctx.fillStyle = fg2;
   ctx.font = `italic 500 14px "Playfair Display", serif`;
   ctx.textAlign = 'right';
-  ctx.fillText('via DondeAI', w - pad, h - pad);
+  ctx.fillText('via Donde', w - pad, h - pad);
 }
 
 // Expose for share module

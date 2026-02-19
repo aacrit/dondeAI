@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="description" content="DondeAI — AI-powered restaurant recommendations for Chicago. Tell us what you're craving.">
+  <meta name="description" content="Donde — AI-powered restaurant recommendations for Chicago. Tell us what you're craving.">
   <meta name="theme-color" content="#383838">
-  <title>DondeAI — Find Your Spot</title>
+  <title>Donde — One Pick. Zero Stress.</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 44'%3E%3Cpath d='M10.5 1C10.5 1 10 8.5 12.5 11.5Q14 13 14.5 13.5' fill='none' stroke='%23383838' stroke-width='2.5' stroke-linecap='round'/%3E%3Cpath d='M21.5 1C21.5 1 22 8.5 19.5 11.5Q18 13 17.5 13.5' fill='none' stroke='%23383838' stroke-width='2.5' stroke-linecap='round'/%3E%3Cpath d='M16 13.5C22 11 29 14 28 21C27 27 19 29 16 31L16 34' fill='none' stroke='%23383838' stroke-width='2.8' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='40' r='2.8' fill='%23383838'/%3E%3C/svg%3E">
 
   <!-- Web Fonts -->
@@ -49,7 +49,7 @@
 
     <!-- Header -->
     <header class="header">
-      <button class="header__logo" data-action="reset" aria-label="DondeAI — start over">
+      <button class="header__logo" data-action="reset" aria-label="Donde — start over">
         <svg class="logo-mark" viewBox="0 0 32 44" width="24" height="33" aria-hidden="true">
           <!-- Question Pin: fork tines at top merge into question-mark curve, pin dot at base -->
           <path class="logo-mark__tine logo-mark__tine--left"
@@ -63,12 +63,12 @@
                 fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>
           <circle class="logo-mark__dot" cx="16" cy="40" r="2.8" fill="var(--ac)"/>
         </svg>
-        <span class="logo-wordmark" aria-label="DondeAI">
+        <span class="logo-wordmark" aria-label="Donde">
           <span class="logo-wordmark__d" aria-hidden="true">D</span><span
-            class="logo-wordmark__onde" aria-hidden="true">onde</span><span
-            class="logo-wordmark__a" aria-hidden="true">A</span><span
-            class="logo-wordmark__i" aria-hidden="true">I</span>
+            class="logo-wordmark__ond" aria-hidden="true">ond</span><span
+            class="logo-wordmark__e" aria-hidden="true">e</span>
         </span>
+        <span class="logo-tagline type-data--sm" aria-hidden="true">One Pick. Zero Stress.</span>
       </button>
       <div class="header__actions">
         <button class="header__btn" data-action="toggle-sound" aria-label="Toggle sound" title="Sound">
@@ -241,7 +241,13 @@
               Type what you're craving to get started
             </p>
 
-            <!-- Quick picks removed — redundant with smart chips + filters -->
+            <!-- Taste Memory (recent searches) -->
+            <div class="taste-memory" id="taste-memory" aria-label="Recent searches">
+              <span class="taste-memory__label type-data--sm">Recent</span>
+              <div class="taste-memory__list" id="taste-memory-list">
+                <!-- Populated by renderTasteMemory() -->
+              </div>
+            </div>
           </div>
         </section>
 
@@ -279,8 +285,8 @@
               <div class="score-section" id="score-section">
                 <div class="score-row">
                   <!-- Hero: DondeAI Match Ring -->
-                  <div class="score-tile score-tile--donde" id="score-tile-donde" role="group" aria-label="DondeAI Match">
-                    <div class="score-tile__brand" aria-label="DondeAI Match">
+                  <div class="score-tile score-tile--donde" id="score-tile-donde" role="group" aria-label="Donde Match">
+                    <div class="score-tile__brand" aria-label="Donde Match">
                       <svg class="score-tile__logo-mark" viewBox="0 0 32 44" width="16" height="22" aria-hidden="true">
                         <path d="M10.5 1C10.5 1 10 8.5 12.5 11.5Q14 13 14.5 13.5"
                               fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
@@ -292,9 +298,8 @@
                       </svg>
                       <span class="score-tile__wordmark">
                         <span class="score-tile__wordmark-d">D</span><span
-                          class="score-tile__wordmark-onde">onde</span><span
-                          class="score-tile__wordmark-a">A</span><span
-                          class="score-tile__wordmark-i">I</span>
+                          class="score-tile__wordmark-ond">ond</span><span
+                          class="score-tile__wordmark-e">e</span>
                       </span>
                       <span class="score-tile__score-label type-data--sm">Match<sup>™</sup></span>
                     </div>
@@ -315,10 +320,10 @@
                     <span class="score-verdict type-structural--bold" id="score-verdict"></span>
                   </div>
 
-                  <!-- Petal Radar Chart (DondeAI Vibe™) -->
+                  <!-- Petal Radar Chart (Donde Vibe™) -->
                   <div class="score-tile score-tile--radar score-tile--expandable" id="score-tile-radar"
-                       role="button" tabindex="0" aria-label="DondeAI Vibe radar chart" style="display: none;">
-                    <div class="score-tile__brand" aria-label="DondeAI Vibe">
+                       role="button" tabindex="0" aria-label="Donde Vibe radar chart" style="display: none;">
+                    <div class="score-tile__brand" aria-label="Donde Vibe">
                       <svg class="score-tile__logo-mark" viewBox="0 0 32 44" width="16" height="22" aria-hidden="true">
                         <path d="M10.5 1C10.5 1 10 8.5 12.5 11.5Q14 13 14.5 13.5"
                               fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
@@ -330,13 +335,17 @@
                       </svg>
                       <span class="score-tile__wordmark">
                         <span class="score-tile__wordmark-d">D</span><span
-                          class="score-tile__wordmark-onde">onde</span><span
-                          class="score-tile__wordmark-a">A</span><span
-                          class="score-tile__wordmark-i">I</span>
+                          class="score-tile__wordmark-ond">ond</span><span
+                          class="score-tile__wordmark-e">e</span>
                       </span>
                       <span class="score-tile__score-label type-data--sm">Vibe<sup>™</sup></span>
                     </div>
-                    <svg class="petal-radar" id="petal-radar" viewBox="0 0 200 200" aria-hidden="true">
+                    <button class="score-tile__info" data-action="show-vibe-info" aria-label="What is the Vibe radar?" title="What is the Vibe radar?">
+                      <svg viewBox="0 0 256 256" width="16" height="16" aria-hidden="true">
+                        <path fill="currentColor" d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm16-40a8,8,0,0,1-8,8,16,16,0,0,1-16-16V128a8,8,0,0,1,0-16,16,16,0,0,1,16,16v40A8,8,0,0,1,144,176ZM112,84a12,12,0,1,1,12,12A12,12,0,0,1,112,84Z"/>
+                      </svg>
+                    </button>
+                    <svg class="petal-radar" id="petal-radar" viewBox="0 0 240 240" aria-hidden="true">
                       <g class="petal-radar__grid"></g>
                       <g class="petal-radar__axes"></g>
                       <g class="petal-radar__petals" id="petal-radar-petals"></g>
@@ -345,43 +354,43 @@
                   </div>
                 </div>
 
-                <!-- Sentiment Bar: subtle horizontal mood indicator -->
-                <div class="sentiment-bar" id="sentiment-bar"
-                     role="img" aria-label="Review sentiment breakdown">
-                  <span class="sentiment-bar__label type-data--sm">Review Sentiment</span>
-                  <div class="sentiment-bar__track">
-                    <span class="sentiment-bar__seg sentiment-bar__seg--pos" id="sentiment-bar-pos"></span>
-                    <span class="sentiment-bar__seg sentiment-bar__seg--neu" id="sentiment-bar-neu"></span>
-                    <span class="sentiment-bar__seg sentiment-bar__seg--neg" id="sentiment-bar-neg"></span>
+                <!-- Reviews Unit: Google Rating + Sentiment merged -->
+                <div class="reviews-unit" id="reviews-unit">
+                  <div class="reviews-unit__stars-row">
+                    <div class="google-rating-inline" id="google-rating-inline" style="display: none;">
+                      <div class="google-stars" id="google-stars"></div>
+                      <span class="google-rating-number type-data--sm" id="google-rating-num"></span>
+                      <span class="google-count type-data--sm" id="google-count"></span>
+                      <span class="reviews-unit__source type-data--sm">Google</span>
+                    </div>
                   </div>
-                  <div class="sentiment-bar__tooltip" id="sentiment-bar-tooltip" role="tooltip">
-                    <span class="sentiment-bar__tip-item sentiment-bar__tip-item--pos" id="sentiment-tip-pos"></span>
-                    <span class="sentiment-bar__tip-item sentiment-bar__tip-item--neu" id="sentiment-tip-neu"></span>
-                    <span class="sentiment-bar__tip-item sentiment-bar__tip-item--neg" id="sentiment-tip-neg"></span>
+                  <div class="sentiment-bar" id="sentiment-bar"
+                       role="img" aria-label="Review sentiment breakdown">
+                    <div class="sentiment-bar__track">
+                      <span class="sentiment-bar__seg sentiment-bar__seg--pos" id="sentiment-bar-pos"></span>
+                      <span class="sentiment-bar__seg sentiment-bar__seg--neu" id="sentiment-bar-neu"></span>
+                      <span class="sentiment-bar__seg sentiment-bar__seg--neg" id="sentiment-bar-neg"></span>
+                    </div>
+                    <div class="sentiment-bar__tooltip" id="sentiment-bar-tooltip" role="tooltip">
+                      <span class="sentiment-bar__tip-item sentiment-bar__tip-item--pos" id="sentiment-tip-pos"></span>
+                      <span class="sentiment-bar__tip-item sentiment-bar__tip-item--neu" id="sentiment-tip-neu"></span>
+                      <span class="sentiment-bar__tip-item sentiment-bar__tip-item--neg" id="sentiment-tip-neg"></span>
+                    </div>
                   </div>
-                </div>
-
-                <!-- Google Rating — subtle inline, not a tile -->
-                <div class="google-rating-inline" id="google-rating-inline" style="display: none;">
-                  <div class="google-stars" id="google-stars"></div>
-                  <span class="google-rating-number type-data--sm" id="google-rating-num"></span>
-                  <span class="google-count type-data--sm" id="google-count"></span>
                 </div>
               </div>
 
-              <!-- Block 4: Profile — "About This Spot" -->
+              <!-- Block 4: Profile -->
               <div class="result-profile" id="result-profile">
-                <button class="result-profile__toggle type-data--sm"
-                        data-action="toggle-profile"
-                        aria-expanded="false" aria-controls="profile-details">
-                  <span data-label="profile">About This Spot</span>
-                  <svg class="result-profile__chevron" viewBox="0 0 256 256" width="14" height="14" aria-hidden="true">
-                    <path fill="currentColor" d="M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z"/>
-                  </svg>
-                </button>
                 <!-- Compact: icon-only glyph bar (mobile) -->
                 <div class="glyph-bar" id="glyph-bar" role="group" aria-label="Restaurant details"></div>
-                <!-- Expanded: full detail badges grid (atmosphere merged in) -->
+                <!-- Mobile expand link -->
+                <button class="profile-expand-btn type-data--sm"
+                        data-action="toggle-profile-details"
+                        aria-expanded="false" aria-controls="profile-details">
+                  <span class="profile-expand-btn__text">View details</span>
+                </button>
+                <!-- Full detail badges grid -->
                 <div class="profile-details" id="profile-details">
                   <div class="profile-facts" id="profile-facts"></div>
                 </div>
@@ -391,11 +400,11 @@
               <div class="result-actions-block">
                 <div class="result-links" id="result-links"></div>
                 <div class="result-actions">
-                  <button class="cta-btn cta-btn--icon type-structural--bold" data-action="try-again" data-label="again">
+                  <button class="cta-btn cta-btn--secondary cta-btn--icon type-structural" data-action="try-again" data-label="again">
                     <span class="cta-btn__icon" id="try-again-icon"></span>
                     <span class="cta-btn__text">Try Another</span>
                   </button>
-                  <button class="cta-btn cta-btn--secondary cta-btn--icon type-structural" data-action="reset">
+                  <button class="cta-btn cta-btn--icon type-structural--bold" data-action="reset">
                     <span class="cta-btn__icon" id="start-over-icon"></span>
                     <span class="cta-btn__text">Start Over</span>
                   </button>
@@ -423,11 +432,10 @@
                   fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>
             <circle class="logo-mark__dot logo-mark__dot--draw" cx="16" cy="40" r="2.8" fill="var(--ac)"/>
           </svg>
-          <span class="loading-logo__text logo-wordmark" aria-label="DondeAI">
+          <span class="loading-logo__text logo-wordmark" aria-label="Donde">
             <span class="logo-wordmark__d" aria-hidden="true">D</span><span
-              class="logo-wordmark__onde" aria-hidden="true">onde</span><span
-              class="logo-wordmark__a" aria-hidden="true">A</span><span
-              class="logo-wordmark__i" aria-hidden="true">I</span>
+              class="logo-wordmark__ond" aria-hidden="true">ond</span><span
+              class="logo-wordmark__e" aria-hidden="true">e</span>
           </span>
         </div>
         <p class="loading-status type-structural" id="loading-status">Searching</p>

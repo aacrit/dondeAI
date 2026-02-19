@@ -296,13 +296,16 @@
   color: var(--fg2);
   opacity: 0;
   pointer-events: none;
-  transition: opacity var(--dur-normal) var(--ease-out),
+  transform: translateX(-12px);
+  transition: transform 300ms var(--spring),
+              opacity 200ms var(--ease-out),
               background var(--dur-fast) var(--ease-out);
 }
 
 .back-btn--visible {
   opacity: 1;
   pointer-events: auto;
+  transform: translateX(0);
 }
 
 .back-btn:hover {

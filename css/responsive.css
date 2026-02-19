@@ -72,21 +72,26 @@
     max-width: 280px;
   }
 
+  /* Score tile breathing room on tablet+ */
+  .score-tile {
+    padding: var(--space-lg);
+  }
+
   .petal-radar {
-    width: 160px;
-    height: 160px;
+    width: 180px;
+    height: 180px;
   }
 
   .score-tile .score-ring-wrap {
-    width: 120px;
-    height: 120px;
+    width: 140px;
+    height: 140px;
   }
 }
 
 /* ---- 1024px: Desktop ---- */
 @media (min-width: 1024px) {
   :root {
-    --content-max: 720px;
+    --content-max: 960px;
   }
 
   .header {
@@ -113,15 +118,20 @@
   }
 
   .petal-radar {
-    width: 180px;
-    height: 180px;
+    width: 200px;
+    height: 200px;
+  }
+
+  .score-tile .score-ring-wrap {
+    width: 148px;
+    height: 148px;
   }
 }
 
 /* ---- 2560px: Large displays ---- */
 @media (min-width: 2560px) {
   :root {
-    --content-max: 800px;
+    --content-max: 1100px;
   }
 }
 
@@ -145,6 +155,10 @@
   }
 
   .smart-chips {
+    display: none;
+  }
+
+  .taste-memory {
     display: none;
   }
 }

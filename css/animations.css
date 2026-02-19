@@ -64,15 +64,15 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ---- Card Entrance ---- */
+/* ---- Card Entrance (paper-landing settle) ---- */
 @keyframes cardEntrance {
   from {
     opacity: 0;
-    transform: translateY(20px) scale(0.97);
+    transform: translateY(20px) scale(0.96) rotate(-0.5deg);
   }
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateY(0) scale(1) rotate(0deg);
   }
 }
 
@@ -365,6 +365,38 @@
   100% { opacity: 0; }
 }
 
+/* ---- CTA Breathing Pulse (enabled state life) ---- */
+@keyframes ctaReady {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+
+@keyframes ctaBreathe {
+  0%, 100% { box-shadow: 0 0 0 0 var(--ac-soft); }
+  50%      { box-shadow: 0 0 0 4px var(--ac-soft); }
+}
+
+.cta-btn--ready {
+  animation: ctaReady 400ms var(--spring);
+}
+
+.cta-btn--alive:not(:hover):not(:active):not(:disabled) {
+  animation: ctaBreathe 3s ease-in-out infinite;
+}
+
+/* ---- Voice Recording Pulse Ring ---- */
+@keyframes voicePulse {
+  0%   { transform: translateY(-50%) scale(1); opacity: 0.5; }
+  100% { transform: translateY(-50%) scale(1.6); opacity: 0; }
+}
+
+/* ---- Section Heading Ink-Underline Reveal ---- */
+@keyframes inkUnderline {
+  from { width: 0; }
+  to   { width: 100%; }
+}
+
 /* ---- Reduced Motion: Gentle fallback (100ms linear, not 0ms) ---- */
 @media (prefers-reduced-motion: reduce) {
   .stagger-in > *,
@@ -386,10 +418,31 @@
   .result-card--revealing .score-tile,
   .result-card--revealing .result-name,
   .result-card--revealing .result-nav,
-  .result-card--revealing .result-rec-wrap {
+  .result-card--revealing .result-rec-wrap,
+  .cta-btn--ready,
+  .cta-btn--alive {
     animation-duration: 100ms !important;
     animation-timing-function: linear !important;
     opacity: 1;
+    transform: none;
+  }
+
+  .cta-btn--alive:not(:hover):not(:active):not(:disabled) {
+    animation: none !important;
+  }
+
+  .craving-voice-btn--recording::before,
+  .craving-voice-btn--recording::after {
+    animation: none !important;
+  }
+
+  .back-btn {
+    transform: none;
+    transition: opacity var(--dur-normal) var(--ease-out),
+                background var(--dur-fast) var(--ease-out);
+  }
+
+  .back-btn--visible {
     transform: none;
   }
 
