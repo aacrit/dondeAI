@@ -404,8 +404,8 @@ function wireEvents() {
         break;
       }
 
-      case 'show-score-info': {
-        showToast('DondeAI Score blends cuisine quality, vibe match, and hundreds of local reviews into a single 0\u201310 rating.');
+      case 'show-match-info': {
+        showToast('DondeAI Match\u2122 shows how likely you are to love this spot \u2014 based on cuisine quality, vibe fit, and hundreds of local reviews.');
         break;
       }
 
@@ -419,7 +419,7 @@ function wireEvents() {
     }
   });
 
-  // Expandable tile click delegation (DondeAI Score + Vibe Radar)
+  // Expandable tile click delegation (DondeAI Match + Vibe Radar)
   document.addEventListener('click', (e) => {
     // Skip if click was on the info button (handled by data-action delegation)
     if (e.target.closest('[data-action]')) return;
@@ -990,7 +990,7 @@ function renderResult(data) {
     }
   }
 
-  // ---- Score Tile (DondeAI Score) ----
+  // ---- Match Tile (DondeAI Match) ----
   const tier = getScoreTier(data.donde_score);
   const $verdict = document.getElementById('score-verdict');
   const $scoreTileDonde = document.getElementById('score-tile-donde');
@@ -1003,7 +1003,7 @@ function renderResult(data) {
     $scoreTileDonde.classList.add('score-tile--expandable');
     $scoreTileDonde.setAttribute('tabindex', '0');
     $scoreTileDonde.setAttribute('role', 'button');
-    $scoreTileDonde.setAttribute('aria-label', 'Expand DondeAI Score');
+    $scoreTileDonde.setAttribute('aria-label', 'Expand DondeAI Match');
   }
   // Delay score ring to after tile entrance
   animationTimers.push(setTimeout(() => animateScoreRing(data.donde_score), 800));
@@ -1280,12 +1280,12 @@ function openTileExpand(tileEl) {
 
   if (tileEl.id === 'score-tile-donde') {
     const tier = getScoreTier(data.donde_score);
-    const n = Math.round(parseFloat(data.donde_score) || 8);
+    const pct = Math.round(parseFloat(data.donde_score) || 80);
     const circumference = 2 * Math.PI * 45;
-    const offset = circumference - (n / 10) * circumference;
+    const offset = circumference - (pct / 100) * circumference;
     const strokeColor = 'var(--ac)';
     $content.innerHTML = `
-      <div class="score-tile__brand" aria-label="DondeAI Score">
+      <div class="score-tile__brand" aria-label="DondeAI Match">
         <svg class="score-tile__logo-mark" viewBox="0 0 32 44" width="20" height="28" aria-hidden="true">
           <path d="M10.5 1C10.5 1 10 8.5 12.5 11.5Q14 13 14.5 13.5"
                 fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
@@ -1301,7 +1301,7 @@ function openTileExpand(tileEl) {
             class="score-tile__wordmark-a">A</span><span
             class="score-tile__wordmark-i">I</span>
         </span>
-        <span class="score-tile__score-label type-data--sm">Score<sup>™</sup></span>
+        <span class="score-tile__score-label type-data--sm">Match<sup>™</sup></span>
       </div>
       <div class="score-ring-wrap">
         <svg class="score-ring" viewBox="0 0 100 100">
@@ -1310,7 +1310,7 @@ function openTileExpand(tileEl) {
             style="stroke: ${strokeColor}; stroke-dasharray: ${circumference}; stroke-dashoffset: ${offset}"></circle>
         </svg>
         <div class="score-ring__number">
-          <span class="type-data--lg" style="font-size: var(--text-2xl);">${n}</span>
+          <span class="type-data--lg" style="font-size: var(--text-xl);">${pct}%</span>
         </div>
       </div>
       <span class="score-verdict type-structural--bold ${tier.cssClass}" style="font-size: var(--text-lg);">${tier.verdict}</span>`;
@@ -1318,7 +1318,7 @@ function openTileExpand(tileEl) {
 
   $modal.classList.add('tile-expand--open');
   $modal.querySelector('.tile-expand__close')?.focus();
-  announce('Score details expanded');
+  announce('Match details expanded');
 }
 
 function closeTileExpand() {
@@ -1487,7 +1487,7 @@ function renderShareCanvas(format = 'post') {
   ctx.fillRect(0, 0, w, h);
 
   const r = result.restaurant;
-  const score = Math.round(parseFloat(result.donde_score) || 8);
+  const score = Math.round(parseFloat(result.donde_score) || 80);
   const pad = 40;
   let y = isStory ? 120 : 80;
 
@@ -1538,15 +1538,15 @@ function renderShareCanvas(format = 'post') {
   ctx.globalAlpha = 1;
 
   ctx.fillStyle = fg;
-  ctx.font = `700 28px "JetBrains Mono", monospace`;
+  ctx.font = `700 22px "JetBrains Mono", monospace`;
   ctx.textAlign = 'center';
-  ctx.fillText(String(score), scoreX, scoreY + 10);
+  ctx.fillText(score + '%', scoreX, scoreY + 10);
 
-  // Score label
+  // Match label
   ctx.textAlign = 'left';
   ctx.font = `600 14px "Inter", sans-serif`;
   ctx.fillStyle = fg2;
-  ctx.fillText('DondeAI Score', scoreX + 44, scoreY + 4);
+  ctx.fillText('DondeAI Match', scoreX + 44, scoreY + 4);
 
   y += 80;
 

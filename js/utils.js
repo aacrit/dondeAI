@@ -173,29 +173,33 @@ const QUICK_PICKS = {
   ],
 };
 
-/* ---- Score System (Integer-only, word labels) ---- */
-const SCORE_WORDS = {
-  10: 'Outstanding', 9: 'Outstanding', 8: 'Excellent',
-  7: 'Solid Pick', 6: 'Solid Pick', 5: 'Worth a Try',
-  4: 'Worth a Try', 3: 'Adventurous', 2: 'Adventurous',
-  1: 'Adventurous', 0: 'Adventurous',
+/* ---- Match System (Percentage-based, 0-100) ---- */
+const MATCH_WORDS = {
+  90: 'Perfect For You',
+  80: 'Excellent Match',
+  70: 'Great Match',
+  60: 'Good Match',
+  50: 'Worth a Try',
+  0:  'Adventurous',
 };
+const MATCH_THRESHOLDS = [90, 80, 70, 60, 50, 0];
 
 export function getScoreTier(score) {
-  const n = Math.round(parseFloat(score) || 8); // default 8 if missing/NaN
-  const clamped = Math.max(0, Math.min(10, n));
-  const verdict = SCORE_WORDS[clamped];
+  const pct = Math.round(parseFloat(score) || 80);
+  const clamped = Math.max(0, Math.min(100, pct));
+  const matched = MATCH_THRESHOLDS.find(t => clamped >= t);
+  const verdict = MATCH_WORDS[matched];
   let tier, cssClass;
-  if (clamped >= 8) { tier = 'high'; cssClass = 'score-verdict--high'; }
-  else if (clamped >= 4) { tier = 'mid'; cssClass = 'score-verdict--mid'; }
+  if (clamped >= 80) { tier = 'high'; cssClass = 'score-verdict--high'; }
+  else if (clamped >= 60) { tier = 'mid'; cssClass = 'score-verdict--mid'; }
   else { tier = 'low'; cssClass = 'score-verdict--low'; }
   return { tier, verdict, cssClass, integer: clamped };
 }
 
 export function getScoreColor(score) {
-  const n = Math.round(parseFloat(score) || 8);
-  if (n >= 8) return 'var(--green)';
-  if (n >= 5) return 'var(--ac)';
+  const pct = Math.round(parseFloat(score) || 80);
+  if (pct >= 80) return 'var(--green)';
+  if (pct >= 60) return 'var(--ac)';
   return 'var(--rose)';
 }
 

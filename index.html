@@ -281,11 +281,11 @@
                 </div>
               </div>
 
-              <!-- Block 3: Scores — DondeAI Score hero + Vibe Profile -->
+              <!-- Block 3: Scores — DondeAI Match hero + Vibe Profile -->
               <div class="score-section" id="score-section">
-                <!-- Hero: DondeAI Score Ring -->
-                <div class="score-tile score-tile--donde" id="score-tile-donde" role="group" aria-label="DondeAI Score">
-                  <div class="score-tile__brand" aria-label="DondeAI Score">
+                <!-- Hero: DondeAI Match Ring -->
+                <div class="score-tile score-tile--donde" id="score-tile-donde" role="group" aria-label="DondeAI Match">
+                  <div class="score-tile__brand" aria-label="DondeAI Match">
                     <svg class="score-tile__logo-mark" viewBox="0 0 32 44" width="16" height="22" aria-hidden="true">
                       <path d="M10.5 1C10.5 1 10 8.5 12.5 11.5Q14 13 14.5 13.5"
                             fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
@@ -301,9 +301,9 @@
                         class="score-tile__wordmark-a">A</span><span
                         class="score-tile__wordmark-i">I</span>
                     </span>
-                    <span class="score-tile__score-label type-data--sm">Score<sup>™</sup></span>
+                    <span class="score-tile__score-label type-data--sm">Match<sup>™</sup></span>
                   </div>
-                  <button class="score-tile__info" data-action="show-score-info" aria-label="How is this score calculated?" title="How is this score calculated?">
+                  <button class="score-tile__info" data-action="show-match-info" aria-label="How is this match calculated?" title="How is this match calculated?">
                     <svg viewBox="0 0 256 256" width="16" height="16" aria-hidden="true">
                       <path fill="currentColor" d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm16-40a8,8,0,0,1-8,8,16,16,0,0,1-16-16V128a8,8,0,0,1,0-16,16,16,0,0,1,16,16v40A8,8,0,0,1,144,176ZM112,84a12,12,0,1,1,12,12A12,12,0,0,1,112,84Z"/>
                     </svg>
@@ -314,7 +314,7 @@
                       <circle class="score-ring__fill" id="score-ring-fill" cx="50" cy="50" r="45"></circle>
                     </svg>
                     <div class="score-ring__number">
-                      <span class="type-data--lg" id="score-number">0</span>
+                      <span class="type-data--lg" id="score-number">0%</span>
                     </div>
                   </div>
                   <span class="score-verdict type-structural--bold" id="score-verdict"></span>
@@ -562,8 +562,8 @@
       </div>
     </div>
 
-    <!-- Tile Expand Modal (DondeAI Score / Vibe Radar) -->
-    <div class="tile-expand" id="tile-expand" role="dialog" aria-label="Expanded score view" aria-modal="true">
+    <!-- Tile Expand Modal (DondeAI Match / Vibe Radar) -->
+    <div class="tile-expand" id="tile-expand" role="dialog" aria-label="Expanded match view" aria-modal="true">
       <div class="tile-expand__backdrop" data-action="close-tile-expand"></div>
       <div class="tile-expand__panel" id="tile-expand-panel">
         <button class="tile-expand__close" data-action="close-tile-expand" aria-label="Close expanded view">

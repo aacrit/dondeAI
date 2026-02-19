@@ -6,22 +6,22 @@
 
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)');
 
-/* ---- Score Ring Animation (Integer-only) ---- */
+/* ---- Match Ring Animation (Percentage-based, 0-100) ---- */
 export function animateScoreRing(rawScore) {
-  const n = Math.round(parseFloat(rawScore) || 8); // default 8
+  const pct = Math.round(parseFloat(rawScore) || 80);
   const fill = document.getElementById('score-ring-fill');
   const numEl = document.getElementById('score-number');
   const verdictEl = document.getElementById('score-verdict');
   if (!fill || !numEl) return;
 
   const circumference = 2 * Math.PI * 45; // r=45
-  const target = circumference - (n / 10) * circumference;
+  const target = circumference - (pct / 100) * circumference;
 
   fill.style.stroke = 'var(--ac)';
 
   if (REDUCED.matches) {
     fill.style.strokeDashoffset = target;
-    numEl.textContent = n;
+    numEl.textContent = pct + '%';
     return;
   }
 
@@ -34,16 +34,16 @@ export function animateScoreRing(rawScore) {
     fill.style.strokeDashoffset = target;
   });
 
-  // Count-up to integer
+  // Count-up to percentage
   const duration = 1200;
   const start = performance.now();
   function tick(now) {
     const elapsed = now - start;
     const progress = Math.min(elapsed / duration, 1);
     const eased = 1 - Math.pow(1 - progress, 3);
-    numEl.textContent = Math.round(n * eased);
+    numEl.textContent = Math.round(pct * eased) + '%';
     if (progress < 1) requestAnimationFrame(tick);
-    else numEl.textContent = n; // ensure final integer
+    else numEl.textContent = pct + '%';
   }
   requestAnimationFrame(tick);
 
@@ -70,8 +70,8 @@ export function animateScoreRing(rawScore) {
     }
   }
 
-  // Celebration glow for exceptional scores (9+)
-  if (!REDUCED.matches && n >= 9) {
+  // Celebration glow for exceptional matches (90%+)
+  if (!REDUCED.matches && pct >= 90) {
     setTimeout(() => {
       const tile = document.getElementById('score-tile-donde');
       if (tile) {

@@ -702,6 +702,11 @@
   justify-content: center;
 }
 
+/* Percentage text fits inside 80px inline ring */
+.score-tile .score-ring__number .type-data--lg {
+  font-size: var(--text-lg);
+}
+
 .score-verdict {
   font-size: var(--text-sm);
   font-weight: 700;
