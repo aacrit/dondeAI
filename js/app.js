@@ -994,7 +994,6 @@ function renderResult(data) {
   const tier = getScoreTier(data.donde_score);
   const $verdict = document.getElementById('score-verdict');
   const $scoreTileDonde = document.getElementById('score-tile-donde');
-  const $percentile = document.getElementById('score-percentile');
   if ($verdict) {
     $verdict.textContent = tier.verdict;
     $verdict.className = `score-verdict type-structural--bold ${tier.cssClass}`;
@@ -1006,7 +1005,6 @@ function renderResult(data) {
     $scoreTileDonde.setAttribute('role', 'button');
     $scoreTileDonde.setAttribute('aria-label', 'Expand DondeAI Score');
   }
-  if ($percentile) $percentile.textContent = `Top ${Math.round((tier.integer / 10) * 100)}%`;
   // Delay score ring to after tile entrance
   animationTimers.push(setTimeout(() => animateScoreRing(data.donde_score), 800));
 
@@ -1315,8 +1313,7 @@ function openTileExpand(tileEl) {
           <span class="type-data--lg" style="font-size: var(--text-2xl);">${n}</span>
         </div>
       </div>
-      <span class="score-verdict type-structural--bold ${tier.cssClass}" style="font-size: var(--text-lg);">${tier.verdict}</span>
-      <span class="score-percentile type-data--sm">Top ${Math.round((tier.integer / 10) * 100)}%</span>`;
+      <span class="score-verdict type-structural--bold ${tier.cssClass}" style="font-size: var(--text-lg);">${tier.verdict}</span>`;
   }
 
   $modal.classList.add('tile-expand--open');

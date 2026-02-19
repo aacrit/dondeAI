@@ -175,10 +175,10 @@ const QUICK_PICKS = {
 
 /* ---- Score System (Integer-only, word labels) ---- */
 const SCORE_WORDS = {
-  10: 'Legendary', 9: 'Outstanding', 8: 'Excellent',
-  7: 'Great', 6: 'Solid', 5: 'Decent',
-  4: 'Fair', 3: 'Meh', 2: 'Rough',
-  1: 'Yikes', 0: 'Run',
+  10: 'Outstanding', 9: 'Outstanding', 8: 'Excellent',
+  7: 'Solid Pick', 6: 'Solid Pick', 5: 'Worth a Try',
+  4: 'Worth a Try', 3: 'Adventurous', 2: 'Adventurous',
+  1: 'Adventurous', 0: 'Adventurous',
 };
 
 export function getScoreTier(score) {
@@ -187,7 +187,7 @@ export function getScoreTier(score) {
   const verdict = SCORE_WORDS[clamped];
   let tier, cssClass;
   if (clamped >= 8) { tier = 'high'; cssClass = 'score-verdict--high'; }
-  else if (clamped >= 5) { tier = 'mid'; cssClass = 'score-verdict--mid'; }
+  else if (clamped >= 4) { tier = 'mid'; cssClass = 'score-verdict--mid'; }
   else { tier = 'low'; cssClass = 'score-verdict--low'; }
   return { tier, verdict, cssClass, integer: clamped };
 }

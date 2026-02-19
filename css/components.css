@@ -708,11 +708,6 @@
   color: var(--ac);
 }
 
-.score-percentile {
-  font-size: var(--text-xs);
-  color: var(--fg3);
-  letter-spacing: -0.03em;
-}
 
 /* ---- Google Rating Inline ---- */
 .google-rating-inline {
@@ -1615,9 +1610,6 @@
   font-size: var(--text-lg);
 }
 
-.tile-expand__content .score-percentile {
-  font-size: var(--text-sm);
-}
 
 /* ---- Expandable Tile Affordance ---- */
 .score-tile--expandable {
