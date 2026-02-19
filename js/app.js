@@ -293,17 +293,17 @@ function wireEvents() {
       }
 
       case 'submit':
-        setState({ excludeNames: [] });
+        setState({ excludeIds: [] });
         handleSubmit();
         break;
 
       case 'try-again': {
-        // Track current restaurant so backend can exclude it
-        const prev = getState().result?.restaurant?.name;
-        if (prev) {
-          const exclude = [...getState().excludeNames];
-          if (!exclude.includes(prev)) exclude.push(prev);
-          setState({ excludeNames: exclude });
+        // Track current restaurant ID so backend can exclude it
+        const prevId = getState().result?.restaurant?.id;
+        if (prevId) {
+          const exclude = [...getState().excludeIds];
+          if (!exclude.includes(prevId)) exclude.push(prevId);
+          setState({ excludeIds: exclude });
         }
         handleSubmit();
         break;
@@ -733,7 +733,7 @@ async function handleSubmit() {
       neighborhood: s.neighborhood,
       price_level: s.priceLevel,
     };
-    if (s.excludeNames.length) payload.exclude = s.excludeNames;
+    if (s.excludeIds.length) payload.exclude = s.excludeIds;
     const data = await fetchRecommendation(payload);
 
     // Save to history with cuisine icon
