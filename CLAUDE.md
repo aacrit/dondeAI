@@ -32,12 +32,14 @@ dondeAI/
 │   ├── reset.css               # Minimal reset (box-sizing, margin, safe-area)
 │   ├── tokens.css              # All CSS custom properties (colors, spacing, type, motion)
 │   ├── themes/
-│   │   ├── neutral.css         # Default theme (light + dark variables)
-│   │   ├── indian.css          # Indian/Middle Eastern cultural theme
-│   │   ├── nepalese.css        # Nepalese/Tibetan cultural theme
-│   │   ├── japanese.css        # Japanese/Korean cultural theme
-│   │   ├── african.css         # African/Black American cultural theme
-│   │   └── southamerican.css   # South American/Puerto Rican cultural theme
+│   │   ├── neutral.css         # Studio — default theme (light + dark variables)
+│   │   ├── indian.css          # Desi — South Asian cultural theme
+│   │   ├── middleeastern.css   # Bazaar — Middle Eastern/Mediterranean cultural theme
+│   │   ├── nepalese.css        # Himalayan — Nepalese/Tibetan cultural theme
+│   │   ├── japanese.css        # Zen — Japanese cultural theme
+│   │   ├── eastasian.css       # Silk — East/Southeast Asian cultural theme
+│   │   ├── african.css         # Kente — African/Black American cultural theme
+│   │   └── southamerican.css   # Sabor — South American/Latin cultural theme
 │   ├── layout.css              # Viewport canvas, 2-view slide mechanics
 │   ├── typography.css          # Three-voice type system (emotional, structural, data)
 │   ├── components.css          # All component styles (chips, cards, buttons, inputs)
@@ -221,18 +223,20 @@ Accent color (`--ac`) is scarce and intentional. This creates visual hierarchy t
 
 ---
 
-## Theme System (6 Cultures x 2 Modes = 12 Variants)
+## Theme System (8 Cultures x 2 Modes = 16 Variants)
 
 ### Cultures (display names used in UI):
 
-| ID | Display Name | Personality |
-|---|---|---|
-| `neutral` | Studio | Clean, minimal, universally accessible default |
-| `indian` | Desi | Warm golds, marigold, ornate patterns — "from the homeland" |
-| `nepalese` | Himalayan | Prayer flag colors, mountain earth tones — spiritual heights |
-| `japanese` | Zen | Ink wash, cherry blossom accents, wabi-sabi restraint — minimalist philosophy |
-| `african` | Kente | Bold geometry, warm earth + bold accent, Afrofuturist energy |
-| `southamerican` | Sabor | Tropical vivid palette, fiesta energy — "flavor runs through everything" |
+| ID | Display Name | Accent Hue | Personality |
+|---|---|---|---|
+| `neutral` | Studio | achromatic | Clean, minimal, universally accessible default |
+| `indian` | Desi | 28° marigold | Deep saffron warmth, ornate patterns — "from the homeland" |
+| `middleeastern` | Bazaar | 48° spice gold | Hammered brass, arabesque — "where every meal is a gathering" |
+| `nepalese` | Himalayan | 178° turquoise | Sacred stone, prayer flags, mountain earth — spiritual heights |
+| `japanese` | Zen | 220° indigo | Ink wash, aizome, wabi-sabi restraint — minimalist philosophy |
+| `eastasian` | Silk | 285° plum | Imperial lacquer, orchid — "ten thousand flavors, one table" |
+| `african` | Kente | 155° emerald | Bold geometry, Pan-African green, Afrofuturist energy |
+| `southamerican` | Sabor | 350° chili red | Tropical vivid palette, fiesta energy — "flavor runs through everything" |
 
 ### Theme label keys (override per culture in `THEME_LABELS`):
 
