@@ -95,8 +95,7 @@ export function toggleSound() {
 }
 
 function updateSoundIcon(enabled) {
-  const wave = document.querySelector('.sound-wave');
-  if (wave) {
-    wave.style.opacity = enabled ? '1' : '0.3';
-  }
+  document.documentElement.setAttribute('data-sound', enabled ? 'on' : 'off');
+  const btn = document.querySelector('[data-action="toggle-sound"]');
+  if (btn) btn.setAttribute('aria-label', enabled ? 'Mute sound' : 'Unmute sound');
 }

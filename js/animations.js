@@ -30,7 +30,7 @@ export function animateScoreRing(rawScore) {
   fill.style.strokeDashoffset = circumference;
 
   requestAnimationFrame(() => {
-    fill.style.transition = `stroke-dashoffset 1200ms cubic-bezier(0.2, 1, 0.4, 1)`;
+    fill.style.transition = `stroke-dashoffset 1200ms cubic-bezier(0.34, 1.56, 0.64, 1)`;
     fill.style.strokeDashoffset = target;
   });
 

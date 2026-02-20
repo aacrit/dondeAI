@@ -672,15 +672,31 @@ export function getLabels(culture) {
   return THEME_LABELS[culture] || THEME_LABELS.neutral;
 }
 
+/** Best-effort culture hint from timezone (no geolocation permission needed). */
+function detectCultureFromTimezone() {
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+    if (/Tokyo|Osaka/i.test(tz)) return 'japanese';
+    if (/Kolkata|Mumbai|Chennai|Delhi/i.test(tz)) return 'indian';
+    if (/Kathmandu/i.test(tz)) return 'nepalese';
+    if (/Shanghai|Beijing|Hong_Kong|Taipei|Seoul|Bangkok|Ho_Chi_Minh|Singapore/i.test(tz)) return 'eastasian';
+    if (/Istanbul|Dubai|Riyadh|Tehran|Baghdad|Beirut|Jerusalem/i.test(tz)) return 'middleeastern';
+    if (/Lagos|Nairobi|Cairo|Johannesburg|Accra|Addis_Ababa/i.test(tz)) return 'african';
+    if (/Mexico_City|Bogota|Lima|Buenos_Aires|Sao_Paulo|Santiago/i.test(tz)) return 'southamerican';
+  } catch { /* Intl not available */ }
+  return null;
+}
+
 export function initTheme() {
   const { theme } = getState();
   let culture = theme.culture;
   let mode = theme.mode;
 
-  // If no persisted theme, respect system dark mode preference
+  // If no persisted theme, attempt timezone-based culture hint + system dark mode
   const darkQuery = matchMedia('(prefers-color-scheme: dark)');
   if (!localStorage.getItem('dondeai-theme')) {
     mode = darkQuery.matches ? 'dark' : 'light';
+    culture = detectCultureFromTimezone() || culture;
     setState({ theme: { culture, mode } });
   }
 
@@ -713,6 +729,43 @@ export function setThemeInstant(culture, mode) {
   skipWash = true;
   setState({ theme: { culture, mode } });
   skipWash = false;
+}
+
+/* ---- Auto-Theme (visual-only, no labels, no persist) ---- */
+let autoThemeCulture = null;
+let userManualOverride = false;
+
+/** Visual-only theme swap — changes CSS palette without touching labels or persisting.
+ *  Used during typing to preview cultural themes without jarring label changes. */
+export function setThemeVisualOnly(culture) {
+  if (userManualOverride) return;
+  if (culture === autoThemeCulture) return;
+  autoThemeCulture = culture;
+  const root = document.documentElement;
+  root.setAttribute('data-theme', culture);
+}
+
+/** Revert auto-theme back to the user's persisted theme. */
+export function revertAutoTheme() {
+  if (!autoThemeCulture) return;
+  autoThemeCulture = null;
+  const { theme } = getState();
+  const root = document.documentElement;
+  root.setAttribute('data-theme', theme.culture);
+}
+
+/** Mark that the user has manually chosen a theme (disables auto-theme on typing). */
+export function setManualOverride(enabled) {
+  userManualOverride = enabled;
+  if (enabled) autoThemeCulture = null;
+}
+
+export function isAutoThemeActive() {
+  return autoThemeCulture !== null;
+}
+
+export function getAutoThemeCulture() {
+  return autoThemeCulture;
 }
 
 let isFirstApply = true;

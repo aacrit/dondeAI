@@ -48,6 +48,35 @@ function handleKeyboard(e) {
     target.click();
   }
 
+  // Global keyboard shortcuts (only when no text input is focused)
+  const isTyping = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+  if (!isTyping && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    if (e.key === '/') {
+      e.preventDefault();
+      const $input = document.getElementById('craving-input');
+      if ($input) $input.focus();
+      return;
+    }
+    if (e.key === 't' || e.key === 'T') {
+      const compassBtn = document.querySelector('[data-action="cycle-theme"]');
+      if (compassBtn) { compassBtn.click(); return; }
+    }
+    if (e.key === 'f' || e.key === 'F') {
+      const step = document.querySelector('.step[data-step="0"]:not([aria-hidden="true"])');
+      if (step) {
+        const filterBtn = document.querySelector('[data-action="toggle-filters"]');
+        if (filterBtn) { filterBtn.click(); return; }
+      }
+    }
+    if (e.key === 'r' || e.key === 'R') {
+      const step1 = document.querySelector('.step[data-step="1"]:not([aria-hidden="true"])');
+      if (step1) {
+        const tryAgain = document.querySelector('[data-action="try-again"]');
+        if (tryAgain) { tryAgain.click(); return; }
+      }
+    }
+  }
+
   // Escape closes modals (check innermost first)
   if (e.key === 'Escape') {
     const tileExpand = document.getElementById('tile-expand');

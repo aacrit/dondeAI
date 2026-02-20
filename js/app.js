@@ -6,7 +6,7 @@
 import { getState, setState, subscribe, resetState } from './state.js';
 import { initRouter, goToStep, goToStepInstant } from './router.js';
 import { loadTheme, loadSound, loadHistory, addToHistory, saveTheme } from './persistence.js';
-import { initTheme, setTheme, setThemeInstant, getLabels, CULTURES, CULTURE_DISPLAY_NAMES } from './theme.js';
+import { initTheme, setTheme, setThemeInstant, setThemeVisualOnly, revertAutoTheme, setManualOverride, getLabels, CULTURES, CULTURE_DISPLAY_NAMES } from './theme.js';
 import { initAudio, toggleSound, playChime } from './audio.js';
 import { initVoice, startVoice } from './voice.js';
 import { initShare, shareResult, closeShareSheet, handleShareChannel } from './share.js';
@@ -16,7 +16,7 @@ import { fetchRecommendation } from './api.js';
 import { animateScoreRing, renderPetalRadar, renderSentimentBar, animateBadge, startParticles, stopParticles, chaosToOrderReveal, initLogoAnimation, startSearchPulse, stopSearchPulse, resolveLogoToFound, cleanupLoadingLogo } from './animations.js';
 import {
   getGreeting, getTimePeriod, getCuisineFromResult, svgIcon,
-  getScoreTier, getScoreColor, buildGoogleStars, buildMapsUrl, relativeTime, matchCuisine
+  getScoreTier, getScoreColor, buildGoogleStars, buildMapsUrl, relativeTime, matchCuisine, matchCulture
 } from './utils.js';
 
 /* ---- Cached DOM Elements ---- */
@@ -379,6 +379,7 @@ const CHIP_REACTIONS = {
 };
 
 let chipDebounce = null;
+let autoThemeDebounce = null;
 
 function updateChipsForInput(query) {
   if (!query || query.length < 2) {
@@ -513,6 +514,9 @@ function wireEvents() {
         updateFilterSummary();
         // Collapse filter drawer
         collapseFilters();
+        // Revert auto-theme and re-enable auto-detection
+        revertAutoTheme();
+        setManualOverride(false);
         break;
 
       case 'back':
@@ -523,6 +527,8 @@ function wireEvents() {
         }
         goToStep(getState().step - 1);
         syncFilterPillsToState();
+        // Revert any result-page auto-theme back to persisted
+        revertAutoTheme();
         break;
 
       case 'voice':
@@ -614,6 +620,7 @@ function wireEvents() {
 
       case 'select-theme': {
         const culture = btn.dataset.theme;
+        setManualOverride(true);
         setThemeInstant(culture, getState().theme.mode);
         if (typeof compassSnapToCulture === 'function') compassSnapToCulture(culture);
         // Auto-close compass after snap animation settles
@@ -968,6 +975,22 @@ function wireCravingInput() {
       updateChipsForInput($cravingInput.value.trim());
     }, 300);
 
+    // Debounced auto-theme detection (visual palette only)
+    clearTimeout(autoThemeDebounce);
+    autoThemeDebounce = setTimeout(() => {
+      const val = $cravingInput.value.trim();
+      if (!val) {
+        revertAutoTheme();
+        return;
+      }
+      const detected = matchCulture(val);
+      if (detected) {
+        setThemeVisualOnly(detected);
+      } else {
+        revertAutoTheme();
+      }
+    }, 300);
+
     // Scored autocomplete (1-char trigger)
     const query = $cravingInput.value.trim();
     if (query.length < 1) {
@@ -1165,6 +1188,11 @@ function updateFilterSummary() {
   if ($summary) {
     $summary.textContent = parts.length ? parts.join(' \u00B7 ') : '';
   }
+  // Filter count badge on toggle button
+  const $toggle = document.querySelector('[data-action="toggle-filters"]');
+  if ($toggle) {
+    $toggle.setAttribute('data-filter-count', parts.length || '');
+  }
 }
 
 /* ---- Submit ---- */
@@ -1190,7 +1218,10 @@ async function handleSubmit() {
   }
 
   if (!isOnline()) {
-    showToast("You're offline \u2014 can't reach the engine.", true);
+    showToast("You're offline \u2014 can't reach the engine.", true, {
+      label: 'Try Again',
+      callback: () => handleSubmit(),
+    });
     return;
   }
 
@@ -1246,8 +1277,12 @@ async function handleSubmit() {
     if (err.name === 'AbortError') return; // user navigated away
     // Error: clean up loading state and return to input
     toggleLoading(false);
-    setState({ loading: false, error: err.message });
+    setState({ loading: false });
     goToStep(0);
+    showToast(err.message || "Something went wrong.", true, {
+      label: 'Retry',
+      callback: () => handleSubmit(),
+    });
   } finally {
     // Reset CTA state
     if ($cta) {
@@ -1413,6 +1448,36 @@ async function orchestrateReveal(data) {
     $resultCard.style.transition = '';
     $resultCard.style.transform = '';
   }
+
+  // Schedule edge-hint replays (remind user they can swipe back)
+  scheduleEdgeHintReplay();
+}
+
+/* ---- Edge Hint Replay ---- */
+let edgeHintTimers = [];
+function scheduleEdgeHintReplay() {
+  clearEdgeHintTimers();
+  const $step1 = document.querySelector('.step[data-step="1"]');
+  if (!$step1) return;
+  let replays = 0;
+  const replay = () => {
+    if (replays >= 2 || getState().step !== 1) return;
+    replays++;
+    $step1.classList.add('edge-hint-replay');
+    requestAnimationFrame(() => {
+      $step1.classList.remove('edge-hint-replay');
+      $step1.classList.add('edge-hint-replay-run');
+      $step1.addEventListener('animationend', () => {
+        $step1.classList.remove('edge-hint-replay-run');
+      }, { once: true });
+    });
+  };
+  edgeHintTimers.push(setTimeout(replay, 8000));
+  edgeHintTimers.push(setTimeout(replay, 16000));
+}
+function clearEdgeHintTimers() {
+  edgeHintTimers.forEach(clearTimeout);
+  edgeHintTimers = [];
 }
 
 /* ---- Result Rendering ---- */
@@ -1434,8 +1499,16 @@ function renderResult(data) {
   animationTimers.forEach(clearTimeout);
   animationTimers = [];
 
-  // Cuisine detection (for accent color + Details tile)
+  // Cuisine detection (for accent color + Details tile + auto-theme)
   const cuisine = getCuisineFromResult(data);
+
+  // Auto-theme on result: full theme swap (with labels) based on detected culture
+  if (cuisine.culture) {
+    setTheme(cuisine.culture, getState().theme.mode);
+  } else {
+    // No culture match — revert any typing auto-theme to persisted
+    revertAutoTheme();
+  }
 
   // Cuisine accent color on card border
   if ($resultCard && cuisine.hue !== null) {
@@ -1981,7 +2054,7 @@ function createResultLink(tag, icon, label, href) {
 /* ---- Toast ---- */
 let toastTimer = null;
 
-function showToast(message, isError = false) {
+function showToast(message, isError = false, action = null) {
   if (!$toast || !$toastText) return;
 
   // Clear any pending dismiss
@@ -2000,10 +2073,23 @@ function showToast(message, isError = false) {
     $dismiss.style.display = isError ? 'flex' : 'none';
   }
 
+  // Optional action button (e.g., "Retry")
+  const $action = document.getElementById('toast-action');
+  if ($action) {
+    if (action) {
+      $action.textContent = action.label;
+      $action.onclick = () => { dismissToast(); action.callback(); };
+      $action.style.display = '';
+    } else {
+      $action.style.display = 'none';
+      $action.onclick = null;
+    }
+  }
+
   $toast.classList.add('toast--visible');
 
-  // Auto-dismiss: errors stay longer
-  const duration = isError ? 6000 : 3500;
+  // Auto-dismiss: errors stay longer, actions linger even longer
+  const duration = action ? 10000 : isError ? 6000 : 3500;
   toastTimer = setTimeout(() => dismissToast(), duration);
 }
 
@@ -2198,14 +2284,14 @@ window.renderShareCanvas = renderShareCanvas;
 /* ---- Culture Compass Engine ---- */
 
 const COMPASS_CULTURES = [
-  { id: 'neutral',       name: 'Studio',    region: 'All Cuisines',       mood: 'The blank canvas',                                tagline: 'The blank page before the masterpiece',     hue: 'hsl(0 0% 22%)',    swatches: ['hsl(0 0% 22%)', 'hsl(0 0% 98%)', 'hsl(0 0% 10%)'] },
-  { id: 'indian',        name: 'Desi',      region: 'South Asian',        mood: 'Warm spices \u00b7 Rich textures \u00b7 Saffron hues',        tagline: 'Spice, soul, and the warmth of home',       hue: 'hsl(28 88% 50%)',  swatches: ['hsl(28 88% 50%)', 'hsl(350 70% 50%)', 'hsl(22 90% 48%)'] },
-  { id: 'middleeastern', name: 'Bazaar',    region: 'Middle Eastern',     mood: 'Brass warmth \u00b7 Communal spirit \u00b7 Spice gold',       tagline: 'Where every meal is a gathering',           hue: 'hsl(48 72% 46%)',  swatches: ['hsl(48 72% 46%)', 'hsl(0 60% 50%)', 'hsl(35 85% 50%)'] },
-  { id: 'nepalese',      name: 'Himalayan', region: 'Himalayan',          mood: 'Mountain calm \u00b7 Sacred stones \u00b7 Prayer flags',      tagline: 'Where prayer flags meet the sky',           hue: 'hsl(178 50% 38%)', swatches: ['hsl(178 50% 38%)', 'hsl(350 60% 50%)', 'hsl(45 70% 55%)'] },
-  { id: 'japanese',      name: 'Zen',       region: 'Japanese',           mood: 'Ink wash \u00b7 Quiet restraint \u00b7 Indigo depth',        tagline: 'Less is more, silence is loud',             hue: 'hsl(220 35% 45%)', swatches: ['hsl(220 35% 45%)', 'hsl(45 12% 97%)', 'hsl(220 18% 15%)'] },
-  { id: 'eastasian',     name: 'Silk',      region: 'East & SE Asian',    mood: 'Silk textures \u00b7 Plum tones \u00b7 Imperial grace',      tagline: 'Ten thousand flavors, one table',           hue: 'hsl(285 35% 45%)', swatches: ['hsl(285 35% 45%)', 'hsl(40 12% 96%)', 'hsl(345 60% 52%)'] },
-  { id: 'african',       name: 'Kente',     region: 'African & Diaspora', mood: 'Bold geometry \u00b7 Pan-African green \u00b7 Rhythm',       tagline: 'Bold threads woven in rhythm',              hue: 'hsl(155 65% 35%)', swatches: ['hsl(155 65% 35%)', 'hsl(40 85% 50%)', 'hsl(0 65% 45%)'] },
-  { id: 'southamerican', name: 'Sabor',     region: 'Latin American',     mood: 'Tropical warmth \u00b7 Fiesta palette \u00b7 Chili red',     tagline: 'Flavor runs through everything',            hue: 'hsl(350 80% 52%)', swatches: ['hsl(350 80% 52%)', 'hsl(170 55% 38%)', 'hsl(45 90% 55%)'] },
+  { id: 'neutral',       name: 'Studio',    region: 'Universal',          mood: 'The blank canvas',                                 tagline: 'The blank page before the masterpiece',     hue: 'hsl(0 0% 22%)',    swatches: ['hsl(0 0% 22%)', 'hsl(0 0% 98%)', 'hsl(0 0% 10%)'] },
+  { id: 'indian',        name: 'Desi',      region: 'Warm Earth',         mood: 'Ornate warmth \u00b7 Saffron tones \u00b7 Ink depth',         tagline: 'Warmth woven into every detail',            hue: 'hsl(28 88% 50%)',  swatches: ['hsl(28 88% 50%)', 'hsl(350 70% 50%)', 'hsl(22 90% 48%)'] },
+  { id: 'middleeastern', name: 'Bazaar',    region: 'Hammered Gold',      mood: 'Brass patina \u00b7 Arabesque geometry \u00b7 Gold leaf',     tagline: 'Where every gathering is golden',           hue: 'hsl(48 72% 46%)',  swatches: ['hsl(48 72% 46%)', 'hsl(0 60% 50%)', 'hsl(35 85% 50%)'] },
+  { id: 'nepalese',      name: 'Himalayan', region: 'Mountain Stone',     mood: 'Stone calm \u00b7 Prayer flags \u00b7 High altitude',         tagline: 'Where prayer flags meet the sky',           hue: 'hsl(178 50% 38%)', swatches: ['hsl(178 50% 38%)', 'hsl(350 60% 50%)', 'hsl(45 70% 55%)'] },
+  { id: 'japanese',      name: 'Zen',       region: 'Ink Wash',           mood: 'Wabi-sabi \u00b7 Indigo restraint \u00b7 Quiet depth',        tagline: 'Less is more, silence is loud',             hue: 'hsl(220 35% 45%)', swatches: ['hsl(220 35% 45%)', 'hsl(45 12% 97%)', 'hsl(220 18% 15%)'] },
+  { id: 'eastasian',     name: 'Silk',      region: 'Imperial Silk',      mood: 'Lacquer finish \u00b7 Plum tones \u00b7 Silk drape',          tagline: 'Ten thousand textures, one thread',         hue: 'hsl(285 35% 45%)', swatches: ['hsl(285 35% 45%)', 'hsl(40 12% 96%)', 'hsl(345 60% 52%)'] },
+  { id: 'african',       name: 'Kente',     region: 'Bold Weave',         mood: 'Bold geometry \u00b7 Emerald rhythm \u00b7 Woven energy',     tagline: 'Bold threads woven in rhythm',              hue: 'hsl(155 65% 35%)', swatches: ['hsl(155 65% 35%)', 'hsl(40 85% 50%)', 'hsl(0 65% 45%)'] },
+  { id: 'southamerican', name: 'Sabor',     region: 'Tropical Fire',      mood: 'Vivid warmth \u00b7 Tropical palette \u00b7 Festival energy', tagline: 'Energy runs through everything',            hue: 'hsl(350 80% 52%)', swatches: ['hsl(350 80% 52%)', 'hsl(170 55% 38%)', 'hsl(45 90% 55%)'] },
 ];
 
 const SEGMENT_ANGLE = 360 / COMPASS_CULTURES.length; // 45 degrees each

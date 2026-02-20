@@ -73,15 +73,20 @@
         <span class="logo-tagline type-data--sm" aria-hidden="true">One Pick. Zero Stress.</span>
       </button>
       <div class="header__actions">
-        <button class="header__btn" data-action="toggle-sound" aria-label="Toggle sound" title="Sound">
-          <svg viewBox="0 0 256 256" width="20" height="20">
-            <path fill="currentColor" d="M153.76,28.41a4,4,0,0,0-4.22.43L78.63,84H32A12,12,0,0,0,20,96v64a12,12,0,0,0,12,12H78.63l70.91,55.16A4.07,4.07,0,0,0,152,228a3.92,3.92,0,0,0,1.76-.41A4,4,0,0,0,156,224V32A4,4,0,0,0,153.76,28.41ZM28,160V96a4,4,0,0,1,4-4H76v72H32A4,4,0,0,1,28,160Zm120,55.82L84,166V90l64-49.78Zm47-111.61a36,36,0,0,1,0,47.59,4,4,0,1,1-6-5.3,28,28,0,0,0,0-37,4,4,0,0,1,6-5.28ZM244,128a75.88,75.88,0,0,1-19.35,50.67,4,4,0,0,1-6-5.34,68,68,0,0,0,0-90.66,4,4,0,0,1,6-5.34A75.88,75.88,0,0,1,244,128Z"/>
+        <button class="header__btn" data-action="toggle-sound" aria-label="Unmute sound" title="Sound">
+          <!-- Speaker with waves (shown when sound ON) -->
+          <svg class="sound-icon sound-icon--on" viewBox="0 0 256 256" width="20" height="20">
+            <path fill="currentColor" d="M155.51,24.81a8,8,0,0,0-8.42.88L77.25,80H32A16,16,0,0,0,16,96v64a16,16,0,0,0,16,16H77.25l69.84,54.31A8,8,0,0,0,160,224V32A8,8,0,0,0,155.51,24.81ZM144,207.64,84.91,161.69A7.94,7.94,0,0,0,80,160H32V96H80a7.94,7.94,0,0,0,4.91-1.69L144,48.36ZM192,128a24,24,0,0,0-24-24,8,8,0,0,0,0,16,8,8,0,0,1,0,16,8,8,0,0,0,0,16A24,24,0,0,0,192,128Zm40,0a64,64,0,0,0-64-64,8,8,0,0,0,0,16,48,48,0,0,1,0,96,8,8,0,0,0,0,16A64,64,0,0,0,232,128Z"/>
+          </svg>
+          <!-- Speaker muted (shown when sound OFF) -->
+          <svg class="sound-icon sound-icon--off" viewBox="0 0 256 256" width="20" height="20">
+            <path fill="currentColor" d="M155.51,24.81a8,8,0,0,0-8.42.88L77.25,80H32A16,16,0,0,0,16,96v64a16,16,0,0,0,16,16H77.25l69.84,54.31A8,8,0,0,0,160,224V32A8,8,0,0,0,155.51,24.81ZM144,207.64,84.91,161.69A7.94,7.94,0,0,0,80,160H32V96H80a7.94,7.94,0,0,0,4.91-1.69L144,48.36Z"/>
           </svg>
         </button>
-        <button class="header__btn header__btn--compass" data-action="cycle-theme" aria-label="Choose theme" title="Explore cultural themes">
+        <button class="header__btn header__btn--compass" data-action="cycle-theme" aria-label="Change theme" title="Change theme">
           <svg viewBox="0 0 256 256" width="20" height="20">
-            <!-- Phosphor ArrowsClockwise (thin) — circular spin affordance -->
-            <path fill="currentColor" d="M220,48V96a4,4,0,0,1-4,4H168a4,4,0,0,1,0-8h38.34A92,92,0,0,0,60.38,72.38,4,4,0,1,1,54.72,67,100,100,0,0,1,212,88.8V48a4,4,0,0,1,8,0ZM201.28,189A100,100,0,0,1,44,167.2V208a4,4,0,0,1-8,0V160a4,4,0,0,1,4-4H88a4,4,0,0,1,0,8H49.66a92,92,0,0,0,146,19.62A4,4,0,1,1,201.28,189Z"/>
+            <!-- Phosphor Palette — theme picker affordance -->
+            <path fill="currentColor" d="M200.77,53.23A103.94,103.94,0,0,0,24,128c0,44.18,32.06,80,72,80a40,40,0,0,0,40-40,24,24,0,0,1,24-24h40A56,56,0,0,0,200.77,53.23ZM200,136H160a40,40,0,0,0-40,40,24,24,0,0,1-24,24c-28.7,0-56-29.5-56-64a88,88,0,0,1,175.34-8H200A40,40,0,0,1,200,136ZM76,116a12,12,0,1,1,12-12A12,12,0,0,1,76,116Zm28-32a12,12,0,1,1,12-12A12,12,0,0,1,104,84Zm48,0a12,12,0,1,1,12-12A12,12,0,0,1,152,84Zm28,32a12,12,0,1,1,12-12A12,12,0,0,1,180,116Z"/>
           </svg>
         </button>
         <button class="header__btn" data-action="toggle-mode" aria-label="Toggle dark mode" title="Toggle dark mode">
@@ -501,9 +506,9 @@
         <!-- Center Hub: active culture info -->
         <div class="culture-compass__hub" id="compass-hub">
           <span class="culture-compass__hub-name type-emotional" id="compass-hub-name">Studio</span>
-          <span class="culture-compass__hub-region type-data" id="compass-hub-region">All Cuisines</span>
+          <span class="culture-compass__hub-region type-data" id="compass-hub-region">Universal</span>
           <span class="culture-compass__hub-tagline type-data" id="compass-hub-tagline">The blank page before the masterpiece</span>
-          <span class="culture-compass__hub-cuisine type-structural" id="compass-hub-cuisine">Every flavor, one canvas</span>
+          <span class="culture-compass__hub-cuisine type-structural" id="compass-hub-cuisine">The blank canvas</span>
           <div class="culture-compass__hub-swatches" id="compass-hub-swatches"></div>
         </div>
 
@@ -596,6 +601,7 @@
     <!-- Toast Notification -->
     <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true">
       <span class="toast__text type-structural" id="toast-text"></span>
+      <button class="toast__action type-structural" id="toast-action" style="display: none;"></button>
       <button class="toast__dismiss" id="toast-dismiss" aria-label="Dismiss notification" style="display: none;">
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
           <line x1="18" y1="6" x2="6" y2="18"></line>

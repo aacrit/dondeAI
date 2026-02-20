@@ -154,7 +154,7 @@
 
 .craving-input:focus {
   border-color: var(--ac);
-  box-shadow: none;
+  box-shadow: 0 4px 16px -4px color-mix(in srgb, var(--ac) 8%, transparent);
 }
 
 .craving-input:focus::placeholder {
@@ -245,6 +245,20 @@
               color var(--dur-fast) var(--ease-out),
               transform var(--dur-fast) var(--spring);
   white-space: nowrap;
+}
+
+.smart-chip::before {
+  content: '+';
+  display: inline-block;
+  margin-right: 3px;
+  opacity: 0.35;
+  font-weight: 600;
+  font-size: 0.9em;
+  transition: opacity 150ms var(--ease-out);
+}
+
+.smart-chip:hover::before {
+  opacity: 0.7;
 }
 
 .smart-chip:hover {
@@ -482,6 +496,33 @@
   flex-shrink: 0;
 }
 
+/* Filter count badge */
+.filter-drawer__toggle[data-filter-count]:not([data-filter-count=""])::before {
+  content: attr(data-filter-count);
+  position: absolute;
+  top: 2px;
+  left: 14px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--ac);
+  color: var(--bg);
+  font-family: var(--font-data);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+  pointer-events: none;
+  transform: scale(1);
+  animation: badgePop 300ms var(--spring);
+}
+
+@keyframes badgePop {
+  from { transform: scale(0); }
+  to { transform: scale(1); }
+}
+
 .filter-drawer__summary {
   margin-left: auto;
   color: var(--ac);
@@ -586,6 +627,13 @@
 [data-mode="light"] .mode-icon--moon { display: block; }
 [data-mode="dark"] .mode-icon--sun { display: block; }
 [data-mode="dark"] .mode-icon--moon { display: none; }
+
+/* ---- Header Sound Toggle Icon Visibility ---- */
+.sound-icon--on,
+.sound-icon--off { transition: opacity 200ms var(--ease-out); }
+.sound-icon--off { display: none; }
+[data-sound="off"] .sound-icon--on { display: none; }
+[data-sound="off"] .sound-icon--off { display: block; }
 
 /* ---- SVG Icon Styling in Chips ---- */
 .chip__icon svg,
@@ -2622,23 +2670,24 @@
   /* stroke-dasharray/offset set by JS via getTotalLength() */
 }
 
+/* Staggered draw-in choreography: left tine → right tine → curve → dot spring-pop */
 .logo-mark--loading .logo-mark__tine--left.logo-mark__tine--draw {
-  animation: strokeDraw 400ms cubic-bezier(0.2, 1, 0.4, 1) 0ms forwards;
+  animation: strokeDraw 350ms cubic-bezier(0.34, 1.56, 0.64, 1) 0ms forwards;
 }
 
 .logo-mark--loading .logo-mark__tine--right.logo-mark__tine--draw {
-  animation: strokeDraw 400ms cubic-bezier(0.2, 1, 0.4, 1) 200ms forwards;
+  animation: strokeDraw 350ms cubic-bezier(0.34, 1.56, 0.64, 1) 120ms forwards;
 }
 
 .logo-mark--loading .logo-mark__curve--draw {
-  animation: strokeDraw 450ms cubic-bezier(0.2, 1, 0.4, 1) 350ms forwards;
+  animation: strokeDraw 400ms cubic-bezier(0.34, 1.56, 0.64, 1) 240ms forwards;
 }
 
 .logo-mark--loading .logo-mark__dot--draw {
   opacity: 0;
   transform: scale(0);
   transform-origin: 16px 40px;
-  animation: dotSpringIn 300ms cubic-bezier(0.34, 1.56, 0.64, 1) 600ms forwards;
+  animation: dotSpringIn 300ms cubic-bezier(0.34, 1.56, 0.64, 1) 400ms forwards;
 }
 
 /* ---- Search Pulse State (Act 2 — looping during API call) ---- */

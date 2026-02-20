@@ -116,8 +116,36 @@ export function matchCuisine(text) {
   return { icon: 'plate', hue: null, label: '' };
 }
 
+/* ---- Cuisine → Culture Theme Mapping ---- */
+const CUISINE_CULTURE_MAP = [
+  { keywords: ['taco', 'burrito', 'enchilada', 'quesadilla', 'empanada', 'ceviche', 'arepa', 'churro', 'tamale', 'mole', 'salsa verde', 'guac', 'mexican', 'peruvian', 'colombian', 'argentinian', 'brazilian', 'latin'], culture: 'southamerican' },
+  { keywords: ['sushi', 'ramen', 'udon', 'soba', 'izakaya', 'tempura', 'onigiri', 'matcha', 'miso', 'sake', 'teriyaki', 'katsu', 'wagyu', 'japanese', 'omakase', 'yakitori'], culture: 'japanese' },
+  { keywords: ['curry', 'tandoori', 'biryani', 'masala', 'naan', 'tikka', 'samosa', 'chaat', 'dosa', 'paneer', 'dal', 'chapati', 'lassi', 'chai', 'indian', 'punjabi', 'south indian'], culture: 'indian' },
+  { keywords: ['dim sum', 'dumpling', 'wok', 'szechuan', 'cantonese', 'bao', 'congee', 'pho', 'pad thai', 'banh mi', 'bibimbap', 'kimchi', 'bulgogi', 'tofu', 'spring roll', 'wonton', 'taro', 'mochi', 'boba', 'chinese', 'thai', 'vietnamese', 'korean', 'taiwanese'], culture: 'eastasian' },
+  { keywords: ['shawarma', 'falafel', 'hummus', 'kebab', 'pita', 'tahini', 'baba', 'tabbouleh', 'kibbeh', 'labneh', 'manakeesh', 'fattoush', 'mediterranean', 'greek', 'turkish', 'lebanese', 'persian'], culture: 'middleeastern' },
+  { keywords: ['injera', 'jollof', 'fufu', 'suya', 'berbere', 'tagine', 'couscous', 'plantain', 'egusi', 'ethiopian', 'african', 'nigerian', 'ghanaian', 'senegalese', 'soul food'], culture: 'african' },
+  { keywords: ['momo', 'dal bhat', 'thukpa', 'sel roti', 'gundruk', 'yak', 'nepalese', 'tibetan', 'nepali'], culture: 'nepalese' },
+];
+
+/** Match input text to a cultural theme. Returns culture ID or null. */
+export function matchCulture(text) {
+  if (!text) return null;
+  const lower = text.toLowerCase();
+  for (const entry of CUISINE_CULTURE_MAP) {
+    for (const kw of entry.keywords) {
+      // Word-boundary-aware: keyword must appear at word start or be the whole word
+      const idx = lower.indexOf(kw);
+      if (idx === -1) continue;
+      const before = idx === 0 || /\s/.test(lower[idx - 1]);
+      const after = idx + kw.length >= lower.length || /[\s,.]/.test(lower[idx + kw.length]);
+      if (before && after) return entry.culture;
+    }
+  }
+  return null;
+}
+
 export function getCuisineFromResult(result) {
-  if (!result?.restaurant) return matchCuisine('');
+  if (!result?.restaurant) return { ...matchCuisine(''), culture: null };
   const searchText = [
     result.restaurant.name,
     result.restaurant.best_for_oneliner,
@@ -125,7 +153,9 @@ export function getCuisineFromResult(result) {
     result.recommendation,
     ...(result.tags || []),
   ].filter(Boolean).join(' ');
-  return matchCuisine(searchText);
+  const cuisine = matchCuisine(searchText);
+  cuisine.culture = matchCulture(searchText);
+  return cuisine;
 }
 
 /* ---- Time of Day ---- */
