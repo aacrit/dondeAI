@@ -1093,11 +1093,30 @@
   vertical-align: super;
 }
 
-/* Visualization container */
+/* Visualization container — compact shows hero-size ring, grows on bloom */
 .score-bloom__viz {
   position: relative;
-  width: min(100%, 360px);
+  width: min(70vw, 240px);
   aspect-ratio: 1;
+  transition: width 450ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Bloomed/expanded states need more room for orbs */
+[data-bloom-state="bloomed"] .score-bloom__viz,
+[data-bloom-state="petal-focused"] .score-bloom__viz,
+[data-bloom-state="deep-dive"] .score-bloom__viz {
+  width: min(100%, 360px);
+}
+
+@media (min-width: 768px) {
+  .score-bloom__viz {
+    width: min(50vw, 280px);
+  }
+  [data-bloom-state="bloomed"] .score-bloom__viz,
+  [data-bloom-state="petal-focused"] .score-bloom__viz,
+  [data-bloom-state="deep-dive"] .score-bloom__viz {
+    width: min(100%, 400px);
+  }
 }
 
 .score-bloom__svg {
@@ -1128,7 +1147,7 @@
               stroke-width 450ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* Score number overlay (centered on ring) */
+/* Score number overlay (centered on ring) — pointer-events enabled for tap */
 .score-bloom__center {
   position: absolute;
   top: 50%;
@@ -1138,11 +1157,12 @@
   flex-direction: column;
   align-items: center;
   gap: 2px;
-  pointer-events: none;
+  pointer-events: auto;
+  cursor: pointer;
 }
 
 .score-bloom__number {
-  font-size: var(--text-2xl);
+  font-size: clamp(1.75rem, 6vw, 2.5rem);
   color: var(--fg);
   line-height: 1;
   transition: font-size 450ms var(--spring);
@@ -1160,6 +1180,7 @@
   font-weight: 700;
   color: var(--ac);
   line-height: 1;
+  transition: font-size 300ms var(--ease-out);
 }
 
 .score-bloom__verdict[data-tier="mid"] {
@@ -1168,6 +1189,23 @@
 
 .score-bloom__verdict[data-tier="low"] {
   color: var(--fg3);
+}
+
+/* Hint text below ring in compact state */
+.score-bloom__hint {
+  font-family: var(--font-data);
+  font-size: var(--text-xs);
+  color: var(--fg3);
+  opacity: 0.6;
+  letter-spacing: 0.04em;
+  transition: opacity 300ms var(--ease-out);
+}
+
+[data-bloom-state="bloomed"] .score-bloom__hint,
+[data-bloom-state="petal-focused"] .score-bloom__hint,
+[data-bloom-state="deep-dive"] .score-bloom__hint {
+  opacity: 0;
+  pointer-events: none;
 }
 
 /* Petals */
@@ -1305,24 +1343,64 @@
   stroke-linecap: round;
 }
 
-/* Scoring V2 arcs (Tier 3) */
-.score-bloom__v2-arc {
-  fill: none;
-  stroke: var(--fg3);
-  stroke-opacity: 0.30;
-  stroke-width: 4;
-  stroke-linecap: round;
-  stroke-dasharray: 283;
-  stroke-dashoffset: 283;
-  transition: stroke-dashoffset 600ms cubic-bezier(0.2, 1, 0.4, 1);
+/* V2 Score Breakdown Strip (Tier 3 — center tap in bloomed state) */
+.score-bloom__v2-strip {
+  display: none;
+  flex-direction: column;
+  gap: var(--space-xs);
+  width: 100%;
+  max-width: 320px;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: opacity 300ms var(--ease-out),
+              transform 300ms var(--spring);
 }
 
-.score-bloom__v2-label {
-  font-family: var(--font-data);
-  font-size: 8px;
-  fill: var(--fg3);
-  opacity: 0;
-  transition: opacity 300ms var(--ease-out);
+.score-bloom__v2-strip--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.v2-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.v2-row__label {
+  width: 64px;
+  flex-shrink: 0;
+  color: var(--fg3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-align: right;
+}
+
+.v2-row__track {
+  flex: 1;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.v2-row__fill {
+  height: 100%;
+  background: var(--ac);
+  opacity: 0.6;
+  border-radius: 2px;
+  transition: width 600ms cubic-bezier(0.2, 1, 0.4, 1);
+}
+
+.v2-row__score {
+  width: 56px;
+  flex-shrink: 0;
+  color: var(--fg2);
+  font-weight: 600;
 }
 
 /* "Best for" callout */
@@ -1888,87 +1966,27 @@
   pointer-events: none;
 }
 
-/* ---- Crowd Profile ("Who Goes Here") ---- */
-.crowd-profile {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-  padding-top: var(--space-sm);
-  border-top: 1px solid var(--border);
-}
-
-.crowd-profile__label {
-  font-size: var(--text-xs);
-  color: var(--fg3);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.crowd-profile__pills {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-xs);
-}
-
-/* ---- Crowd Chips (icon-first, tooltip on tap) ---- */
-.crowd-chip {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  border-radius: 50%;
-  cursor: pointer;
-  padding: 0;
-  transition: transform var(--dur-fast) var(--spring),
-              background var(--dur-fast) var(--ease-out);
-}
-
-.crowd-chip:hover {
-  transform: scale(1.1);
-  background: var(--bg2);
-}
-
-.crowd-chip:active {
-  transform: scale(0.92);
-}
-
-.crowd-chip__icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--fg2);
-}
-
-.crowd-chip__icon svg {
-  width: 14px;
-  height: 14px;
-}
-
-.crowd-chip__tooltip {
-  display: none;
-  position: absolute;
-  bottom: calc(100% + 6px);
-  left: 50%;
-  transform: translateX(-50%);
-  white-space: nowrap;
-  padding: 3px var(--space-xs);
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  font-family: var(--font-data);
-  font-size: var(--text-xs);
-  color: var(--fg2);
-  box-shadow: var(--shadow-sm);
-  z-index: 10;
-  pointer-events: none;
-}
-
-.crowd-chip--active .crowd-chip__tooltip {
+/* ---- Glyph Bar: Separator & Crowd variant ---- */
+.glyph-bar__sep {
   display: block;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--fg3);
+  opacity: 0.4;
+  align-self: center;
+  margin: 0 var(--space-2xs);
+  flex-shrink: 0;
+}
+
+.glyph-bar__item--crowd {
+  border-radius: 50%;
+  border-color: var(--ac);
+  border-style: dashed;
+  opacity: 0.75;
+}
+
+.glyph-bar__item--crowd:hover {
   opacity: 1;
 }
 

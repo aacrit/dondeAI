@@ -339,16 +339,14 @@
                       <!-- Sentiment arc (outermost, thin colored ring) -->
                       <g class="score-bloom__sentiment" id="score-bloom-sentiment"></g>
 
-                      <!-- Scoring V2 arcs (Tier 3 — hidden by default) -->
-                      <g class="score-bloom__v2-arcs" id="score-bloom-v2" style="opacity: 0;"></g>
 
                       <!-- Grid guides (Tier 2 — hidden by default) -->
                       <g class="score-bloom__grid" id="score-bloom-grid" style="opacity: 0;"></g>
                       <g class="score-bloom__axes" id="score-bloom-axes" style="opacity: 0;"></g>
 
                       <!-- Match ring (center) -->
-                      <circle class="score-bloom__ring-bg" cx="200" cy="200" r="90"></circle>
-                      <circle class="score-bloom__ring-fill" id="score-bloom-ring-fill" cx="200" cy="200" r="90"></circle>
+                      <circle class="score-bloom__ring-bg" cx="200" cy="200" r="120"></circle>
+                      <circle class="score-bloom__ring-fill" id="score-bloom-ring-fill" cx="200" cy="200" r="120"></circle>
 
                       <!-- Vibe petals (6 teardrops radiating from ring) -->
                       <g class="score-bloom__petals" id="score-bloom-petals"></g>
@@ -369,6 +367,7 @@
                     <span class="score-bloom__callout-prefix type-emotional">Best for:</span>
                     <span class="score-bloom__callout-value type-data" id="score-bloom-callout-value"></span>
                   </p>
+                  <span class="score-bloom__hint type-data--sm" id="score-bloom-hint">Tap to explore vibes</span>
 
                   <!-- Petal detail strip (slides in on petal tap — Tier 2.5) -->
                   <div class="score-bloom__detail" id="score-bloom-detail" aria-live="polite" style="display: none;">
@@ -382,6 +381,9 @@
                     </div>
                     <p class="score-bloom__detail-desc type-structural" id="score-bloom-detail-desc"></p>
                   </div>
+
+                  <!-- V2 Score Breakdown strip (Tier 3 — center tap in bloomed state) -->
+                  <div class="score-bloom__v2-strip" id="score-bloom-v2-strip" aria-live="polite" style="display: none;"></div>
 
                 </div>
 
@@ -415,13 +417,8 @@
 
               <!-- Block 4: Profile (icon-first — tap to reveal details) -->
               <div class="result-profile" id="result-profile">
-                <!-- Icon-only glyph bar (primary at all sizes) -->
+                <!-- Icon-only glyph bar (primary at all sizes) — includes crowd chips -->
                 <div class="glyph-bar" id="glyph-bar" role="group" aria-label="Restaurant details"></div>
-                <!-- Crowd chips (icon-only, part of compact view) -->
-                <div class="crowd-profile" id="crowd-profile" style="display: none;">
-                  <span class="crowd-profile__label type-data--sm">The Crowd</span>
-                  <div class="crowd-profile__pills" id="crowd-profile-pills"></div>
-                </div>
                 <!-- Expand toggle -->
                 <button class="profile-expand-btn type-data--sm"
                         data-action="toggle-profile-details"

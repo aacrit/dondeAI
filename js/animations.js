@@ -280,7 +280,7 @@ export function renderScoreBloom(dondeMatch, scores, scoringV2, sentiment, timer
   const $verdict = document.getElementById('score-bloom-verdict');
 
   if ($ringFill) {
-    const circumference = 2 * Math.PI * 90; // r=90 in bloom SVG
+    const circumference = 2 * Math.PI * 120; // r=120 in bloom SVG (hero size)
     const target = circumference - (pct / 100) * circumference;
     $ringFill.style.stroke = 'var(--ac)';
     $ringFill.style.strokeDasharray = String(circumference);
@@ -331,11 +331,11 @@ export function renderScoreBloom(dondeMatch, scores, scoringV2, sentiment, timer
 
   // ---- Vibe Petals (compact mode — small teardrops around ring) ----
   const cx = 200, cy = 200;
-  const RING_R_COMPACT = 90;
+  const RING_R_COMPACT = 120;
   const RING_R_EXPANDED = 55;
   const ringR = RING_R_COMPACT;
-  const compactMaxR = 18; // compact petal max length from ring edge
-  const compactMinR = 5;
+  const compactMaxR = 22; // compact petal max length from ring edge
+  const compactMinR = 6;
   const angleStep = (2 * Math.PI) / 6;
   const startAngle = -Math.PI / 2;
 
@@ -477,6 +477,16 @@ export function renderScoreBloom(dondeMatch, scores, scoringV2, sentiment, timer
       }
     }
   }
+
+  // ---- "Tap to explore" hint ----
+  const $hint = document.getElementById('score-bloom-hint');
+  if ($hint && !REDUCED.matches) {
+    $hint.style.opacity = '0';
+    timers.push(setTimeout(() => {
+      $hint.style.transition = 'opacity 600ms ease-out';
+      $hint.style.opacity = '0.6';
+    }, 1100));
+  }
 }
 
 /* ---- Bloom Interaction Handlers ---- */
@@ -497,9 +507,13 @@ function expandBloom($bloom) {
   $bloom.setAttribute('data-bloom-state', 'bloomed');
   $bloom.setAttribute('aria-expanded', 'true');
 
+  // Fade sentiment arc (it's positioned for compact ring)
+  const $sentimentG = document.getElementById('score-bloom-sentiment');
+  if ($sentimentG) { $sentimentG.style.transition = 'opacity 300ms ease-out'; $sentimentG.style.opacity = '0'; }
+
   const scores = bloomData.scores;
   const cx = 200, cy = 200;
-  const expandedR = 55; // ring shrinks from 90 → 55
+  const expandedR = 55; // ring shrinks from 120 → 55
   const orbDistance = 135; // distance from center for vibe orbs
   const angleStep = (2 * Math.PI) / 6;
   const startAngle = -Math.PI / 2;
@@ -649,8 +663,8 @@ function collapseBloom($bloom) {
   $bloom.setAttribute('data-bloom-state', 'compact');
   $bloom.setAttribute('aria-expanded', 'false');
 
-  // ---- Restore ring to full compact size ----
-  const compactR = 90;
+  // ---- Restore ring to full compact size (hero) ----
+  const compactR = 120;
   const $ringBg = document.querySelector('.score-bloom__ring-bg');
   const $ringFill = document.getElementById('score-bloom-ring-fill');
   if ($ringBg) { $ringBg.setAttribute('r', String(compactR)); $ringBg.style.strokeWidth = '5'; }
@@ -678,15 +692,19 @@ function collapseBloom($bloom) {
   if ($axes) { $axes.style.opacity = '0'; $axes.innerHTML = ''; }
   if ($labels) { $labels.style.opacity = '0'; $labels.innerHTML = ''; }
 
-  // Hide detail strip and V2 arcs
+  // Restore sentiment arc
+  const $sentimentG = document.getElementById('score-bloom-sentiment');
+  if ($sentimentG) { $sentimentG.style.transition = 'opacity 400ms ease-out'; $sentimentG.style.opacity = '1'; }
+
+  // Hide detail strip and V2 strip
   hideBloomDetail();
   hideV2Arcs();
 }
 
 function renderCompactPetals(scores, timers) {
   const cx = 200, cy = 200;
-  const ringR = 90;
-  const compactMaxR = 18;
+  const ringR = 120;
+  const compactMaxR = 22;
   const compactMinR = 6;
   const angleStep = (2 * Math.PI) / 6;
   const startAngle = -Math.PI / 2;
@@ -838,17 +856,21 @@ function resetPetalHighlights() {
 }
 
 export function handleBloomRingTap() {
-  if (bloomState !== BLOOM_STATES.BLOOMED && bloomState !== BLOOM_STATES.PETAL_FOCUSED) return;
-  if (!bloomData || !bloomData.scoringV2) return;
+  if (!bloomData) return;
 
   const $bloom = document.getElementById('score-bloom');
+
+  // Deep dive → back to bloomed
   if (bloomState === BLOOM_STATES.DEEP_DIVE) {
-    // Exit deep dive
     bloomState = BLOOM_STATES.BLOOMED;
     $bloom?.setAttribute('data-bloom-state', 'bloomed');
     hideV2Arcs();
     return;
   }
+
+  // Bloomed/petal-focused → deep dive (if V2 data available)
+  if (bloomState !== BLOOM_STATES.BLOOMED && bloomState !== BLOOM_STATES.PETAL_FOCUSED) return;
+  if (!bloomData.scoringV2) return;
 
   bloomState = BLOOM_STATES.DEEP_DIVE;
   $bloom?.setAttribute('data-bloom-state', 'deep-dive');
@@ -877,13 +899,14 @@ function humanizeV2Score(val) {
 }
 
 function showV2Arcs() {
-  const $v2 = document.getElementById('score-bloom-v2');
-  if (!$v2 || !bloomData?.scoringV2) return;
+  if (!bloomData?.scoringV2) return;
 
-  $v2.innerHTML = '';
+  // Render V2 breakdown as a clean detail strip (not SVG arcs)
+  const $strip = document.getElementById('score-bloom-v2-strip');
+  if (!$strip) return;
+
+  $strip.innerHTML = '';
   const sv2 = bloomData.scoringV2;
-  const cx = 200, cy = 200;
-  const ringR = 55; // expanded ring radius
 
   const v2Dims = [
     { key: 'occasion_fit',    label: 'Occasion' },
@@ -895,53 +918,52 @@ function showV2Arcs() {
 
   v2Dims.forEach((dim, i) => {
     const val = Math.min(Math.max(sv2[dim.key] || 0, 0), 100);
-    const arcR = ringR - 12 - i * 8; // concentric inward
-    const circumference = 2 * Math.PI * arcR;
-    const offset = circumference - (val / 100) * circumference;
+    const row = document.createElement('div');
+    row.className = 'v2-row';
+    row.innerHTML = `
+      <span class="v2-row__label type-data--sm">${dim.label}</span>
+      <div class="v2-row__track">
+        <div class="v2-row__fill" style="width: 0%"></div>
+      </div>
+      <span class="v2-row__score type-data--sm">${humanizeV2Score(val)}</span>`;
+    $strip.appendChild(row);
 
-    const circle = svgEl('circle');
-    circle.setAttribute('cx', String(cx));
-    circle.setAttribute('cy', String(cy));
-    circle.setAttribute('r', String(arcR));
-    circle.classList.add('score-bloom__v2-arc');
-    circle.setAttribute('data-dim', dim.key);
-    circle.style.strokeDasharray = String(circumference);
-    circle.style.strokeDashoffset = String(circumference);
-    circle.style.transform = 'rotate(-90deg)';
-    circle.style.transformOrigin = `${cx}px ${cy}px`;
-    $v2.appendChild(circle);
-
-    // Label — centered below ring, evenly spaced
-    const text = svgEl('text');
-    text.setAttribute('x', String(cx));
-    text.setAttribute('y', String(cy + ringR + 20 + i * 14));
-    text.setAttribute('text-anchor', 'middle');
-    text.classList.add('score-bloom__v2-label');
-    text.textContent = `${dim.label} \u00B7 ${humanizeV2Score(val)}`;
-    $v2.appendChild(text);
-
-    // Animate arc draw-in
+    // Animate fill bar
     if (!REDUCED.matches) {
       setTimeout(() => {
-        circle.style.strokeDashoffset = String(offset);
-        text.style.opacity = '1';
-      }, 100 + i * 80);
+        row.querySelector('.v2-row__fill').style.width = `${val}%`;
+      }, 100 + i * 60);
     } else {
-      circle.style.strokeDashoffset = String(offset);
-      text.style.opacity = '1';
+      row.querySelector('.v2-row__fill').style.width = `${val}%`;
     }
   });
 
-  $v2.style.transition = 'opacity 300ms ease-out';
-  $v2.style.opacity = '1';
+  $strip.style.display = 'flex';
+  requestAnimationFrame(() => {
+    $strip.classList.add('score-bloom__v2-strip--visible');
+  });
+
+  // Dim orbs while showing breakdown
+  document.querySelectorAll('.score-bloom__orb').forEach(o => {
+    o.classList.add('score-bloom__orb--dimmed');
+  });
+  const $axes = document.getElementById('score-bloom-axes');
+  if ($axes) $axes.style.opacity = '0.2';
 }
 
 function hideV2Arcs() {
-  const $v2 = document.getElementById('score-bloom-v2');
-  if ($v2) {
-    $v2.style.opacity = '0';
-    setTimeout(() => { $v2.innerHTML = ''; }, 300);
+  const $strip = document.getElementById('score-bloom-v2-strip');
+  if ($strip) {
+    $strip.classList.remove('score-bloom__v2-strip--visible');
+    setTimeout(() => { $strip.innerHTML = ''; $strip.style.display = 'none'; }, 300);
   }
+
+  // Restore orbs
+  document.querySelectorAll('.score-bloom__orb').forEach(o => {
+    o.classList.remove('score-bloom__orb--dimmed');
+  });
+  const $axes = document.getElementById('score-bloom-axes');
+  if ($axes) $axes.style.opacity = '1';
 }
 
 export function getBloomState() { return bloomState; }

@@ -765,8 +765,11 @@ function wireEvents() {
     const center = e.target.closest('.score-bloom__center');
 
     if (state === 'compact') {
-      // Tier 1 → Tier 2: expand bloom
+      // Tier 1 → Tier 2: expand bloom, reveal vibe orbs
       toggleBloom();
+    } else if (center) {
+      // Center tap: bloomed → deep-dive (V2 breakdown), deep-dive → back to bloomed
+      handleBloomRingTap();
     } else if (petal) {
       // Tier 2 → 2.5: tap petal for detail
       const dim = petal.getAttribute('data-dim');
@@ -775,11 +778,8 @@ function wireEvents() {
       // Tier 2 → 2.5: tap orb for detail (expanded view)
       const dim = orb.getAttribute('data-dim');
       if (dim) handlePetalTap(dim);
-    } else if (center) {
-      // Tier 2 → 3: tap center ring for V2 arcs
-      handleBloomRingTap();
     } else {
-      // Tap on bloom background while expanded → collapse
+      // Tap on bloom background while expanded → collapse to compact
       toggleBloom();
     }
   });
@@ -1827,51 +1827,14 @@ function renderResult(data) {
     $profileFacts.style.display = '';
   }
 
-  // ---- Crowd Profile ("Who Goes Here" — icon chips from deep_context) ----
-  const $crowdProfile = document.getElementById('crowd-profile');
-  const $crowdPills = document.getElementById('crowd-profile-pills');
-  if ($crowdProfile && $crowdPills) {
-    const crowd = data.deep_context?.crowd_profile;
-    if (crowd?.length > 0) {
-      $crowdPills.innerHTML = '';
-      const CROWD_ICONS = {
-        'young_professionals': 'briefcase', 'families': 'home', 'couples': 'heart',
-        'foodies': 'plate', 'tourists': 'pin', 'students': 'user',
-        'date_night': 'heart', 'business': 'briefcase', 'solo_diners': 'user',
-        'groups': 'usersThree', 'locals': 'pin', 'hipsters': 'diamond',
-        'walk_in_friendly': 'chevronRight', 'reservation_recommended': 'refresh',
-      };
-      crowd.slice(0, 4).forEach(text => {
-        const btn = document.createElement('button');
-        btn.className = 'crowd-chip';
-        btn.type = 'button';
-        const iconKey = CROWD_ICONS[text] || CROWD_ICONS[text.toLowerCase().replace(/\s+/g, '_')] || 'user';
-        const label = humanizeSnake(text);
-        btn.setAttribute('aria-label', label);
-        btn.innerHTML = `
-          <span class="crowd-chip__icon">${svgIcon(iconKey, 14)}</span>
-          <span class="crowd-chip__tooltip type-data--sm">${label}</span>`;
-        btn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          $crowdPills.querySelectorAll('.crowd-chip--active').forEach(c => {
-            if (c !== btn) c.classList.remove('crowd-chip--active');
-          });
-          btn.classList.toggle('crowd-chip--active');
-        });
-        $crowdPills.appendChild(btn);
-      });
-      $crowdProfile.style.display = '';
-    } else {
-      $crowdProfile.style.display = 'none';
-    }
-  }
-
-  // ---- Glyph Bar (icon-only compact view for mobile) ----
+  // ---- Glyph Bar (icon-only compact view — includes crowd chips) ----
   if ($glyphBar) {
     $glyphBar.innerHTML = '';
     const REDUCED_MQ = matchMedia('(prefers-reduced-motion: reduce)');
+    let glyphIndex = 0;
 
-    allBadges.forEach((b, i) => {
+    // Render badge glyphs
+    allBadges.forEach((b) => {
       const glyph = document.createElement('button');
       glyph.className = 'glyph-bar__item'
         + (b.isAtmo ? ' glyph-bar__item--atmo' : '')
@@ -1879,7 +1842,6 @@ function renderResult(data) {
       glyph.setAttribute('aria-label', `${b.label}: ${b.value}`);
       glyph.setAttribute('type', 'button');
 
-      // Handwritten jitter rotation
       const rotation = ((Math.random() - 0.5) * 4).toFixed(1);
 
       const glyphContent = b.label === 'Price'
@@ -1895,7 +1857,6 @@ function renderResult(data) {
           <span class="glyph-bar__tooltip-value">${b.value}</span>
         </div>`;
 
-      // Tap to toggle tooltip
       glyph.addEventListener('click', (e) => {
         e.stopPropagation();
         $glyphBar.querySelectorAll('.glyph-bar__item--active').forEach(g => {
@@ -1904,38 +1865,97 @@ function renderResult(data) {
         glyph.classList.toggle('glyph-bar__item--active');
       });
 
-      // Spring pop stagger entrance
       if (!REDUCED_MQ.matches) {
         glyph.style.opacity = '0';
         const baseTransform = `rotate(${rotation}deg)`;
         glyph.style.transform = `${baseTransform} scale(0.7)`;
+        const idx = glyphIndex;
         animationTimers.push(setTimeout(() => {
           glyph.style.transition = 'opacity 200ms ease-out, transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
           glyph.style.opacity = '1';
           glyph.style.transform = `${baseTransform} scale(1)`;
-        }, 500 + i * 50));
+        }, 500 + idx * 50));
       } else {
         glyph.style.transform = `rotate(${rotation}deg)`;
       }
 
       $glyphBar.appendChild(glyph);
+      glyphIndex++;
     });
 
+    // Append crowd chips as part of glyph bar (separated by dot divider)
+    const crowd = data.deep_context?.crowd_profile;
+    if (crowd?.length > 0) {
+      const CROWD_ICONS = {
+        'young_professionals': 'briefcase', 'families': 'home', 'couples': 'heart',
+        'foodies': 'plate', 'tourists': 'pin', 'students': 'user',
+        'date_night': 'heart', 'business': 'briefcase', 'solo_diners': 'user',
+        'groups': 'usersThree', 'locals': 'pin', 'hipsters': 'diamond',
+        'walk_in_friendly': 'chevronRight', 'reservation_recommended': 'refresh',
+      };
+
+      // Dot separator between fact badges and crowd badges
+      const sep = document.createElement('span');
+      sep.className = 'glyph-bar__sep';
+      sep.setAttribute('aria-hidden', 'true');
+      $glyphBar.appendChild(sep);
+
+      crowd.slice(0, 4).forEach(text => {
+        const glyph = document.createElement('button');
+        glyph.className = 'glyph-bar__item glyph-bar__item--crowd';
+        glyph.type = 'button';
+        const iconKey = CROWD_ICONS[text] || CROWD_ICONS[text.toLowerCase().replace(/\s+/g, '_')] || 'user';
+        const label = humanizeSnake(text);
+        glyph.setAttribute('aria-label', label);
+
+        const rotation = ((Math.random() - 0.5) * 4).toFixed(1);
+
+        glyph.innerHTML = `
+          ${svgIcon(iconKey, 16)}
+          <div class="glyph-bar__tooltip">
+            <span class="glyph-bar__tooltip-label">Crowd</span>
+            <span class="glyph-bar__tooltip-value">${label}</span>
+          </div>`;
+
+        glyph.addEventListener('click', (e) => {
+          e.stopPropagation();
+          $glyphBar.querySelectorAll('.glyph-bar__item--active').forEach(g => {
+            if (g !== glyph) g.classList.remove('glyph-bar__item--active');
+          });
+          glyph.classList.toggle('glyph-bar__item--active');
+        });
+
+        if (!REDUCED_MQ.matches) {
+          glyph.style.opacity = '0';
+          const baseTransform = `rotate(${rotation}deg)`;
+          glyph.style.transform = `${baseTransform} scale(0.7)`;
+          const idx = glyphIndex;
+          animationTimers.push(setTimeout(() => {
+            glyph.style.transition = 'opacity 200ms ease-out, transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
+            glyph.style.opacity = '1';
+            glyph.style.transform = `${baseTransform} scale(1)`;
+          }, 500 + idx * 50));
+        } else {
+          glyph.style.transform = `rotate(${rotation}deg)`;
+        }
+
+        $glyphBar.appendChild(glyph);
+        glyphIndex++;
+      });
+    }
   }
 
-  // Close all tooltips (glyph bar + crowd chips) when clicking outside
-  document.addEventListener('click', (e) => {
-    if (!e.target.closest('.glyph-bar__item')) {
-      document.querySelectorAll('.glyph-bar__item--active').forEach(g => {
-        g.classList.remove('glyph-bar__item--active');
-      });
-    }
-    if (!e.target.closest('.crowd-chip')) {
-      document.querySelectorAll('.crowd-chip--active').forEach(c => {
-        c.classList.remove('crowd-chip--active');
-      });
-    }
-  });
+  // Close all glyph tooltips when clicking outside (one-time setup)
+  if (!window.__glyphCloseWired) {
+    window.__glyphCloseWired = true;
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.glyph-bar__item')) {
+        document.querySelectorAll('.glyph-bar__item--active').forEach(g => {
+          g.classList.remove('glyph-bar__item--active');
+        });
+      }
+    });
+  }
 
   // ---- Quick Links (Website, Call, Share) — pill badges with dot separators ----
   const $resultLinks = document.getElementById('result-links');
