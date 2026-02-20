@@ -460,6 +460,17 @@
   animation-delay: 80ms;
 }
 
+/* ---- CTA Momentum Boost (after filter selection) ---- */
+@keyframes ctaBoost {
+  0%   { transform: scale(1); box-shadow: 0 0 0 0 var(--ac-soft, rgba(0,0,0,0.08)); }
+  30%  { transform: scale(1.03); box-shadow: 0 0 0 6px var(--ac-soft, rgba(0,0,0,0.08)); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 var(--ac-soft, rgba(0,0,0,0.08)); }
+}
+
+.cta-btn--boosted:not(:disabled) {
+  animation: ctaBoost 500ms var(--spring);
+}
+
 /* ---- Reduced Motion: Gentle fallback (100ms linear, not 0ms) ---- */
 @media (prefers-reduced-motion: reduce) {
   .stagger-in > *,
@@ -483,7 +494,8 @@
   .result-card--revealing .result-nav,
   .result-card--revealing .result-rec-wrap,
   .cta-btn--ready,
-  .cta-btn--alive {
+  .cta-btn--alive,
+  .cta-btn--boosted {
     animation-duration: 100ms !important;
     animation-timing-function: linear !important;
     opacity: 1;

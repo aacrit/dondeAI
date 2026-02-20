@@ -232,7 +232,10 @@
                     <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-budget" data-value="$$$$">$$$$</button>
                   </div>
                 </div>
-                <button class="randomize-link type-structural" data-action="randomize">&#8635; Randomize</button>
+                <div class="filter-utility-row">
+                  <button class="filter-utility-link filter-utility-link--clear type-structural" data-action="clear-filters">Clear</button>
+                  <button class="filter-utility-link type-structural" data-action="randomize">&#8635; Randomize</button>
+                </div>
               </div>
             </div>
 
@@ -369,6 +372,7 @@
                   </div>
                   <div class="sentiment-bar" id="sentiment-bar"
                        role="img" aria-label="Review sentiment breakdown">
+                    <span class="sentiment-bar__label type-data--sm">Review Sentiment</span>
                     <div class="sentiment-bar__track">
                       <span class="sentiment-bar__seg sentiment-bar__seg--pos" id="sentiment-bar-pos"></span>
                       <span class="sentiment-bar__seg sentiment-bar__seg--neu" id="sentiment-bar-neu"></span>
@@ -442,6 +446,12 @@
           </span>
         </div>
         <p class="loading-status type-structural" id="loading-status">Searching</p>
+        <div class="result-skeleton" id="result-skeleton" aria-hidden="true">
+          <div class="skel-block skel-block--name"></div>
+          <div class="skel-block skel-block--story"></div>
+          <div class="skel-block skel-block--scores"></div>
+          <div class="skel-block skel-block--actions"></div>
+        </div>
       </div>
     </main>
 
