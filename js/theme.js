@@ -752,12 +752,6 @@ function applyTheme(culture, mode) {
     node.classList.toggle('culture-compass__node--active', isActive);
   });
 
-  // Update mode toggle in theme picker
-  document.querySelectorAll('.mode-toggle__btn').forEach(btn => {
-    const isActive = btn.dataset.mode === mode;
-    btn.classList.toggle('mode-toggle__btn--active', isActive);
-  });
-
   // Update meta theme-color for mobile browser chrome
   requestAnimationFrame(() => {
     const metaTheme = document.querySelector('meta[name="theme-color"]');

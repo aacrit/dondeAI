@@ -1733,6 +1733,15 @@
   opacity: 0.9;
 }
 
+.culture-compass__subtitle {
+  font-size: 11px;
+  color: var(--fg3);
+  text-align: center;
+  opacity: 0.6;
+  letter-spacing: 0.02em;
+  margin-top: calc(-1 * var(--space-sm));
+}
+
 /* ---- Dial Wrap (contains pointer + rotatable dial) ---- */
 .culture-compass__dial-wrap {
   position: relative;
@@ -1959,33 +1968,6 @@
   .culture-compass__node-label {
     font-size: 8px;
   }
-}
-
-/* ---- Dark Mode Toggle ---- */
-.mode-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-sm);
-  padding: var(--space-sm);
-  background: var(--bg3);
-  border-radius: var(--radius-pill);
-}
-
-.mode-toggle__btn {
-  padding: var(--space-xs) var(--space-md);
-  font-size: var(--text-sm);
-  font-weight: 600;
-  color: var(--fg2);
-  border-radius: var(--radius-pill);
-  transition: background var(--dur-fast) var(--ease-out),
-              color var(--dur-fast) var(--ease-out);
-}
-
-.mode-toggle__btn--active {
-  background: var(--bg2);
-  color: var(--fg);
-  box-shadow: 0 2px 8px var(--shadow);
 }
 
 /* ---- Share Sheet ---- */

@@ -620,12 +620,6 @@ function wireEvents() {
         break;
       }
 
-      case 'set-mode': {
-        const mode = btn.dataset.mode;
-        setTheme(getState().theme.culture, mode);
-        break;
-      }
-
       case 'toggle-mode': {
         const currentMode = getState().theme.mode;
         const newMode = currentMode === 'light' ? 'dark' : 'light';
@@ -2142,14 +2136,14 @@ window.renderShareCanvas = renderShareCanvas;
 /* ---- Culture Compass Engine ---- */
 
 const COMPASS_CULTURES = [
-  { id: 'neutral',       name: 'Studio',    region: 'All Cuisines',      cuisine: 'Every flavor, one canvas',          tagline: 'The blank page before the masterpiece',     hue: 'hsl(0 0% 22%)',    swatches: ['hsl(0 0% 22%)', 'hsl(0 0% 98%)', 'hsl(0 0% 10%)'] },
-  { id: 'indian',        name: 'Desi',      region: 'South Asian',       cuisine: 'Butter chicken \u00b7 Biryani \u00b7 Chai',      tagline: 'Spice, soul, and the warmth of home',       hue: 'hsl(28 88% 50%)',  swatches: ['hsl(28 88% 50%)', 'hsl(350 70% 50%)', 'hsl(22 90% 48%)'] },
-  { id: 'middleeastern', name: 'Bazaar',    region: 'Middle Eastern',    cuisine: 'Shawarma \u00b7 Mezze \u00b7 Mint tea',          tagline: 'Where every meal is a gathering',           hue: 'hsl(48 72% 46%)',  swatches: ['hsl(48 72% 46%)', 'hsl(0 60% 50%)', 'hsl(35 85% 50%)'] },
-  { id: 'nepalese',      name: 'Himalayan', region: 'Himalayan',         cuisine: 'Momos \u00b7 Dal bhat \u00b7 Thukpa',            tagline: 'Where prayer flags meet the sky',           hue: 'hsl(178 50% 38%)', swatches: ['hsl(178 50% 38%)', 'hsl(350 60% 50%)', 'hsl(45 70% 55%)'] },
-  { id: 'japanese',      name: 'Zen',       region: 'Japanese',          cuisine: 'Ramen \u00b7 Omakase \u00b7 Sake',               tagline: 'Less is more, silence is loud',             hue: 'hsl(220 35% 45%)', swatches: ['hsl(220 35% 45%)', 'hsl(45 12% 97%)', 'hsl(220 18% 15%)'] },
-  { id: 'eastasian',     name: 'Silk',      region: 'East & SE Asian',   cuisine: 'Dim sum \u00b7 Pho \u00b7 Pad thai',             tagline: 'Ten thousand flavors, one table',           hue: 'hsl(285 35% 45%)', swatches: ['hsl(285 35% 45%)', 'hsl(40 12% 96%)', 'hsl(345 60% 52%)'] },
-  { id: 'african',       name: 'Kente',     region: 'African & Diaspora', cuisine: 'Jollof \u00b7 Suya \u00b7 Soul food',           tagline: 'Bold threads woven in rhythm',              hue: 'hsl(155 65% 35%)', swatches: ['hsl(155 65% 35%)', 'hsl(40 85% 50%)', 'hsl(0 65% 45%)'] },
-  { id: 'southamerican', name: 'Sabor',     region: 'Latin American',    cuisine: 'Tacos \u00b7 Ceviche \u00b7 Asado',              tagline: 'Flavor runs through everything',            hue: 'hsl(350 80% 52%)', swatches: ['hsl(350 80% 52%)', 'hsl(170 55% 38%)', 'hsl(45 90% 55%)'] },
+  { id: 'neutral',       name: 'Studio',    region: 'All Cuisines',       mood: 'The blank canvas',                                tagline: 'The blank page before the masterpiece',     hue: 'hsl(0 0% 22%)',    swatches: ['hsl(0 0% 22%)', 'hsl(0 0% 98%)', 'hsl(0 0% 10%)'] },
+  { id: 'indian',        name: 'Desi',      region: 'South Asian',        mood: 'Warm spices \u00b7 Rich textures \u00b7 Saffron hues',        tagline: 'Spice, soul, and the warmth of home',       hue: 'hsl(28 88% 50%)',  swatches: ['hsl(28 88% 50%)', 'hsl(350 70% 50%)', 'hsl(22 90% 48%)'] },
+  { id: 'middleeastern', name: 'Bazaar',    region: 'Middle Eastern',     mood: 'Brass warmth \u00b7 Communal spirit \u00b7 Spice gold',       tagline: 'Where every meal is a gathering',           hue: 'hsl(48 72% 46%)',  swatches: ['hsl(48 72% 46%)', 'hsl(0 60% 50%)', 'hsl(35 85% 50%)'] },
+  { id: 'nepalese',      name: 'Himalayan', region: 'Himalayan',          mood: 'Mountain calm \u00b7 Sacred stones \u00b7 Prayer flags',      tagline: 'Where prayer flags meet the sky',           hue: 'hsl(178 50% 38%)', swatches: ['hsl(178 50% 38%)', 'hsl(350 60% 50%)', 'hsl(45 70% 55%)'] },
+  { id: 'japanese',      name: 'Zen',       region: 'Japanese',           mood: 'Ink wash \u00b7 Quiet restraint \u00b7 Indigo depth',        tagline: 'Less is more, silence is loud',             hue: 'hsl(220 35% 45%)', swatches: ['hsl(220 35% 45%)', 'hsl(45 12% 97%)', 'hsl(220 18% 15%)'] },
+  { id: 'eastasian',     name: 'Silk',      region: 'East & SE Asian',    mood: 'Silk textures \u00b7 Plum tones \u00b7 Imperial grace',      tagline: 'Ten thousand flavors, one table',           hue: 'hsl(285 35% 45%)', swatches: ['hsl(285 35% 45%)', 'hsl(40 12% 96%)', 'hsl(345 60% 52%)'] },
+  { id: 'african',       name: 'Kente',     region: 'African & Diaspora', mood: 'Bold geometry \u00b7 Pan-African green \u00b7 Rhythm',       tagline: 'Bold threads woven in rhythm',              hue: 'hsl(155 65% 35%)', swatches: ['hsl(155 65% 35%)', 'hsl(40 85% 50%)', 'hsl(0 65% 45%)'] },
+  { id: 'southamerican', name: 'Sabor',     region: 'Latin American',     mood: 'Tropical warmth \u00b7 Fiesta palette \u00b7 Chili red',     tagline: 'Flavor runs through everything',            hue: 'hsl(350 80% 52%)', swatches: ['hsl(350 80% 52%)', 'hsl(170 55% 38%)', 'hsl(45 90% 55%)'] },
 ];
 
 const SEGMENT_ANGLE = 360 / COMPASS_CULTURES.length; // 45 degrees each
@@ -2469,7 +2463,7 @@ function updateCompassHub(cultureId) {
   if (nameEl) nameEl.textContent = culture.name;
   if (regionEl) regionEl.textContent = culture.region;
   if (taglineEl) taglineEl.textContent = culture.tagline;
-  if (cuisineEl) cuisineEl.textContent = culture.cuisine;
+  if (cuisineEl) cuisineEl.textContent = culture.mood;
   if (swatchesEl) {
     swatchesEl.innerHTML = culture.swatches.map(color =>
       `<span class="culture-compass__hub-swatch" style="background:${color}"></span>`
