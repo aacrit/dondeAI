@@ -707,14 +707,22 @@ export function setTheme(culture, mode) {
   setState({ theme: { culture, mode } });
 }
 
+/** Instant theme swap — no wash overlay. Used during compass drag/browse. */
+let skipWash = false;
+export function setThemeInstant(culture, mode) {
+  skipWash = true;
+  setState({ theme: { culture, mode } });
+  skipWash = false;
+}
+
 let isFirstApply = true;
 
 function applyTheme(culture, mode) {
   const root = document.documentElement;
   const wash = document.getElementById('theme-wash');
 
-  // Subtle crossfade wash transition (skip on first load)
-  if (!isFirstApply && wash && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  // Subtle crossfade wash transition (skip on first load, skip during compass browse)
+  if (!isFirstApply && !skipWash && wash && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
     // Apply new theme to wash div first, then crossfade
     wash.setAttribute('data-theme', culture);
     wash.setAttribute('data-mode', mode);
@@ -725,7 +733,7 @@ function applyTheme(culture, mode) {
       root.setAttribute('data-theme', culture);
       root.setAttribute('data-mode', mode);
       wash.classList.remove('theme-wash--active');
-    }, 220);
+    }, 160);
   } else {
     root.setAttribute('data-theme', culture);
     root.setAttribute('data-mode', mode);
