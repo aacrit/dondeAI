@@ -1585,18 +1585,6 @@ function renderResult(data) {
     $oneliner.textContent = r.best_for_oneliner || '';
   }
 
-  // Unique Selling Point subtitle (deep_context)
-  const $usp = document.getElementById('result-usp');
-  if ($usp) {
-    const usp = data.deep_context?.unique_selling_point;
-    if (usp && usp !== r.best_for_oneliner) {
-      $usp.textContent = usp;
-      $usp.style.display = '';
-    } else {
-      $usp.style.display = 'none';
-    }
-  }
-
   // Awards & Recognition badges (deep_context)
   const $awards = document.getElementById('result-awards');
   if ($awards) {
@@ -1672,23 +1660,17 @@ function renderResult(data) {
     }
   }
 
-  // ---- Signature Dishes ("What to Order" — from deep_context) ----
-  const $sigDishes = document.getElementById('signature-dishes');
-  const $sigList = document.getElementById('signature-dishes-list');
-  if ($sigDishes && $sigList) {
+  // ---- Story Extras: Dishes + Insider Tip (merged single row) ----
+  const $storyExtras = document.getElementById('story-extras');
+  const $extrasDishes = document.getElementById('story-extras-dishes');
+  const $dishesText = document.getElementById('signature-dishes-text');
+  if ($storyExtras && $extrasDishes && $dishesText) {
     const dishes = data.deep_context?.signature_dishes;
     if (dishes?.length > 0) {
-      $sigList.innerHTML = '';
-      dishes.slice(0, 3).forEach(d => {
-        const li = document.createElement('li');
-        li.className = 'signature-dishes__item';
-        li.innerHTML = `<span class="signature-dishes__name type-structural">${d.dish}</span>`
-          + (d.why ? ` <span class="signature-dishes__why type-structural">\u2014 ${d.why}</span>` : '');
-        $sigList.appendChild(li);
-      });
-      $sigDishes.style.display = '';
+      $dishesText.textContent = dishes.slice(0, 3).map(d => d.dish).join(', ');
+      $extrasDishes.style.display = '';
     } else {
-      $sigDishes.style.display = 'none';
+      $extrasDishes.style.display = 'none';
     }
   }
 
@@ -1951,21 +1933,30 @@ function renderResult(data) {
     });
   }
 
-  // Insider tip (enhanced with best seat from deep_context)
-  const $tip = document.getElementById('insider-tip');
+  // Insider tip (merged into story-extras row)
+  const $extrasTip = document.getElementById('story-extras-tip');
   const $tipText = document.getElementById('insider-tip-text');
   const bestSeat = data.deep_context?.best_seat_in_house;
-  if ($tip && (data.insider_tip || bestSeat)) {
+  if ($extrasTip && $tipText) {
     let tipContent = data.insider_tip || '';
     if (bestSeat) {
       tipContent = tipContent
-        ? `${tipContent}\nBest seat: ${bestSeat}`
+        ? `${tipContent} · Best seat: ${bestSeat}`
         : `Best seat: ${bestSeat}`;
     }
-    $tipText.textContent = tipContent;
-    $tip.style.display = 'block';
-  } else if ($tip) {
-    $tip.style.display = 'none';
+    if (tipContent) {
+      $tipText.textContent = tipContent;
+      $extrasTip.style.display = '';
+    } else {
+      $extrasTip.style.display = 'none';
+    }
+  }
+
+  // Show story-extras container if either child is visible
+  if ($storyExtras) {
+    const hasDishes = $extrasDishes && $extrasDishes.style.display !== 'none';
+    const hasTip = $extrasTip && $extrasTip.style.display !== 'none';
+    $storyExtras.style.display = (hasDishes || hasTip) ? '' : 'none';
   }
 
   // ---- Sentiment Bar (subtle horizontal indicator) ----

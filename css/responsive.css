@@ -25,7 +25,7 @@
 /* ---- Mobile: Score Bloom full-width sizing ---- */
 @media (max-width: 767px) {
   .score-bloom__viz {
-    width: min(100%, 340px);
+    width: min(100%, 360px);
   }
 }
 
@@ -61,7 +61,7 @@
 
   /* Score Bloom: tablet sizing — full container width */
   .score-bloom__viz {
-    width: min(100%, 420px);
+    width: min(100%, 440px);
   }
 
   .score-bloom__number {
@@ -110,7 +110,7 @@
 
   /* Score Bloom: desktop sizing — full container width */
   .score-bloom__viz {
-    width: min(100%, 480px);
+    width: min(100%, 500px);
   }
 
   .score-bloom__number {

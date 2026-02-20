@@ -280,7 +280,7 @@ export function renderScoreBloom(dondeMatch, scores, scoringV2, sentiment, timer
   const $verdict = document.getElementById('score-bloom-verdict');
 
   if ($ringFill) {
-    const circumference = 2 * Math.PI * 60; // r=60 in bloom SVG
+    const circumference = 2 * Math.PI * 75; // r=75 in bloom SVG
     const target = circumference - (pct / 100) * circumference;
     $ringFill.style.stroke = 'var(--ac)';
     $ringFill.style.strokeDasharray = String(circumference);
@@ -331,8 +331,8 @@ export function renderScoreBloom(dondeMatch, scores, scoringV2, sentiment, timer
 
   // ---- Vibe Petals (compact mode — small teardrops around ring) ----
   const cx = 200, cy = 200;
-  const ringR = 60;
-  const compactMaxR = 28; // compact petal max length from ring edge
+  const ringR = 75;
+  const compactMaxR = 24; // compact petal max length from ring edge
   const compactMinR = 6;
   const angleStep = (2 * Math.PI) / 6;
   const startAngle = -Math.PI / 2;
@@ -497,8 +497,8 @@ function expandBloom($bloom) {
 
   const scores = bloomData.scores;
   const cx = 200, cy = 200;
-  const ringR = 60;
-  const fullMaxR = 72; // full bloom petal max length
+  const ringR = 75;
+  const fullMaxR = 60; // full bloom petal max length
   const fullMinR = 12;
   const angleStep = (2 * Math.PI) / 6;
   const startAngle = -Math.PI / 2;
@@ -645,8 +645,8 @@ function collapseBloom($bloom) {
 
 function renderCompactPetals(scores, timers) {
   const cx = 200, cy = 200;
-  const ringR = 60;
-  const compactMaxR = 28;
+  const ringR = 75;
+  const compactMaxR = 24;
   const compactMinR = 6;
   const angleStep = (2 * Math.PI) / 6;
   const startAngle = -Math.PI / 2;
@@ -804,6 +804,14 @@ export function handleBloomRingTap() {
   showV2Arcs();
 }
 
+function humanizeV2Score(val) {
+  if (val >= 90) return 'Perfect';
+  if (val >= 75) return 'Strong';
+  if (val >= 60) return 'Good';
+  if (val >= 40) return 'Fair';
+  return 'Low';
+}
+
 function showV2Arcs() {
   const $v2 = document.getElementById('score-bloom-v2');
   if (!$v2 || !bloomData?.scoringV2) return;
@@ -811,7 +819,7 @@ function showV2Arcs() {
   $v2.innerHTML = '';
   const sv2 = bloomData.scoringV2;
   const cx = 200, cy = 200;
-  const ringR = 60;
+  const ringR = 75;
 
   const v2Dims = [
     { key: 'occasion_fit',    label: 'Occasion' },
@@ -823,7 +831,7 @@ function showV2Arcs() {
 
   v2Dims.forEach((dim, i) => {
     const val = Math.min(Math.max(sv2[dim.key] || 0, 0), 100);
-    const arcR = ringR - 10 - i * 7; // concentric inward
+    const arcR = ringR - 12 - i * 8; // concentric inward
     const circumference = 2 * Math.PI * arcR;
     const offset = circumference - (val / 100) * circumference;
 
@@ -839,13 +847,13 @@ function showV2Arcs() {
     circle.style.transformOrigin = `${cx}px ${cy}px`;
     $v2.appendChild(circle);
 
-    // Label
-    const labelAngle = -Math.PI / 2 + (i * 0.25);
+    // Label — centered below ring, evenly spaced
     const text = svgEl('text');
-    text.setAttribute('x', String(cx + arcR + 5));
-    text.setAttribute('y', String(cy - arcR * 0.3 + i * 12));
+    text.setAttribute('x', String(cx));
+    text.setAttribute('y', String(cy + ringR + 20 + i * 14));
+    text.setAttribute('text-anchor', 'middle');
     text.classList.add('score-bloom__v2-label');
-    text.textContent = `${dim.label} ${val}%`;
+    text.textContent = `${dim.label} \u00B7 ${humanizeV2Score(val)}`;
     $v2.appendChild(text);
 
     // Animate arc draw-in

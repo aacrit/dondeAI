@@ -1096,7 +1096,7 @@
 /* Visualization container */
 .score-bloom__viz {
   position: relative;
-  width: min(100%, 340px);
+  width: min(100%, 360px);
   aspect-ratio: 1;
 }
 
@@ -1109,16 +1109,16 @@
 .score-bloom__ring-bg {
   fill: none;
   stroke: var(--border);
-  stroke-width: 4;
+  stroke-width: 5;
 }
 
 .score-bloom__ring-fill {
   fill: none;
   stroke: var(--ac);
-  stroke-width: 4;
+  stroke-width: 5;
   stroke-linecap: round;
-  stroke-dasharray: 377;
-  stroke-dashoffset: 377;
+  stroke-dasharray: 471;
+  stroke-dashoffset: 471;
   transform: rotate(-90deg);
   transform-origin: 200px 200px;
   transition: stroke-dashoffset 1200ms cubic-bezier(0.2, 1, 0.4, 1);
@@ -1878,8 +1878,15 @@
   white-space: nowrap;
 }
 
-/* ---- Signature Dishes ("What to Order") ---- */
-.signature-dishes {
+/* ---- Story Extras (Dishes + Insider Tip — merged row) ---- */
+.story-extras {
+  display: flex;
+  gap: var(--space-md);
+  align-items: stretch;
+}
+
+.story-extras__item {
+  flex: 1;
   position: relative;
   padding: var(--space-sm) var(--space-md);
   background: var(--glass-tip);
@@ -1888,92 +1895,46 @@
   border: 1px solid var(--border);
   border-left: 3px solid var(--fg3);
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  min-width: 0;
 }
 
-.signature-dishes__label {
+#story-extras-tip {
+  border-left-color: var(--amber);
+}
+
+.story-extras__label {
+  display: block;
   font-size: var(--text-xs);
   color: var(--fg3);
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  margin-bottom: var(--space-xs);
-}
-
-.signature-dishes__list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2xs);
-}
-
-.signature-dishes__name {
-  font-weight: 600;
-  font-size: var(--text-sm);
-  color: var(--fg);
-}
-
-.signature-dishes__why {
-  font-size: var(--text-sm);
-  color: var(--fg2);
-}
-
-@media (max-width: 767px) {
-  .signature-dishes {
-    padding: var(--space-xs) var(--space-sm);
-  }
-}
-
-/* ---- Insider Tip ---- */
-.insider-tip {
-  position: relative;
-  padding: var(--space-md);
-  background: var(--glass-tip);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  border: 1px solid var(--border);
-  border-left: 3px solid var(--amber);
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-}
-
-/* Animated border draw on reveal */
-.result-card--revealing .insider-tip {
-  border-left-color: transparent;
-}
-
-.result-card--revealing .insider-tip::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -3px;
-  width: 3px;
-  height: 0;
-  background: var(--amber);
-  border-radius: 0 0 2px 2px;
-  animation: tipBorderDraw 600ms cubic-bezier(0.2, 1, 0.4, 1) 400ms forwards;
-}
-
-.insider-tip__label {
-  font-size: var(--text-xs);
-  color: var(--amber);
   margin-bottom: var(--space-2xs);
 }
 
-.insider-tip__text {
+#story-extras-tip .story-extras__label {
+  color: var(--amber);
+}
+
+.story-extras__text {
+  display: block;
   font-size: var(--text-sm);
   color: var(--fg);
-  line-height: 1.6;
+  line-height: 1.5;
 }
 
 @media (max-width: 767px) {
-  .insider-tip {
+  .story-extras {
+    flex-direction: column;
+    gap: var(--space-xs);
+  }
+  .story-extras__item {
     padding: var(--space-xs) var(--space-sm);
   }
-  .insider-tip__label {
-    margin-bottom: 0;
+  .story-extras__label {
     display: inline;
+    margin-bottom: 0;
   }
-  .insider-tip__text {
+  .story-extras__text {
     display: inline;
   }
 }
@@ -3085,7 +3046,7 @@
   .result-card,
   .nav-tile__link,
   .info-item,
-  .insider-tip,
+  .story-extras__item,
   .color-popover__panel,
   .share-sheet__panel {
     background: var(--bg2);
@@ -3157,12 +3118,12 @@
 /* ---- Actions Block Visual Hierarchy ---- */
 
 /* ---- Section Heading Ink-Underline Reveal ---- */
-.insider-tip__label {
+.story-extras__label {
   position: relative;
   display: inline-block;
 }
 
-.insider-tip__label::after {
+.story-extras__label::after {
   content: '';
   position: absolute;
   bottom: -1px;
@@ -3173,17 +3134,17 @@
   opacity: 0.4;
 }
 
-.result-card--revealing .insider-tip__label::after {
+.result-card--revealing .story-extras__label::after {
   width: 0;
   animation: inkUnderline 400ms var(--ease-out) 200ms forwards;
 }
 
-/* ---- Insider Tip Callout Personality ---- */
-.insider-tip {
+/* ---- Story Extras Callout Personality ---- */
+#story-extras-tip {
   transform: rotate(-0.3deg);
 }
 
-.result-card--revealing .insider-tip {
+.result-card--revealing #story-extras-tip {
   transform: rotate(-1deg);
   animation: tipSettle 400ms var(--spring) 300ms forwards;
 }
@@ -3210,16 +3171,16 @@
     transform: none !important;
   }
 
-  .insider-tip {
+  #story-extras-tip {
     transform: none !important;
   }
 
-  .result-card--revealing .insider-tip {
+  .result-card--revealing #story-extras-tip {
     transform: none !important;
     animation: none !important;
   }
 
-  .result-card--revealing .insider-tip__label::after {
+  .result-card--revealing .story-extras__label::after {
     animation: none !important;
     width: 100% !important;
   }
