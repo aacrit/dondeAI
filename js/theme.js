@@ -737,11 +737,11 @@ function applyTheme(culture, mode) {
   const labels = getLabels(culture);
   applyLabels(labels);
 
-  // Update theme picker active state
-  document.querySelectorAll('.theme-card').forEach(card => {
-    const isActive = card.dataset.theme === culture;
-    card.setAttribute('aria-checked', String(isActive));
-    card.classList.toggle('theme-card--active', isActive);
+  // Update compass node active state
+  document.querySelectorAll('.culture-compass__node').forEach(node => {
+    const isActive = node.dataset.theme === culture;
+    node.setAttribute('aria-checked', String(isActive));
+    node.classList.toggle('culture-compass__node--active', isActive);
   });
 
   // Update mode toggle in theme picker

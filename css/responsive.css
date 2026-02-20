@@ -13,6 +13,26 @@
   .profile-facts {
     grid-template-columns: repeat(2, 1fr);
   }
+
+  /* Scale down compass for very small screens */
+  .culture-compass__dial-wrap {
+    width: 240px;
+    height: 240px;
+  }
+
+  .culture-compass__node {
+    width: 44px;
+    height: 44px;
+  }
+
+  .culture-compass__node-swatch {
+    width: 16px;
+    height: 16px;
+  }
+
+  .culture-compass__node-label {
+    font-size: 6px;
+  }
 }
 
 /* ---- 375px: Primary mobile target ---- */
@@ -92,6 +112,25 @@
 @media (min-width: 1024px) {
   :root {
     --content-max: 960px;
+  }
+
+  .culture-compass__dial-wrap {
+    width: 340px;
+    height: 340px;
+  }
+
+  .culture-compass__node {
+    width: 62px;
+    height: 62px;
+  }
+
+  .culture-compass__node-swatch {
+    width: 24px;
+    height: 24px;
+  }
+
+  .culture-compass__node-label {
+    font-size: 9px;
   }
 
   .header {

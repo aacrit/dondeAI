@@ -1648,52 +1648,259 @@
   background: var(--border);
 }
 
-/* ---- Theme Picker ---- */
-.theme-picker {
+/* ---- Culture Compass — Radial Theme Dial ---- */
+.culture-compass {
   position: fixed;
   inset: 0;
   z-index: var(--z-modal);
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
   pointer-events: none;
   opacity: 0;
   transition: opacity var(--dur-normal) var(--ease-out);
 }
 
-.theme-picker--open {
+.culture-compass--open {
   pointer-events: auto;
   opacity: 1;
 }
 
-.theme-picker__backdrop {
+.culture-compass__backdrop {
   position: absolute;
   inset: 0;
-  background: hsl(0 0% 0% / 0.4);
+  background: hsl(0 0% 0% / 0.55);
+  backdrop-filter: blur(8px) saturate(120%);
+  -webkit-backdrop-filter: blur(8px) saturate(120%);
 }
 
-.theme-picker__sheet {
+.culture-compass__stage {
   position: relative;
-  width: 100%;
-  max-width: 480px;
-  max-height: 80vh;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-lg) var(--space-md);
+  max-width: 380px;
+  width: 92vw;
+  transform: scale(0.85) translateY(20px);
+  opacity: 0;
+  transition: transform var(--dur-step) var(--spring),
+              opacity var(--dur-normal) var(--ease-out);
+}
+
+.culture-compass--open .culture-compass__stage {
+  transform: scale(1) translateY(0);
+  opacity: 1;
+}
+
+/* Close button */
+.culture-compass__close {
+  position: absolute;
+  top: var(--space-xs);
+  right: var(--space-xs);
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: var(--fg2);
   background: var(--glass);
-  backdrop-filter: blur(var(--glass-blur)) saturate(180%);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  padding: var(--space-lg);
-  transform: translateY(100%);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 2;
+  transition: background var(--dur-fast) var(--ease-out),
+              color var(--dur-fast) var(--ease-out);
+}
+
+.culture-compass__close:hover {
+  background: var(--bg3);
+  color: var(--fg);
+}
+
+/* Title */
+.culture-compass__title {
+  font-size: var(--text-lg);
+  color: var(--fg);
+  text-align: center;
+  opacity: 0.9;
+}
+
+/* ---- Dial Wrap (contains pointer + rotatable dial) ---- */
+.culture-compass__dial-wrap {
+  position: relative;
+  width: 280px;
+  height: 280px;
+  flex-shrink: 0;
+}
+
+/* Pointer / needle at 12 o'clock */
+.culture-compass__pointer {
+  position: absolute;
+  top: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  filter: drop-shadow(0 2px 4px hsl(0 0% 0% / 0.25));
+  transition: filter var(--dur-fast) var(--ease-out);
+}
+
+/* The rotatable dial */
+.culture-compass__dial {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: transform 0ms linear;
+  will-change: transform;
+  outline: none;
+}
+
+.culture-compass__dial:focus-visible {
+  box-shadow: 0 0 0 3px var(--ac-soft);
+}
+
+.culture-compass__dial--grabbing {
+  cursor: grabbing;
+}
+
+.culture-compass__dial--settling {
   transition: transform var(--dur-step) var(--spring);
 }
 
-.theme-picker--open .theme-picker__sheet {
-  transform: translateY(0);
+/* SVG ring */
+.culture-compass__ring {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
-/* Mobile grab handle — swipe affordance */
-.theme-picker__sheet::before,
+/* ---- Culture Nodes (positioned on the ring circumference) ---- */
+.culture-compass__nodes {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.culture-compass__node {
+  position: absolute;
+  width: 52px;
+  height: 52px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border-radius: 50%;
+  background: var(--glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 2px solid var(--border);
+  pointer-events: auto;
+  cursor: pointer;
+  transform: translate(-50%, -50%);
+  transition: border-color var(--dur-fast) var(--ease-out),
+              transform var(--dur-fast) var(--spring),
+              box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.culture-compass__node:hover {
+  border-color: var(--fg3);
+  transform: translate(-50%, -50%) scale(1.08);
+}
+
+.culture-compass__node:active {
+  transform: translate(-50%, -50%) scale(0.95);
+}
+
+.culture-compass__node--active {
+  border-color: var(--ac);
+  box-shadow: 0 0 0 3px var(--ac-soft), 0 4px 16px hsl(0 0% 0% / 0.15);
+  transform: translate(-50%, -50%) scale(1.12);
+}
+
+.culture-compass__node--active:hover {
+  transform: translate(-50%, -50%) scale(1.14);
+}
+
+.culture-compass__node-swatch {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid hsl(0 0% 100% / 0.3);
+  flex-shrink: 0;
+}
+
+.culture-compass__node-label {
+  font-family: var(--font-data);
+  font-size: 7px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--fg2);
+  text-transform: uppercase;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.culture-compass__node--active .culture-compass__node-label {
+  color: var(--fg);
+}
+
+/* ---- Center Hub ---- */
+.culture-compass__hub {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  text-align: center;
+  min-height: 72px;
+}
+
+.culture-compass__hub-name {
+  font-size: var(--text-xl);
+  color: var(--fg);
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+
+.culture-compass__hub-tagline {
+  font-size: var(--text-xs);
+  color: var(--fg2);
+  max-width: 240px;
+  line-height: 1.4;
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+
+.culture-compass__hub-swatches {
+  display: flex;
+  gap: 6px;
+  margin-top: var(--space-2xs);
+}
+
+.culture-compass__hub-swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid hsl(0 0% 100% / 0.2);
+  transition: transform var(--dur-fast) var(--spring);
+}
+
+.culture-compass__hub-swatch:first-child {
+  transform: scale(1.15);
+}
+
+/* Hint */
+.culture-compass__hint {
+  font-size: var(--text-xs);
+  color: var(--fg3);
+  opacity: 0.7;
+  text-align: center;
+}
+
+/* ---- Share sheet grab handle (keep for share sheet, was shared) ---- */
 .share-sheet__panel::before {
   content: '';
   display: block;
@@ -1706,119 +1913,28 @@
 }
 
 @media (min-width: 768px) {
-  .theme-picker {
-    align-items: center;
-  }
-
-  .theme-picker__sheet {
-    border-radius: var(--radius-lg);
-    max-height: 70vh;
-  }
-
-  .theme-picker__sheet::before,
   .share-sheet__panel::before {
     display: none;
   }
-}
 
-.theme-picker__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--space-lg);
-}
-
-.theme-picker__title {
-  font-size: var(--text-lg);
-}
-
-.theme-picker__close {
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  color: var(--fg2);
-  transition: background var(--dur-fast) var(--ease-out);
-}
-
-.theme-picker__close:hover {
-  background: var(--bg3);
-}
-
-.theme-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: var(--space-sm);
-  margin-bottom: var(--space-lg);
-}
-
-@media (min-width: 480px) {
-  .theme-grid {
-    grid-template-columns: repeat(4, 1fr);
+  .culture-compass__dial-wrap {
+    width: 320px;
+    height: 320px;
   }
-}
 
-.theme-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-xs);
-  padding: var(--space-md) var(--space-sm);
-  border: 2px solid var(--border);
-  border-radius: var(--radius);
-  cursor: pointer;
-  overflow: hidden;
-  min-width: 0;
-  transition: border-color var(--dur-fast) var(--ease-out),
-              transform var(--dur-fast) var(--spring);
-}
+  .culture-compass__node {
+    width: 58px;
+    height: 58px;
+  }
 
-.theme-card:hover {
-  border-color: var(--ac);
-}
+  .culture-compass__node-swatch {
+    width: 22px;
+    height: 22px;
+  }
 
-.theme-card:active {
-  transform: scale(0.97);
-}
-
-.theme-card--active {
-  border-color: var(--ac);
-  box-shadow: 0 0 0 2px var(--ac-soft);
-}
-
-.theme-card__swatches {
-  display: flex;
-  gap: 4px;
-}
-
-.theme-card__swatch {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  border: 1px solid hsl(0 0% 0% / 0.1);
-}
-
-.theme-card__name {
-  font-size: var(--text-sm);
-  font-weight: 600;
-  color: var(--fg);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
-}
-
-.theme-card__desc {
-  font-size: var(--text-xs);
-  color: var(--fg2);
-  text-align: center;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  max-width: 100%;
+  .culture-compass__node-label {
+    font-size: 8px;
+  }
 }
 
 /* ---- Dark Mode Toggle ---- */
@@ -2479,7 +2595,7 @@
 .filter-pill:focus-visible,
 .smart-chip:focus-visible,
 .cta-btn:focus-visible,
-.theme-card:focus-visible,
+.culture-compass__node:focus-visible,
 .share-btn:focus-visible,
 .header__btn:focus-visible,
 .back-btn:focus-visible {
@@ -2610,7 +2726,7 @@
   .nav-tile__link,
   .info-item,
   .insider-tip,
-  .theme-picker__sheet,
+  .culture-compass__stage,
   .share-sheet__panel {
     background: var(--bg2);
   }
