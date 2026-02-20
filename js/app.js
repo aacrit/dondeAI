@@ -13,7 +13,7 @@ import { initShare, shareResult, closeShareSheet, handleShareChannel } from './s
 import { initOffline, isOnline } from './offline.js';
 import { initAccessibility, announce } from './accessibility.js';
 import { fetchRecommendation } from './api.js';
-import { animateScoreRing, renderPetalRadar, renderSentimentBar, animateBadge, startParticles, stopParticles, chaosToOrderReveal, initLogoAnimation, startSearchPulse, stopSearchPulse, resolveLogoToFound, cleanupLoadingLogo } from './animations.js';
+import { animateScoreRing, renderPetalRadar, renderSentimentBar, renderScoreBloom, toggleBloom, handlePetalTap, handleBloomRingTap, getBloomState, animateBadge, startParticles, stopParticles, chaosToOrderReveal, initLogoAnimation, startSearchPulse, stopSearchPulse, resolveLogoToFound, cleanupLoadingLogo } from './animations.js';
 import {
   getGreeting, getTimePeriod, getCuisineFromResult, svgIcon,
   getScoreTier, getScoreColor, buildGoogleStars, buildMapsUrl, relativeTime, matchCuisine, matchCulture
@@ -732,12 +732,61 @@ function wireEvents() {
     }
   });
 
-  // Expandable tile click delegation (DondeAI Match + Vibe Radar)
+  // Expandable tile click delegation (DondeAI Match — keep for tile-expand modal)
   document.addEventListener('click', (e) => {
     // Skip if click was on the info button (handled by data-action delegation)
     if (e.target.closest('[data-action]')) return;
+
+    // Skip bloom interactions (handled below)
+    if (e.target.closest('.score-bloom')) return;
+
     const tile = e.target.closest('.score-tile--expandable');
     if (tile) openTileExpand(tile);
+  });
+
+  // Score Bloom interaction delegation
+  document.addEventListener('click', (e) => {
+    const bloom = e.target.closest('.score-bloom');
+    if (!bloom) {
+      // Click outside bloom while it's expanded → collapse
+      const state = getBloomState();
+      if (state !== 'compact') {
+        toggleBloom();
+      }
+      return;
+    }
+
+    // Skip if clicking action buttons inside detail strip
+    if (e.target.closest('[data-action]')) return;
+
+    const state = getBloomState();
+    const petal = e.target.closest('.score-bloom__petal');
+    const center = e.target.closest('.score-bloom__center');
+
+    if (state === 'compact') {
+      // Tier 1 → Tier 2: expand bloom
+      toggleBloom();
+    } else if (petal) {
+      // Tier 2 → 2.5: tap petal for detail
+      const dim = petal.getAttribute('data-dim');
+      if (dim) handlePetalTap(dim);
+    } else if (center) {
+      // Tier 2 → 3: tap center ring for V2 arcs
+      handleBloomRingTap();
+    } else {
+      // Tap on bloom background while expanded → collapse
+      toggleBloom();
+    }
+  });
+
+  // Keyboard support for bloom
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      const state = getBloomState();
+      if (state !== 'compact') {
+        toggleBloom();
+      }
+    }
   });
 }
 
@@ -1643,24 +1692,39 @@ function renderResult(data) {
     }
   }
 
-  // ---- Match Tile (DondeAI Match) ----
-  const tier = getScoreTier(data.donde_match);
-  const $verdict = document.getElementById('score-verdict');
-  const $scoreTileDonde = document.getElementById('score-tile-donde');
-  if ($verdict) {
-    $verdict.textContent = tier.verdict;
-    $verdict.className = `score-verdict type-structural--bold ${tier.cssClass}`;
-    $verdict.setAttribute('data-tier', tier.tier);
+  // ---- Score Bloom (Unified Match Ring + Vibe Petals) ----
+  // Build sentiment data for the bloom
+  let bloomSentiment = null;
+  if (r.sentiment_positive != null && r.sentiment_negative != null && r.sentiment_neutral != null) {
+    bloomSentiment = { pos: r.sentiment_positive, neu: r.sentiment_neutral, neg: r.sentiment_negative };
+  } else if (r.sentiment_breakdown) {
+    const parts = r.sentiment_breakdown.toLowerCase();
+    const posMatch = parts.match(/(\d+)%?\s*positive/);
+    const neuMatch = parts.match(/(\d+)%?\s*neutral/);
+    const negMatch = parts.match(/(\d+)%?\s*negative/);
+    if (posMatch || neuMatch || negMatch) {
+      bloomSentiment = {
+        pos: parseInt(posMatch?.[1] || '33', 10),
+        neu: parseInt(neuMatch?.[1] || '34', 10),
+        neg: parseInt(negMatch?.[1] || '33', 10),
+      };
+    }
+  } else if (r.sentiment_score != null) {
+    const score = parseFloat(r.sentiment_score);
+    if (!isNaN(score)) {
+      const p = Math.round((score / 10) * 100);
+      const n = Math.round((1 - score / 10) * 30);
+      bloomSentiment = { pos: p, neu: 100 - p - n, neg: n };
+    }
   }
-  if ($scoreTileDonde) {
-    $scoreTileDonde.setAttribute('data-tier', tier.tier);
-    $scoreTileDonde.classList.add('score-tile--expandable');
-    $scoreTileDonde.setAttribute('tabindex', '0');
-    $scoreTileDonde.setAttribute('role', 'button');
-    $scoreTileDonde.setAttribute('aria-label', 'Expand Donde Match');
-  }
-  // Delay score ring to after tile entrance
-  animationTimers.push(setTimeout(() => animateScoreRing(data.donde_match), 800));
+
+  renderScoreBloom(
+    data.donde_match,
+    data.scores || {},
+    data.scoring_v2 || null,
+    bloomSentiment,
+    animationTimers
+  );
 
   // ---- Google Rating (inline display below ring) ----
   const $googleInline = document.getElementById('google-rating-inline');
@@ -1692,16 +1756,7 @@ function renderResult(data) {
     $googleInline.style.display = 'none';
   }
 
-  // ---- Petal Radar (Vibe Profile) ----
-  renderPetalRadar(data.scores || {}, animationTimers);
-
-  // Compact radar on mobile — show text summary, hide SVG
-  const $radarTile = document.getElementById('score-tile-radar');
-  if ($radarTile && window.innerWidth < 768) {
-    $radarTile.classList.add('score-tile--radar-compact');
-  } else if ($radarTile) {
-    $radarTile.classList.remove('score-tile--radar-compact');
-  }
+  // Petal radar rendering is now handled by renderScoreBloom above
 
   // ---- Profile Block: Unified badges (facts + atmosphere merged) ----
   const $profileFacts = document.getElementById('profile-facts');
@@ -1944,50 +1999,20 @@ function renderResult(data) {
         posVal = Math.round((score / 10) * 100);
         negVal = Math.round((1 - score / 10) * 30);
         neuVal = 100 - posVal - negVal;
-    // Only show sentiment bar when real data exists — never fabricate
-    if (r.sentiment_breakdown || r.sentiment_score) {
-      $sentBar.style.display = '';
-      let posVal = 33, neuVal = 34, negVal = 33;
-      let sentimentValid = true;
-      if (r.sentiment_breakdown) {
-        const parts = r.sentiment_breakdown.toLowerCase();
-        const posMatch = parts.match(/positive[:\s]+(\d+)/);
-        const neuMatch = parts.match(/neutral[:\s]+(\d+)/);
-        const negMatch = parts.match(/negative[:\s]+(\d+)/);
-        // If none of the regexes matched, the string is unparseable (e.g. "N/A")
-        if (!posMatch && !neuMatch && !negMatch) {
-          sentimentValid = false;
-        } else {
-          posVal = parseInt(posMatch?.[1] || '33', 10);
-          neuVal = parseInt(neuMatch?.[1] || '34', 10);
-          negVal = parseInt(negMatch?.[1] || '33', 10);
-        }
-      } else if (r.sentiment_score) {
-        // Derive from single score: score = positive ratio
-        const score = parseFloat(r.sentiment_score);
-        if (isNaN(score)) {
-          sentimentValid = false;
-        } else {
-          posVal = Math.round(score * 100);
-          negVal = Math.round((1 - score) * 30);
-          neuVal = 100 - posVal - negVal;
-        }
       }
     }
 
     if (posVal != null) {
       $sentBar.style.display = '';
       renderSentimentBar(posVal, neuVal, negVal, animationTimers);
-      if (sentimentValid) {
-        renderSentimentBar(posVal, neuVal, negVal, animationTimers);
 
-        // Tooltip labels
-        const $tipPos = document.getElementById('sentiment-tip-pos');
-        const $tipNeu = document.getElementById('sentiment-tip-neu');
-        const $tipNeg = document.getElementById('sentiment-tip-neg');
-        if ($tipPos) $tipPos.textContent = `${posVal}% Positive`;
-        if ($tipNeu) $tipNeu.textContent = `${neuVal}% Neutral`;
-        if ($tipNeg) $tipNeg.textContent = `${negVal}% Negative`;
+      // Tooltip labels
+      const $tipPos = document.getElementById('sentiment-tip-pos');
+      const $tipNeu = document.getElementById('sentiment-tip-neu');
+      const $tipNeg = document.getElementById('sentiment-tip-neg');
+      if ($tipPos) $tipPos.textContent = `${posVal}% Positive`;
+      if ($tipNeu) $tipNeu.textContent = `${neuVal}% Neutral`;
+      if ($tipNeg) $tipNeg.textContent = `${negVal}% Negative`;
 
       // Sentiment summary in tooltip (V2 backend)
       const $tipSummary = document.getElementById('sentiment-tip-summary');
@@ -2004,13 +2029,6 @@ function renderResult(data) {
       $sentBar.addEventListener('click', () => {
         $sentBar.classList.toggle('sentiment-bar--active');
       });
-        // Tap toggle for mobile tooltip
-        $sentBar.addEventListener('click', () => {
-          $sentBar.classList.toggle('sentiment-bar--active');
-        });
-      } else {
-        $sentBar.style.display = 'none';
-      }
     } else {
       $sentBar.style.display = 'none';
     }

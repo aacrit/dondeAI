@@ -1040,61 +1040,159 @@
   background: var(--bg3);
 }
 
-/* ---- Score Row (Match Ring + Petal Radar side by side) ---- */
-.score-row {
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  align-items: stretch;
-  gap: var(--space-sm);
-  width: 100%;
-}
-
-.score-row .score-tile--donde,
-.score-row .score-tile--radar {
-  flex: 1 1 0;
-  min-width: 0;
-  max-width: 200px;
-}
-
-/* ---- Petal Radar Tile ---- */
-.score-tile--radar {
+/* ---- Score Bloom (Unified Match Ring + Vibe Petals) ---- */
+.score-bloom {
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-xs);
-  padding: var(--space-md);
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  gap: var(--space-sm);
+  width: 100%;
+  max-width: 380px;
+  margin: 0 auto;
   cursor: pointer;
-  transition: transform var(--dur-fast) var(--spring),
-              box-shadow var(--dur-fast) var(--ease-out);
+  outline: none;
 }
 
-.score-tile--radar:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px var(--shadow);
+.score-bloom:focus-visible {
+  outline: 2px solid var(--ac);
+  outline-offset: 4px;
+  border-radius: var(--radius);
 }
 
-.score-tile--radar:active {
-  transform: translateY(0);
+/* Brand header */
+.score-bloom__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  line-height: 1;
 }
 
-.score-tile__label {
+.score-bloom__logo-mark {
+  color: var(--fg);
+  flex-shrink: 0;
+}
+
+.score-bloom__wordmark {
+  display: inline-flex;
+  align-items: baseline;
+  line-height: 1;
+  font-size: var(--text-sm);
+  user-select: none;
+}
+
+.score-bloom__label {
   color: var(--fg3);
-  text-transform: uppercase;
   letter-spacing: 0.06em;
+  margin-left: 2px;
+  font-size: var(--text-xs);
 }
 
-/* ---- Petal Radar SVG ---- */
-.petal-radar {
-  width: 160px;
-  height: 160px;
+.score-bloom__label sup {
+  font-size: 0.6em;
+  vertical-align: super;
 }
 
-.petal-radar__guide {
+/* Visualization container */
+.score-bloom__viz {
+  position: relative;
+  width: 280px;
+  height: 280px;
+}
+
+.score-bloom__svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Match ring inside bloom SVG */
+.score-bloom__ring-bg {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 4;
+}
+
+.score-bloom__ring-fill {
+  fill: none;
+  stroke: var(--ac);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-dasharray: 377;
+  stroke-dashoffset: 377;
+  transform: rotate(-90deg);
+  transform-origin: 200px 200px;
+  transition: stroke-dashoffset 1200ms cubic-bezier(0.2, 1, 0.4, 1);
+}
+
+/* Score number overlay (centered on ring) */
+.score-bloom__center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  pointer-events: none;
+}
+
+.score-bloom__number {
+  font-size: var(--text-xl);
+  color: var(--fg);
+  line-height: 1;
+}
+
+.score-bloom__verdict {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--ac);
+  line-height: 1;
+}
+
+.score-bloom__verdict[data-tier="mid"] {
+  color: var(--fg2);
+}
+
+.score-bloom__verdict[data-tier="low"] {
+  color: var(--fg3);
+}
+
+/* Petals */
+.score-bloom__petal {
+  fill: var(--ac);
+  fill-opacity: 0.12;
+  stroke: var(--ac);
+  stroke-width: 1.5;
+  stroke-opacity: 0.30;
+  cursor: pointer;
+  transition: fill-opacity var(--dur-fast) var(--ease-out),
+              stroke-opacity var(--dur-fast) var(--ease-out),
+              stroke-width var(--dur-fast) var(--ease-out);
+}
+
+.score-bloom__petal:hover {
+  fill-opacity: 0.20;
+  stroke-opacity: 0.40;
+}
+
+.score-bloom__petal--active {
+  fill-opacity: 0.25;
+  stroke-opacity: 0.50;
+  stroke-width: 1.8;
+}
+
+.score-bloom__petal--dimmed {
+  fill-opacity: 0.04;
+  stroke-opacity: 0.12;
+}
+
+.score-bloom__petal--dominant {
+  animation: petal-breathe 3s ease-in-out infinite;
+}
+
+/* Grid guides */
+.score-bloom__guide {
   stroke: var(--border);
   stroke-width: 0.5;
   fill: none;
@@ -1102,33 +1200,21 @@
   stroke-dasharray: 3 3;
 }
 
-.petal-radar__axis {
+.score-bloom__axis {
   stroke: var(--border);
   stroke-width: 0.5;
   opacity: 0.3;
 }
 
-.petal-radar__petal {
-  fill: var(--ac);
-  fill-opacity: 0.08;
-  stroke: var(--ac);
-  stroke-width: 1;
-  stroke-opacity: 0.25;
-  transition: fill-opacity var(--dur-fast) var(--ease-out);
-}
-
-.petal-radar__petal:hover {
-  fill-opacity: 0.18;
-}
-
-.petal-radar__icon {
+/* Petal tip icons + labels */
+.score-bloom__icon {
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--fg2);
 }
 
-.petal-radar__label {
+.score-bloom__tip-label {
   font-family: var(--font-data);
   font-size: 9px;
   fill: var(--fg3);
@@ -1136,22 +1222,156 @@
   letter-spacing: 0.04em;
 }
 
-.score-tile__top-vibe {
-  color: var(--fg2);
-  font-size: var(--text-sm);
-  font-style: italic;
-  letter-spacing: 0;
-  margin-top: auto;
-  line-height: 1.4;
-  text-align: center;
+.score-bloom__tip-score {
+  font-family: var(--font-data);
+  font-size: 8px;
+  fill: var(--fg3);
+  text-anchor: middle;
+  opacity: 0.7;
 }
 
-/* Compact radar on mobile — hide SVG, promote text summary */
-.score-tile--radar-compact .petal-radar,
-.score-tile--radar-compact .petal-radar__top-label { display: none; }
-.score-tile--radar-compact .score-tile__top-vibe {
-  font-size: var(--text-base);
-  margin-top: var(--space-xs);
+/* Sentiment arc segments */
+.score-bloom__sentiment-pos {
+  fill: none;
+  stroke: hsl(152 50% 50% / 0.4);
+  stroke-linecap: round;
+}
+
+.score-bloom__sentiment-neu {
+  fill: none;
+  stroke: var(--fg3);
+  stroke-opacity: 0.2;
+  stroke-linecap: round;
+}
+
+.score-bloom__sentiment-neg {
+  fill: none;
+  stroke: hsl(350 60% 58% / 0.4);
+  stroke-linecap: round;
+}
+
+/* Scoring V2 arcs (Tier 3) */
+.score-bloom__v2-arc {
+  fill: none;
+  stroke: var(--fg3);
+  stroke-opacity: 0.30;
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-dasharray: 283;
+  stroke-dashoffset: 283;
+  transition: stroke-dashoffset 600ms cubic-bezier(0.2, 1, 0.4, 1);
+}
+
+.score-bloom__v2-label {
+  font-family: var(--font-data);
+  font-size: 8px;
+  fill: var(--fg3);
+  opacity: 0;
+  transition: opacity 300ms var(--ease-out);
+}
+
+/* "Best for" callout */
+.score-bloom__callout {
+  text-align: center;
+  line-height: 1.4;
+  margin: 0;
+  opacity: 0;
+  transition: opacity 400ms var(--ease-out);
+}
+
+.score-bloom__callout--visible {
+  opacity: 1;
+}
+
+.score-bloom__callout-prefix {
+  font-family: var(--font-emotional);
+  font-size: var(--text-sm);
+  color: var(--fg2);
+  font-style: italic;
+  margin-right: var(--space-2xs);
+}
+
+.score-bloom__callout-value {
+  font-family: var(--font-data);
+  font-size: var(--text-sm);
+  color: var(--fg);
+  letter-spacing: 0.02em;
+}
+
+/* Detail strip (Tier 2.5 — slides in below bloom) */
+.score-bloom__detail {
+  width: 100%;
+  max-width: 320px;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: opacity 300ms var(--ease-out),
+              transform 300ms var(--spring);
+}
+
+.score-bloom__detail--visible {
+  opacity: 1;
+  transform: translateY(0);
+  display: block !important;
+}
+
+.score-bloom__detail-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-xs);
+}
+
+.score-bloom__detail-icon {
+  color: var(--ac);
+  flex-shrink: 0;
+}
+
+.score-bloom__detail-label {
+  font-weight: 600;
+  color: var(--fg);
+  flex: 1;
+}
+
+.score-bloom__detail-score {
+  font-family: var(--font-data);
+  color: var(--ac);
+  font-weight: 700;
+}
+
+.score-bloom__detail-bar {
+  height: 4px;
+  background: var(--bg3);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: var(--space-xs);
+}
+
+.score-bloom__detail-fill {
+  height: 100%;
+  background: var(--ac);
+  border-radius: 2px;
+  transition: width 400ms var(--spring);
+}
+
+.score-bloom__detail-desc {
+  font-size: var(--text-sm);
+  color: var(--fg2);
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Bloom state modifiers */
+.score-bloom[data-bloom-state="bloomed"] {
+  cursor: default;
+}
+
+.score-bloom[data-bloom-state="bloomed"] .score-bloom__center {
+  pointer-events: auto;
+  cursor: pointer;
 }
 
 /* ---- Sentiment Bar (horizontal mood indicator — inside reviews-unit) ---- */

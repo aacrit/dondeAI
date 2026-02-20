@@ -427,6 +427,32 @@
   animation: ctaBoost 500ms var(--spring);
 }
 
+/* ---- Score Bloom Keyframes ---- */
+
+/* Dominant petal breathing — subtle scale pulse */
+@keyframes petal-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.04); }
+}
+
+/* Arc draw-in — stroke-dashoffset animation */
+@keyframes arcDrawIn {
+  from { stroke-dashoffset: 283; }
+  to { stroke-dashoffset: var(--arc-offset, 0); }
+}
+
+/* Detail strip slide-in */
+@keyframes detailSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* ---- Reduced Motion: Gentle fallback (100ms linear, not 0ms) ---- */
 @media (prefers-reduced-motion: reduce) {
   .stagger-in > *,
@@ -505,6 +531,19 @@
   }
 
   .color-popover__panel {
+    transition: none !important;
+  }
+
+  /* Score Bloom — no breathing, instant transitions */
+  .score-bloom__petal--dominant {
+    animation: none !important;
+  }
+  .score-bloom__petal,
+  .score-bloom__detail,
+  .score-bloom__callout,
+  .score-bloom__v2-arc,
+  .score-bloom__v2-label,
+  .score-bloom__ring-fill {
     transition: none !important;
   }
 }

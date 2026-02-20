@@ -303,80 +303,88 @@
                 </div>
               </div>
 
-              <!-- Block 3: Scores — DondeAI Match + Petal Radar side-by-side -->
+              <!-- Block 3: Scores — Unified Score Bloom -->
               <div class="score-section" id="score-section">
-                <div class="score-row">
-                  <!-- Hero: DondeAI Match Ring -->
-                  <div class="score-tile score-tile--donde" id="score-tile-donde" role="group" aria-label="Donde Match">
-                    <div class="score-tile__brand" aria-label="Donde Match">
-                      <svg class="score-tile__logo-mark" viewBox="0 0 32 44" width="16" height="22" aria-hidden="true">
-                        <path d="M10.5 1C10.5 1 10 8.5 12.5 11.5Q14 13 14.5 13.5"
-                              fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-                        <path d="M21.5 1C21.5 1 22 8.5 19.5 11.5Q18 13 17.5 13.5"
-                              fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-                        <path d="M16 13.5C22 11 29 14 28 21C27 27 19 29 16 31L16 34"
-                              fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>
-                        <circle cx="16" cy="40" r="2.8" fill="var(--ac)"/>
-                      </svg>
-                      <span class="score-tile__wordmark">
-                        <span class="score-tile__wordmark-d">D</span><span
-                          class="score-tile__wordmark-ond">ond</span><span
-                          class="score-tile__wordmark-e">e</span>
-                      </span>
-                      <span class="score-tile__score-label type-data--sm">Match<sup>™</sup></span>
-                    </div>
-                    <button class="score-tile__info" data-action="show-match-info" aria-label="How is this match calculated?" title="How is this match calculated?">
-                      <svg viewBox="0 0 256 256" width="16" height="16" aria-hidden="true">
-                        <path fill="currentColor" d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm16-40a8,8,0,0,1-8,8,16,16,0,0,1-16-16V128a8,8,0,0,1,0-16,16,16,0,0,1,16,16v40A8,8,0,0,1,144,176ZM112,84a12,12,0,1,1,12,12A12,12,0,0,1,112,84Z"/>
-                      </svg>
-                    </button>
-                    <div class="score-ring-wrap">
-                      <svg class="score-ring" viewBox="0 0 100 100">
-                        <circle class="score-ring__bg" cx="50" cy="50" r="45"></circle>
-                        <circle class="score-ring__fill" id="score-ring-fill" cx="50" cy="50" r="45"></circle>
-                      </svg>
-                      <div class="score-ring__number">
-                        <span class="type-data--lg" id="score-number">0%</span>
-                      </div>
-                    </div>
-                    <span class="score-verdict type-structural--bold" id="score-verdict"></span>
+
+                <!-- Score Bloom: Unified Match Ring + Vibe Petals -->
+                <div class="score-bloom" id="score-bloom"
+                     role="figure" tabindex="0"
+                     aria-label="DondeAI score visualization"
+                     aria-expanded="false"
+                     data-bloom-state="compact">
+
+                  <!-- Brand header -->
+                  <div class="score-bloom__brand" aria-label="Donde Match & Vibe">
+                    <svg class="score-bloom__logo-mark" viewBox="0 0 32 44" width="16" height="22" aria-hidden="true">
+                      <path d="M10.5 1C10.5 1 10 8.5 12.5 11.5Q14 13 14.5 13.5"
+                            fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                      <path d="M21.5 1C21.5 1 22 8.5 19.5 11.5Q18 13 17.5 13.5"
+                            fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                      <path d="M16 13.5C22 11 29 14 28 21C27 27 19 29 16 31L16 34"
+                            fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>
+                      <circle cx="16" cy="40" r="2.8" fill="var(--ac)"/>
+                    </svg>
+                    <span class="score-bloom__wordmark">
+                      <span class="score-tile__wordmark-d">D</span><span
+                        class="score-tile__wordmark-ond">ond</span><span
+                        class="score-tile__wordmark-e">e</span>
+                    </span>
+                    <span class="score-bloom__label type-data--sm">Match<sup>™</sup> &amp; Vibe<sup>™</sup></span>
                   </div>
 
-                  <!-- Petal Radar Chart (Donde Vibe™) -->
-                  <div class="score-tile score-tile--radar score-tile--expandable" id="score-tile-radar"
-                       role="button" tabindex="0" aria-label="Donde Vibe radar chart" style="display: none;">
-                    <div class="score-tile__brand" aria-label="Donde Vibe">
-                      <svg class="score-tile__logo-mark" viewBox="0 0 32 44" width="16" height="22" aria-hidden="true">
-                        <path d="M10.5 1C10.5 1 10 8.5 12.5 11.5Q14 13 14.5 13.5"
-                              fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-                        <path d="M21.5 1C21.5 1 22 8.5 19.5 11.5Q18 13 17.5 13.5"
-                              fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-                        <path d="M16 13.5C22 11 29 14 28 21C27 27 19 29 16 31L16 34"
-                              fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>
-                        <circle cx="16" cy="40" r="2.8" fill="var(--ac)"/>
-                      </svg>
-                      <span class="score-tile__wordmark">
-                        <span class="score-tile__wordmark-d">D</span><span
-                          class="score-tile__wordmark-ond">ond</span><span
-                          class="score-tile__wordmark-e">e</span>
-                      </span>
-                      <span class="score-tile__score-label type-data--sm">Vibe<sup>™</sup></span>
-                    </div>
-                    <button class="score-tile__info" data-action="show-vibe-info" aria-label="What is the Vibe radar?" title="What is the Vibe radar?">
-                      <svg viewBox="0 0 256 256" width="16" height="16" aria-hidden="true">
-                        <path fill="currentColor" d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm16-40a8,8,0,0,1-8,8,16,16,0,0,1-16-16V128a8,8,0,0,1,0-16,16,16,0,0,1,16,16v40A8,8,0,0,1,144,176ZM112,84a12,12,0,1,1,12,12A12,12,0,0,1,112,84Z"/>
-                      </svg>
-                    </button>
-                    <svg class="petal-radar" id="petal-radar" viewBox="0 0 240 240" aria-hidden="true">
-                      <g class="petal-radar__grid"></g>
-                      <g class="petal-radar__axes"></g>
-                      <g class="petal-radar__petals" id="petal-radar-petals"></g>
-                      <g class="petal-radar__icons" id="petal-radar-icons"></g>
+                  <!-- Unified SVG visualization -->
+                  <div class="score-bloom__viz" id="score-bloom-viz">
+                    <svg class="score-bloom__svg" id="score-bloom-svg" viewBox="0 0 400 400" aria-hidden="true">
+                      <!-- Sentiment arc (outermost, thin colored ring) -->
+                      <g class="score-bloom__sentiment" id="score-bloom-sentiment"></g>
+
+                      <!-- Scoring V2 arcs (Tier 3 — hidden by default) -->
+                      <g class="score-bloom__v2-arcs" id="score-bloom-v2" style="opacity: 0;"></g>
+
+                      <!-- Grid guides (Tier 2 — hidden by default) -->
+                      <g class="score-bloom__grid" id="score-bloom-grid" style="opacity: 0;"></g>
+                      <g class="score-bloom__axes" id="score-bloom-axes" style="opacity: 0;"></g>
+
+                      <!-- Match ring (center) -->
+                      <circle class="score-bloom__ring-bg" cx="200" cy="200" r="60"></circle>
+                      <circle class="score-bloom__ring-fill" id="score-bloom-ring-fill" cx="200" cy="200" r="60"></circle>
+
+                      <!-- Vibe petals (6 teardrops radiating from ring) -->
+                      <g class="score-bloom__petals" id="score-bloom-petals"></g>
+
+                      <!-- Petal tip icons + labels (visible in Tier 2) -->
+                      <g class="score-bloom__labels" id="score-bloom-labels" style="opacity: 0;"></g>
                     </svg>
+
+                    <!-- Score number overlay (positioned over ring center) -->
+                    <div class="score-bloom__center" id="score-bloom-center">
+                      <span class="score-bloom__number type-data--lg" id="score-bloom-number">0%</span>
+                      <span class="score-bloom__verdict type-structural--bold" id="score-bloom-verdict"></span>
+                    </div>
                   </div>
+
+                  <!-- "Best for" callout -->
+                  <p class="score-bloom__callout" id="score-bloom-callout" style="display: none;">
+                    <span class="score-bloom__callout-prefix type-emotional">Best for:</span>
+                    <span class="score-bloom__callout-value type-data" id="score-bloom-callout-value"></span>
+                  </p>
+
+                  <!-- Petal detail strip (slides in on petal tap — Tier 2.5) -->
+                  <div class="score-bloom__detail" id="score-bloom-detail" aria-live="polite" style="display: none;">
+                    <div class="score-bloom__detail-header">
+                      <span class="score-bloom__detail-icon" id="score-bloom-detail-icon"></span>
+                      <span class="score-bloom__detail-label type-structural" id="score-bloom-detail-label"></span>
+                      <span class="score-bloom__detail-score type-data" id="score-bloom-detail-score"></span>
+                    </div>
+                    <div class="score-bloom__detail-bar">
+                      <div class="score-bloom__detail-fill" id="score-bloom-detail-fill"></div>
+                    </div>
+                    <p class="score-bloom__detail-desc type-structural" id="score-bloom-detail-desc"></p>
+                  </div>
+
                 </div>
 
-                <!-- Reviews Unit: Google Rating + Sentiment merged -->
+                <!-- Reviews Unit: Google Rating + Sentiment bar (preserved for fallback) -->
                 <div class="reviews-unit" id="reviews-unit">
                   <div class="reviews-unit__stars-row">
                     <div class="google-rating-inline" id="google-rating-inline" style="display: none;">

@@ -84,7 +84,7 @@ export function animateScoreRing(rawScore) {
 }
 
 /* ---- Petal Radar Chart (Ink Blossom — 6-axis vibe profile) ---- */
-import { svgIcon, buildVibeSummary } from './utils.js';
+import { svgIcon, buildVibeSummary, getVibeDetail } from './utils.js';
 
 const RADAR_DIMS = [
   { key: 'date_friendly_score',    label: 'Date',     icon: 'heart' },
@@ -254,6 +254,625 @@ export function renderPetalRadar(scores, timers = []) {
     $topVibe.textContent = vibeSummary;
   }
 }
+
+/* ---- Score Bloom (Unified Match Ring + Vibe Petals) ---- */
+
+const BLOOM_STATES = { COMPACT: 'compact', BLOOMED: 'bloomed', PETAL_FOCUSED: 'petal-focused', DEEP_DIVE: 'deep-dive' };
+let bloomState = BLOOM_STATES.COMPACT;
+let bloomData = null;
+let activePetalDim = null;
+
+export function renderScoreBloom(dondeMatch, scores, scoringV2, sentiment, timers = []) {
+  const $bloom = document.getElementById('score-bloom');
+  if (!$bloom) return;
+
+  // Store data for interaction handlers
+  bloomData = { dondeMatch, scores, scoringV2, sentiment };
+  bloomState = BLOOM_STATES.COMPACT;
+  activePetalDim = null;
+  $bloom.setAttribute('data-bloom-state', 'compact');
+  $bloom.setAttribute('aria-expanded', 'false');
+
+  // ---- Match Ring (center of bloom SVG) ----
+  const pct = Math.round(parseFloat(dondeMatch) || 80);
+  const $ringFill = document.getElementById('score-bloom-ring-fill');
+  const $number = document.getElementById('score-bloom-number');
+  const $verdict = document.getElementById('score-bloom-verdict');
+
+  if ($ringFill) {
+    const circumference = 2 * Math.PI * 60; // r=60 in bloom SVG
+    const target = circumference - (pct / 100) * circumference;
+    $ringFill.style.stroke = 'var(--ac)';
+    $ringFill.style.strokeDasharray = String(circumference);
+
+    if (REDUCED.matches) {
+      $ringFill.style.strokeDashoffset = String(target);
+      if ($number) $number.textContent = pct + '%';
+    } else {
+      $ringFill.style.strokeDashoffset = String(circumference);
+      timers.push(setTimeout(() => {
+        $ringFill.style.strokeDashoffset = String(target);
+      }, 300));
+
+      // Count-up number
+      if ($number) {
+        const duration = 1200;
+        const start = performance.now();
+        function tick(now) {
+          const elapsed = now - start;
+          const progress = Math.min(elapsed / duration, 1);
+          const eased = 1 - Math.pow(1 - progress, 3);
+          $number.textContent = Math.round(pct * eased) + '%';
+          if (progress < 1) requestAnimationFrame(tick);
+          else $number.textContent = pct + '%';
+        }
+        timers.push(setTimeout(() => requestAnimationFrame(tick), 300));
+      }
+    }
+  }
+
+  // Verdict label
+  if ($verdict) {
+    const tier = pct >= 90 ? { verdict: 'Outstanding', tier: 'high' }
+      : pct >= 85 ? { verdict: 'Excellent', tier: 'high' }
+      : pct >= 75 ? { verdict: 'Solid Pick', tier: 'mid' }
+      : pct >= 60 ? { verdict: 'Worth a Try', tier: 'mid' }
+      : { verdict: 'Adventurous', tier: 'low' };
+    $verdict.textContent = tier.verdict;
+    $verdict.setAttribute('data-tier', tier.tier);
+    if (!REDUCED.matches) {
+      $verdict.style.opacity = '0';
+      timers.push(setTimeout(() => {
+        $verdict.style.transition = 'opacity 400ms ease-out';
+        $verdict.style.opacity = '1';
+      }, 800));
+    }
+  }
+
+  // ---- Vibe Petals (compact mode — small teardrops around ring) ----
+  const cx = 200, cy = 200;
+  const ringR = 60;
+  const compactMaxR = 28; // compact petal max length from ring edge
+  const compactMinR = 6;
+  const angleStep = (2 * Math.PI) / 6;
+  const startAngle = -Math.PI / 2;
+
+  const available = RADAR_DIMS.filter(d => {
+    const v = scores[d.key];
+    return v != null && v !== '' && !isNaN(parseFloat(v));
+  });
+
+  const slots = RADAR_DIMS.map(dim => {
+    const found = available.find(a => a.key === dim.key);
+    const val = found ? Math.min(parseFloat(scores[dim.key]) || 0, 10) : 0;
+    return { ...dim, val, hasData: !!found };
+  });
+
+  // Build aria-label
+  const ariaDesc = slots.filter(s => s.hasData)
+    .map(s => `${s.label} ${s.val.toFixed(1)}`).join(', ');
+  $bloom.setAttribute('aria-label', `DondeAI Match ${pct}%. Vibe: ${ariaDesc}`);
+
+  // Render petals
+  const $petals = document.getElementById('score-bloom-petals');
+  if ($petals) {
+    $petals.innerHTML = '';
+
+    if (available.length >= 3) {
+      // Find dominant petal
+      const dominant = slots.reduce((best, s) => (s.hasData && s.val > (best?.val || 0)) ? s : best, null);
+
+      slots.forEach((slot, i) => {
+        if (!slot.hasData) return;
+        const angle = startAngle + i * angleStep;
+        // Compact: petal starts from ring edge
+        const petalStart = ringR + 4;
+        const petalLen = compactMinR + (slot.val / 10) * (compactMaxR - compactMinR);
+        const startX = cx + petalStart * Math.cos(angle);
+        const startY = cy + petalStart * Math.sin(angle);
+        const path = buildTeardropPath(startX, startY, angle, petalLen);
+
+        const pathEl = svgEl('path');
+        pathEl.setAttribute('d', path);
+        pathEl.classList.add('score-bloom__petal');
+        pathEl.setAttribute('data-dim', slot.key);
+        pathEl.setAttribute('data-value', slot.val.toFixed(1));
+        pathEl.setAttribute('data-index', String(i));
+
+        // Dominant petal gets breathing animation
+        if (dominant && slot.key === dominant.key) {
+          pathEl.style.transformOrigin = `${startX}px ${startY}px`;
+          if (!REDUCED.matches) {
+            timers.push(setTimeout(() => {
+              pathEl.classList.add('score-bloom__petal--dominant');
+            }, 1100));
+          }
+        }
+
+        // Entrance animation
+        if (!REDUCED.matches) {
+          pathEl.style.transformOrigin = `${cx}px ${cy}px`;
+          pathEl.style.transform = 'scale(0)';
+          pathEl.style.opacity = '0';
+          const delay = 600 + i * 80;
+          timers.push(setTimeout(() => {
+            pathEl.style.transition = 'transform 500ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 300ms ease-out';
+            pathEl.style.transform = 'scale(1)';
+            pathEl.style.opacity = '1';
+          }, delay));
+        }
+
+        $petals.appendChild(pathEl);
+      });
+    }
+  }
+
+  // ---- Sentiment Arc (thin colored ring outside match ring) ----
+  const $sentimentG = document.getElementById('score-bloom-sentiment');
+  if ($sentimentG && sentiment) {
+    $sentimentG.innerHTML = '';
+    const total = (sentiment.pos || 0) + (sentiment.neu || 0) + (sentiment.neg || 0);
+    if (total > 0) {
+      const sentR = ringR + 8;
+      const sentWidth = 2;
+      const totalAngle = 2 * Math.PI;
+      const gap = 0.04; // small gap between segments
+
+      const posAngle = (sentiment.pos / total) * totalAngle - gap;
+      const neuAngle = (sentiment.neu / total) * totalAngle - gap;
+      const negAngle = (sentiment.neg / total) * totalAngle - gap;
+
+      let currentAngle = -Math.PI / 2;
+      const segments = [
+        { angle: posAngle, cls: 'score-bloom__sentiment-pos' },
+        { angle: neuAngle, cls: 'score-bloom__sentiment-neu' },
+        { angle: negAngle, cls: 'score-bloom__sentiment-neg' },
+      ];
+
+      segments.forEach(seg => {
+        if (seg.angle <= 0) { currentAngle += gap; return; }
+        const endAngle = currentAngle + seg.angle;
+        const largeArc = seg.angle > Math.PI ? 1 : 0;
+        const x1 = cx + sentR * Math.cos(currentAngle);
+        const y1 = cy + sentR * Math.sin(currentAngle);
+        const x2 = cx + sentR * Math.cos(endAngle);
+        const y2 = cy + sentR * Math.sin(endAngle);
+
+        const arc = svgEl('path');
+        arc.setAttribute('d', `M ${x1} ${y1} A ${sentR} ${sentR} 0 ${largeArc} 1 ${x2} ${y2}`);
+        arc.classList.add(seg.cls);
+        arc.setAttribute('stroke-width', String(sentWidth));
+        arc.setAttribute('fill', 'none');
+
+        if (!REDUCED.matches) {
+          arc.style.opacity = '0';
+          timers.push(setTimeout(() => {
+            arc.style.transition = 'opacity 400ms ease-out';
+            arc.style.opacity = '1';
+          }, 1000));
+        }
+
+        $sentimentG.appendChild(arc);
+        currentAngle = endAngle + gap;
+      });
+    }
+  }
+
+  // ---- "Best for" Callout ----
+  const $callout = document.getElementById('score-bloom-callout');
+  const $calloutValue = document.getElementById('score-bloom-callout-value');
+  if ($callout && $calloutValue && available.length >= 1) {
+    const best = slots.filter(s => s.hasData).sort((a, b) => b.val - a.val)[0];
+    if (best) {
+      $calloutValue.textContent = `${best.label} · ${best.val.toFixed(1)}`;
+      $callout.style.display = '';
+      if (!REDUCED.matches) {
+        timers.push(setTimeout(() => {
+          $callout.classList.add('score-bloom__callout--visible');
+        }, 900));
+      } else {
+        $callout.classList.add('score-bloom__callout--visible');
+      }
+    }
+  }
+}
+
+/* ---- Bloom Interaction Handlers ---- */
+
+export function toggleBloom() {
+  const $bloom = document.getElementById('score-bloom');
+  if (!$bloom || !bloomData) return;
+
+  if (bloomState === BLOOM_STATES.COMPACT) {
+    expandBloom($bloom);
+  } else {
+    collapseBloom($bloom);
+  }
+}
+
+function expandBloom($bloom) {
+  bloomState = BLOOM_STATES.BLOOMED;
+  $bloom.setAttribute('data-bloom-state', 'bloomed');
+  $bloom.setAttribute('aria-expanded', 'true');
+
+  const scores = bloomData.scores;
+  const cx = 200, cy = 200;
+  const ringR = 60;
+  const fullMaxR = 72; // full bloom petal max length
+  const fullMinR = 12;
+  const angleStep = (2 * Math.PI) / 6;
+  const startAngle = -Math.PI / 2;
+
+  const available = RADAR_DIMS.filter(d => {
+    const v = scores[d.key];
+    return v != null && v !== '' && !isNaN(parseFloat(v));
+  });
+
+  // Show grid guides
+  const $grid = document.getElementById('score-bloom-grid');
+  const $axes = document.getElementById('score-bloom-axes');
+  if ($grid) {
+    $grid.innerHTML = '';
+    [0.33, 0.66].forEach(pct => {
+      const r = ringR + 4 + fullMaxR * pct;
+      const pts = [];
+      for (let i = 0; i < 6; i++) {
+        const a = startAngle + i * angleStep;
+        pts.push(`${cx + r * Math.cos(a)},${cy + r * Math.sin(a)}`);
+      }
+      const poly = svgEl('polygon');
+      poly.setAttribute('points', pts.join(' '));
+      poly.classList.add('score-bloom__guide');
+      $grid.appendChild(poly);
+    });
+    $grid.style.transition = 'opacity 300ms ease-out';
+    $grid.style.opacity = '0.4';
+  }
+
+  if ($axes) {
+    $axes.innerHTML = '';
+    for (let i = 0; i < 6; i++) {
+      const a = startAngle + i * angleStep;
+      const outerR = ringR + 4 + fullMaxR;
+      const line = svgEl('line');
+      line.setAttribute('x1', String(cx + (ringR + 4) * Math.cos(a)));
+      line.setAttribute('y1', String(cy + (ringR + 4) * Math.sin(a)));
+      line.setAttribute('x2', String(cx + outerR * Math.cos(a)));
+      line.setAttribute('y2', String(cy + outerR * Math.sin(a)));
+      line.classList.add('score-bloom__axis');
+      $axes.appendChild(line);
+    }
+    $axes.style.transition = 'opacity 300ms ease-out';
+    $axes.style.opacity = '0.3';
+  }
+
+  // Expand petals to full size
+  const $petals = document.getElementById('score-bloom-petals');
+  if ($petals) {
+    $petals.innerHTML = '';
+    const slots = RADAR_DIMS.map(dim => {
+      const found = available.find(a => a.key === dim.key);
+      const val = found ? Math.min(parseFloat(scores[dim.key]) || 0, 10) : 0;
+      return { ...dim, val, hasData: !!found };
+    });
+
+    slots.forEach((slot, i) => {
+      if (!slot.hasData) return;
+      const angle = startAngle + i * angleStep;
+      const petalStart = ringR + 4;
+      const petalLen = fullMinR + (slot.val / 10) * (fullMaxR - fullMinR);
+      const startX = cx + petalStart * Math.cos(angle);
+      const startY = cy + petalStart * Math.sin(angle);
+      const path = buildTeardropPath(startX, startY, angle, petalLen);
+
+      const pathEl = svgEl('path');
+      pathEl.setAttribute('d', path);
+      pathEl.classList.add('score-bloom__petal');
+      pathEl.setAttribute('data-dim', slot.key);
+      pathEl.setAttribute('data-value', slot.val.toFixed(1));
+      pathEl.setAttribute('data-index', String(i));
+
+      if (!REDUCED.matches) {
+        pathEl.style.transformOrigin = `${cx}px ${cy}px`;
+        pathEl.style.transform = 'scale(0.6)';
+        pathEl.style.opacity = '0.5';
+        const delay = i * 60;
+        setTimeout(() => {
+          pathEl.style.transition = 'transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 200ms ease-out';
+          pathEl.style.transform = 'scale(1)';
+          pathEl.style.opacity = '1';
+        }, delay);
+      }
+
+      $petals.appendChild(pathEl);
+    });
+  }
+
+  // Show labels at petal tips
+  const $labels = document.getElementById('score-bloom-labels');
+  if ($labels) {
+    $labels.innerHTML = '';
+    const slots = RADAR_DIMS.map(dim => {
+      const found = available.find(a => a.key === dim.key);
+      const val = found ? Math.min(parseFloat(scores[dim.key]) || 0, 10) : 0;
+      return { ...dim, val, hasData: !!found };
+    });
+
+    slots.forEach((slot, i) => {
+      if (!slot.hasData) return;
+      const angle = startAngle + i * angleStep;
+      const labelR = ringR + 4 + fullMaxR + 18;
+      const lx = cx + labelR * Math.cos(angle);
+      const ly = cy + labelR * Math.sin(angle);
+
+      // Score text
+      const scoreText = svgEl('text');
+      scoreText.setAttribute('x', String(lx));
+      scoreText.setAttribute('y', String(ly + 3));
+      scoreText.classList.add('score-bloom__tip-label');
+      scoreText.textContent = `${slot.label} ${slot.val.toFixed(1)}`;
+      $labels.appendChild(scoreText);
+    });
+
+    $labels.style.transition = 'opacity 300ms ease-out';
+    $labels.style.opacity = '1';
+  }
+}
+
+function collapseBloom($bloom) {
+  bloomState = BLOOM_STATES.COMPACT;
+  activePetalDim = null;
+  $bloom.setAttribute('data-bloom-state', 'compact');
+  $bloom.setAttribute('aria-expanded', 'false');
+
+  // Re-render compact petals
+  if (bloomData) {
+    const fakeTimers = [];
+    renderCompactPetals(bloomData.scores, fakeTimers);
+  }
+
+  // Hide grid, axes, labels
+  const $grid = document.getElementById('score-bloom-grid');
+  const $axes = document.getElementById('score-bloom-axes');
+  const $labels = document.getElementById('score-bloom-labels');
+  if ($grid) { $grid.style.opacity = '0'; $grid.innerHTML = ''; }
+  if ($axes) { $axes.style.opacity = '0'; $axes.innerHTML = ''; }
+  if ($labels) { $labels.style.opacity = '0'; $labels.innerHTML = ''; }
+
+  // Hide detail strip
+  hideBloomDetail();
+}
+
+function renderCompactPetals(scores, timers) {
+  const cx = 200, cy = 200;
+  const ringR = 60;
+  const compactMaxR = 28;
+  const compactMinR = 6;
+  const angleStep = (2 * Math.PI) / 6;
+  const startAngle = -Math.PI / 2;
+
+  const available = RADAR_DIMS.filter(d => {
+    const v = scores[d.key];
+    return v != null && v !== '' && !isNaN(parseFloat(v));
+  });
+
+  const slots = RADAR_DIMS.map(dim => {
+    const found = available.find(a => a.key === dim.key);
+    const val = found ? Math.min(parseFloat(scores[dim.key]) || 0, 10) : 0;
+    return { ...dim, val, hasData: !!found };
+  });
+
+  const $petals = document.getElementById('score-bloom-petals');
+  if (!$petals || available.length < 3) return;
+  $petals.innerHTML = '';
+
+  const dominant = slots.reduce((best, s) => (s.hasData && s.val > (best?.val || 0)) ? s : best, null);
+
+  slots.forEach((slot, i) => {
+    if (!slot.hasData) return;
+    const angle = startAngle + i * angleStep;
+    const petalStart = ringR + 4;
+    const petalLen = compactMinR + (slot.val / 10) * (compactMaxR - compactMinR);
+    const startX = cx + petalStart * Math.cos(angle);
+    const startY = cy + petalStart * Math.sin(angle);
+    const path = buildTeardropPath(startX, startY, angle, petalLen);
+
+    const pathEl = svgEl('path');
+    pathEl.setAttribute('d', path);
+    pathEl.classList.add('score-bloom__petal');
+    pathEl.setAttribute('data-dim', slot.key);
+    pathEl.setAttribute('data-value', slot.val.toFixed(1));
+    pathEl.setAttribute('data-index', String(i));
+
+    if (dominant && slot.key === dominant.key && !REDUCED.matches) {
+      pathEl.style.transformOrigin = `${startX}px ${startY}px`;
+      pathEl.classList.add('score-bloom__petal--dominant');
+    }
+
+    if (!REDUCED.matches) {
+      pathEl.style.transformOrigin = `${cx}px ${cy}px`;
+      pathEl.style.transform = 'scale(0.6)';
+      pathEl.style.opacity = '0.5';
+      const delay = i * 50;
+      setTimeout(() => {
+        pathEl.style.transition = 'transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 200ms ease-out';
+        pathEl.style.transform = 'scale(1)';
+        pathEl.style.opacity = '1';
+      }, delay);
+    }
+
+    $petals.appendChild(pathEl);
+  });
+}
+
+export function handlePetalTap(dimKey) {
+  if (bloomState !== BLOOM_STATES.BLOOMED && bloomState !== BLOOM_STATES.PETAL_FOCUSED) return;
+  if (!bloomData) return;
+
+  // Toggle same petal off
+  if (activePetalDim === dimKey) {
+    activePetalDim = null;
+    bloomState = BLOOM_STATES.BLOOMED;
+    resetPetalHighlights();
+    hideBloomDetail();
+    return;
+  }
+
+  activePetalDim = dimKey;
+  bloomState = BLOOM_STATES.PETAL_FOCUSED;
+
+  // Highlight active, dim others
+  const $petals = document.querySelectorAll('.score-bloom__petal');
+  $petals.forEach(p => {
+    if (p.getAttribute('data-dim') === dimKey) {
+      p.classList.add('score-bloom__petal--active');
+      p.classList.remove('score-bloom__petal--dimmed');
+    } else {
+      p.classList.remove('score-bloom__petal--active');
+      p.classList.add('score-bloom__petal--dimmed');
+    }
+  });
+
+  // Show detail strip
+  showBloomDetail(dimKey);
+}
+
+function showBloomDetail(dimKey) {
+  const $detail = document.getElementById('score-bloom-detail');
+  if (!$detail || !bloomData) return;
+
+  const dim = RADAR_DIMS.find(d => d.key === dimKey);
+  if (!dim) return;
+
+  const val = parseFloat(bloomData.scores[dimKey]) || 0;
+  const pct = (val / 10) * 100;
+
+  const $icon = document.getElementById('score-bloom-detail-icon');
+  const $label = document.getElementById('score-bloom-detail-label');
+  const $score = document.getElementById('score-bloom-detail-score');
+  const $fill = document.getElementById('score-bloom-detail-fill');
+  const $desc = document.getElementById('score-bloom-detail-desc');
+
+  if ($icon) $icon.innerHTML = svgIcon(dim.icon, 18);
+  if ($label) $label.textContent = dim.label;
+  if ($score) $score.textContent = `${val.toFixed(1)} / 10`;
+  if ($fill) $fill.style.width = `${pct}%`;
+  if ($desc) {
+    const detail = getVibeDetail(dimKey, val);
+    $desc.textContent = detail;
+  }
+
+  $detail.style.display = 'block';
+  requestAnimationFrame(() => {
+    $detail.classList.add('score-bloom__detail--visible');
+  });
+}
+
+function hideBloomDetail() {
+  const $detail = document.getElementById('score-bloom-detail');
+  if ($detail) {
+    $detail.classList.remove('score-bloom__detail--visible');
+    setTimeout(() => { $detail.style.display = 'none'; }, 300);
+  }
+}
+
+function resetPetalHighlights() {
+  const $petals = document.querySelectorAll('.score-bloom__petal');
+  $petals.forEach(p => {
+    p.classList.remove('score-bloom__petal--active', 'score-bloom__petal--dimmed');
+  });
+}
+
+export function handleBloomRingTap() {
+  if (bloomState !== BLOOM_STATES.BLOOMED && bloomState !== BLOOM_STATES.PETAL_FOCUSED) return;
+  if (!bloomData || !bloomData.scoringV2) return;
+
+  const $bloom = document.getElementById('score-bloom');
+  if (bloomState === BLOOM_STATES.DEEP_DIVE) {
+    // Exit deep dive
+    bloomState = BLOOM_STATES.BLOOMED;
+    $bloom?.setAttribute('data-bloom-state', 'bloomed');
+    hideV2Arcs();
+    return;
+  }
+
+  bloomState = BLOOM_STATES.DEEP_DIVE;
+  $bloom?.setAttribute('data-bloom-state', 'deep-dive');
+  activePetalDim = null;
+  resetPetalHighlights();
+  hideBloomDetail();
+  showV2Arcs();
+}
+
+function showV2Arcs() {
+  const $v2 = document.getElementById('score-bloom-v2');
+  if (!$v2 || !bloomData?.scoringV2) return;
+
+  $v2.innerHTML = '';
+  const sv2 = bloomData.scoringV2;
+  const cx = 200, cy = 200;
+  const ringR = 60;
+
+  const v2Dims = [
+    { key: 'occasion_fit',    label: 'Occasion' },
+    { key: 'craving_match',   label: 'Craving' },
+    { key: 'vibe_alignment',  label: 'Vibe' },
+    { key: 'practical_fit',   label: 'Practical' },
+    { key: 'discovery_value', label: 'Discovery' },
+  ];
+
+  v2Dims.forEach((dim, i) => {
+    const val = Math.min(Math.max(sv2[dim.key] || 0, 0), 100);
+    const arcR = ringR - 10 - i * 7; // concentric inward
+    const circumference = 2 * Math.PI * arcR;
+    const offset = circumference - (val / 100) * circumference;
+
+    const circle = svgEl('circle');
+    circle.setAttribute('cx', String(cx));
+    circle.setAttribute('cy', String(cy));
+    circle.setAttribute('r', String(arcR));
+    circle.classList.add('score-bloom__v2-arc');
+    circle.setAttribute('data-dim', dim.key);
+    circle.style.strokeDasharray = String(circumference);
+    circle.style.strokeDashoffset = String(circumference);
+    circle.style.transform = 'rotate(-90deg)';
+    circle.style.transformOrigin = `${cx}px ${cy}px`;
+    $v2.appendChild(circle);
+
+    // Label
+    const labelAngle = -Math.PI / 2 + (i * 0.25);
+    const text = svgEl('text');
+    text.setAttribute('x', String(cx + arcR + 5));
+    text.setAttribute('y', String(cy - arcR * 0.3 + i * 12));
+    text.classList.add('score-bloom__v2-label');
+    text.textContent = `${dim.label} ${val}%`;
+    $v2.appendChild(text);
+
+    // Animate arc draw-in
+    if (!REDUCED.matches) {
+      setTimeout(() => {
+        circle.style.strokeDashoffset = String(offset);
+        text.style.opacity = '1';
+      }, 100 + i * 80);
+    } else {
+      circle.style.strokeDashoffset = String(offset);
+      text.style.opacity = '1';
+    }
+  });
+
+  $v2.style.transition = 'opacity 300ms ease-out';
+  $v2.style.opacity = '1';
+}
+
+function hideV2Arcs() {
+  const $v2 = document.getElementById('score-bloom-v2');
+  if ($v2) {
+    $v2.style.opacity = '0';
+    setTimeout(() => { $v2.innerHTML = ''; }, 300);
+  }
+}
+
+export function getBloomState() { return bloomState; }
 
 /* ---- Sentiment Bar (horizontal mood indicator) ---- */
 export function renderSentimentBar(pos, neu, neg, timers = []) {
