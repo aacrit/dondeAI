@@ -726,7 +726,7 @@ function wireEvents() {
         btn.setAttribute('aria-expanded', String(!isExpanded));
         if ($details) $details.classList.toggle('profile-details--visible');
         btn.querySelector('.profile-expand-btn__text').textContent =
-          isExpanded ? 'View details' : 'Hide details';
+          isExpanded ? 'Details' : 'Collapse';
         break;
       }
     }
@@ -1555,7 +1555,7 @@ function renderResult(data) {
   if ($expandBtn) {
     $expandBtn.setAttribute('aria-expanded', 'false');
     const $btnText = $expandBtn.querySelector('.profile-expand-btn__text');
-    if ($btnText) $btnText.textContent = 'View details';
+    if ($btnText) $btnText.textContent = 'Details';
   }
 
   // Cancel any in-flight animation timeouts from a previous render
@@ -1600,7 +1600,7 @@ function renderResult(data) {
     // Neighborhood integration badge
     if (dc?.neighborhood_integration) {
       const niMap = { hidden_local: 'Local Secret', destination: 'Destination Spot', neighborhood_staple: 'Neighborhood Staple' };
-      const niLabel = niMap[dc.neighborhood_integration] || dc.neighborhood_integration;
+      const niLabel = niMap[dc.neighborhood_integration] || humanizeSnake(dc.neighborhood_integration);
       badges.push({ text: niLabel, dashed: true });
     }
 
@@ -1628,7 +1628,8 @@ function renderResult(data) {
     $navTileContainer.innerHTML = '';
     if (r.address) {
       const mapsUrl = buildMapsUrl(r.address);
-      const resDiff = data.deep_context?.reservation_difficulty;
+      const resDiffRaw = data.deep_context?.reservation_difficulty;
+      const resDiff = resDiffRaw ? humanizeSnake(resDiffRaw) : null;
       const resDiffHtml = resDiff
         ? `<span class="nav-tile__note type-data--sm">${resDiff}</span>` : '';
       $navTileContainer.innerHTML = `
@@ -1794,8 +1795,8 @@ function renderResult(data) {
     const byobMap = { full_byob: 'BYOB', wine_only: 'Wine Only' };
     CANONICAL_BADGES.push({
       icon: 'wine', label: 'BYOB',
-      value: byobMap[byobPolicy] || byobPolicy,
-      raw: byobPolicy, isAtmo: false,
+      value: byobMap[byobPolicy] || humanizeSnake(byobPolicy),
+      raw: humanizeSnake(byobPolicy), isAtmo: false,
     });
   }
 
@@ -1826,18 +1827,38 @@ function renderResult(data) {
     $profileFacts.style.display = '';
   }
 
-  // ---- Crowd Profile Pills ("Who Goes Here" — from deep_context) ----
+  // ---- Crowd Profile ("Who Goes Here" — icon chips from deep_context) ----
   const $crowdProfile = document.getElementById('crowd-profile');
   const $crowdPills = document.getElementById('crowd-profile-pills');
   if ($crowdProfile && $crowdPills) {
     const crowd = data.deep_context?.crowd_profile;
     if (crowd?.length > 0) {
       $crowdPills.innerHTML = '';
+      const CROWD_ICONS = {
+        'young_professionals': 'briefcase', 'families': 'home', 'couples': 'heart',
+        'foodies': 'plate', 'tourists': 'pin', 'students': 'user',
+        'date_night': 'heart', 'business': 'briefcase', 'solo_diners': 'user',
+        'groups': 'usersThree', 'locals': 'pin', 'hipsters': 'diamond',
+        'walk_in_friendly': 'chevronRight', 'reservation_recommended': 'refresh',
+      };
       crowd.slice(0, 4).forEach(text => {
-        const span = document.createElement('span');
-        span.className = 'crowd-pill type-data--sm';
-        span.textContent = text;
-        $crowdPills.appendChild(span);
+        const btn = document.createElement('button');
+        btn.className = 'crowd-chip';
+        btn.type = 'button';
+        const iconKey = CROWD_ICONS[text] || CROWD_ICONS[text.toLowerCase().replace(/\s+/g, '_')] || 'user';
+        const label = humanizeSnake(text);
+        btn.setAttribute('aria-label', label);
+        btn.innerHTML = `
+          <span class="crowd-chip__icon">${svgIcon(iconKey, 14)}</span>
+          <span class="crowd-chip__tooltip type-data--sm">${label}</span>`;
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          $crowdPills.querySelectorAll('.crowd-chip--active').forEach(c => {
+            if (c !== btn) c.classList.remove('crowd-chip--active');
+          });
+          btn.classList.toggle('crowd-chip--active');
+        });
+        $crowdPills.appendChild(btn);
       });
       $crowdProfile.style.display = '';
     } else {
@@ -1900,13 +1921,21 @@ function renderResult(data) {
       $glyphBar.appendChild(glyph);
     });
 
-    // Close tooltips when clicking outside glyph bar
-    document.addEventListener('click', () => {
-      $glyphBar.querySelectorAll('.glyph-bar__item--active').forEach(g => {
+  }
+
+  // Close all tooltips (glyph bar + crowd chips) when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.glyph-bar__item')) {
+      document.querySelectorAll('.glyph-bar__item--active').forEach(g => {
         g.classList.remove('glyph-bar__item--active');
       });
-    }, { once: true });
-  }
+    }
+    if (!e.target.closest('.crowd-chip')) {
+      document.querySelectorAll('.crowd-chip--active').forEach(c => {
+        c.classList.remove('crowd-chip--active');
+      });
+    }
+  });
 
   // ---- Quick Links (Website, Call, Share) — pill badges with dot separators ----
   const $resultLinks = document.getElementById('result-links');
@@ -2081,6 +2110,14 @@ function shortenBadgeValue(value) {
   return value.split(/[,/;]/).at(0).trim();
 }
 
+/* ---- Humanize snake_case strings to Title Case ---- */
+function humanizeSnake(str) {
+  if (!str || typeof str !== 'string') return '';
+  return str
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, c => c.toUpperCase());
+}
+
 /* ---- Noise Level → Speaker Icon Mapper ---- */
 function getNoiseIcon(noiseStr) {
   if (!noiseStr) return 'speakerWave';
@@ -2233,7 +2270,7 @@ function openTileExpand(tileEl) {
     const dims = [
       { key: 'date_friendly_score',  label: 'Date',     icon: 'heart' },
       { key: 'group_friendly_score', label: 'Group',    icon: 'usersThree' },
-      { key: 'family_friendly_score',label: 'Family',   icon: 'house' },
+      { key: 'family_friendly_score',label: 'Family',   icon: 'home' },
       { key: 'business_lunch_score', label: 'Business', icon: 'briefcase' },
       { key: 'solo_dining_score',    label: 'Solo',     icon: 'user' },
       { key: 'hole_in_wall_factor',  label: 'Gem',      icon: 'diamond' },

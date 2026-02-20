@@ -413,23 +413,24 @@
                 </div>
               </div>
 
-              <!-- Block 4: Profile -->
+              <!-- Block 4: Profile (icon-first — tap to reveal details) -->
               <div class="result-profile" id="result-profile">
-                <!-- Compact: icon-only glyph bar (mobile) -->
+                <!-- Icon-only glyph bar (primary at all sizes) -->
                 <div class="glyph-bar" id="glyph-bar" role="group" aria-label="Restaurant details"></div>
-                <!-- Mobile expand link -->
+                <!-- Crowd chips (icon-only, part of compact view) -->
+                <div class="crowd-profile" id="crowd-profile" style="display: none;">
+                  <span class="crowd-profile__label type-data--sm">The Crowd</span>
+                  <div class="crowd-profile__pills" id="crowd-profile-pills"></div>
+                </div>
+                <!-- Expand toggle -->
                 <button class="profile-expand-btn type-data--sm"
                         data-action="toggle-profile-details"
                         aria-expanded="false" aria-controls="profile-details">
-                  <span class="profile-expand-btn__text">View details</span>
+                  <span class="profile-expand-btn__text">Details</span>
                 </button>
-                <!-- Full detail badges grid -->
+                <!-- Expandable detail badges grid -->
                 <div class="profile-details" id="profile-details">
                   <div class="profile-facts" id="profile-facts"></div>
-                  <div class="crowd-profile" id="crowd-profile" style="display: none;">
-                    <span class="crowd-profile__label type-data--sm">Who Goes Here</span>
-                    <div class="crowd-profile__pills" id="crowd-profile-pills"></div>
-                  </div>
                 </div>
               </div>
 

@@ -1832,36 +1832,25 @@
   color: var(--fg2);
 }
 
-/* ---- Profile Visibility (glyph bar + expand on mobile, badge grid on tablet+) ---- */
+/* ---- Profile Visibility (icon-first: glyph bar always primary, badge grid on expand) ---- */
+.glyph-bar {
+  display: flex;
+}
+
+.profile-details {
+  display: none;
+}
+
+.profile-details--visible {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
 @media (max-width: 767px) {
-  .profile-details {
-    display: none;
-  }
-  .profile-details--visible {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-md);
-  }
-  .glyph-bar {
-    display: flex;
-  }
   .result-profile {
     gap: var(--space-sm);
     padding: var(--space-sm) var(--space-md);
-  }
-}
-
-@media (min-width: 768px) {
-  .glyph-bar {
-    display: none;
-  }
-  .profile-expand-btn {
-    display: none;
-  }
-  .profile-details {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-md);
   }
 }
 
@@ -1918,19 +1907,69 @@
 .crowd-profile__pills {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2xs);
+  gap: var(--space-xs);
 }
 
-.crowd-pill {
+/* ---- Crowd Chips (icon-first, tooltip on tap) ---- */
+.crowd-chip {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  padding: 2px var(--space-xs);
+  justify-content: center;
+  width: 30px;
+  height: 30px;
   background: var(--bg3);
   border: 1px solid var(--border);
+  border-radius: 50%;
+  cursor: pointer;
+  padding: 0;
+  transition: transform var(--dur-fast) var(--spring),
+              background var(--dur-fast) var(--ease-out);
+}
+
+.crowd-chip:hover {
+  transform: scale(1.1);
+  background: var(--bg2);
+}
+
+.crowd-chip:active {
+  transform: scale(0.92);
+}
+
+.crowd-chip__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fg2);
+}
+
+.crowd-chip__icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.crowd-chip__tooltip {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  padding: 3px var(--space-xs);
+  background: var(--bg);
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
+  font-family: var(--font-data);
   font-size: var(--text-xs);
   color: var(--fg2);
-  white-space: nowrap;
+  box-shadow: var(--shadow-sm);
+  z-index: 10;
+  pointer-events: none;
+}
+
+.crowd-chip--active .crowd-chip__tooltip {
+  display: block;
+  opacity: 1;
 }
 
 /* ---- Story Extras (Dishes + Insider Tip — merged row) ---- */
