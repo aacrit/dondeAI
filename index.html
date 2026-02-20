@@ -268,6 +268,8 @@
                 <div class="result-header">
                   <h2 class="result-name type-emotional--md" id="result-name"></h2>
                   <p class="result-oneliner type-structural" id="result-oneliner"></p>
+                  <p class="result-usp type-data--sm" id="result-usp" style="display: none;"></p>
+                  <div class="result-awards" id="result-awards" style="display: none;"></div>
                 </div>
                 <div class="result-nav" id="result-nav-tile"></div>
               </div>
@@ -280,6 +282,10 @@
                           data-action="toggle-recommendation" aria-expanded="false"
                           aria-controls="result-recommendation"
                           style="display: none;">Read more</button>
+                </div>
+                <div class="signature-dishes" id="signature-dishes" style="display: none;">
+                  <div class="signature-dishes__label type-data--sm">What to Order</div>
+                  <ul class="signature-dishes__list" id="signature-dishes-list"></ul>
                 </div>
                 <div class="insider-tip" id="insider-tip" style="display: none;">
                   <div class="insider-tip__label type-data--sm" data-label="insiderTip">Insider Tip</div>
@@ -382,6 +388,7 @@
                       <span class="sentiment-bar__tip-item sentiment-bar__tip-item--pos" id="sentiment-tip-pos"></span>
                       <span class="sentiment-bar__tip-item sentiment-bar__tip-item--neu" id="sentiment-tip-neu"></span>
                       <span class="sentiment-bar__tip-item sentiment-bar__tip-item--neg" id="sentiment-tip-neg"></span>
+                      <span class="sentiment-bar__tip-summary type-structural" id="sentiment-tip-summary" style="display: none;"></span>
                     </div>
                   </div>
                 </div>
@@ -400,6 +407,10 @@
                 <!-- Full detail badges grid -->
                 <div class="profile-details" id="profile-details">
                   <div class="profile-facts" id="profile-facts"></div>
+                  <div class="crowd-profile" id="crowd-profile" style="display: none;">
+                    <span class="crowd-profile__label type-data--sm">Who Goes Here</span>
+                    <div class="crowd-profile__pills" id="crowd-profile-pills"></div>
+                  </div>
                 </div>
               </div>
 

@@ -1453,18 +1453,66 @@ function renderResult(data) {
     $oneliner.textContent = r.best_for_oneliner || '';
   }
 
+  // Unique Selling Point subtitle (deep_context)
+  const $usp = document.getElementById('result-usp');
+  if ($usp) {
+    const usp = data.deep_context?.unique_selling_point;
+    if (usp && usp !== r.best_for_oneliner) {
+      $usp.textContent = usp;
+      $usp.style.display = '';
+    } else {
+      $usp.style.display = 'none';
+    }
+  }
+
+  // Awards & Recognition badges (deep_context)
+  const $awards = document.getElementById('result-awards');
+  if ($awards) {
+    $awards.innerHTML = '';
+    const dc = data.deep_context;
+    const badges = [];
+
+    // Neighborhood integration badge
+    if (dc?.neighborhood_integration) {
+      const niMap = { hidden_local: 'Local Secret', destination: 'Destination Spot', neighborhood_staple: 'Neighborhood Staple' };
+      const niLabel = niMap[dc.neighborhood_integration] || dc.neighborhood_integration;
+      badges.push({ text: niLabel, dashed: true });
+    }
+
+    // Awards
+    if (dc?.awards_recognition?.length > 0) {
+      dc.awards_recognition.slice(0, 3).forEach(a => badges.push({ text: a, dashed: false }));
+    }
+
+    if (badges.length > 0) {
+      badges.forEach(b => {
+        const span = document.createElement('span');
+        span.className = 'award-pill type-data--sm' + (b.dashed ? ' award-pill--dashed' : '');
+        span.textContent = b.text;
+        $awards.appendChild(span);
+      });
+      $awards.style.display = '';
+    } else {
+      $awards.style.display = 'none';
+    }
+  }
+
   // Navigation tile (immediately after name — "What? Where? Why?" flow)
   const $navTileContainer = document.getElementById('result-nav-tile');
   if ($navTileContainer) {
     $navTileContainer.innerHTML = '';
     if (r.address) {
       const mapsUrl = buildMapsUrl(r.address);
+      const resDiff = data.deep_context?.reservation_difficulty;
+      const resDiffHtml = resDiff
+        ? `<span class="nav-tile__note type-data--sm">${resDiff}</span>` : '';
       $navTileContainer.innerHTML = `
         <a class="nav-tile__link" href="${mapsUrl}" target="_blank" rel="noopener noreferrer">
           <span class="nav-tile__icon">${svgIcon('pin', 24)}</span>
           <span class="nav-tile__content">
             <span class="nav-tile__label type-data--sm">Navigation</span>
             <span class="nav-tile__address type-structural">${r.address}</span>
+            ${resDiffHtml}
           </span>
           <span class="nav-tile__arrow">${svgIcon('chevronRight', 20)}</span>
         </a>`;
@@ -1489,6 +1537,26 @@ function renderResult(data) {
         const isClamped = $rec.scrollHeight > $rec.clientHeight + 2;
         $recToggle.style.display = isClamped ? '' : 'none';
       });
+    }
+  }
+
+  // ---- Signature Dishes ("What to Order" — from deep_context) ----
+  const $sigDishes = document.getElementById('signature-dishes');
+  const $sigList = document.getElementById('signature-dishes-list');
+  if ($sigDishes && $sigList) {
+    const dishes = data.deep_context?.signature_dishes;
+    if (dishes?.length > 0) {
+      $sigList.innerHTML = '';
+      dishes.slice(0, 3).forEach(d => {
+        const li = document.createElement('li');
+        li.className = 'signature-dishes__item';
+        li.innerHTML = `<span class="signature-dishes__name type-structural">${d.dish}</span>`
+          + (d.why ? ` <span class="signature-dishes__why type-structural">\u2014 ${d.why}</span>` : '');
+        $sigList.appendChild(li);
+      });
+      $sigDishes.style.display = '';
+    } else {
+      $sigDishes.style.display = 'none';
     }
   }
 
@@ -1561,7 +1629,8 @@ function renderResult(data) {
     ? parseParkingTypes(r.parking_availability).slice(0, 2).join(' / ') : null;
   const CANONICAL_BADGES = [
     { icon: cuisine.icon || 'plate', label: 'Cuisine',
-      value: r.cuisine_type ? shortenBadgeValue(r.cuisine_type) : null,
+      value: (data.deep_context?.cuisine_subcategory || r.cuisine_type)
+        ? shortenBadgeValue(data.deep_context?.cuisine_subcategory || r.cuisine_type) : null,
       raw: r.cuisine_type || '', isCuisine: true, isAtmo: false },
     { icon: 'tag', label: 'Price',
       value: r.price_level || null,
@@ -1574,7 +1643,7 @@ function renderResult(data) {
       raw: r.noise_level || '', isAtmo: false },
     { icon: getAmbianceIcon(r.lighting_ambiance), label: 'Ambiance',
       value: r.lighting_ambiance ? normalizeAmbiance(r.lighting_ambiance) : null,
-      raw: r.lighting_ambiance || '', isAtmo: false },
+      raw: data.deep_context?.decor_style || r.lighting_ambiance || '', isAtmo: false },
     { icon: 'shirt', label: 'Dress',
       value: r.dress_code ? shortenBadgeValue(r.dress_code) : null,
       raw: r.dress_code || '', isAtmo: false },
@@ -1583,14 +1652,27 @@ function renderResult(data) {
       raw: r.outdoor_seating != null ? (r.outdoor_seating ? 'Outdoor seating' : 'No patio') : '',
       isAtmo: true },
     { icon: 'music', label: 'Live Music',
-      value: r.live_music === true ? 'Yes' : (r.live_music === false ? 'No' : null),
-      raw: r.live_music != null ? (r.live_music ? 'Live music venue' : 'No live music') : '',
+      value: data.deep_context?.music_vibe
+        || (r.live_music === true ? 'Yes' : (r.live_music === false ? 'No' : null)),
+      raw: data.deep_context?.music_vibe
+        || (r.live_music != null ? (r.live_music ? 'Live music venue' : 'No live music') : ''),
       isAtmo: true },
     { icon: 'pet', label: 'Pet Friendly',
       value: r.pet_friendly === true ? 'Yes' : (r.pet_friendly === false ? 'No' : null),
       raw: r.pet_friendly != null ? (r.pet_friendly ? 'Pet-friendly' : 'Not pet-friendly') : '',
       isAtmo: true },
   ];
+
+  // Conditionally add BYOB badge from deep_context
+  const byobPolicy = data.deep_context?.byob_policy;
+  if (byobPolicy && byobPolicy !== 'none') {
+    const byobMap = { full_byob: 'BYOB', wine_only: 'Wine Only' };
+    CANONICAL_BADGES.push({
+      icon: 'wine', label: 'BYOB',
+      value: byobMap[byobPolicy] || byobPolicy,
+      raw: byobPolicy, isAtmo: false,
+    });
+  }
 
   const allBadges = CANONICAL_BADGES.map(b => ({
     ...b,
@@ -1617,6 +1699,25 @@ function renderResult(data) {
     });
 
     $profileFacts.style.display = '';
+  }
+
+  // ---- Crowd Profile Pills ("Who Goes Here" — from deep_context) ----
+  const $crowdProfile = document.getElementById('crowd-profile');
+  const $crowdPills = document.getElementById('crowd-profile-pills');
+  if ($crowdProfile && $crowdPills) {
+    const crowd = data.deep_context?.crowd_profile;
+    if (crowd?.length > 0) {
+      $crowdPills.innerHTML = '';
+      crowd.slice(0, 4).forEach(text => {
+        const span = document.createElement('span');
+        span.className = 'crowd-pill type-data--sm';
+        span.textContent = text;
+        $crowdPills.appendChild(span);
+      });
+      $crowdProfile.style.display = '';
+    } else {
+      $crowdProfile.style.display = 'none';
+    }
   }
 
   // ---- Glyph Bar (icon-only compact view for mobile) ----
@@ -1712,11 +1813,18 @@ function renderResult(data) {
     });
   }
 
-  // Insider tip
+  // Insider tip (enhanced with best seat from deep_context)
   const $tip = document.getElementById('insider-tip');
   const $tipText = document.getElementById('insider-tip-text');
-  if ($tip && data.insider_tip) {
-    $tipText.textContent = data.insider_tip;
+  const bestSeat = data.deep_context?.best_seat_in_house;
+  if ($tip && (data.insider_tip || bestSeat)) {
+    let tipContent = data.insider_tip || '';
+    if (bestSeat) {
+      tipContent = tipContent
+        ? `${tipContent}\nBest seat: ${bestSeat}`
+        : `Best seat: ${bestSeat}`;
+    }
+    $tipText.textContent = tipContent;
     $tip.style.display = 'block';
   } else if ($tip) {
     $tip.style.display = 'none';
@@ -1725,26 +1833,39 @@ function renderResult(data) {
   // ---- Sentiment Bar (subtle horizontal indicator) ----
   const $sentBar = document.getElementById('sentiment-bar');
   if ($sentBar) {
-    // Only show sentiment bar when real data exists — never fabricate
-    if (r.sentiment_breakdown || r.sentiment_score) {
-      $sentBar.style.display = '';
-      let posVal = 33, neuVal = 34, negVal = 33;
-      if (r.sentiment_breakdown) {
-        const parts = r.sentiment_breakdown.toLowerCase();
-        const posMatch = parts.match(/positive[:\s]+(\d+)/);
-        const neuMatch = parts.match(/neutral[:\s]+(\d+)/);
-        const negMatch = parts.match(/negative[:\s]+(\d+)/);
+    // Determine sentiment percentages from best available source
+    let posVal = null, neuVal = null, negVal = null;
+
+    // Priority 1: Use structured integer fields directly (V2 backend)
+    if (r.sentiment_positive != null && r.sentiment_negative != null && r.sentiment_neutral != null) {
+      posVal = r.sentiment_positive;
+      neuVal = r.sentiment_neutral;
+      negVal = r.sentiment_negative;
+    }
+    // Priority 2: Parse sentiment_breakdown string
+    else if (r.sentiment_breakdown) {
+      const parts = r.sentiment_breakdown.toLowerCase();
+      const posMatch = parts.match(/(\d+)%?\s*positive/);
+      const neuMatch = parts.match(/(\d+)%?\s*neutral/);
+      const negMatch = parts.match(/(\d+)%?\s*negative/);
+      if (posMatch || neuMatch || negMatch) {
         posVal = parseInt(posMatch?.[1] || '33', 10);
         neuVal = parseInt(neuMatch?.[1] || '34', 10);
         negVal = parseInt(negMatch?.[1] || '33', 10);
-      } else if (r.sentiment_score) {
-        // Derive from single score: score = positive ratio
-        const score = parseFloat(r.sentiment_score);
-        posVal = Math.round(score * 100);
-        negVal = Math.round((1 - score) * 30);
+      }
+    }
+    // Priority 3: Derive from sentiment_score (0-10 scale)
+    else if (r.sentiment_score != null) {
+      const score = parseFloat(r.sentiment_score);
+      if (!isNaN(score)) {
+        posVal = Math.round((score / 10) * 100);
+        negVal = Math.round((1 - score / 10) * 30);
         neuVal = 100 - posVal - negVal;
       }
+    }
 
+    if (posVal != null) {
+      $sentBar.style.display = '';
       renderSentimentBar(posVal, neuVal, negVal, animationTimers);
 
       // Tooltip labels
@@ -1754,6 +1875,17 @@ function renderResult(data) {
       if ($tipPos) $tipPos.textContent = `${posVal}% Positive`;
       if ($tipNeu) $tipNeu.textContent = `${neuVal}% Neutral`;
       if ($tipNeg) $tipNeg.textContent = `${negVal}% Negative`;
+
+      // Sentiment summary in tooltip (V2 backend)
+      const $tipSummary = document.getElementById('sentiment-tip-summary');
+      if ($tipSummary) {
+        if (r.sentiment_summary) {
+          $tipSummary.textContent = r.sentiment_summary;
+          $tipSummary.style.display = '';
+        } else {
+          $tipSummary.style.display = 'none';
+        }
+      }
 
       // Tap toggle for mobile tooltip
       $sentBar.addEventListener('click', () => {
@@ -1900,6 +2032,49 @@ function openTileExpand(tileEl) {
         </div>
       </div>
       <span class="score-verdict type-structural--bold ${tier.cssClass}" style="font-size: var(--text-lg);">${tier.verdict}</span>`;
+
+    // Scoring V2 breakdown — "Why This Match"
+    const sv2 = data.scoring_v2;
+    if (sv2) {
+      const v2Dims = [
+        { key: 'occasion_fit',    label: 'Occasion Fit' },
+        { key: 'craving_match',   label: 'Craving Match' },
+        { key: 'vibe_alignment',  label: 'Vibe Alignment' },
+        { key: 'practical_fit',   label: 'Practical Fit' },
+        { key: 'discovery_value', label: 'Discovery Value' },
+      ];
+      const v2Available = v2Dims.filter(d => sv2[d.key] != null);
+      if (v2Available.length > 0) {
+        const v2Html = v2Available.map(d => {
+          const val = Math.min(Math.max(sv2[d.key] || 0, 0), 100);
+          return `
+            <div class="tile-expand__dim">
+              <span class="tile-expand__dim-label type-data--sm">${d.label}</span>
+              <div class="tile-expand__dim-bar">
+                <div class="tile-expand__dim-fill" style="width: ${val}%"></div>
+              </div>
+              <span class="tile-expand__dim-value type-data--sm">${val}%</span>
+            </div>`;
+        }).join('');
+
+        // Find highest weighted dimension for summary line
+        let summaryHtml = '';
+        if (sv2.weights_used) {
+          const dimLabels = { occasion: 'Occasion', craving: 'Craving', vibe: 'Vibe', practical: 'Practical', discovery: 'Discovery' };
+          const topDim = Object.entries(sv2.weights_used).sort((a, b) => b[1] - a[1])[0];
+          if (topDim) {
+            summaryHtml = `<p class="tile-expand__summary type-data--sm">Weighted for ${dimLabels[topDim[0]] || topDim[0]}</p>`;
+          }
+        }
+
+        $content.innerHTML += `
+          <div class="tile-expand__v2">
+            <span class="tile-expand__v2-label type-data--sm">Why This Match</span>
+            <div class="tile-expand__dims">${v2Html}</div>
+            ${summaryHtml}
+          </div>`;
+      }
+    }
   } else if (tileEl.id === 'score-tile-radar') {
     // Expanded petal radar with dimension list
     const scores = data.scores || {};
