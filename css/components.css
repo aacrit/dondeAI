@@ -591,6 +591,7 @@
 /* ---- Result Card ---- */
 .result-card {
   width: 100%;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
@@ -601,6 +602,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   box-shadow: 0 0 0 1px var(--border), 0 4px 24px -8px var(--shadow);
+  overflow: hidden;
 }
 
 [data-mode="dark"] .result-card {
@@ -615,10 +617,12 @@
   flex-direction: column;
   gap: var(--space-sm);
   width: 100%;
+  min-width: 0;
 }
 
 .result-header {
   display: flex;
+  min-width: 0;
   flex-direction: column;
   gap: var(--space-xs);
 }
@@ -627,6 +631,8 @@
   font-size: var(--text-xl);
   color: var(--ac);
   text-wrap: balance;
+  overflow-wrap: break-word;
+  word-break: break-word;
   cursor: pointer;
   text-decoration-line: underline;
   text-decoration-color: transparent;
@@ -658,7 +664,7 @@
   font-size: var(--text-base);
   color: var(--fg);
   line-height: 1.7;
-  max-width: 100%;
+  max-width: 72ch;
   overflow-wrap: break-word;
   word-break: break-word;
   display: -webkit-box;
@@ -2158,7 +2164,6 @@
   flex-direction: column;
   gap: var(--space-xs);
   width: 100%;
-  max-width: 600px;
   min-width: 0;
   overflow: hidden;
 }

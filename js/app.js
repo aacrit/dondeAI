@@ -615,6 +615,8 @@ function wireEvents() {
         const culture = btn.dataset.theme;
         setTheme(culture, getState().theme.mode);
         if (typeof compassSnapToCulture === 'function') compassSnapToCulture(culture);
+        // Auto-close compass after snap animation settles
+        setTimeout(() => closeCultureCompass(), 500);
         break;
       }
 
