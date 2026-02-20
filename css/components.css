@@ -709,6 +709,40 @@
   overflow: hidden;
 }
 
+/* ---- Unique Selling Point ---- */
+.result-usp {
+  font-size: var(--text-xs);
+  color: var(--fg3);
+  font-style: italic;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---- Awards & Recognition Pills ---- */
+.result-awards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs);
+}
+
+.award-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--space-xs);
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  color: var(--fg2);
+  white-space: nowrap;
+}
+
+.award-pill--dashed {
+  border-style: dashed;
+}
+
 .result-recommendation {
   font-size: var(--text-base);
   color: var(--fg);
@@ -1206,6 +1240,20 @@
 .sentiment-bar__tip-item--neu::before { background: var(--fg3); }
 .sentiment-bar__tip-item--neg::before { background: hsl(350 60% 58% / 0.5); }
 
+.sentiment-bar__tip-summary {
+  font-size: var(--text-xs);
+  color: var(--fg2);
+  line-height: 1.4;
+  margin-top: var(--space-2xs);
+  padding-top: var(--space-2xs);
+  border-top: 1px solid var(--border);
+  max-width: 220px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
 /* ---- Tile Badge (Price/Noise at bottom) ---- */
 .score-tile__badge {
   display: flex;
@@ -1576,6 +1624,86 @@
   pointer-events: none;
 }
 
+/* ---- Crowd Profile ("Who Goes Here") ---- */
+.crowd-profile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--border);
+}
+
+.crowd-profile__label {
+  font-size: var(--text-xs);
+  color: var(--fg3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.crowd-profile__pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs);
+}
+
+.crowd-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--space-xs);
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  color: var(--fg2);
+  white-space: nowrap;
+}
+
+/* ---- Signature Dishes ("What to Order") ---- */
+.signature-dishes {
+  position: relative;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--glass-tip);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--fg3);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.signature-dishes__label {
+  font-size: var(--text-xs);
+  color: var(--fg3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: var(--space-xs);
+}
+
+.signature-dishes__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+}
+
+.signature-dishes__name {
+  font-weight: 600;
+  font-size: var(--text-sm);
+  color: var(--fg);
+}
+
+.signature-dishes__why {
+  font-size: var(--text-sm);
+  color: var(--fg2);
+}
+
+@media (max-width: 767px) {
+  .signature-dishes {
+    padding: var(--space-xs) var(--space-sm);
+  }
+}
+
 /* ---- Insider Tip ---- */
 .insider-tip {
   position: relative;
@@ -1683,6 +1811,35 @@
   color: var(--fg);
   font-weight: 700;
   text-align: right;
+}
+
+/* ---- Scoring V2 Breakdown (inside tile-expand modal) ---- */
+.tile-expand__v2 {
+  width: 100%;
+  margin-top: var(--space-md);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.tile-expand__v2-label {
+  color: var(--fg3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: var(--text-xs);
+}
+
+.tile-expand__v2 .tile-expand__dim {
+  grid-template-columns: 80px 1fr 40px;
+}
+
+.tile-expand__summary {
+  color: var(--fg3);
+  font-size: var(--text-xs);
+  margin-top: var(--space-2xs);
+  font-style: italic;
 }
 
 /* ---- Result Actions Block (links + buttons) ---- */
@@ -2344,6 +2501,11 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.nav-tile__note {
+  font-size: var(--text-xs);
+  color: var(--fg3);
 }
 
 .nav-tile__arrow {
