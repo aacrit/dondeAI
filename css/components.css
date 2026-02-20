@@ -1110,6 +1110,8 @@
   fill: none;
   stroke: var(--border);
   stroke-width: 5;
+  transition: r 450ms cubic-bezier(0.34, 1.56, 0.64, 1),
+              stroke-width 450ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .score-bloom__ring-fill {
@@ -1117,11 +1119,13 @@
   stroke: var(--ac);
   stroke-width: 5;
   stroke-linecap: round;
-  stroke-dasharray: 471;
-  stroke-dashoffset: 471;
+  stroke-dasharray: 565;
+  stroke-dashoffset: 565;
   transform: rotate(-90deg);
   transform-origin: 200px 200px;
-  transition: stroke-dashoffset 1200ms cubic-bezier(0.2, 1, 0.4, 1);
+  transition: stroke-dashoffset 1200ms cubic-bezier(0.2, 1, 0.4, 1),
+              r 450ms cubic-bezier(0.34, 1.56, 0.64, 1),
+              stroke-width 450ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 /* Score number overlay (centered on ring) */
@@ -1138,9 +1142,17 @@
 }
 
 .score-bloom__number {
-  font-size: var(--text-xl);
+  font-size: var(--text-2xl);
   color: var(--fg);
   line-height: 1;
+  transition: font-size 450ms var(--spring);
+}
+
+/* Shrink number when bloom is expanded */
+[data-bloom-state="bloomed"] .score-bloom__number,
+[data-bloom-state="petal-focused"] .score-bloom__number,
+[data-bloom-state="deep-dive"] .score-bloom__number {
+  font-size: var(--text-lg);
 }
 
 .score-bloom__verdict {
@@ -1206,28 +1218,71 @@
   opacity: 0.3;
 }
 
-/* Petal tip icons + labels */
-.score-bloom__icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--fg2);
+/* ---- Vibe Orbs (expanded state) ---- */
+.score-bloom__orb {
+  transition: opacity 300ms var(--ease-out);
 }
 
+.score-bloom__orb--dimmed {
+  opacity: 0.3;
+}
+
+.score-bloom__orb--active {
+  opacity: 1;
+}
+
+.score-bloom__orb-fill {
+  fill: var(--bg2);
+  stroke: var(--ac);
+  stroke-width: 1.5;
+  stroke-opacity: 0.35;
+  transition: stroke-opacity 300ms var(--ease-out),
+              stroke-width 300ms var(--ease-out);
+}
+
+.score-bloom__orb-fill--dominant {
+  stroke-opacity: 0.6;
+  stroke-width: 2;
+}
+
+.score-bloom__orb--active .score-bloom__orb-fill {
+  stroke-opacity: 0.7;
+  stroke-width: 2;
+  fill: var(--ac);
+  fill-opacity: 0.08;
+}
+
+.score-bloom__orb-label {
+  font-family: var(--font-structural);
+  font-size: 9px;
+  fill: var(--fg2);
+  text-anchor: middle;
+  font-weight: 600;
+}
+
+.score-bloom__orb-tier {
+  font-family: var(--font-data);
+  font-size: 7px;
+  fill: var(--fg3);
+  text-anchor: middle;
+  letter-spacing: 0.04em;
+}
+
+/* Connector lines from ring to orbs */
+.score-bloom__connector {
+  stroke: var(--border);
+  stroke-width: 0.5;
+  stroke-dasharray: 3 2;
+  opacity: 0.4;
+}
+
+/* Petal tip labels (legacy/fallback) */
 .score-bloom__tip-label {
   font-family: var(--font-data);
   font-size: 9px;
   fill: var(--fg3);
   text-anchor: middle;
   letter-spacing: 0.04em;
-}
-
-.score-bloom__tip-score {
-  font-family: var(--font-data);
-  font-size: 8px;
-  fill: var(--fg3);
-  text-anchor: middle;
-  opacity: 0.7;
 }
 
 /* Sentiment arc segments */

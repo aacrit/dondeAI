@@ -761,6 +761,7 @@ function wireEvents() {
 
     const state = getBloomState();
     const petal = e.target.closest('.score-bloom__petal');
+    const orb = e.target.closest('.score-bloom__orb');
     const center = e.target.closest('.score-bloom__center');
 
     if (state === 'compact') {
@@ -769,6 +770,10 @@ function wireEvents() {
     } else if (petal) {
       // Tier 2 → 2.5: tap petal for detail
       const dim = petal.getAttribute('data-dim');
+      if (dim) handlePetalTap(dim);
+    } else if (orb) {
+      // Tier 2 → 2.5: tap orb for detail (expanded view)
+      const dim = orb.getAttribute('data-dim');
       if (dim) handlePetalTap(dim);
     } else if (center) {
       // Tier 2 → 3: tap center ring for V2 arcs
@@ -2115,6 +2120,24 @@ function normalizeAmbiance(ambianceStr) {
   return shortenBadgeValue(ambianceStr);
 }
 
+// Humanize a vibe score (0-10) to a user-friendly label
+function humanizeVibe(val) {
+  if (val >= 9) return 'Outstanding';
+  if (val >= 7.5) return 'Strong';
+  if (val >= 5.5) return 'Good';
+  if (val >= 3.5) return 'Moderate';
+  return 'Low';
+}
+
+// Humanize a V2 score (0-100) to a user-friendly label
+function humanizeV2(val) {
+  if (val >= 90) return 'Perfect';
+  if (val >= 75) return 'Strong';
+  if (val >= 60) return 'Good';
+  if (val >= 40) return 'Fair';
+  return 'Low';
+}
+
 /* ---- Tile Expand Modal ---- */
 function openTileExpand(tileEl) {
   const $modal = document.getElementById('tile-expand');
@@ -2166,11 +2189,11 @@ function openTileExpand(tileEl) {
     const sv2 = data.scoring_v2;
     if (sv2) {
       const v2Dims = [
-        { key: 'occasion_fit',    label: 'Occasion Fit' },
-        { key: 'craving_match',   label: 'Craving Match' },
-        { key: 'vibe_alignment',  label: 'Vibe Alignment' },
-        { key: 'practical_fit',   label: 'Practical Fit' },
-        { key: 'discovery_value', label: 'Discovery Value' },
+        { key: 'occasion_fit',    label: 'Occasion' },
+        { key: 'craving_match',   label: 'Craving' },
+        { key: 'vibe_alignment',  label: 'Vibe' },
+        { key: 'practical_fit',   label: 'Practical' },
+        { key: 'discovery_value', label: 'Discovery' },
       ];
       const v2Available = v2Dims.filter(d => sv2[d.key] != null);
       if (v2Available.length > 0) {
@@ -2182,17 +2205,17 @@ function openTileExpand(tileEl) {
               <div class="tile-expand__dim-bar">
                 <div class="tile-expand__dim-fill" style="width: ${val}%"></div>
               </div>
-              <span class="tile-expand__dim-value type-data--sm">${val}%</span>
+              <span class="tile-expand__dim-value type-data--sm">${humanizeV2(val)}</span>
             </div>`;
         }).join('');
 
         // Find highest weighted dimension for summary line
         let summaryHtml = '';
         if (sv2.weights_used) {
-          const dimLabels = { occasion: 'Occasion', craving: 'Craving', vibe: 'Vibe', practical: 'Practical', discovery: 'Discovery' };
+          const dimLabels = { occasion: 'Occasion', occasion_fit: 'Occasion', craving: 'Craving', craving_match: 'Craving', vibe: 'Vibe', vibe_alignment: 'Vibe', practical: 'Practical', practical_fit: 'Practical', discovery: 'Discovery', discovery_value: 'Discovery' };
           const topDim = Object.entries(sv2.weights_used).sort((a, b) => b[1] - a[1])[0];
-          if (topDim) {
-            summaryHtml = `<p class="tile-expand__summary type-data--sm">Weighted for ${dimLabels[topDim[0]] || topDim[0]}</p>`;
+          if (topDim && dimLabels[topDim[0]]) {
+            summaryHtml = `<p class="tile-expand__summary type-data--sm">Weighted for ${dimLabels[topDim[0]]}</p>`;
           }
         }
 
@@ -2229,7 +2252,7 @@ function openTileExpand(tileEl) {
           <div class="tile-expand__dim-bar">
             <div class="tile-expand__dim-fill" style="width: ${pct}%"></div>
           </div>
-          <span class="tile-expand__dim-value type-data--sm">${val.toFixed(1)}</span>
+          <span class="tile-expand__dim-value type-data--sm">${humanizeVibe(val)}</span>
         </div>`;
     }).join('');
 
