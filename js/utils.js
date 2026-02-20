@@ -133,12 +133,12 @@ export function matchCulture(text) {
   const lower = text.toLowerCase();
   for (const entry of CUISINE_CULTURE_MAP) {
     for (const kw of entry.keywords) {
-      // Word-boundary-aware: keyword must appear at word start or be the whole word
       const idx = lower.indexOf(kw);
       if (idx === -1) continue;
-      const before = idx === 0 || /\s/.test(lower[idx - 1]);
-      const after = idx + kw.length >= lower.length || /[\s,.]/.test(lower[idx + kw.length]);
-      if (before && after) return entry.culture;
+      // Left boundary only: keyword must start at beginning or after whitespace.
+      // Right boundary intentionally relaxed so plurals match (tacos→taco, dumplings→dumpling).
+      const atWordStart = idx === 0 || /\s/.test(lower[idx - 1]);
+      if (atWordStart) return entry.culture;
     }
   }
   return null;
