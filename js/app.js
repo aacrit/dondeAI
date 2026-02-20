@@ -125,7 +125,7 @@ function init() {
   try {
     if (!localStorage.getItem('dondeai-theme')) {
       setTimeout(() => {
-        document.getElementById('theme-picker')?.classList.add('theme-picker--open');
+        openCultureCompass();
       }, 2000);
     }
   } catch { /* private browsing — skip nudge */ }
@@ -603,18 +603,20 @@ function wireEvents() {
       }
 
       case 'open-themes':
-        document.getElementById('theme-picker')?.classList.add('theme-picker--open');
+        openCultureCompass();
         break;
 
       case 'close-themes': {
-        document.getElementById('theme-picker')?.classList.remove('theme-picker--open');
-        saveTheme(getState().theme);
+        closeCultureCompass();
         break;
       }
 
       case 'select-theme': {
         const culture = btn.dataset.theme;
         setTheme(culture, getState().theme.mode);
+        if (typeof compassSnapToCulture === 'function') compassSnapToCulture(culture);
+        // Auto-close compass after snap animation settles
+        setTimeout(() => closeCultureCompass(), 500);
         break;
       }
 
@@ -632,7 +634,7 @@ function wireEvents() {
       }
 
       case 'cycle-theme': {
-        document.getElementById('theme-picker')?.classList.add('theme-picker--open');
+        openCultureCompass();
         break;
       }
 
@@ -2136,6 +2138,382 @@ function renderShareCanvas(format = 'post') {
 
 // Expose for share module
 window.renderShareCanvas = renderShareCanvas;
+
+/* ---- Culture Compass Engine ---- */
+
+const COMPASS_CULTURES = [
+  { id: 'neutral',       name: 'Studio',    tagline: 'The blank page before the masterpiece',     hue: 'hsl(0 0% 22%)',    swatches: ['hsl(0 0% 22%)', 'hsl(0 0% 98%)', 'hsl(0 0% 10%)'] },
+  { id: 'indian',        name: 'Desi',      tagline: 'Spice, soul, and the warmth of home',       hue: 'hsl(28 88% 50%)',  swatches: ['hsl(28 88% 50%)', 'hsl(350 70% 50%)', 'hsl(22 90% 48%)'] },
+  { id: 'middleeastern', name: 'Bazaar',    tagline: 'Where every meal is a gathering',           hue: 'hsl(48 72% 46%)',  swatches: ['hsl(48 72% 46%)', 'hsl(0 60% 50%)', 'hsl(35 85% 50%)'] },
+  { id: 'nepalese',      name: 'Himalayan', tagline: 'Where prayer flags meet the sky',           hue: 'hsl(178 50% 38%)', swatches: ['hsl(178 50% 38%)', 'hsl(350 60% 50%)', 'hsl(45 70% 55%)'] },
+  { id: 'japanese',      name: 'Zen',       tagline: 'Less is more, silence is loud',             hue: 'hsl(220 35% 45%)', swatches: ['hsl(220 35% 45%)', 'hsl(45 12% 97%)', 'hsl(220 18% 15%)'] },
+  { id: 'eastasian',     name: 'Silk',      tagline: 'Ten thousand flavors, one table',           hue: 'hsl(285 35% 45%)', swatches: ['hsl(285 35% 45%)', 'hsl(40 12% 96%)', 'hsl(345 60% 52%)'] },
+  { id: 'african',       name: 'Kente',     tagline: 'Bold threads woven in rhythm',              hue: 'hsl(155 65% 35%)', swatches: ['hsl(155 65% 35%)', 'hsl(40 85% 50%)', 'hsl(0 65% 45%)'] },
+  { id: 'southamerican', name: 'Sabor',     tagline: 'Flavor runs through everything',            hue: 'hsl(350 80% 52%)', swatches: ['hsl(350 80% 52%)', 'hsl(170 55% 38%)', 'hsl(45 90% 55%)'] },
+];
+
+const SEGMENT_ANGLE = 360 / COMPASS_CULTURES.length; // 45 degrees each
+let compassAngle = 0;       // current rotation in degrees
+let compassDragging = false;
+let compassLastAngle = 0;
+let compassVelocity = 0;
+let compassMomentumRaf = null;
+let compassInitialized = false;
+
+function initCompass() {
+  if (compassInitialized) return;
+  compassInitialized = true;
+
+  const dial = document.getElementById('compass-dial');
+  const arcsGroup = document.getElementById('compass-arcs');
+  const nodesContainer = document.getElementById('compass-nodes');
+  if (!dial || !arcsGroup || !nodesContainer) return;
+
+  // Build SVG arc segments
+  const cx = 150, cy = 150, outerR = 138, innerR = 108;
+  COMPASS_CULTURES.forEach((culture, i) => {
+    const startAngle = (i * SEGMENT_ANGLE - 90 - SEGMENT_ANGLE / 2) * Math.PI / 180;
+    const endAngle = ((i + 1) * SEGMENT_ANGLE - 90 - SEGMENT_ANGLE / 2) * Math.PI / 180;
+    const gap = 0.02; // small gap between segments
+
+    const x1o = cx + outerR * Math.cos(startAngle + gap);
+    const y1o = cy + outerR * Math.sin(startAngle + gap);
+    const x2o = cx + outerR * Math.cos(endAngle - gap);
+    const y2o = cy + outerR * Math.sin(endAngle - gap);
+    const x1i = cx + innerR * Math.cos(endAngle - gap);
+    const y1i = cy + innerR * Math.sin(endAngle - gap);
+    const x2i = cx + innerR * Math.cos(startAngle + gap);
+    const y2i = cy + innerR * Math.sin(startAngle + gap);
+
+    const largeArc = SEGMENT_ANGLE > 180 ? 1 : 0;
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d',
+      `M${x1o},${y1o} A${outerR},${outerR} 0 ${largeArc} 1 ${x2o},${y2o} ` +
+      `L${x1i},${y1i} A${innerR},${innerR} 0 ${largeArc} 0 ${x2i},${y2i} Z`
+    );
+    path.setAttribute('fill', culture.hue);
+    path.setAttribute('opacity', '0.7');
+    path.setAttribute('data-culture', culture.id);
+    path.style.transition = 'opacity var(--dur-fast) var(--ease-out)';
+    arcsGroup.appendChild(path);
+  });
+
+  // Build culture nodes (positioned on circumference)
+  // Arc midpoint is at SVG radius 123 in viewBox 300 → 41% from center
+  const nodeRadiusPct = 41;
+  COMPASS_CULTURES.forEach((culture, i) => {
+    const angle = (i * SEGMENT_ANGLE) * Math.PI / 180 - Math.PI / 2; // start at top
+    const x = 50 + nodeRadiusPct * Math.cos(angle);
+    const y = 50 + nodeRadiusPct * Math.sin(angle);
+
+    const node = document.createElement('button');
+    node.className = 'culture-compass__node';
+    node.role = 'radio';
+    node.setAttribute('aria-checked', 'false');
+    node.setAttribute('aria-label', `${culture.name} theme`);
+    node.dataset.action = 'select-theme';
+    node.dataset.theme = culture.id;
+    node.style.left = `${x}%`;
+    node.style.top = `${y}%`;
+
+    const swatch = document.createElement('span');
+    swatch.className = 'culture-compass__node-swatch';
+    swatch.style.background = culture.hue;
+
+    const label = document.createElement('span');
+    label.className = 'culture-compass__node-label';
+    label.textContent = culture.name;
+
+    node.appendChild(swatch);
+    node.appendChild(label);
+    nodesContainer.appendChild(node);
+  });
+
+  // Set initial rotation based on current theme
+  const currentCulture = getState().theme.culture;
+  const idx = COMPASS_CULTURES.findIndex(c => c.id === currentCulture);
+  if (idx > 0) {
+    compassAngle = -idx * SEGMENT_ANGLE;
+    dial.style.transform = `rotate(${compassAngle}deg)`;
+  }
+  updateCompassHub(currentCulture);
+  updateCompassNodeActive(currentCulture);
+
+  // Wire pointer/touch drag rotation
+  wireCompassDrag(dial);
+}
+
+function wireCompassDrag(dial) {
+  const dialWrap = dial.parentElement;
+  let startAngle = 0;
+  let startCompassAngle = 0;
+  let lastTimestamp = 0;
+  let lastDelta = 0;
+
+  function getAngleFromEvent(e) {
+    const rect = dialWrap.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return Math.atan2(clientY - cy, clientX - cx) * 180 / Math.PI;
+  }
+
+  function onPointerDown(e) {
+    if (e.target.closest('.culture-compass__node')) return; // let node clicks pass through
+    e.preventDefault();
+    compassDragging = true;
+    if (compassMomentumRaf) { cancelAnimationFrame(compassMomentumRaf); compassMomentumRaf = null; }
+    dial.classList.add('culture-compass__dial--grabbing');
+    dial.classList.remove('culture-compass__dial--settling');
+    startAngle = getAngleFromEvent(e);
+    startCompassAngle = compassAngle;
+    lastTimestamp = performance.now();
+    lastDelta = 0;
+    compassVelocity = 0;
+  }
+
+  function onPointerMove(e) {
+    if (!compassDragging) return;
+    e.preventDefault();
+    const currentAngleRad = getAngleFromEvent(e);
+    let delta = currentAngleRad - startAngle;
+    // Handle wrap-around
+    if (delta > 180) delta -= 360;
+    if (delta < -180) delta += 360;
+
+    compassAngle = startCompassAngle + delta;
+    dial.style.transform = `rotate(${compassAngle}deg)`;
+
+    // Track velocity
+    const now = performance.now();
+    const dt = now - lastTimestamp;
+    if (dt > 0) {
+      compassVelocity = (delta - lastDelta) / dt * 16; // normalized to ~frame
+      lastDelta = delta;
+      lastTimestamp = now;
+    }
+
+    // Preview the nearest culture while dragging
+    const nearest = getNearestCulture();
+    updateCompassHub(nearest);
+    updateCompassNodeActive(nearest);
+
+    // Live preview: apply theme as user drags
+    const { theme } = getState();
+    if (nearest !== theme.culture) {
+      setTheme(nearest, theme.mode);
+    }
+  }
+
+  function onPointerUp() {
+    if (!compassDragging) return;
+    compassDragging = false;
+    dial.classList.remove('culture-compass__dial--grabbing');
+
+    // If velocity is significant, apply momentum
+    if (Math.abs(compassVelocity) > 0.5) {
+      applyMomentum(dial);
+    } else {
+      snapToNearest(dial);
+    }
+  }
+
+  // Mouse events
+  dial.addEventListener('mousedown', onPointerDown);
+  document.addEventListener('mousemove', onPointerMove);
+  document.addEventListener('mouseup', onPointerUp);
+
+  // Touch events
+  dial.addEventListener('touchstart', onPointerDown, { passive: false });
+  document.addEventListener('touchmove', (e) => {
+    if (compassDragging) onPointerMove(e);
+  }, { passive: false });
+  document.addEventListener('touchend', onPointerUp);
+
+  // Keyboard arrow support
+  dial.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      rotateToCulture(-1, dial);
+    } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      rotateToCulture(1, dial);
+    }
+  });
+}
+
+function getNearestCulture() {
+  // Normalize angle to 0-360 range
+  let norm = ((-compassAngle) % 360 + 360) % 360;
+  const idx = Math.round(norm / SEGMENT_ANGLE) % COMPASS_CULTURES.length;
+  return COMPASS_CULTURES[idx].id;
+}
+
+function applyMomentum(dial) {
+  const friction = 0.92;
+  function step() {
+    compassVelocity *= friction;
+    compassAngle += compassVelocity;
+    dial.style.transform = `rotate(${compassAngle}deg)`;
+
+    const nearest = getNearestCulture();
+    updateCompassHub(nearest);
+    updateCompassNodeActive(nearest);
+
+    if (Math.abs(compassVelocity) > 0.15) {
+      compassMomentumRaf = requestAnimationFrame(step);
+    } else {
+      compassMomentumRaf = null;
+      snapToNearest(dial);
+    }
+  }
+  compassMomentumRaf = requestAnimationFrame(step);
+}
+
+function snapToNearest(dial) {
+  // Find the nearest snap angle
+  let norm = ((-compassAngle) % 360 + 360) % 360;
+  const idx = Math.round(norm / SEGMENT_ANGLE) % COMPASS_CULTURES.length;
+  const targetAngle = -(idx * SEGMENT_ANGLE);
+
+  // Find the shortest rotation path
+  let diff = targetAngle - compassAngle;
+  diff = ((diff + 180) % 360 + 360) % 360 - 180;
+  const finalAngle = compassAngle + diff;
+
+  compassAngle = finalAngle;
+  dial.classList.add('culture-compass__dial--settling');
+  dial.style.transform = `rotate(${finalAngle}deg)`;
+
+  const culture = COMPASS_CULTURES[idx].id;
+  updateCompassHub(culture);
+  updateCompassNodeActive(culture);
+
+  // Apply theme on snap
+  const { theme } = getState();
+  if (culture !== theme.culture) {
+    setTheme(culture, theme.mode);
+  }
+
+  // Play chime on settle
+  try { playChime(); } catch {}
+
+  dial.addEventListener('transitionend', () => {
+    dial.classList.remove('culture-compass__dial--settling');
+  }, { once: true });
+}
+
+function rotateToCulture(direction, dial) {
+  // direction: -1 = prev, 1 = next
+  let norm = ((-compassAngle) % 360 + 360) % 360;
+  let currentIdx = Math.round(norm / SEGMENT_ANGLE) % COMPASS_CULTURES.length;
+  let newIdx = ((currentIdx + direction) % COMPASS_CULTURES.length + COMPASS_CULTURES.length) % COMPASS_CULTURES.length;
+
+  const targetAngle = -(newIdx * SEGMENT_ANGLE);
+  let diff = targetAngle - compassAngle;
+  diff = ((diff + 180) % 360 + 360) % 360 - 180;
+
+  compassAngle = compassAngle + diff;
+  if (!dial) dial = document.getElementById('compass-dial');
+  dial.classList.add('culture-compass__dial--settling');
+  dial.style.transform = `rotate(${compassAngle}deg)`;
+
+  const culture = COMPASS_CULTURES[newIdx].id;
+  updateCompassHub(culture);
+  updateCompassNodeActive(culture);
+  setTheme(culture, getState().theme.mode);
+
+  try { playChime(); } catch {}
+
+  dial.addEventListener('transitionend', () => {
+    dial.classList.remove('culture-compass__dial--settling');
+  }, { once: true });
+}
+
+function compassSnapToCulture(cultureId) {
+  const idx = COMPASS_CULTURES.findIndex(c => c.id === cultureId);
+  if (idx === -1) return;
+
+  const dial = document.getElementById('compass-dial');
+  if (!dial) return;
+
+  const targetAngle = -(idx * SEGMENT_ANGLE);
+  let diff = targetAngle - compassAngle;
+  diff = ((diff + 180) % 360 + 360) % 360 - 180;
+
+  compassAngle = compassAngle + diff;
+  dial.classList.add('culture-compass__dial--settling');
+  dial.style.transform = `rotate(${compassAngle}deg)`;
+
+  updateCompassHub(cultureId);
+  updateCompassNodeActive(cultureId);
+
+  try { playChime(); } catch {}
+
+  dial.addEventListener('transitionend', () => {
+    dial.classList.remove('culture-compass__dial--settling');
+  }, { once: true });
+}
+
+function updateCompassHub(cultureId) {
+  const culture = COMPASS_CULTURES.find(c => c.id === cultureId);
+  if (!culture) return;
+
+  const nameEl = document.getElementById('compass-hub-name');
+  const taglineEl = document.getElementById('compass-hub-tagline');
+  const swatchesEl = document.getElementById('compass-hub-swatches');
+
+  if (nameEl) nameEl.textContent = culture.name;
+  if (taglineEl) taglineEl.textContent = culture.tagline;
+  if (swatchesEl) {
+    swatchesEl.innerHTML = culture.swatches.map(color =>
+      `<span class="culture-compass__hub-swatch" style="background:${color}"></span>`
+    ).join('');
+  }
+
+  // Highlight corresponding arc segment
+  document.querySelectorAll('#compass-arcs path').forEach(path => {
+    path.setAttribute('opacity', path.dataset.culture === cultureId ? '1' : '0.5');
+  });
+}
+
+function updateCompassNodeActive(cultureId) {
+  document.querySelectorAll('.culture-compass__node').forEach(node => {
+    const isActive = node.dataset.theme === cultureId;
+    node.classList.toggle('culture-compass__node--active', isActive);
+    node.setAttribute('aria-checked', String(isActive));
+  });
+}
+
+function openCultureCompass() {
+  initCompass();
+  const compass = document.getElementById('culture-compass');
+  if (!compass) return;
+
+  // Sync dial to current theme
+  const currentCulture = getState().theme.culture;
+  const idx = COMPASS_CULTURES.findIndex(c => c.id === currentCulture);
+  const dial = document.getElementById('compass-dial');
+  if (idx >= 0 && dial) {
+    compassAngle = -(idx * SEGMENT_ANGLE);
+    dial.style.transform = `rotate(${compassAngle}deg)`;
+  }
+  updateCompassHub(currentCulture);
+  updateCompassNodeActive(currentCulture);
+
+  compass.classList.add('culture-compass--open');
+  // Focus the dial for keyboard navigation
+  dial?.focus();
+}
+
+function closeCultureCompass() {
+  const compass = document.getElementById('culture-compass');
+  if (!compass) return;
+  compass.classList.remove('culture-compass--open');
+  saveTheme(getState().theme);
+  document.querySelector('[data-action="cycle-theme"]')?.focus();
+}
 
 /* ---- Boot ---- */
 init();

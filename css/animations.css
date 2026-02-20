@@ -397,6 +397,69 @@
   to   { width: 100%; }
 }
 
+/* ---- Culture Compass Node Spring-In (staggered entry) ---- */
+@keyframes compassNodeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0);
+  }
+  70% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.12);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+.culture-compass--open .culture-compass__node {
+  animation: compassNodeIn 500ms var(--spring) backwards;
+}
+
+.culture-compass--open .culture-compass__node:nth-child(1) { animation-delay: 60ms; }
+.culture-compass--open .culture-compass__node:nth-child(2) { animation-delay: 120ms; }
+.culture-compass--open .culture-compass__node:nth-child(3) { animation-delay: 180ms; }
+.culture-compass--open .culture-compass__node:nth-child(4) { animation-delay: 240ms; }
+.culture-compass--open .culture-compass__node:nth-child(5) { animation-delay: 300ms; }
+.culture-compass--open .culture-compass__node:nth-child(6) { animation-delay: 360ms; }
+.culture-compass--open .culture-compass__node:nth-child(7) { animation-delay: 420ms; }
+.culture-compass--open .culture-compass__node:nth-child(8) { animation-delay: 480ms; }
+
+/* ---- Compass Ring Fade-In ---- */
+@keyframes compassRingIn {
+  from { opacity: 0; transform: scale(0.8) rotate(-15deg); }
+  to   { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+
+.culture-compass--open .culture-compass__ring {
+  animation: compassRingIn 600ms var(--spring) backwards;
+  animation-delay: 0ms;
+}
+
+/* ---- Compass Hub Text Entrance ---- */
+@keyframes compassHubIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.culture-compass--open .culture-compass__hub {
+  animation: compassHubIn 400ms var(--ease-out) backwards;
+  animation-delay: 300ms;
+}
+
+/* ---- Compass Pointer Bounce ---- */
+@keyframes compassPointerBounce {
+  from { opacity: 0; transform: translateX(-50%) translateY(-8px); }
+  60%  { opacity: 1; transform: translateX(-50%) translateY(2px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+.culture-compass--open .culture-compass__pointer {
+  animation: compassPointerBounce 500ms var(--spring) backwards;
+  animation-delay: 200ms;
+}
+
 /* ---- Reduced Motion: Gentle fallback (100ms linear, not 0ms) ---- */
 @media (prefers-reduced-motion: reduce) {
   .stagger-in > *,
@@ -465,6 +528,23 @@
     transform: none !important;
   }
   .tile-expand__backdrop {
+    transition: none !important;
+  }
+
+  /* Culture Compass — instant show, no spring */
+  .culture-compass--open .culture-compass__node,
+  .culture-compass--open .culture-compass__ring,
+  .culture-compass--open .culture-compass__hub,
+  .culture-compass--open .culture-compass__pointer {
+    animation-duration: 100ms !important;
+    animation-timing-function: linear !important;
+  }
+
+  .culture-compass__dial--settling {
+    transition: transform 100ms linear !important;
+  }
+
+  .culture-compass__stage {
     transition: none !important;
   }
 }

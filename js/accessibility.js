@@ -57,10 +57,10 @@ function handleKeyboard(e) {
       return;
     }
 
-    const themePicker = document.getElementById('theme-picker');
-    if (themePicker?.classList.contains('theme-picker--open')) {
-      themePicker.classList.remove('theme-picker--open');
-      document.querySelector('[data-action="open-themes"]')?.focus();
+    const compass = document.getElementById('culture-compass');
+    if (compass?.classList.contains('culture-compass--open')) {
+      compass.classList.remove('culture-compass--open');
+      document.querySelector('[data-action="cycle-theme"]')?.focus();
       return;
     }
 

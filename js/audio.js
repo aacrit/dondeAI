@@ -11,8 +11,10 @@ let audioCtx = null;
 const CHIME_PROFILES = {
   neutral:      { freq: [523, 659, 784], wave: 'sine', decay: 0.4 },
   indian:       { freq: [440, 554, 659], wave: 'triangle', decay: 0.5 },
+  middleeastern:{ freq: [370, 466, 554], wave: 'triangle', decay: 0.55 },
   nepalese:     { freq: [392, 494, 587], wave: 'sine', decay: 0.6 },
   japanese:     { freq: [523, 784, 1047], wave: 'sine', decay: 0.3 },
+  eastasian:    { freq: [523, 659, 880], wave: 'sine', decay: 0.35 },
   african:      { freq: [349, 440, 523], wave: 'square', decay: 0.35 },
   southamerican:{ freq: [392, 523, 659], wave: 'triangle', decay: 0.45 },
 };

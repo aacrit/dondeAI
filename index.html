@@ -22,6 +22,8 @@
   <link rel="stylesheet" href="css/themes/japanese.css">
   <link rel="stylesheet" href="css/themes/african.css">
   <link rel="stylesheet" href="css/themes/southamerican.css">
+  <link rel="stylesheet" href="css/themes/middleeastern.css">
+  <link rel="stylesheet" href="css/themes/eastasian.css">
   <link rel="stylesheet" href="css/layout.css">
   <link rel="stylesheet" href="css/typography.css">
   <link rel="stylesheet" href="css/components.css">
@@ -76,9 +78,10 @@
             <path fill="currentColor" d="M153.76,28.41a4,4,0,0,0-4.22.43L78.63,84H32A12,12,0,0,0,20,96v64a12,12,0,0,0,12,12H78.63l70.91,55.16A4.07,4.07,0,0,0,152,228a3.92,3.92,0,0,0,1.76-.41A4,4,0,0,0,156,224V32A4,4,0,0,0,153.76,28.41ZM28,160V96a4,4,0,0,1,4-4H76v72H32A4,4,0,0,1,28,160Zm120,55.82L84,166V90l64-49.78Zm47-111.61a36,36,0,0,1,0,47.59,4,4,0,1,1-6-5.3,28,28,0,0,0,0-37,4,4,0,0,1,6-5.28ZM244,128a75.88,75.88,0,0,1-19.35,50.67,4,4,0,0,1-6-5.34,68,68,0,0,0,0-90.66,4,4,0,0,1,6-5.34A75.88,75.88,0,0,1,244,128Z"/>
           </svg>
         </button>
-        <button class="header__btn" data-action="cycle-theme" aria-label="Choose theme" title="Explore cultural themes">
+        <button class="header__btn header__btn--compass" data-action="cycle-theme" aria-label="Choose theme" title="Explore cultural themes">
           <svg viewBox="0 0 256 256" width="20" height="20">
-            <path fill="currentColor" d="M198,56.74A99.31,99.31,0,0,0,128,28h-1A100,100,0,0,0,28,128c0,41.22,25.55,75.85,66.69,90.38a28.34,28.34,0,0,0,9.42,1.63A28,28,0,0,0,132,192a20,20,0,0,1,20-20h46.21a27.84,27.84,0,0,0,27.3-21.76,100.37,100.37,0,0,0,2.49-23.1A99.26,99.26,0,0,0,198,56.74Zm19.74,91.72A19.89,19.89,0,0,1,198.21,164H152a28,28,0,0,0-28,28,20,20,0,0,1-26.64,18.83C59.51,197.46,36,165.72,36,128a92,92,0,0,1,91.05-92H128a92,92,0,0,1,89.72,112.46ZM136,76a8,8,0,1,1-8-8A8,8,0,0,1,136,76ZM92,100a8,8,0,1,1-8-8A8,8,0,0,1,92,100Zm0,56a8,8,0,1,1-8-8A8,8,0,0,1,92,156Zm88-56a8,8,0,1,1-8-8A8,8,0,0,1,180,100Z"/>
+            <!-- Phosphor ArrowsClockwise (thin) — circular spin affordance -->
+            <path fill="currentColor" d="M220,48V96a4,4,0,0,1-4,4H168a4,4,0,0,1,0-8h38.34A92,92,0,0,0,60.38,72.38,4,4,0,1,1,54.72,67,100,100,0,0,1,212,88.8V48a4,4,0,0,1,8,0ZM201.28,189A100,100,0,0,1,44,167.2V208a4,4,0,0,1-8,0V160a4,4,0,0,1,4-4H88a4,4,0,0,1,0,8H49.66a92,92,0,0,0,146,19.62A4,4,0,1,1,201.28,189Z"/>
           </svg>
         </button>
         <button class="header__btn" data-action="toggle-mode" aria-label="Toggle dark mode" title="Toggle dark mode">
@@ -442,82 +445,56 @@
       </div>
     </main>
 
-    <!-- Theme Picker Modal -->
-    <div class="theme-picker" id="theme-picker" role="dialog" aria-label="Choose a theme" aria-modal="true">
-      <div class="theme-picker__backdrop" data-action="close-themes"></div>
-      <div class="theme-picker__sheet">
-        <div class="theme-picker__header">
-          <h3 class="theme-picker__title type-emotional">Set the Mood</h3>
-          <button class="theme-picker__close" data-action="close-themes" aria-label="Close theme picker">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
+    <!-- Culture Compass — Radial Theme Dial -->
+    <div class="culture-compass" id="culture-compass" role="dialog" aria-label="Explore cultural themes" aria-modal="true">
+      <div class="culture-compass__backdrop" data-action="close-themes"></div>
+
+      <!-- Compass Container -->
+      <div class="culture-compass__stage">
+        <!-- Close button -->
+        <button class="culture-compass__close" data-action="close-themes" aria-label="Close culture compass">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+
+        <!-- Title -->
+        <h3 class="culture-compass__title type-emotional">Explore Cultures</h3>
+
+        <!-- The Compass Dial (SVG ring + segments) -->
+        <div class="culture-compass__dial-wrap">
+          <!-- Pointer / Needle at 12 o'clock -->
+          <div class="culture-compass__pointer" aria-hidden="true">
+            <svg viewBox="0 0 24 16" width="24" height="16">
+              <path d="M12 16L4 0h16z" fill="var(--ac)" opacity="0.9"/>
             </svg>
-          </button>
+          </div>
+
+          <!-- Rotatable dial -->
+          <div class="culture-compass__dial" id="compass-dial" role="radiogroup" aria-label="Cultural theme selector" tabindex="0">
+            <svg class="culture-compass__ring" viewBox="0 0 300 300" aria-hidden="true">
+              <!-- 8 arc segments — each 45 degrees -->
+              <g id="compass-arcs"></g>
+              <!-- Inner track line -->
+              <circle cx="150" cy="150" r="95" fill="none" stroke="var(--border)" stroke-width="0.5" opacity="0.4"/>
+              <!-- Center glow -->
+              <circle cx="150" cy="150" r="40" fill="var(--bg2)" opacity="0.6"/>
+            </svg>
+
+            <!-- Culture nodes (positioned absolutely on the ring) -->
+            <div class="culture-compass__nodes" id="compass-nodes"></div>
+          </div>
         </div>
 
-        <div class="theme-grid" role="radiogroup" aria-label="Cultural theme">
-          <button class="theme-card" role="radio" aria-checked="true" data-action="select-theme" data-theme="neutral">
-            <div class="theme-card__swatches">
-              <span class="theme-card__swatch" style="background: hsl(0 0% 22%)"></span>
-              <span class="theme-card__swatch" style="background: hsl(0 0% 98%)"></span>
-              <span class="theme-card__swatch" style="background: hsl(0 0% 10%)"></span>
-            </div>
-            <span class="theme-card__name type-structural">Monochrome</span>
-            <span class="theme-card__desc type-data--sm">The blank page before the masterpiece</span>
-          </button>
-
-          <button class="theme-card" role="radio" aria-checked="false" data-action="select-theme" data-theme="indian">
-            <div class="theme-card__swatches">
-              <span class="theme-card__swatch" style="background: hsl(38 85% 55%)"></span>
-              <span class="theme-card__swatch" style="background: hsl(350 70% 50%)"></span>
-              <span class="theme-card__swatch" style="background: hsl(25 90% 45%)"></span>
-            </div>
-            <span class="theme-card__name type-structural">Saffron</span>
-            <span class="theme-card__desc type-data--sm">Golden hour in the spice market</span>
-          </button>
-
-          <button class="theme-card" role="radio" aria-checked="false" data-action="select-theme" data-theme="nepalese">
-            <div class="theme-card__swatches">
-              <span class="theme-card__swatch" style="background: hsl(210 50% 50%)"></span>
-              <span class="theme-card__swatch" style="background: hsl(350 60% 50%)"></span>
-              <span class="theme-card__swatch" style="background: hsl(45 70% 55%)"></span>
-            </div>
-            <span class="theme-card__name type-structural">Summit</span>
-            <span class="theme-card__desc type-data--sm">Where prayer flags meet the sky</span>
-          </button>
-
-          <button class="theme-card" role="radio" aria-checked="false" data-action="select-theme" data-theme="japanese">
-            <div class="theme-card__swatches">
-              <span class="theme-card__swatch" style="background: hsl(340 45% 55%)"></span>
-              <span class="theme-card__swatch" style="background: hsl(40 20% 96%)"></span>
-              <span class="theme-card__swatch" style="background: hsl(200 15% 25%)"></span>
-            </div>
-            <span class="theme-card__name type-structural">Inkwell</span>
-            <span class="theme-card__desc type-data--sm">Less is more, silence is loud</span>
-          </button>
-
-          <button class="theme-card" role="radio" aria-checked="false" data-action="select-theme" data-theme="african">
-            <div class="theme-card__swatches">
-              <span class="theme-card__swatch" style="background: hsl(35 80% 50%)"></span>
-              <span class="theme-card__swatch" style="background: hsl(150 45% 35%)"></span>
-              <span class="theme-card__swatch" style="background: hsl(0 65% 45%)"></span>
-            </div>
-            <span class="theme-card__name type-structural">Kente</span>
-            <span class="theme-card__desc type-data--sm">Bold threads woven in rhythm</span>
-          </button>
-
-          <button class="theme-card" role="radio" aria-checked="false" data-action="select-theme" data-theme="southamerican">
-            <div class="theme-card__swatches">
-              <span class="theme-card__swatch" style="background: hsl(350 80% 55%)"></span>
-              <span class="theme-card__swatch" style="background: hsl(170 65% 45%)"></span>
-              <span class="theme-card__swatch" style="background: hsl(45 90% 55%)"></span>
-            </div>
-            <span class="theme-card__name type-structural">Fiesta</span>
-            <span class="theme-card__desc type-data--sm">Every wall tells a story in color</span>
-          </button>
+        <!-- Center Hub: active culture info -->
+        <div class="culture-compass__hub" id="compass-hub">
+          <span class="culture-compass__hub-name type-emotional" id="compass-hub-name">Studio</span>
+          <span class="culture-compass__hub-tagline type-data" id="compass-hub-tagline">The blank page before the masterpiece</span>
+          <div class="culture-compass__hub-swatches" id="compass-hub-swatches"></div>
         </div>
 
+        <!-- Mode Toggle (light/dark) -->
         <div class="mode-toggle">
           <button class="mode-toggle__btn mode-toggle__btn--active type-structural" data-action="set-mode" data-mode="light">
             Light
@@ -526,6 +503,9 @@
             Dark
           </button>
         </div>
+
+        <!-- Hint text -->
+        <p class="culture-compass__hint type-data">Drag to explore &middot; Tap to select</p>
       </div>
     </div>
 
