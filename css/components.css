@@ -980,7 +980,7 @@
   flex-direction: column;
   gap: var(--space-xs);
   width: 100%;
-  max-width: 340px;
+  max-width: 480px;
   margin: 0 auto;
   padding: var(--space-sm) var(--space-md);
   background: var(--bg2);
@@ -1048,7 +1048,7 @@
   align-items: center;
   gap: var(--space-sm);
   width: 100%;
-  max-width: 380px;
+  max-width: 100%;
   margin: 0 auto;
   cursor: pointer;
   outline: none;
@@ -1096,8 +1096,8 @@
 /* Visualization container */
 .score-bloom__viz {
   position: relative;
-  width: 280px;
-  height: 280px;
+  width: min(100%, 340px);
+  aspect-ratio: 1;
 }
 
 .score-bloom__svg {

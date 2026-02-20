@@ -22,11 +22,10 @@
   }
 }
 
-/* ---- Mobile: Score Bloom compact sizing ---- */
+/* ---- Mobile: Score Bloom full-width sizing ---- */
 @media (max-width: 767px) {
   .score-bloom__viz {
-    width: 280px;
-    height: 280px;
+    width: min(100%, 340px);
   }
 }
 
@@ -60,14 +59,9 @@
     padding: var(--space-xl);
   }
 
-  /* Score Bloom: tablet sizing */
-  .score-bloom {
-    max-width: 380px;
-  }
-
+  /* Score Bloom: tablet sizing — full container width */
   .score-bloom__viz {
-    width: 320px;
-    height: 320px;
+    width: min(100%, 420px);
   }
 
   .score-bloom__number {
@@ -114,10 +108,9 @@
     max-height: 450px;
   }
 
-  /* Score Bloom: desktop sizing */
+  /* Score Bloom: desktop sizing — full container width */
   .score-bloom__viz {
-    width: 380px;
-    height: 380px;
+    width: min(100%, 480px);
   }
 
   .score-bloom__number {
