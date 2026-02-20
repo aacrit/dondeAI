@@ -154,7 +154,7 @@
 
 .craving-input:focus {
   border-color: var(--ac);
-  box-shadow: none;
+  box-shadow: 0 4px 16px -4px color-mix(in srgb, var(--ac) 8%, transparent);
 }
 
 .craving-input:focus::placeholder {
@@ -245,6 +245,20 @@
               color var(--dur-fast) var(--ease-out),
               transform var(--dur-fast) var(--spring);
   white-space: nowrap;
+}
+
+.smart-chip::before {
+  content: '+';
+  display: inline-block;
+  margin-right: 3px;
+  opacity: 0.35;
+  font-weight: 600;
+  font-size: 0.9em;
+  transition: opacity 150ms var(--ease-out);
+}
+
+.smart-chip:hover::before {
+  opacity: 0.7;
 }
 
 .smart-chip:hover {
@@ -482,6 +496,33 @@
   flex-shrink: 0;
 }
 
+/* Filter count badge */
+.filter-drawer__toggle[data-filter-count]:not([data-filter-count=""])::before {
+  content: attr(data-filter-count);
+  position: absolute;
+  top: 2px;
+  left: 14px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--ac);
+  color: var(--bg);
+  font-family: var(--font-data);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+  pointer-events: none;
+  transform: scale(1);
+  animation: badgePop 300ms var(--spring);
+}
+
+@keyframes badgePop {
+  from { transform: scale(0); }
+  to { transform: scale(1); }
+}
+
 .filter-drawer__summary {
   margin-left: auto;
   color: var(--ac);
@@ -586,6 +627,13 @@
 [data-mode="light"] .mode-icon--moon { display: block; }
 [data-mode="dark"] .mode-icon--sun { display: block; }
 [data-mode="dark"] .mode-icon--moon { display: none; }
+
+/* ---- Header Sound Toggle Icon Visibility ---- */
+.sound-icon--on,
+.sound-icon--off { transition: opacity 200ms var(--ease-out); }
+.sound-icon--off { display: none; }
+[data-sound="off"] .sound-icon--on { display: none; }
+[data-sound="off"] .sound-icon--off { display: block; }
 
 /* ---- SVG Icon Styling in Chips ---- */
 .chip__icon svg,
@@ -1827,283 +1875,163 @@
   background: var(--border);
 }
 
-/* ---- Culture Compass — Radial Theme Dial ---- */
-.culture-compass {
+/* ---- Color Mode Toggle Icon Visibility ---- */
+.color-icon--on,
+.color-icon--off { transition: opacity 200ms var(--ease-out); }
+.color-icon--off { display: none; }
+[data-color="off"] .color-icon--on { display: none; }
+[data-color="off"] .color-icon--off { display: block; }
+
+/* ---- Color Mode Popover ---- */
+.color-popover {
   position: fixed;
   inset: 0;
   z-index: var(--z-modal);
-  display: flex;
-  align-items: center;
-  justify-content: center;
   pointer-events: none;
   opacity: 0;
-  transition: opacity var(--dur-normal) var(--ease-out);
+  transition: opacity var(--dur-fast) var(--ease-out);
 }
 
-.culture-compass--open {
+.color-popover--open {
   pointer-events: auto;
   opacity: 1;
 }
 
-.culture-compass__backdrop {
+.color-popover__backdrop {
   position: absolute;
   inset: 0;
-  background: hsl(0 0% 0% / 0.55);
-  backdrop-filter: blur(8px) saturate(120%);
-  -webkit-backdrop-filter: blur(8px) saturate(120%);
 }
 
-.culture-compass__stage {
-  position: relative;
+.color-popover__panel {
+  position: absolute;
+  top: 52px;
+  right: var(--space-sm);
+  width: 200px;
+  padding: var(--space-sm);
+  background: var(--glass);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 32px hsl(0 0% 0% / 0.12);
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: var(--space-md);
-  padding: var(--space-lg) var(--space-md);
-  max-width: 380px;
-  width: 92vw;
-  transform: scale(0.95) translateY(8px);
+  gap: var(--space-sm);
+  transform: scale(0.95) translateY(-4px);
   opacity: 0;
-  transition: transform var(--dur-normal) var(--spring),
-              opacity var(--dur-normal) var(--ease-out);
+  transition: transform var(--dur-fast) var(--spring),
+              opacity var(--dur-fast) var(--ease-out);
 }
 
-.culture-compass--open .culture-compass__stage {
+.color-popover--open .color-popover__panel {
   transform: scale(1) translateY(0);
   opacity: 1;
 }
 
-/* Close button */
-.culture-compass__close {
-  position: absolute;
-  top: var(--space-xs);
-  right: var(--space-xs);
-  width: 40px;
-  height: 40px;
+/* Toggle row */
+.color-popover__row {
   display: flex;
   align-items: center;
-  justify-content: center;
-  border-radius: 50%;
+  justify-content: space-between;
+}
+
+.color-popover__label {
   color: var(--fg2);
-  background: var(--glass);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  z-index: 2;
-  transition: background var(--dur-fast) var(--ease-out),
-              color var(--dur-fast) var(--ease-out);
+  font-family: var(--font-data);
+  font-size: var(--text-xs);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
-.culture-compass__close:hover {
-  background: var(--bg3);
-  color: var(--fg);
-}
-
-/* Title */
-.culture-compass__title {
-  font-size: var(--text-lg);
-  color: var(--fg);
-  text-align: center;
-  opacity: 0.9;
-}
-
-.culture-compass__subtitle {
-  font-size: 11px;
-  color: var(--fg3);
-  text-align: center;
-  opacity: 0.6;
-  letter-spacing: 0.02em;
-  margin-top: calc(-1 * var(--space-sm));
-}
-
-/* ---- Dial Wrap (contains pointer + rotatable dial) ---- */
-.culture-compass__dial-wrap {
+/* Toggle switch */
+.color-popover__switch {
   position: relative;
-  width: 280px;
-  height: 280px;
-  flex-shrink: 0;
-}
-
-/* Pointer / needle at 12 o'clock */
-.culture-compass__pointer {
-  position: absolute;
-  top: -2px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 3;
-  filter: drop-shadow(0 2px 4px hsl(0 0% 0% / 0.25));
-  transition: filter var(--dur-fast) var(--ease-out);
-}
-
-/* The rotatable dial */
-.culture-compass__dial {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  cursor: grab;
-  touch-action: none;
-  user-select: none;
-  -webkit-user-select: none;
-  transition: transform 0ms linear;
-  will-change: transform;
-  outline: none;
-}
-
-.culture-compass__dial:focus-visible {
-  box-shadow: 0 0 0 3px var(--ac-soft);
-}
-
-.culture-compass__dial--grabbing {
-  cursor: grabbing;
-}
-
-.culture-compass__dial--settling {
-  transition: transform var(--dur-step) var(--spring);
-}
-
-/* SVG ring */
-.culture-compass__ring {
-  width: 100%;
-  height: 100%;
-  display: block;
-}
-
-/* ---- Culture Nodes (positioned on the ring circumference) ---- */
-.culture-compass__nodes {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-.culture-compass__node {
-  position: absolute;
-  width: 52px;
-  height: 52px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  border-radius: 50%;
-  background: var(--glass);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 2px solid var(--border);
-  pointer-events: auto;
   cursor: pointer;
-  transform: translate(-50%, -50%);
-  transition: border-color var(--dur-fast) var(--ease-out),
-              transform var(--dur-fast) var(--spring),
-              box-shadow var(--dur-fast) var(--ease-out);
+  background: none;
+  border: none;
+  padding: 0;
 }
 
-.culture-compass__node:hover {
-  border-color: var(--fg3);
-  transform: translate(-50%, -50%) scale(1.08);
+.color-popover__switch-track {
+  display: block;
+  width: 36px;
+  height: 20px;
+  border-radius: 10px;
+  background: var(--fg3);
+  opacity: 0.3;
+  transition: background var(--dur-fast) var(--ease-out),
+              opacity var(--dur-fast) var(--ease-out);
+  position: relative;
 }
 
-.culture-compass__node:active {
-  transform: translate(-50%, -50%) scale(0.95);
+.color-popover__switch[aria-checked="true"] .color-popover__switch-track {
+  background: var(--ac, var(--fg));
+  opacity: 0.8;
 }
 
-.culture-compass__node--active {
-  border-color: var(--ac);
-  box-shadow: 0 0 0 3px var(--ac-soft), 0 4px 16px hsl(0 0% 0% / 0.15);
-  transform: translate(-50%, -50%) scale(1.12);
-}
-
-.culture-compass__node--active:hover {
-  transform: translate(-50%, -50%) scale(1.14);
-}
-
-.culture-compass__node-swatch {
-  width: 18px;
-  height: 18px;
+.color-popover__switch-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
-  border: 1.5px solid hsl(0 0% 100% / 0.3);
-  flex-shrink: 0;
-}
-
-.culture-compass__node-label {
-  font-family: var(--font-data);
-  font-size: 7px;
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  color: var(--fg2);
-  text-transform: uppercase;
-  white-space: nowrap;
-  line-height: 1;
-}
-
-.culture-compass__node--active .culture-compass__node-label {
-  color: var(--fg);
-}
-
-/* ---- Center Hub ---- */
-.culture-compass__hub {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-xs);
-  text-align: center;
-  min-height: 72px;
-}
-
-.culture-compass__hub-name {
-  font-size: var(--text-xl);
-  color: var(--fg);
-  transition: opacity var(--dur-fast) var(--ease-out);
-}
-
-.culture-compass__hub-region {
-  font-family: var(--font-data);
-  font-size: var(--text-xs);
-  color: var(--fg3);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  transition: opacity var(--dur-fast) var(--ease-out);
-}
-
-.culture-compass__hub-tagline {
-  font-size: var(--text-xs);
-  color: var(--fg2);
-  max-width: 240px;
-  line-height: 1.4;
-  transition: opacity var(--dur-fast) var(--ease-out);
-}
-
-.culture-compass__hub-cuisine {
-  font-family: var(--font-structural);
-  font-size: var(--text-xs);
-  color: var(--fg2);
-  max-width: 240px;
-  line-height: 1.4;
-  transition: opacity var(--dur-fast) var(--ease-out);
-}
-
-.culture-compass__hub-swatches {
-  display: flex;
-  gap: 6px;
-  margin-top: var(--space-2xs);
-}
-
-.culture-compass__hub-swatch {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  border: 2px solid hsl(0 0% 100% / 0.2);
+  background: var(--bg);
+  box-shadow: 0 1px 3px hsl(0 0% 0% / 0.2);
   transition: transform var(--dur-fast) var(--spring);
 }
 
-.culture-compass__hub-swatch:first-child {
+.color-popover__switch[aria-checked="true"] .color-popover__switch-knob {
+  transform: translateX(16px);
+}
+
+/* Culture dots row */
+.color-popover__cultures {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  flex-wrap: wrap;
+  padding-top: var(--space-2xs);
+  border-top: 1px solid var(--border);
+}
+
+.color-popover__dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform var(--dur-fast) var(--spring),
+              border-color var(--dur-fast) var(--ease-out),
+              opacity var(--dur-fast) var(--ease-out);
+}
+
+.color-popover__dot:hover {
   transform: scale(1.15);
 }
 
-/* Hint */
-.culture-compass__hint {
-  font-size: var(--text-xs);
-  color: var(--fg3);
-  opacity: 0.7;
-  text-align: center;
+.color-popover__dot:active {
+  transform: scale(0.9);
+}
+
+.color-popover__dot--active {
+  border-color: var(--fg);
+  box-shadow: 0 0 0 2px var(--ac-soft);
+  transform: scale(1.1);
+}
+
+/* Greyed-out dots when color mode is off */
+[data-color="off"] .color-popover__dot {
+  opacity: 0.25;
+  pointer-events: none;
+}
+
+.color-popover__dot-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
 }
 
 /* ---- Share sheet grab handle (keep for share sheet, was shared) ---- */
@@ -2121,25 +2049,6 @@
 @media (min-width: 768px) {
   .share-sheet__panel::before {
     display: none;
-  }
-
-  .culture-compass__dial-wrap {
-    width: 320px;
-    height: 320px;
-  }
-
-  .culture-compass__node {
-    width: 58px;
-    height: 58px;
-  }
-
-  .culture-compass__node-swatch {
-    width: 22px;
-    height: 22px;
-  }
-
-  .culture-compass__node-label {
-    font-size: 8px;
   }
 }
 
@@ -2784,23 +2693,24 @@
   /* stroke-dasharray/offset set by JS via getTotalLength() */
 }
 
+/* Staggered draw-in choreography: left tine → right tine → curve → dot spring-pop */
 .logo-mark--loading .logo-mark__tine--left.logo-mark__tine--draw {
-  animation: strokeDraw 400ms cubic-bezier(0.2, 1, 0.4, 1) 0ms forwards;
+  animation: strokeDraw 350ms cubic-bezier(0.34, 1.56, 0.64, 1) 0ms forwards;
 }
 
 .logo-mark--loading .logo-mark__tine--right.logo-mark__tine--draw {
-  animation: strokeDraw 400ms cubic-bezier(0.2, 1, 0.4, 1) 200ms forwards;
+  animation: strokeDraw 350ms cubic-bezier(0.34, 1.56, 0.64, 1) 120ms forwards;
 }
 
 .logo-mark--loading .logo-mark__curve--draw {
-  animation: strokeDraw 450ms cubic-bezier(0.2, 1, 0.4, 1) 350ms forwards;
+  animation: strokeDraw 400ms cubic-bezier(0.34, 1.56, 0.64, 1) 240ms forwards;
 }
 
 .logo-mark--loading .logo-mark__dot--draw {
   opacity: 0;
   transform: scale(0);
   transform-origin: 16px 40px;
-  animation: dotSpringIn 300ms cubic-bezier(0.34, 1.56, 0.64, 1) 600ms forwards;
+  animation: dotSpringIn 300ms cubic-bezier(0.34, 1.56, 0.64, 1) 400ms forwards;
 }
 
 /* ---- Search Pulse State (Act 2 — looping during API call) ---- */
@@ -2825,7 +2735,7 @@
 .filter-pill:focus-visible,
 .smart-chip:focus-visible,
 .cta-btn:focus-visible,
-.culture-compass__node:focus-visible,
+.color-popover__dot:focus-visible,
 .share-btn:focus-visible,
 .header__btn:focus-visible,
 .back-btn:focus-visible {
@@ -2956,7 +2866,7 @@
   .nav-tile__link,
   .info-item,
   .insider-tip,
-  .culture-compass__stage,
+  .color-popover__panel,
   .share-sheet__panel {
     background: var(--bg2);
   }

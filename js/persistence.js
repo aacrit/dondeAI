@@ -7,6 +7,7 @@ const KEYS = {
   theme: 'dondeai-theme',
   sound: 'dondeai-sound',
   history: 'dondeai-history',
+  colorMode: 'dondeai-colormode',
 };
 
 function safeGet(key) {
@@ -41,6 +42,14 @@ export function loadSound() {
 
 export function saveSound(enabled) {
   safeSet(KEYS.sound, enabled);
+}
+
+export function loadColorMode() {
+  return safeGet(KEYS.colorMode) || 'auto';
+}
+
+export function saveColorMode(mode) {
+  safeSet(KEYS.colorMode, mode);
 }
 
 export function loadHistory() {
