@@ -83,10 +83,15 @@
             <path fill="currentColor" d="M155.51,24.81a8,8,0,0,0-8.42.88L77.25,80H32A16,16,0,0,0,16,96v64a16,16,0,0,0,16,16H77.25l69.84,54.31A8,8,0,0,0,160,224V32A8,8,0,0,0,155.51,24.81ZM144,207.64,84.91,161.69A7.94,7.94,0,0,0,80,160H32V96H80a7.94,7.94,0,0,0,4.91-1.69L144,48.36Z"/>
           </svg>
         </button>
-        <button class="header__btn header__btn--compass" data-action="cycle-theme" aria-label="Change theme" title="Change theme">
-          <svg viewBox="0 0 256 256" width="20" height="20">
-            <!-- Phosphor Palette — theme picker affordance -->
-            <path fill="currentColor" d="M200.77,53.23A103.94,103.94,0,0,0,24,128c0,44.18,32.06,80,72,80a40,40,0,0,0,40-40,24,24,0,0,1,24-24h40A56,56,0,0,0,200.77,53.23ZM200,136H160a40,40,0,0,0-40,40,24,24,0,0,1-24,24c-28.7,0-56-29.5-56-64a88,88,0,0,1,175.34-8H200A40,40,0,0,1,200,136ZM76,116a12,12,0,1,1,12-12A12,12,0,0,1,76,116Zm28-32a12,12,0,1,1,12-12A12,12,0,0,1,104,84Zm48,0a12,12,0,1,1,12-12A12,12,0,0,1,152,84Zm28,32a12,12,0,1,1,12-12A12,12,0,0,1,180,116Z"/>
+        <button class="header__btn header__btn--color" data-action="toggle-color" aria-label="Auto color on" title="Auto color">
+          <!-- Droplet filled (shown when auto-color ON) -->
+          <svg class="color-icon color-icon--on" viewBox="0 0 256 256" width="20" height="20">
+            <path fill="currentColor" d="M174,47.75a254.19,254.19,0,0,0-41.45-38.3,8,8,0,0,0-9.18,0A254.19,254.19,0,0,0,82,47.75C54.51,79.32,40,112.6,40,144a88,88,0,0,0,176,0C216,112.6,201.49,79.32,174,47.75Z"/>
+          </svg>
+          <!-- Droplet with slash (shown when auto-color OFF) -->
+          <svg class="color-icon color-icon--off" viewBox="0 0 256 256" width="20" height="20">
+            <path fill="currentColor" d="M174,47.75a254.19,254.19,0,0,0-41.45-38.3,8,8,0,0,0-9.18,0A254.19,254.19,0,0,0,82,47.75C54.51,79.32,40,112.6,40,144a88,88,0,0,0,176,0C216,112.6,201.49,79.32,174,47.75Z" opacity="0.3"/>
+            <line x1="48" y1="40" x2="208" y2="216" stroke="currentColor" stroke-width="16" stroke-linecap="round"/>
           </svg>
         </button>
         <button class="header__btn" data-action="toggle-mode" aria-label="Toggle dark mode" title="Toggle dark mode">
@@ -460,60 +465,24 @@
       </div>
     </main>
 
-    <!-- Culture Compass — Radial Theme Dial -->
-    <div class="culture-compass" id="culture-compass" role="dialog" aria-label="Explore cultural themes" aria-modal="true">
-      <div class="culture-compass__backdrop" data-action="close-themes"></div>
-
-      <!-- Compass Container -->
-      <div class="culture-compass__stage">
-        <!-- Close button -->
-        <button class="culture-compass__close" data-action="close-themes" aria-label="Close culture compass">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
-
-        <!-- Title -->
-        <h3 class="culture-compass__title type-emotional">Explore Cultures</h3>
-        <p class="culture-compass__subtitle type-data">Change the look &amp; feel &mdash; not what you find</p>
-
-        <!-- The Compass Dial (SVG ring + segments) -->
-        <div class="culture-compass__dial-wrap">
-          <!-- Pointer / Needle at 12 o'clock -->
-          <div class="culture-compass__pointer" aria-hidden="true">
-            <svg viewBox="0 0 24 16" width="24" height="16">
-              <path d="M12 16L4 0h16z" fill="var(--ac)" opacity="0.9"/>
-            </svg>
-          </div>
-
-          <!-- Rotatable dial -->
-          <div class="culture-compass__dial" id="compass-dial" role="radiogroup" aria-label="Cultural theme selector" tabindex="0">
-            <svg class="culture-compass__ring" viewBox="0 0 300 300" aria-hidden="true">
-              <!-- 8 arc segments — each 45 degrees -->
-              <g id="compass-arcs"></g>
-              <!-- Inner track line -->
-              <circle cx="150" cy="150" r="95" fill="none" stroke="var(--border)" stroke-width="0.5" opacity="0.4"/>
-              <!-- Center glow -->
-              <circle cx="150" cy="150" r="40" fill="var(--bg2)" opacity="0.6"/>
-            </svg>
-
-            <!-- Culture nodes (positioned absolutely on the ring) -->
-            <div class="culture-compass__nodes" id="compass-nodes"></div>
-          </div>
+    <!-- Color Mode Popover — Culture override mini-panel -->
+    <div class="color-popover" id="color-popover" role="dialog" aria-label="Color mode settings" aria-modal="true">
+      <div class="color-popover__backdrop" data-action="close-color-popover"></div>
+      <div class="color-popover__panel">
+        <div class="color-popover__row">
+          <span class="color-popover__label type-data--sm">Auto Color</span>
+          <button class="color-popover__switch" id="color-mode-switch"
+                  data-action="toggle-colormode" role="switch" aria-checked="true"
+                  aria-label="Toggle auto color mode">
+            <span class="color-popover__switch-track">
+              <span class="color-popover__switch-knob"></span>
+            </span>
+          </button>
         </div>
-
-        <!-- Center Hub: active culture info -->
-        <div class="culture-compass__hub" id="compass-hub">
-          <span class="culture-compass__hub-name type-emotional" id="compass-hub-name">Studio</span>
-          <span class="culture-compass__hub-region type-data" id="compass-hub-region">Universal</span>
-          <span class="culture-compass__hub-tagline type-data" id="compass-hub-tagline">The blank page before the masterpiece</span>
-          <span class="culture-compass__hub-cuisine type-structural" id="compass-hub-cuisine">The blank canvas</span>
-          <div class="culture-compass__hub-swatches" id="compass-hub-swatches"></div>
+        <div class="color-popover__cultures" id="color-popover-cultures"
+             role="radiogroup" aria-label="Manual culture override">
+          <!-- 8 culture dots rendered by JS -->
         </div>
-
-        <!-- Hint text -->
-        <p class="culture-compass__hint type-data">Drag to explore &middot; Tap to select</p>
       </div>
     </div>
 

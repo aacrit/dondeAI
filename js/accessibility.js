@@ -58,8 +58,8 @@ function handleKeyboard(e) {
       return;
     }
     if (e.key === 't' || e.key === 'T') {
-      const compassBtn = document.querySelector('[data-action="cycle-theme"]');
-      if (compassBtn) { compassBtn.click(); return; }
+      const colorBtn = document.querySelector('[data-action="toggle-color"]');
+      if (colorBtn) { colorBtn.click(); return; }
     }
     if (e.key === 'f' || e.key === 'F') {
       const step = document.querySelector('.step[data-step="0"]:not([aria-hidden="true"])');
@@ -86,10 +86,10 @@ function handleKeyboard(e) {
       return;
     }
 
-    const compass = document.getElementById('culture-compass');
-    if (compass?.classList.contains('culture-compass--open')) {
-      compass.classList.remove('culture-compass--open');
-      document.querySelector('[data-action="cycle-theme"]')?.focus();
+    const colorPopover = document.getElementById('color-popover');
+    if (colorPopover?.classList.contains('color-popover--open')) {
+      colorPopover.classList.remove('color-popover--open');
+      document.querySelector('[data-action="toggle-color"]')?.focus();
       return;
     }
 

@@ -173,13 +173,13 @@
   height: 20px;
 }
 
-/* Compass button — gentle idle rotation hint */
-.header__btn--compass svg {
-  transition: transform var(--dur-step) var(--spring);
+/* Color mode button */
+.header__btn--color svg {
+  transition: transform var(--dur-fast) var(--spring);
 }
 
-.header__btn--compass:hover svg {
-  transform: rotate(180deg);
+.header__btn--color:hover svg {
+  transform: scale(1.1);
 }
 
 /* ---- Step Track (Sliding Cockpit) ---- */
