@@ -5,8 +5,8 @@
 
 import { getState, setState, subscribe, resetState } from './state.js';
 import { initRouter, goToStep, goToStepInstant } from './router.js';
-import { loadTheme, loadSound, loadHistory, addToHistory, saveTheme } from './persistence.js';
-import { initTheme, setTheme, setThemeInstant, getLabels, CULTURES, CULTURE_DISPLAY_NAMES } from './theme.js';
+import { loadTheme, loadSound, loadHistory, addToHistory, saveTheme, loadColorMode } from './persistence.js';
+import { initTheme, setTheme, setThemeInstant, setThemeVisualOnly, revertAutoTheme, setManualOverride, isManualOverride, setColorMode, getColorMode, getLabels, CULTURES, CULTURE_DISPLAY_NAMES } from './theme.js';
 import { initAudio, toggleSound, playChime } from './audio.js';
 import { initVoice, startVoice } from './voice.js';
 import { initShare, shareResult, closeShareSheet, handleShareChannel } from './share.js';
@@ -16,7 +16,7 @@ import { fetchRecommendation } from './api.js';
 import { animateScoreRing, renderPetalRadar, renderSentimentBar, animateBadge, startParticles, stopParticles, chaosToOrderReveal, initLogoAnimation, startSearchPulse, stopSearchPulse, resolveLogoToFound, cleanupLoadingLogo } from './animations.js';
 import {
   getGreeting, getTimePeriod, getCuisineFromResult, svgIcon,
-  getScoreTier, getScoreColor, buildGoogleStars, buildMapsUrl, relativeTime, matchCuisine
+  getScoreTier, getScoreColor, buildGoogleStars, buildMapsUrl, relativeTime, matchCuisine, matchCulture
 } from './utils.js';
 
 /* ---- Cached DOM Elements ---- */
@@ -43,11 +43,13 @@ function init() {
   const savedTheme = loadTheme();
   const savedSound = loadSound();
   const savedHistory = loadHistory();
+  const savedColorMode = loadColorMode();
 
   setState({
     theme: savedTheme,
     soundEnabled: savedSound,
     history: savedHistory,
+    colorMode: savedColorMode,
   });
 
   // Initialize all modules
@@ -121,14 +123,7 @@ function init() {
   // Sync CTA disabled state
   updateCtaState();
 
-  // First-visit theme discovery nudge
-  try {
-    if (!localStorage.getItem('dondeai-theme')) {
-      setTimeout(() => {
-        openCultureCompass();
-      }, 2000);
-    }
-  } catch { /* private browsing — skip nudge */ }
+  // Auto-color is on by default — no first-visit nudge needed
 }
 
 /* ---- Landing Setup ---- */
@@ -379,6 +374,7 @@ const CHIP_REACTIONS = {
 };
 
 let chipDebounce = null;
+let autoThemeDebounce = null;
 
 function updateChipsForInput(query) {
   if (!query || query.length < 2) {
@@ -513,6 +509,9 @@ function wireEvents() {
         updateFilterSummary();
         // Collapse filter drawer
         collapseFilters();
+        // Revert auto-theme and re-enable auto-detection
+        revertAutoTheme();
+        setManualOverride(false);
         break;
 
       case 'back':
@@ -523,6 +522,8 @@ function wireEvents() {
         }
         goToStep(getState().step - 1);
         syncFilterPillsToState();
+        // Revert any result-page auto-theme back to persisted
+        revertAutoTheme();
         break;
 
       case 'voice':
@@ -604,20 +605,33 @@ function wireEvents() {
       }
 
       case 'open-themes':
-        openCultureCompass();
+        toggleColorPopover();
         break;
 
-      case 'close-themes': {
-        closeCultureCompass();
+      case 'close-color-popover': {
+        closeColorPopover();
         break;
       }
 
-      case 'select-theme': {
+      case 'toggle-colormode': {
+        const newMode = getColorMode() === 'auto' ? 'off' : 'auto';
+        setColorMode(newMode);
+        updateColorPopoverState();
+        break;
+      }
+
+      case 'select-culture': {
         const culture = btn.dataset.theme;
-        setThemeInstant(culture, getState().theme.mode);
-        if (typeof compassSnapToCulture === 'function') compassSnapToCulture(culture);
-        // Auto-close compass after snap animation settles
-        setTimeout(() => closeCultureCompass(), 400);
+        if (getColorMode() === 'off') break;
+        if (getState().theme.culture === culture && isManualOverride()) {
+          // Tapping active dot clears manual override → back to auto
+          setManualOverride(false);
+          revertAutoTheme();
+        } else {
+          setManualOverride(true);
+          setTheme(culture, getState().theme.mode);
+        }
+        updateColorPopoverDots();
         break;
       }
 
@@ -628,8 +642,8 @@ function wireEvents() {
         break;
       }
 
-      case 'cycle-theme': {
-        openCultureCompass();
+      case 'toggle-color': {
+        toggleColorPopover();
         break;
       }
 
@@ -968,6 +982,24 @@ function wireCravingInput() {
       updateChipsForInput($cravingInput.value.trim());
     }, 300);
 
+    // Debounced auto-theme detection (visual palette only, gated on colorMode)
+    clearTimeout(autoThemeDebounce);
+    if (getColorMode() === 'auto') {
+      autoThemeDebounce = setTimeout(() => {
+        const val = $cravingInput.value.trim();
+        if (!val) {
+          revertAutoTheme();
+          return;
+        }
+        const detected = matchCulture(val);
+        if (detected) {
+          setThemeVisualOnly(detected);
+        } else {
+          revertAutoTheme();
+        }
+      }, 300);
+    }
+
     // Scored autocomplete (1-char trigger)
     const query = $cravingInput.value.trim();
     if (query.length < 1) {
@@ -1165,6 +1197,11 @@ function updateFilterSummary() {
   if ($summary) {
     $summary.textContent = parts.length ? parts.join(' \u00B7 ') : '';
   }
+  // Filter count badge on toggle button
+  const $toggle = document.querySelector('[data-action="toggle-filters"]');
+  if ($toggle) {
+    $toggle.setAttribute('data-filter-count', parts.length || '');
+  }
 }
 
 /* ---- Submit ---- */
@@ -1190,7 +1227,10 @@ async function handleSubmit() {
   }
 
   if (!isOnline()) {
-    showToast("You're offline \u2014 can't reach the engine.", true);
+    showToast("You're offline \u2014 can't reach the engine.", true, {
+      label: 'Try Again',
+      callback: () => handleSubmit(),
+    });
     return;
   }
 
@@ -1246,8 +1286,12 @@ async function handleSubmit() {
     if (err.name === 'AbortError') return; // user navigated away
     // Error: clean up loading state and return to input
     toggleLoading(false);
-    setState({ loading: false, error: err.message });
+    setState({ loading: false });
     goToStep(0);
+    showToast(err.message || "Something went wrong.", true, {
+      label: 'Retry',
+      callback: () => handleSubmit(),
+    });
   } finally {
     // Reset CTA state
     if ($cta) {
@@ -1413,6 +1457,36 @@ async function orchestrateReveal(data) {
     $resultCard.style.transition = '';
     $resultCard.style.transform = '';
   }
+
+  // Schedule edge-hint replays (remind user they can swipe back)
+  scheduleEdgeHintReplay();
+}
+
+/* ---- Edge Hint Replay ---- */
+let edgeHintTimers = [];
+function scheduleEdgeHintReplay() {
+  clearEdgeHintTimers();
+  const $step1 = document.querySelector('.step[data-step="1"]');
+  if (!$step1) return;
+  let replays = 0;
+  const replay = () => {
+    if (replays >= 2 || getState().step !== 1) return;
+    replays++;
+    $step1.classList.add('edge-hint-replay');
+    requestAnimationFrame(() => {
+      $step1.classList.remove('edge-hint-replay');
+      $step1.classList.add('edge-hint-replay-run');
+      $step1.addEventListener('animationend', () => {
+        $step1.classList.remove('edge-hint-replay-run');
+      }, { once: true });
+    });
+  };
+  edgeHintTimers.push(setTimeout(replay, 8000));
+  edgeHintTimers.push(setTimeout(replay, 16000));
+}
+function clearEdgeHintTimers() {
+  edgeHintTimers.forEach(clearTimeout);
+  edgeHintTimers = [];
 }
 
 /* ---- Result Rendering ---- */
@@ -1434,8 +1508,17 @@ function renderResult(data) {
   animationTimers.forEach(clearTimeout);
   animationTimers = [];
 
-  // Cuisine detection (for accent color + Details tile)
+  // Cuisine detection (for accent color + Details tile + auto-theme)
   const cuisine = getCuisineFromResult(data);
+
+  // Auto-theme on result: full theme swap (with labels) based on detected culture
+  if (getColorMode() === 'auto') {
+    if (cuisine.culture) {
+      setTheme(cuisine.culture, getState().theme.mode);
+    } else {
+      revertAutoTheme();
+    }
+  }
 
   // Cuisine accent color on card border
   if ($resultCard && cuisine.hue !== null) {
@@ -1729,36 +1812,50 @@ function renderResult(data) {
     if (r.sentiment_breakdown || r.sentiment_score) {
       $sentBar.style.display = '';
       let posVal = 33, neuVal = 34, negVal = 33;
+      let sentimentValid = true;
       if (r.sentiment_breakdown) {
         const parts = r.sentiment_breakdown.toLowerCase();
         const posMatch = parts.match(/positive[:\s]+(\d+)/);
         const neuMatch = parts.match(/neutral[:\s]+(\d+)/);
         const negMatch = parts.match(/negative[:\s]+(\d+)/);
-        posVal = parseInt(posMatch?.[1] || '33', 10);
-        neuVal = parseInt(neuMatch?.[1] || '34', 10);
-        negVal = parseInt(negMatch?.[1] || '33', 10);
+        // If none of the regexes matched, the string is unparseable (e.g. "N/A")
+        if (!posMatch && !neuMatch && !negMatch) {
+          sentimentValid = false;
+        } else {
+          posVal = parseInt(posMatch?.[1] || '33', 10);
+          neuVal = parseInt(neuMatch?.[1] || '34', 10);
+          negVal = parseInt(negMatch?.[1] || '33', 10);
+        }
       } else if (r.sentiment_score) {
         // Derive from single score: score = positive ratio
         const score = parseFloat(r.sentiment_score);
-        posVal = Math.round(score * 100);
-        negVal = Math.round((1 - score) * 30);
-        neuVal = 100 - posVal - negVal;
+        if (isNaN(score)) {
+          sentimentValid = false;
+        } else {
+          posVal = Math.round(score * 100);
+          negVal = Math.round((1 - score) * 30);
+          neuVal = 100 - posVal - negVal;
+        }
       }
 
-      renderSentimentBar(posVal, neuVal, negVal, animationTimers);
+      if (sentimentValid) {
+        renderSentimentBar(posVal, neuVal, negVal, animationTimers);
 
-      // Tooltip labels
-      const $tipPos = document.getElementById('sentiment-tip-pos');
-      const $tipNeu = document.getElementById('sentiment-tip-neu');
-      const $tipNeg = document.getElementById('sentiment-tip-neg');
-      if ($tipPos) $tipPos.textContent = `${posVal}% Positive`;
-      if ($tipNeu) $tipNeu.textContent = `${neuVal}% Neutral`;
-      if ($tipNeg) $tipNeg.textContent = `${negVal}% Negative`;
+        // Tooltip labels
+        const $tipPos = document.getElementById('sentiment-tip-pos');
+        const $tipNeu = document.getElementById('sentiment-tip-neu');
+        const $tipNeg = document.getElementById('sentiment-tip-neg');
+        if ($tipPos) $tipPos.textContent = `${posVal}% Positive`;
+        if ($tipNeu) $tipNeu.textContent = `${neuVal}% Neutral`;
+        if ($tipNeg) $tipNeg.textContent = `${negVal}% Negative`;
 
-      // Tap toggle for mobile tooltip
-      $sentBar.addEventListener('click', () => {
-        $sentBar.classList.toggle('sentiment-bar--active');
-      });
+        // Tap toggle for mobile tooltip
+        $sentBar.addEventListener('click', () => {
+          $sentBar.classList.toggle('sentiment-bar--active');
+        });
+      } else {
+        $sentBar.style.display = 'none';
+      }
     } else {
       $sentBar.style.display = 'none';
     }
@@ -1981,7 +2078,7 @@ function createResultLink(tag, icon, label, href) {
 /* ---- Toast ---- */
 let toastTimer = null;
 
-function showToast(message, isError = false) {
+function showToast(message, isError = false, action = null) {
   if (!$toast || !$toastText) return;
 
   // Clear any pending dismiss
@@ -2000,10 +2097,23 @@ function showToast(message, isError = false) {
     $dismiss.style.display = isError ? 'flex' : 'none';
   }
 
+  // Optional action button (e.g., "Retry")
+  const $action = document.getElementById('toast-action');
+  if ($action) {
+    if (action) {
+      $action.textContent = action.label;
+      $action.onclick = () => { dismissToast(); action.callback(); };
+      $action.style.display = '';
+    } else {
+      $action.style.display = 'none';
+      $action.onclick = null;
+    }
+  }
+
   $toast.classList.add('toast--visible');
 
-  // Auto-dismiss: errors stay longer
-  const duration = isError ? 6000 : 3500;
+  // Auto-dismiss: errors stay longer, actions linger even longer
+  const duration = action ? 10000 : isError ? 6000 : 3500;
   toastTimer = setTimeout(() => dismissToast(), duration);
 }
 
@@ -2195,384 +2305,87 @@ function renderShareCanvas(format = 'post') {
 // Expose for share module
 window.renderShareCanvas = renderShareCanvas;
 
-/* ---- Culture Compass Engine ---- */
+/* ---- Color Mode Popover ---- */
 
-const COMPASS_CULTURES = [
-  { id: 'neutral',       name: 'Studio',    region: 'All Cuisines',       mood: 'The blank canvas',                                tagline: 'The blank page before the masterpiece',     hue: 'hsl(0 0% 22%)',    swatches: ['hsl(0 0% 22%)', 'hsl(0 0% 98%)', 'hsl(0 0% 10%)'] },
-  { id: 'indian',        name: 'Desi',      region: 'South Asian',        mood: 'Warm spices \u00b7 Rich textures \u00b7 Saffron hues',        tagline: 'Spice, soul, and the warmth of home',       hue: 'hsl(28 88% 50%)',  swatches: ['hsl(28 88% 50%)', 'hsl(350 70% 50%)', 'hsl(22 90% 48%)'] },
-  { id: 'middleeastern', name: 'Bazaar',    region: 'Middle Eastern',     mood: 'Brass warmth \u00b7 Communal spirit \u00b7 Spice gold',       tagline: 'Where every meal is a gathering',           hue: 'hsl(48 72% 46%)',  swatches: ['hsl(48 72% 46%)', 'hsl(0 60% 50%)', 'hsl(35 85% 50%)'] },
-  { id: 'nepalese',      name: 'Himalayan', region: 'Himalayan',          mood: 'Mountain calm \u00b7 Sacred stones \u00b7 Prayer flags',      tagline: 'Where prayer flags meet the sky',           hue: 'hsl(178 50% 38%)', swatches: ['hsl(178 50% 38%)', 'hsl(350 60% 50%)', 'hsl(45 70% 55%)'] },
-  { id: 'japanese',      name: 'Zen',       region: 'Japanese',           mood: 'Ink wash \u00b7 Quiet restraint \u00b7 Indigo depth',        tagline: 'Less is more, silence is loud',             hue: 'hsl(220 35% 45%)', swatches: ['hsl(220 35% 45%)', 'hsl(45 12% 97%)', 'hsl(220 18% 15%)'] },
-  { id: 'eastasian',     name: 'Silk',      region: 'East & SE Asian',    mood: 'Silk textures \u00b7 Plum tones \u00b7 Imperial grace',      tagline: 'Ten thousand flavors, one table',           hue: 'hsl(285 35% 45%)', swatches: ['hsl(285 35% 45%)', 'hsl(40 12% 96%)', 'hsl(345 60% 52%)'] },
-  { id: 'african',       name: 'Kente',     region: 'African & Diaspora', mood: 'Bold geometry \u00b7 Pan-African green \u00b7 Rhythm',       tagline: 'Bold threads woven in rhythm',              hue: 'hsl(155 65% 35%)', swatches: ['hsl(155 65% 35%)', 'hsl(40 85% 50%)', 'hsl(0 65% 45%)'] },
-  { id: 'southamerican', name: 'Sabor',     region: 'Latin American',     mood: 'Tropical warmth \u00b7 Fiesta palette \u00b7 Chili red',     tagline: 'Flavor runs through everything',            hue: 'hsl(350 80% 52%)', swatches: ['hsl(350 80% 52%)', 'hsl(170 55% 38%)', 'hsl(45 90% 55%)'] },
+const POPOVER_CULTURES = [
+  { id: 'neutral',       name: 'Studio',    region: 'Universal',          mood: 'The blank canvas',                                 tagline: 'The blank page before the masterpiece',     hue: 'hsl(0 0% 22%)',    swatches: ['hsl(0 0% 22%)', 'hsl(0 0% 98%)', 'hsl(0 0% 10%)'] },
+  { id: 'indian',        name: 'Desi',      region: 'Warm Earth',         mood: 'Ornate warmth \u00b7 Saffron tones \u00b7 Ink depth',         tagline: 'Warmth woven into every detail',            hue: 'hsl(28 88% 50%)',  swatches: ['hsl(28 88% 50%)', 'hsl(350 70% 50%)', 'hsl(22 90% 48%)'] },
+  { id: 'middleeastern', name: 'Bazaar',    region: 'Hammered Gold',      mood: 'Brass patina \u00b7 Arabesque geometry \u00b7 Gold leaf',     tagline: 'Where every gathering is golden',           hue: 'hsl(48 72% 46%)',  swatches: ['hsl(48 72% 46%)', 'hsl(0 60% 50%)', 'hsl(35 85% 50%)'] },
+  { id: 'nepalese',      name: 'Himalayan', region: 'Mountain Stone',     mood: 'Stone calm \u00b7 Prayer flags \u00b7 High altitude',         tagline: 'Where prayer flags meet the sky',           hue: 'hsl(178 50% 38%)', swatches: ['hsl(178 50% 38%)', 'hsl(350 60% 50%)', 'hsl(45 70% 55%)'] },
+  { id: 'japanese',      name: 'Zen',       region: 'Ink Wash',           mood: 'Wabi-sabi \u00b7 Indigo restraint \u00b7 Quiet depth',        tagline: 'Less is more, silence is loud',             hue: 'hsl(220 35% 45%)', swatches: ['hsl(220 35% 45%)', 'hsl(45 12% 97%)', 'hsl(220 18% 15%)'] },
+  { id: 'eastasian',     name: 'Silk',      region: 'Imperial Silk',      mood: 'Lacquer finish \u00b7 Plum tones \u00b7 Silk drape',          tagline: 'Ten thousand textures, one thread',         hue: 'hsl(285 35% 45%)', swatches: ['hsl(285 35% 45%)', 'hsl(40 12% 96%)', 'hsl(345 60% 52%)'] },
+  { id: 'african',       name: 'Kente',     region: 'Bold Weave',         mood: 'Bold geometry \u00b7 Emerald rhythm \u00b7 Woven energy',     tagline: 'Bold threads woven in rhythm',              hue: 'hsl(155 65% 35%)', swatches: ['hsl(155 65% 35%)', 'hsl(40 85% 50%)', 'hsl(0 65% 45%)'] },
+  { id: 'southamerican', name: 'Sabor',     region: 'Tropical Fire',      mood: 'Vivid warmth \u00b7 Tropical palette \u00b7 Festival energy', tagline: 'Energy runs through everything',            hue: 'hsl(350 80% 52%)', swatches: ['hsl(350 80% 52%)', 'hsl(170 55% 38%)', 'hsl(45 90% 55%)'] },
 ];
 
-const SEGMENT_ANGLE = 360 / COMPASS_CULTURES.length; // 45 degrees each
-let compassAngle = 0;       // current rotation in degrees
-let compassDragging = false;
-let compassLastAngle = 0;
-let compassVelocity = 0;
-let compassMomentumRaf = null;
-let compassInitialized = false;
+let popoverInitialized = false;
 
-function initCompass() {
-  if (compassInitialized) return;
-  compassInitialized = true;
+function initColorPopover() {
+  if (popoverInitialized) return;
+  popoverInitialized = true;
 
-  const dial = document.getElementById('compass-dial');
-  const arcsGroup = document.getElementById('compass-arcs');
-  const nodesContainer = document.getElementById('compass-nodes');
-  if (!dial || !arcsGroup || !nodesContainer) return;
+  const container = document.getElementById('color-popover-cultures');
+  if (!container) return;
 
-  // Build SVG arc segments
-  const cx = 150, cy = 150, outerR = 138, innerR = 108;
-  COMPASS_CULTURES.forEach((culture, i) => {
-    const startAngle = (i * SEGMENT_ANGLE - 90 - SEGMENT_ANGLE / 2) * Math.PI / 180;
-    const endAngle = ((i + 1) * SEGMENT_ANGLE - 90 - SEGMENT_ANGLE / 2) * Math.PI / 180;
-    const gap = 0.02; // small gap between segments
+  // Build culture dots
+  POPOVER_CULTURES.forEach(culture => {
+    const dot = document.createElement('button');
+    dot.className = 'color-popover__dot';
+    dot.dataset.action = 'select-culture';
+    dot.dataset.theme = culture.id;
+    dot.style.background = culture.hue;
+    dot.setAttribute('role', 'radio');
+    dot.setAttribute('aria-checked', 'false');
+    dot.setAttribute('aria-label', `${culture.name} theme`);
 
-    const x1o = cx + outerR * Math.cos(startAngle + gap);
-    const y1o = cy + outerR * Math.sin(startAngle + gap);
-    const x2o = cx + outerR * Math.cos(endAngle - gap);
-    const y2o = cy + outerR * Math.sin(endAngle - gap);
-    const x1i = cx + innerR * Math.cos(endAngle - gap);
-    const y1i = cy + innerR * Math.sin(endAngle - gap);
-    const x2i = cx + innerR * Math.cos(startAngle + gap);
-    const y2i = cy + innerR * Math.sin(startAngle + gap);
+    const srLabel = document.createElement('span');
+    srLabel.className = 'color-popover__dot-label';
+    srLabel.textContent = culture.name;
+    dot.appendChild(srLabel);
 
-    const largeArc = SEGMENT_ANGLE > 180 ? 1 : 0;
-    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    path.setAttribute('d',
-      `M${x1o},${y1o} A${outerR},${outerR} 0 ${largeArc} 1 ${x2o},${y2o} ` +
-      `L${x1i},${y1i} A${innerR},${innerR} 0 ${largeArc} 0 ${x2i},${y2i} Z`
-    );
-    path.setAttribute('fill', culture.hue);
-    path.setAttribute('opacity', '0.7');
-    path.setAttribute('data-culture', culture.id);
-    path.style.transition = 'opacity var(--dur-fast) var(--ease-out)';
-    arcsGroup.appendChild(path);
+    container.appendChild(dot);
   });
 
-  // Build culture nodes (positioned on circumference)
-  // Arc midpoint is at SVG radius 123 in viewBox 300 → 41% from center
-  const nodeRadiusPct = 41;
-  COMPASS_CULTURES.forEach((culture, i) => {
-    const angle = (i * SEGMENT_ANGLE) * Math.PI / 180 - Math.PI / 2; // start at top
-    const x = 50 + nodeRadiusPct * Math.cos(angle);
-    const y = 50 + nodeRadiusPct * Math.sin(angle);
+  updateColorPopoverDots();
+  updateColorPopoverState();
+}
 
-    const node = document.createElement('button');
-    node.className = 'culture-compass__node';
-    node.role = 'radio';
-    node.setAttribute('aria-checked', 'false');
-    node.setAttribute('aria-label', `${culture.region} — ${culture.name} theme`);
-    node.dataset.action = 'select-theme';
-    node.dataset.theme = culture.id;
-    node.style.left = `${x}%`;
-    node.style.top = `${y}%`;
-
-    const swatch = document.createElement('span');
-    swatch.className = 'culture-compass__node-swatch';
-    swatch.style.background = culture.hue;
-
-    const label = document.createElement('span');
-    label.className = 'culture-compass__node-label';
-    label.textContent = culture.region;
-
-    node.appendChild(swatch);
-    node.appendChild(label);
-    nodesContainer.appendChild(node);
-  });
-
-  // Set initial rotation based on current theme
+function updateColorPopoverDots() {
   const currentCulture = getState().theme.culture;
-  const idx = COMPASS_CULTURES.findIndex(c => c.id === currentCulture);
-  if (idx > 0) {
-    compassAngle = -idx * SEGMENT_ANGLE;
-    dial.style.transform = `rotate(${compassAngle}deg)`;
-  }
-  updateCompassHub(currentCulture);
-  updateCompassNodeActive(currentCulture);
-
-  // Wire pointer/touch drag rotation
-  wireCompassDrag(dial);
-}
-
-function wireCompassDrag(dial) {
-  const dialWrap = dial.parentElement;
-  let startAngle = 0;
-  let startCompassAngle = 0;
-  let lastTimestamp = 0;
-  let lastDelta = 0;
-
-  function getAngleFromEvent(e) {
-    const rect = dialWrap.getBoundingClientRect();
-    const cx = rect.left + rect.width / 2;
-    const cy = rect.top + rect.height / 2;
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    return Math.atan2(clientY - cy, clientX - cx) * 180 / Math.PI;
-  }
-
-  function onPointerDown(e) {
-    if (e.target.closest('.culture-compass__node')) return; // let node clicks pass through
-    e.preventDefault();
-    compassDragging = true;
-    if (compassMomentumRaf) { cancelAnimationFrame(compassMomentumRaf); compassMomentumRaf = null; }
-    dial.classList.add('culture-compass__dial--grabbing');
-    dial.classList.remove('culture-compass__dial--settling');
-    startAngle = getAngleFromEvent(e);
-    startCompassAngle = compassAngle;
-    lastTimestamp = performance.now();
-    lastDelta = 0;
-    compassVelocity = 0;
-  }
-
-  function onPointerMove(e) {
-    if (!compassDragging) return;
-    e.preventDefault();
-    const currentAngleRad = getAngleFromEvent(e);
-    let delta = currentAngleRad - startAngle;
-    // Handle wrap-around
-    if (delta > 180) delta -= 360;
-    if (delta < -180) delta += 360;
-
-    compassAngle = startCompassAngle + delta;
-    dial.style.transform = `rotate(${compassAngle}deg)`;
-
-    // Track velocity
-    const now = performance.now();
-    const dt = now - lastTimestamp;
-    if (dt > 0) {
-      compassVelocity = (delta - lastDelta) / dt * 16; // normalized to ~frame
-      lastDelta = delta;
-      lastTimestamp = now;
-    }
-
-    // Preview the nearest culture while dragging
-    const nearest = getNearestCulture();
-    updateCompassHub(nearest);
-    updateCompassNodeActive(nearest);
-
-    // Live preview: instant swap (no wash overlay) while dragging
-    const { theme } = getState();
-    if (nearest !== theme.culture) {
-      setThemeInstant(nearest, theme.mode);
-    }
-  }
-
-  function onPointerUp() {
-    if (!compassDragging) return;
-    compassDragging = false;
-    dial.classList.remove('culture-compass__dial--grabbing');
-
-    // If velocity is significant, apply momentum
-    if (Math.abs(compassVelocity) > 0.5) {
-      applyMomentum(dial);
-    } else {
-      snapToNearest(dial);
-    }
-  }
-
-  // Mouse events
-  dial.addEventListener('mousedown', onPointerDown);
-  document.addEventListener('mousemove', onPointerMove);
-  document.addEventListener('mouseup', onPointerUp);
-
-  // Touch events
-  dial.addEventListener('touchstart', onPointerDown, { passive: false });
-  document.addEventListener('touchmove', (e) => {
-    if (compassDragging) onPointerMove(e);
-  }, { passive: false });
-  document.addEventListener('touchend', onPointerUp);
-
-  // Keyboard arrow support
-  dial.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
-      e.preventDefault();
-      rotateToCulture(-1, dial);
-    } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
-      e.preventDefault();
-      rotateToCulture(1, dial);
-    }
+  document.querySelectorAll('.color-popover__dot').forEach(dot => {
+    const isActive = dot.dataset.theme === currentCulture && isManualOverride();
+    dot.classList.toggle('color-popover__dot--active', isActive);
+    dot.setAttribute('aria-checked', String(isActive));
   });
 }
 
-function getNearestCulture() {
-  // Normalize angle to 0-360 range
-  let norm = ((-compassAngle) % 360 + 360) % 360;
-  const idx = Math.round(norm / SEGMENT_ANGLE) % COMPASS_CULTURES.length;
-  return COMPASS_CULTURES[idx].id;
-}
-
-function applyMomentum(dial) {
-  const friction = 0.92;
-  function step() {
-    compassVelocity *= friction;
-    compassAngle += compassVelocity;
-    dial.style.transform = `rotate(${compassAngle}deg)`;
-
-    const nearest = getNearestCulture();
-    updateCompassHub(nearest);
-    updateCompassNodeActive(nearest);
-
-    if (Math.abs(compassVelocity) > 0.15) {
-      compassMomentumRaf = requestAnimationFrame(step);
-    } else {
-      compassMomentumRaf = null;
-      snapToNearest(dial);
-    }
+function updateColorPopoverState() {
+  const switchEl = document.getElementById('color-mode-switch');
+  if (switchEl) {
+    const isAuto = getColorMode() === 'auto';
+    switchEl.setAttribute('aria-checked', String(isAuto));
   }
-  compassMomentumRaf = requestAnimationFrame(step);
 }
 
-function snapToNearest(dial) {
-  // Find the nearest snap angle
-  let norm = ((-compassAngle) % 360 + 360) % 360;
-  const idx = Math.round(norm / SEGMENT_ANGLE) % COMPASS_CULTURES.length;
-  const targetAngle = -(idx * SEGMENT_ANGLE);
+function toggleColorPopover() {
+  initColorPopover();
+  const popover = document.getElementById('color-popover');
+  if (!popover) return;
 
-  // Find the shortest rotation path
-  let diff = targetAngle - compassAngle;
-  diff = ((diff + 180) % 360 + 360) % 360 - 180;
-  const finalAngle = compassAngle + diff;
-
-  compassAngle = finalAngle;
-  dial.classList.add('culture-compass__dial--settling');
-  dial.style.transform = `rotate(${finalAngle}deg)`;
-
-  const culture = COMPASS_CULTURES[idx].id;
-  updateCompassHub(culture);
-  updateCompassNodeActive(culture);
-
-  // Apply theme on snap (instant — no wash overlay)
-  const { theme } = getState();
-  if (culture !== theme.culture) {
-    setThemeInstant(culture, theme.mode);
+  if (popover.classList.contains('color-popover--open')) {
+    closeColorPopover();
+  } else {
+    updateColorPopoverDots();
+    updateColorPopoverState();
+    popover.classList.add('color-popover--open');
   }
-
-  // Play chime on settle
-  try { playChime(); } catch {}
-
-  dial.addEventListener('transitionend', () => {
-    dial.classList.remove('culture-compass__dial--settling');
-  }, { once: true });
 }
 
-function rotateToCulture(direction, dial) {
-  // direction: -1 = prev, 1 = next
-  let norm = ((-compassAngle) % 360 + 360) % 360;
-  let currentIdx = Math.round(norm / SEGMENT_ANGLE) % COMPASS_CULTURES.length;
-  let newIdx = ((currentIdx + direction) % COMPASS_CULTURES.length + COMPASS_CULTURES.length) % COMPASS_CULTURES.length;
-
-  const targetAngle = -(newIdx * SEGMENT_ANGLE);
-  let diff = targetAngle - compassAngle;
-  diff = ((diff + 180) % 360 + 360) % 360 - 180;
-
-  compassAngle = compassAngle + diff;
-  if (!dial) dial = document.getElementById('compass-dial');
-  dial.classList.add('culture-compass__dial--settling');
-  dial.style.transform = `rotate(${compassAngle}deg)`;
-
-  const culture = COMPASS_CULTURES[newIdx].id;
-  updateCompassHub(culture);
-  updateCompassNodeActive(culture);
-  setThemeInstant(culture, getState().theme.mode);
-
-  try { playChime(); } catch {}
-
-  dial.addEventListener('transitionend', () => {
-    dial.classList.remove('culture-compass__dial--settling');
-  }, { once: true });
-}
-
-function compassSnapToCulture(cultureId) {
-  const idx = COMPASS_CULTURES.findIndex(c => c.id === cultureId);
-  if (idx === -1) return;
-
-  const dial = document.getElementById('compass-dial');
-  if (!dial) return;
-
-  const targetAngle = -(idx * SEGMENT_ANGLE);
-  let diff = targetAngle - compassAngle;
-  diff = ((diff + 180) % 360 + 360) % 360 - 180;
-
-  compassAngle = compassAngle + diff;
-  dial.classList.add('culture-compass__dial--settling');
-  dial.style.transform = `rotate(${compassAngle}deg)`;
-
-  updateCompassHub(cultureId);
-  updateCompassNodeActive(cultureId);
-
-  try { playChime(); } catch {}
-
-  dial.addEventListener('transitionend', () => {
-    dial.classList.remove('culture-compass__dial--settling');
-  }, { once: true });
-}
-
-function updateCompassHub(cultureId) {
-  const culture = COMPASS_CULTURES.find(c => c.id === cultureId);
-  if (!culture) return;
-
-  const nameEl = document.getElementById('compass-hub-name');
-  const regionEl = document.getElementById('compass-hub-region');
-  const taglineEl = document.getElementById('compass-hub-tagline');
-  const cuisineEl = document.getElementById('compass-hub-cuisine');
-  const swatchesEl = document.getElementById('compass-hub-swatches');
-
-  if (nameEl) nameEl.textContent = culture.name;
-  if (regionEl) regionEl.textContent = culture.region;
-  if (taglineEl) taglineEl.textContent = culture.tagline;
-  if (cuisineEl) cuisineEl.textContent = culture.mood;
-  if (swatchesEl) {
-    swatchesEl.innerHTML = culture.swatches.map(color =>
-      `<span class="culture-compass__hub-swatch" style="background:${color}"></span>`
-    ).join('');
-  }
-
-  // Highlight corresponding arc segment
-  document.querySelectorAll('#compass-arcs path').forEach(path => {
-    path.setAttribute('opacity', path.dataset.culture === cultureId ? '1' : '0.5');
-  });
-}
-
-function updateCompassNodeActive(cultureId) {
-  document.querySelectorAll('.culture-compass__node').forEach(node => {
-    const isActive = node.dataset.theme === cultureId;
-    node.classList.toggle('culture-compass__node--active', isActive);
-    node.setAttribute('aria-checked', String(isActive));
-  });
-}
-
-function openCultureCompass() {
-  initCompass();
-  const compass = document.getElementById('culture-compass');
-  if (!compass) return;
-
-  // Sync dial to current theme
-  const currentCulture = getState().theme.culture;
-  const idx = COMPASS_CULTURES.findIndex(c => c.id === currentCulture);
-  const dial = document.getElementById('compass-dial');
-  if (idx >= 0 && dial) {
-    compassAngle = -(idx * SEGMENT_ANGLE);
-    dial.style.transform = `rotate(${compassAngle}deg)`;
-  }
-  updateCompassHub(currentCulture);
-  updateCompassNodeActive(currentCulture);
-
-  compass.classList.add('culture-compass--open');
-  // Focus the dial for keyboard navigation
-  dial?.focus();
-}
-
-function closeCultureCompass() {
-  const compass = document.getElementById('culture-compass');
-  if (!compass) return;
-  compass.classList.remove('culture-compass--open');
-  saveTheme(getState().theme);
-  document.querySelector('[data-action="cycle-theme"]')?.focus();
+function closeColorPopover() {
+  const popover = document.getElementById('color-popover');
+  if (!popover) return;
+  popover.classList.remove('color-popover--open');
+  document.querySelector('[data-action="toggle-color"]')?.focus();
 }
 
 /* ---- Boot ---- */

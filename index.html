@@ -73,15 +73,25 @@
         <span class="logo-tagline type-data--sm" aria-hidden="true">One Pick. Zero Stress.</span>
       </button>
       <div class="header__actions">
-        <button class="header__btn" data-action="toggle-sound" aria-label="Toggle sound" title="Sound">
-          <svg viewBox="0 0 256 256" width="20" height="20">
-            <path fill="currentColor" d="M153.76,28.41a4,4,0,0,0-4.22.43L78.63,84H32A12,12,0,0,0,20,96v64a12,12,0,0,0,12,12H78.63l70.91,55.16A4.07,4.07,0,0,0,152,228a3.92,3.92,0,0,0,1.76-.41A4,4,0,0,0,156,224V32A4,4,0,0,0,153.76,28.41ZM28,160V96a4,4,0,0,1,4-4H76v72H32A4,4,0,0,1,28,160Zm120,55.82L84,166V90l64-49.78Zm47-111.61a36,36,0,0,1,0,47.59,4,4,0,1,1-6-5.3,28,28,0,0,0,0-37,4,4,0,0,1,6-5.28ZM244,128a75.88,75.88,0,0,1-19.35,50.67,4,4,0,0,1-6-5.34,68,68,0,0,0,0-90.66,4,4,0,0,1,6-5.34A75.88,75.88,0,0,1,244,128Z"/>
+        <button class="header__btn" data-action="toggle-sound" aria-label="Unmute sound" title="Sound">
+          <!-- Speaker with waves (shown when sound ON) -->
+          <svg class="sound-icon sound-icon--on" viewBox="0 0 256 256" width="20" height="20">
+            <path fill="currentColor" d="M155.51,24.81a8,8,0,0,0-8.42.88L77.25,80H32A16,16,0,0,0,16,96v64a16,16,0,0,0,16,16H77.25l69.84,54.31A8,8,0,0,0,160,224V32A8,8,0,0,0,155.51,24.81ZM144,207.64,84.91,161.69A7.94,7.94,0,0,0,80,160H32V96H80a7.94,7.94,0,0,0,4.91-1.69L144,48.36ZM192,128a24,24,0,0,0-24-24,8,8,0,0,0,0,16,8,8,0,0,1,0,16,8,8,0,0,0,0,16A24,24,0,0,0,192,128Zm40,0a64,64,0,0,0-64-64,8,8,0,0,0,0,16,48,48,0,0,1,0,96,8,8,0,0,0,0,16A64,64,0,0,0,232,128Z"/>
+          </svg>
+          <!-- Speaker muted (shown when sound OFF) -->
+          <svg class="sound-icon sound-icon--off" viewBox="0 0 256 256" width="20" height="20">
+            <path fill="currentColor" d="M155.51,24.81a8,8,0,0,0-8.42.88L77.25,80H32A16,16,0,0,0,16,96v64a16,16,0,0,0,16,16H77.25l69.84,54.31A8,8,0,0,0,160,224V32A8,8,0,0,0,155.51,24.81ZM144,207.64,84.91,161.69A7.94,7.94,0,0,0,80,160H32V96H80a7.94,7.94,0,0,0,4.91-1.69L144,48.36Z"/>
           </svg>
         </button>
-        <button class="header__btn header__btn--compass" data-action="cycle-theme" aria-label="Choose theme" title="Explore cultural themes">
-          <svg viewBox="0 0 256 256" width="20" height="20">
-            <!-- Phosphor ArrowsClockwise (thin) — circular spin affordance -->
-            <path fill="currentColor" d="M220,48V96a4,4,0,0,1-4,4H168a4,4,0,0,1,0-8h38.34A92,92,0,0,0,60.38,72.38,4,4,0,1,1,54.72,67,100,100,0,0,1,212,88.8V48a4,4,0,0,1,8,0ZM201.28,189A100,100,0,0,1,44,167.2V208a4,4,0,0,1-8,0V160a4,4,0,0,1,4-4H88a4,4,0,0,1,0,8H49.66a92,92,0,0,0,146,19.62A4,4,0,1,1,201.28,189Z"/>
+        <button class="header__btn header__btn--color" data-action="toggle-color" aria-label="Auto color on" title="Auto color">
+          <!-- Droplet filled (shown when auto-color ON) -->
+          <svg class="color-icon color-icon--on" viewBox="0 0 256 256" width="20" height="20">
+            <path fill="currentColor" d="M174,47.75a254.19,254.19,0,0,0-41.45-38.3,8,8,0,0,0-9.18,0A254.19,254.19,0,0,0,82,47.75C54.51,79.32,40,112.6,40,144a88,88,0,0,0,176,0C216,112.6,201.49,79.32,174,47.75Z"/>
+          </svg>
+          <!-- Droplet with slash (shown when auto-color OFF) -->
+          <svg class="color-icon color-icon--off" viewBox="0 0 256 256" width="20" height="20">
+            <path fill="currentColor" d="M174,47.75a254.19,254.19,0,0,0-41.45-38.3,8,8,0,0,0-9.18,0A254.19,254.19,0,0,0,82,47.75C54.51,79.32,40,112.6,40,144a88,88,0,0,0,176,0C216,112.6,201.49,79.32,174,47.75Z" opacity="0.3"/>
+            <line x1="48" y1="40" x2="208" y2="216" stroke="currentColor" stroke-width="16" stroke-linecap="round"/>
           </svg>
         </button>
         <button class="header__btn" data-action="toggle-mode" aria-label="Toggle dark mode" title="Toggle dark mode">
@@ -455,60 +465,24 @@
       </div>
     </main>
 
-    <!-- Culture Compass — Radial Theme Dial -->
-    <div class="culture-compass" id="culture-compass" role="dialog" aria-label="Explore cultural themes" aria-modal="true">
-      <div class="culture-compass__backdrop" data-action="close-themes"></div>
-
-      <!-- Compass Container -->
-      <div class="culture-compass__stage">
-        <!-- Close button -->
-        <button class="culture-compass__close" data-action="close-themes" aria-label="Close culture compass">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
-
-        <!-- Title -->
-        <h3 class="culture-compass__title type-emotional">Explore Cultures</h3>
-        <p class="culture-compass__subtitle type-data">Change the look &amp; feel &mdash; not what you find</p>
-
-        <!-- The Compass Dial (SVG ring + segments) -->
-        <div class="culture-compass__dial-wrap">
-          <!-- Pointer / Needle at 12 o'clock -->
-          <div class="culture-compass__pointer" aria-hidden="true">
-            <svg viewBox="0 0 24 16" width="24" height="16">
-              <path d="M12 16L4 0h16z" fill="var(--ac)" opacity="0.9"/>
-            </svg>
-          </div>
-
-          <!-- Rotatable dial -->
-          <div class="culture-compass__dial" id="compass-dial" role="radiogroup" aria-label="Cultural theme selector" tabindex="0">
-            <svg class="culture-compass__ring" viewBox="0 0 300 300" aria-hidden="true">
-              <!-- 8 arc segments — each 45 degrees -->
-              <g id="compass-arcs"></g>
-              <!-- Inner track line -->
-              <circle cx="150" cy="150" r="95" fill="none" stroke="var(--border)" stroke-width="0.5" opacity="0.4"/>
-              <!-- Center glow -->
-              <circle cx="150" cy="150" r="40" fill="var(--bg2)" opacity="0.6"/>
-            </svg>
-
-            <!-- Culture nodes (positioned absolutely on the ring) -->
-            <div class="culture-compass__nodes" id="compass-nodes"></div>
-          </div>
+    <!-- Color Mode Popover — Culture override mini-panel -->
+    <div class="color-popover" id="color-popover" role="dialog" aria-label="Color mode settings" aria-modal="true">
+      <div class="color-popover__backdrop" data-action="close-color-popover"></div>
+      <div class="color-popover__panel">
+        <div class="color-popover__row">
+          <span class="color-popover__label type-data--sm">Auto Color</span>
+          <button class="color-popover__switch" id="color-mode-switch"
+                  data-action="toggle-colormode" role="switch" aria-checked="true"
+                  aria-label="Toggle auto color mode">
+            <span class="color-popover__switch-track">
+              <span class="color-popover__switch-knob"></span>
+            </span>
+          </button>
         </div>
-
-        <!-- Center Hub: active culture info -->
-        <div class="culture-compass__hub" id="compass-hub">
-          <span class="culture-compass__hub-name type-emotional" id="compass-hub-name">Studio</span>
-          <span class="culture-compass__hub-region type-data" id="compass-hub-region">All Cuisines</span>
-          <span class="culture-compass__hub-tagline type-data" id="compass-hub-tagline">The blank page before the masterpiece</span>
-          <span class="culture-compass__hub-cuisine type-structural" id="compass-hub-cuisine">Every flavor, one canvas</span>
-          <div class="culture-compass__hub-swatches" id="compass-hub-swatches"></div>
+        <div class="color-popover__cultures" id="color-popover-cultures"
+             role="radiogroup" aria-label="Manual culture override">
+          <!-- 8 culture dots rendered by JS -->
         </div>
-
-        <!-- Hint text -->
-        <p class="culture-compass__hint type-data">Drag to explore &middot; Tap to select</p>
       </div>
     </div>
 
@@ -596,6 +570,7 @@
     <!-- Toast Notification -->
     <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true">
       <span class="toast__text type-structural" id="toast-text"></span>
+      <button class="toast__action type-structural" id="toast-action" style="display: none;"></button>
       <button class="toast__dismiss" id="toast-dismiss" aria-label="Dismiss notification" style="display: none;">
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
           <line x1="18" y1="6" x2="6" y2="18"></line>

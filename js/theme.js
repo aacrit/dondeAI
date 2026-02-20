@@ -4,7 +4,7 @@
    ============================================ */
 
 import { getState, setState, subscribe } from './state.js';
-import { saveTheme } from './persistence.js';
+import { saveTheme, saveColorMode } from './persistence.js';
 
 export const CULTURES = ['neutral', 'indian', 'middleeastern', 'nepalese', 'japanese', 'eastasian', 'african', 'southamerican'];
 
@@ -677,12 +677,15 @@ export function initTheme() {
   let culture = theme.culture;
   let mode = theme.mode;
 
-  // If no persisted theme, respect system dark mode preference
+  // If no persisted theme, respect system dark/light — always start in Studio (neutral)
   const darkQuery = matchMedia('(prefers-color-scheme: dark)');
   if (!localStorage.getItem('dondeai-theme')) {
     mode = darkQuery.matches ? 'dark' : 'light';
     setState({ theme: { culture, mode } });
   }
+
+  // Apply colorMode data attribute for CSS icon toggling
+  updateColorModeAttr();
 
   // Single apply on init
   applyTheme(culture, mode);
@@ -703,16 +706,81 @@ export function initTheme() {
   });
 }
 
+/* ---- Color Mode (auto / off) ---- */
+function updateColorModeAttr() {
+  document.documentElement.setAttribute('data-color', getState().colorMode);
+  const btn = document.querySelector('[data-action="toggle-color"]');
+  if (btn) btn.setAttribute('aria-label', getState().colorMode === 'auto' ? 'Auto color on' : 'Auto color off');
+}
+
+export function setColorMode(mode) {
+  setState({ colorMode: mode });
+  saveColorMode(mode);
+  updateColorModeAttr();
+  if (mode === 'off') {
+    // Revert to Studio and clear any auto-theme or manual override
+    revertAutoTheme();
+    setManualOverride(false);
+    setTheme('neutral', getState().theme.mode);
+  }
+}
+
+export function getColorMode() {
+  return getState().colorMode;
+}
+
 export function setTheme(culture, mode) {
   setState({ theme: { culture, mode } });
 }
 
-/** Instant theme swap — no wash overlay. Used during compass drag/browse. */
+/** Instant theme swap — no wash overlay. Used during manual culture selection. */
 let skipWash = false;
 export function setThemeInstant(culture, mode) {
   skipWash = true;
   setState({ theme: { culture, mode } });
   skipWash = false;
+}
+
+/* ---- Auto-Theme (visual-only, no labels, no persist) ---- */
+let autoThemeCulture = null;
+let userManualOverride = false;
+
+/** Visual-only theme swap — changes CSS palette without touching labels or persisting.
+ *  Used during typing to preview cultural themes without jarring label changes. */
+export function setThemeVisualOnly(culture) {
+  if (getState().colorMode === 'off') return;
+  if (userManualOverride) return;
+  if (culture === autoThemeCulture) return;
+  autoThemeCulture = culture;
+  const root = document.documentElement;
+  root.setAttribute('data-theme', culture);
+}
+
+/** Revert auto-theme back to the user's persisted theme. */
+export function revertAutoTheme() {
+  if (!autoThemeCulture) return;
+  autoThemeCulture = null;
+  const { theme } = getState();
+  const root = document.documentElement;
+  root.setAttribute('data-theme', theme.culture);
+}
+
+/** Mark that the user has manually chosen a theme (disables auto-theme on typing). */
+export function setManualOverride(enabled) {
+  userManualOverride = enabled;
+  if (enabled) autoThemeCulture = null;
+}
+
+export function isManualOverride() {
+  return userManualOverride;
+}
+
+export function isAutoThemeActive() {
+  return autoThemeCulture !== null;
+}
+
+export function getAutoThemeCulture() {
+  return autoThemeCulture;
 }
 
 let isFirstApply = true;
@@ -721,7 +789,7 @@ function applyTheme(culture, mode) {
   const root = document.documentElement;
   const wash = document.getElementById('theme-wash');
 
-  // Subtle crossfade wash transition (skip on first load, skip during compass browse)
+  // Subtle crossfade wash transition (skip on first load, skip during instant swaps)
   if (!isFirstApply && !skipWash && wash && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
     // Apply new theme to wash div first, then crossfade
     wash.setAttribute('data-theme', culture);
@@ -745,11 +813,11 @@ function applyTheme(culture, mode) {
   const labels = getLabels(culture);
   applyLabels(labels);
 
-  // Update compass node active state
-  document.querySelectorAll('.culture-compass__node').forEach(node => {
-    const isActive = node.dataset.theme === culture;
-    node.setAttribute('aria-checked', String(isActive));
-    node.classList.toggle('culture-compass__node--active', isActive);
+  // Update color popover dot active state
+  document.querySelectorAll('.color-popover__dot').forEach(dot => {
+    const isActive = dot.dataset.theme === culture;
+    dot.setAttribute('aria-checked', String(isActive));
+    dot.classList.toggle('color-popover__dot--active', isActive);
   });
 
   // Update meta theme-color for mobile browser chrome

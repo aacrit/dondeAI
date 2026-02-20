@@ -16,6 +16,7 @@ const state = {
   error: null,
   excludeIds: [],
   theme: { culture: 'neutral', mode: 'light' },
+  colorMode: 'auto', // 'auto' = auto-theme active, 'off' = Studio locked
   soundEnabled: false,
   history: [],
 };
