@@ -10,6 +10,11 @@
   max-width: 100%;
 }
 
+.step__title--typing {
+  min-height: 2.4em;
+  transition: min-height 200ms var(--ease-out);
+}
+
 .step__subtitle {
   font-size: var(--text-base);
   color: var(--fg2);
@@ -419,6 +424,7 @@
 /* ---- Filter Drawer ---- */
 .filter-drawer {
   width: 100%;
+  margin-top: var(--space-xs);
 }
 
 .filter-drawer__toggle {
@@ -540,7 +546,9 @@
   background: var(--glass);
   border: 1px solid var(--border);
   border-radius: var(--radius-pill);
-  transition: all var(--dur-fast) var(--ease-out);
+  transition: background var(--dur-fast) var(--ease-out),
+              color var(--dur-fast) var(--ease-out),
+              border-color var(--dur-fast) var(--ease-out);
   white-space: nowrap;
   cursor: pointer;
 }
@@ -648,16 +656,9 @@
 .result-oneliner {
   font-size: var(--text-sm);
   color: var(--fg2);
-  max-height: 0;
-  opacity: 0;
-  overflow: hidden;
-  transition: max-height 350ms cubic-bezier(0.4, 0, 0.2, 1),
-              opacity 250ms cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.result-oneliner--visible {
   max-height: 3em;
   opacity: 1;
+  overflow: hidden;
 }
 
 .result-recommendation {
@@ -1063,6 +1064,14 @@
   text-align: center;
 }
 
+/* Compact radar on mobile — hide SVG, promote text summary */
+.score-tile--radar-compact .petal-radar,
+.score-tile--radar-compact .petal-radar__top-label { display: none; }
+.score-tile--radar-compact .score-tile__top-vibe {
+  font-size: var(--text-base);
+  margin-top: var(--space-xs);
+}
+
 /* ---- Sentiment Bar (horizontal mood indicator — inside reviews-unit) ---- */
 .sentiment-bar {
   position: relative;
@@ -1072,6 +1081,13 @@
   flex-direction: column;
   align-items: center;
   gap: var(--space-2xs);
+}
+
+.sentiment-bar__label {
+  color: var(--fg3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  align-self: flex-start;
 }
 
 .sentiment-bar__track {
@@ -2228,10 +2244,57 @@
   margin-top: var(--space-sm);
 }
 
+/* ---- Result Skeleton (loading preview) ---- */
+.result-skeleton {
+  display: none;
+  flex-direction: column;
+  gap: var(--space-sm);
+  width: min(320px, 80vw);
+  opacity: 0;
+  transition: opacity 400ms ease-out;
+}
+
+.result-skeleton--visible {
+  display: flex;
+  opacity: 0.3;
+}
+
+.skel-block {
+  background: var(--bg2, #e0e0e0);
+  border-radius: var(--radius, 8px);
+  overflow: hidden;
+  position: relative;
+}
+
+.skel-block::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 0%, var(--bg3, rgba(255,255,255,0.4)) 50%, transparent 100%);
+  animation: shimmer 1.5s infinite;
+}
+
+.skel-block--name   { height: 24px; width: 60%; }
+.skel-block--story  { height: 48px; width: 100%; }
+.skel-block--scores { height: 32px; width: 80%; }
+.skel-block--actions { height: 20px; width: 50%; }
+
+@media (prefers-reduced-motion: reduce) {
+  .skel-block::after { animation: none; }
+}
+
 /* ---- (Food orbit removed — replaced by logo-driven animation) ---- */
 
-/* ---- Randomize Link ---- */
-.randomize-link {
+/* ---- Filter Utility Row (Clear + Randomize) ---- */
+.filter-utility-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin-top: var(--space-xs);
+}
+
+.filter-utility-link {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2xs);
@@ -2244,7 +2307,7 @@
   transition: color 150ms ease;
 }
 
-.randomize-link:hover {
+.filter-utility-link:hover {
   color: var(--ac);
 }
 

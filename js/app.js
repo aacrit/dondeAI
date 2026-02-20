@@ -150,7 +150,7 @@ function typewriterReveal(element, text) {
     return;
   }
   element.textContent = '';
-  element.style.minHeight = '2.4em';
+  element.classList.add('step__title--typing');
   let i = 0;
   const speed = 35;
   function type() {
@@ -160,7 +160,7 @@ function typewriterReveal(element, text) {
       const jitter = speed + (Math.random() - 0.5) * 20;
       setTimeout(type, jitter);
     } else {
-      element.style.minHeight = '';
+      element.classList.remove('step__title--typing');
     }
   }
   setTimeout(type, 300);
@@ -522,6 +522,7 @@ function wireEvents() {
           setState({ loading: false });
         }
         goToStep(getState().step - 1);
+        syncFilterPillsToState();
         break;
 
       case 'voice':
@@ -649,6 +650,14 @@ function wireEvents() {
         break;
 
 
+
+      case 'clear-filters': {
+        setState({ occasion: 'Any', neighborhood: 'Anywhere', priceLevel: 'Any' });
+        clearAllSelections();
+        updateFilterSummary();
+        showToast('Filters cleared');
+        break;
+      }
 
       case 'randomize': {
         // Pick random occasion, neighborhood, budget
@@ -1105,12 +1114,37 @@ function selectFilter(field, btn) {
 
   setState({ [field]: btn.dataset.value });
   updateFilterSummary();
+  boostCta();
+}
+
+function boostCta() {
+  const $cta = document.querySelector('.cta-btn');
+  if (!$cta || $cta.disabled) return;
+  $cta.classList.remove('cta-btn--boosted');
+  // Force reflow to restart animation
+  void $cta.offsetWidth;
+  $cta.classList.add('cta-btn--boosted');
+  $cta.addEventListener('animationend', () => $cta.classList.remove('cta-btn--boosted'), { once: true });
 }
 
 function clearAllSelections() {
   document.querySelectorAll('.filter-pill[aria-checked="true"]').forEach(c => {
     c.setAttribute('aria-checked', 'false');
   });
+}
+
+function syncFilterPillsToState() {
+  const s = getState();
+  const mapping = {
+    'select-occasion': s.occasion,
+    'select-neighborhood': s.neighborhood,
+    'select-budget': s.priceLevel,
+  };
+  for (const [action, value] of Object.entries(mapping)) {
+    document.querySelectorAll(`.filter-pill[data-action="${action}"]`).forEach(pill => {
+      pill.setAttribute('aria-checked', String(pill.dataset.value === value));
+    });
+  }
 }
 
 function collapseFilters() {
@@ -1257,6 +1291,14 @@ function toggleLoading(loading) {
     // Start search pulse (sonar ring + dot pulse) after draw-in completes
     setTimeout(() => startSearchPulse(), 800);
 
+    // Show result skeleton preview after logo draw-in
+    const $skeleton = document.getElementById('result-skeleton');
+    if ($skeleton) {
+      setTimeout(() => {
+        $skeleton.classList.add('result-skeleton--visible');
+      }, 800);
+    }
+
     // Animated searching dots with culture-specific phrases
     if ($loadingStatus) {
       const labels = getLabels(getState().theme.culture);
@@ -1282,6 +1324,10 @@ function toggleLoading(loading) {
     }
   } else {
     // === CLEANUP (called after reveal orchestration completes) ===
+    // Hide skeleton
+    const $skeleton = document.getElementById('result-skeleton');
+    if ($skeleton) $skeleton.classList.remove('result-skeleton--visible');
+
     // Stop animations
     clearSearchingDots();
     stopParticles();
@@ -1399,17 +1445,12 @@ function renderResult(data) {
     $resultCard.classList.remove('result-card--cuisine-accent');
   }
 
-  // Name and oneliner (one-liner hidden by default, revealed on name click)
+  // Name and oneliner (visible by default — "must show" per spec)
   const $name = document.getElementById('result-name');
   const $oneliner = document.getElementById('result-oneliner');
   if ($name) $name.textContent = r.name || '';
   if ($oneliner) {
     $oneliner.textContent = r.best_for_oneliner || '';
-    $oneliner.classList.remove('result-oneliner--visible');
-  }
-  // Toggle one-liner on name click
-  if ($name && $oneliner && r.best_for_oneliner) {
-    $name.onclick = () => $oneliner.classList.toggle('result-oneliner--visible');
   }
 
   // Navigation tile (immediately after name — "What? Where? Why?" flow)
@@ -1502,6 +1543,14 @@ function renderResult(data) {
 
   // ---- Petal Radar (Vibe Profile) ----
   renderPetalRadar(data.scores || {}, animationTimers);
+
+  // Compact radar on mobile — show text summary, hide SVG
+  const $radarTile = document.getElementById('score-tile-radar');
+  if ($radarTile && window.innerWidth < 768) {
+    $radarTile.classList.add('score-tile--radar-compact');
+  } else if ($radarTile) {
+    $radarTile.classList.remove('score-tile--radar-compact');
+  }
 
   // ---- Profile Block: Unified badges (facts + atmosphere merged) ----
   const $profileFacts = document.getElementById('profile-facts');
@@ -1676,31 +1725,43 @@ function renderResult(data) {
   // ---- Sentiment Bar (subtle horizontal indicator) ----
   const $sentBar = document.getElementById('sentiment-bar');
   if ($sentBar) {
-    let posVal = 33, neuVal = 34, negVal = 33;
-    if (r.sentiment_breakdown) {
-      const parts = r.sentiment_breakdown.toLowerCase();
-      const posMatch = parts.match(/positive[:\s]+(\d+)/);
-      const neuMatch = parts.match(/neutral[:\s]+(\d+)/);
-      const negMatch = parts.match(/negative[:\s]+(\d+)/);
-      posVal = parseInt(posMatch?.[1] || '33', 10);
-      neuVal = parseInt(neuMatch?.[1] || '34', 10);
-      negVal = parseInt(negMatch?.[1] || '33', 10);
+    // Only show sentiment bar when real data exists — never fabricate
+    if (r.sentiment_breakdown || r.sentiment_score) {
+      $sentBar.style.display = '';
+      let posVal = 33, neuVal = 34, negVal = 33;
+      if (r.sentiment_breakdown) {
+        const parts = r.sentiment_breakdown.toLowerCase();
+        const posMatch = parts.match(/positive[:\s]+(\d+)/);
+        const neuMatch = parts.match(/neutral[:\s]+(\d+)/);
+        const negMatch = parts.match(/negative[:\s]+(\d+)/);
+        posVal = parseInt(posMatch?.[1] || '33', 10);
+        neuVal = parseInt(neuMatch?.[1] || '34', 10);
+        negVal = parseInt(negMatch?.[1] || '33', 10);
+      } else if (r.sentiment_score) {
+        // Derive from single score: score = positive ratio
+        const score = parseFloat(r.sentiment_score);
+        posVal = Math.round(score * 100);
+        negVal = Math.round((1 - score) * 30);
+        neuVal = 100 - posVal - negVal;
+      }
+
+      renderSentimentBar(posVal, neuVal, negVal, animationTimers);
+
+      // Tooltip labels
+      const $tipPos = document.getElementById('sentiment-tip-pos');
+      const $tipNeu = document.getElementById('sentiment-tip-neu');
+      const $tipNeg = document.getElementById('sentiment-tip-neg');
+      if ($tipPos) $tipPos.textContent = `${posVal}% Positive`;
+      if ($tipNeu) $tipNeu.textContent = `${neuVal}% Neutral`;
+      if ($tipNeg) $tipNeg.textContent = `${negVal}% Negative`;
+
+      // Tap toggle for mobile tooltip
+      $sentBar.addEventListener('click', () => {
+        $sentBar.classList.toggle('sentiment-bar--active');
+      });
+    } else {
+      $sentBar.style.display = 'none';
     }
-
-    renderSentimentBar(posVal, neuVal, negVal, animationTimers);
-
-    // Tooltip labels
-    const $tipPos = document.getElementById('sentiment-tip-pos');
-    const $tipNeu = document.getElementById('sentiment-tip-neu');
-    const $tipNeg = document.getElementById('sentiment-tip-neg');
-    if ($tipPos) $tipPos.textContent = `${posVal}% Positive`;
-    if ($tipNeu) $tipNeu.textContent = `${neuVal}% Neutral`;
-    if ($tipNeg) $tipNeg.textContent = `${negVal}% Negative`;
-
-    // Tap toggle for mobile tooltip
-    $sentBar.addEventListener('click', () => {
-      $sentBar.classList.toggle('sentiment-bar--active');
-    });
   }
 
   // Hide entire profile block if no badges
@@ -1982,6 +2043,7 @@ function wireSwipe() {
     // Only allow swipe-right on result to go back to canvas
     if (dx > 0 && step === 1) {
       goToStep(0);
+      syncFilterPillsToState();
     }
   }, { passive: true });
 }
