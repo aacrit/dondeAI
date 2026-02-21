@@ -666,21 +666,184 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-/* ---- Semantic Block Wrappers ---- */
-.result-identity,
+/* ---- 3-Tier Progressive Disclosure System ---- */
+.tier {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  width: 100%;
+  min-width: 0;
+}
+
+.tier--leanin,
+.tier--deep {
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  padding: 0;
+  margin: 0;
+  pointer-events: none;
+  transition: max-height 500ms var(--ease-out),
+              opacity 400ms var(--ease-out),
+              padding 400ms var(--ease-out),
+              margin 400ms var(--ease-out);
+}
+
+.tier--leanin.tier--expanded,
+.tier--deep.tier--expanded {
+  max-height: 3000px;
+  opacity: 1;
+  pointer-events: auto;
+  padding-top: var(--space-md);
+  margin-top: var(--space-sm);
+  border-top: 1px solid var(--border);
+}
+
+/* ── Match Pill — THE brand hero ── */
+.match-pill {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-md);
+  background: var(--ac-soft);
+  border: 1.5px solid var(--ac-soft);
+  border-radius: var(--radius-pill);
+  align-self: flex-start;
+}
+
+.match-pill__logo {
+  color: var(--ac);
+  flex-shrink: 0;
+}
+
+.match-pill__score {
+  font-size: clamp(1.25rem, 4vw, 1.625rem);
+  font-weight: 700;
+  color: var(--ac);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.match-pill__verdict {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--ac);
+  line-height: 1;
+  letter-spacing: 0.01em;
+}
+
+.match-pill__verdict[data-tier="mid"] {
+  color: var(--fg2);
+}
+
+.match-pill__verdict[data-tier="low"] {
+  color: var(--fg3);
+}
+
+/* ── Quick Tags (cuisine + price snap-decision helpers) ── */
+.quick-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs);
+  align-items: center;
+}
+
+.quick-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  padding: 2px var(--space-xs);
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-data);
+  font-size: var(--text-xs);
+  color: var(--fg2);
+  line-height: 1.4;
+}
+
+.quick-tag svg {
+  width: 12px;
+  height: 12px;
+  color: var(--fg3);
+}
+
+/* ── Glance Actions ── */
+.glance-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding-top: var(--space-xs);
+}
+
+/* ── Tell Me More / Expand Buttons ── */
+.tell-more-btn,
+.details-trigger-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  padding: var(--space-xs) var(--space-md);
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  color: var(--fg2);
+  font-family: var(--font-structural);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: color var(--dur-fast) var(--ease-out),
+              background var(--dur-fast) var(--ease-out),
+              border-color var(--dur-fast) var(--ease-out);
+}
+
+.tell-more-btn:hover,
+.details-trigger-btn:hover {
+  color: var(--fg);
+  background: var(--bg3);
+  border-color: var(--fg3);
+}
+
+.tell-more-btn:focus-visible,
+.details-trigger-btn:focus-visible {
+  outline: 2px solid var(--ac);
+  outline-offset: 2px;
+}
+
+.tell-more-btn__arrow,
+.details-trigger-btn__arrow {
+  font-size: var(--text-xs);
+  transition: transform var(--dur-fast) var(--spring);
+}
+
+.tell-more-btn[aria-expanded="true"] .tell-more-btn__arrow,
+.details-trigger-btn[aria-expanded="true"] .details-trigger-btn__arrow {
+  transform: rotate(180deg);
+}
+
+.tell-more-btn[aria-expanded="true"] .tell-more-btn__text::after {
+  content: none;
+}
+
+.details-trigger-btn {
+  align-self: center;
+  margin-top: var(--space-xs);
+}
+
+/* ── Bottom Actions (show after Tier 2 expands) ── */
+.result-actions-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  width: 100%;
+}
+
+/* ── Semantic Block Wrappers ── */
 .result-story {
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
   width: 100%;
   min-width: 0;
-}
-
-.result-header {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: var(--space-xs);
 }
 
 .result-name {
@@ -769,19 +932,7 @@
   }
 }
 
-/* ---- Score Tiles (3-col top row + full-width details) ---- */
-/* ---- Score Section (vertical stack: hero arc + vibe bars + reviews) ---- */
-.score-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-md);
-  width: 100%;
-}
-
-.score-section .score-tile--donde {
-  max-width: 280px;
-}
+/* ---- Score Section (legacy container — now part of tier system) ---- */
 
 /* ---- Individual Score Tile ---- */
 .score-tile {
@@ -899,22 +1050,7 @@
   background: var(--bg2);
 }
 
-/* Mobile: strip tile chrome from score ring for vertical savings */
-@media (max-width: 767px) {
-  .score-section .score-tile--donde {
-    background: transparent;
-    border: none;
-    padding: var(--space-xs) 0;
-    max-width: none;
-    border-radius: 0;
-  }
-  .score-section .score-tile--donde .score-tile__info {
-    right: 0;
-  }
-  .score-section {
-    gap: var(--space-sm);
-  }
-}
+/* (Score tile mobile overrides removed — now handled by tier system) */
 
 /* ---- Score Ring (inside tile) ---- */
 .score-tile .score-ring-wrap {
@@ -1014,7 +1150,7 @@
   background: var(--bg3);
 }
 
-/* ---- Score Hero (Semicircular arc gauge + number + verdict) ---- */
+/* ---- Score Hero (Semicircular arc gauge — Tier 2 expanded view) ---- */
 .score-hero {
   position: relative;
   display: flex;
@@ -1022,9 +1158,8 @@
   align-items: center;
   gap: var(--space-2xs);
   width: 100%;
-  max-width: 320px;
+  max-width: 280px;
   margin: 0 auto;
-  cursor: pointer;
   outline: none;
 }
 
@@ -1070,25 +1205,7 @@
   transition: stroke-dashoffset 1200ms cubic-bezier(0.2, 1, 0.4, 1);
 }
 
-/* Sentiment arc segments (thin ring outside main arc) */
-.score-hero__sentiment-pos {
-  fill: none;
-  stroke: hsl(152 50% 50% / 0.5);
-  stroke-linecap: round;
-}
-
-.score-hero__sentiment-neu {
-  fill: none;
-  stroke: var(--fg3);
-  stroke-opacity: 0.25;
-  stroke-linecap: round;
-}
-
-.score-hero__sentiment-neg {
-  fill: none;
-  stroke: hsl(350 60% 58% / 0.5);
-  stroke-linecap: round;
-}
+/* (Sentiment arc removed — sentiment now in reviews-row inline bar) */
 
 /* Number + verdict overlay */
 .score-hero__center {
@@ -1539,7 +1656,7 @@
 .result-links {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
   gap: var(--space-2xs);
 }
@@ -1596,32 +1713,7 @@
   box-shadow: 0 0 0 2px var(--ac-soft);
 }
 
-/* ---- Vibe Tiles Responsive ---- */
-/* (Now single-column by default — no grid override needed) */
-
-/* ---- Result Profile Block ("About This Spot") ---- */
-.result-profile {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-  width: 100%;
-  padding: var(--space-md);
-  background: transparent;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-}
-
-/* Profile toggle removed — details always visible on tablet+, glyph bar on mobile */
-
-/* ---- Profile Chips (inline icon+label chip strip) ---- */
-.profile-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2xs);
-  justify-content: center;
-  align-items: center;
-  width: 100%;
-}
+/* (Profile chips defined above in tier section) */
 
 .profile-chip {
   display: inline-flex;
@@ -1673,49 +1765,7 @@
   border-color: var(--border);
 }
 
-/* ---- Profile Expand Button ---- */
-.profile-expand-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2xs);
-  background: none;
-  border: none;
-  padding: var(--space-2xs) 0;
-  color: var(--fg3);
-  cursor: pointer;
-  font-family: var(--font-data);
-  font-size: var(--text-xs);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  transition: color var(--dur-fast) var(--ease-out);
-}
-
-.profile-expand-btn:hover {
-  color: var(--fg2);
-}
-
-/* ---- Profile Visibility ---- */
-.profile-chips {
-  display: flex;
-}
-
-.profile-details {
-  display: none;
-}
-
-.profile-details--visible {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-}
-
-@media (max-width: 767px) {
-  .result-profile {
-    gap: var(--space-sm);
-    padding: var(--space-sm) var(--space-md);
-  }
-}
+/* (Profile expand/collapse now handled by tier system) */
 
 /* Profile: Facts (badge grid — Cuisine, Price, Parking, Noise) */
 .profile-facts {
@@ -2849,65 +2899,40 @@
   animation: ctaNudge 400ms var(--spring);
 }
 
-/* ---- Progressive Result Card Reveal ---- */
-/* Flow: Identity → Story → Scores → Profile → Actions (5 semantic blocks) */
-.result-card--revealing > * {
+/* ---- Progressive Result Card Reveal (Tier 1: Glance) ---- */
+.result-card--revealing .tier--glance > * {
   opacity: 0;
   transform: translateY(12px);
 }
 
-/* Block 1: Identity (0ms) */
-.result-card--revealing .result-identity {
-  animation: resultSectionIn 400ms var(--ease-out) 0ms forwards;
+/* Match Pill: hero entrance — spring pop */
+.result-card--revealing .match-pill {
+  animation: tileRevealIn 500ms var(--spring) 0ms forwards;
 }
 
 /* Restaurant name: ink reveal (left-to-right clip) */
 .result-card--revealing .result-name {
   opacity: 1;
   transform: none;
-  animation: inkReveal 600ms cubic-bezier(0.2, 1, 0.4, 1) 20ms both;
+  animation: inkReveal 600ms cubic-bezier(0.2, 1, 0.4, 1) 100ms both;
 }
 
-/* Oneliner: hidden by default, revealed on name click — no entrance animation */
-
-/* Block 2: Story (150ms) */
-.result-card--revealing .result-story {
-  animation: resultSectionIn 400ms var(--ease-out) 150ms forwards;
+/* One-liner: settle in */
+.result-card--revealing .result-oneliner {
+  animation: resultSectionIn 300ms var(--ease-out) 250ms forwards;
 }
 
-/* Block 3: Scores (300ms) */
-.result-card--revealing .score-section {
-  animation: resultSectionIn 400ms var(--ease-out) 300ms forwards;
+/* Quick tags: stagger pop */
+.result-card--revealing .quick-tags {
+  animation: resultSectionIn 300ms var(--ease-out) 350ms forwards;
 }
 
-.result-card--revealing .score-hero {
-  opacity: 0;
-  transform: translateY(12px);
-  animation: tileRevealIn 400ms var(--ease-out) 350ms forwards;
+/* Glance actions: fade in */
+.result-card--revealing .glance-actions {
+  animation: resultSectionIn 300ms var(--ease-out) 450ms forwards;
 }
 
-.result-card--revealing .vibe-bars {
-  opacity: 0;
-  transform: translateY(12px);
-  animation: tileRevealIn 400ms var(--ease-out) 420ms forwards;
-}
-
-.result-card--revealing .reviews-row {
-  opacity: 0;
-  transform: translateY(8px);
-  animation: tileRevealIn 400ms var(--ease-out) 480ms forwards;
-}
-/* Score arc + vibe bars animate fill via JS timers */
-
-/* Block 4: Profile (450ms) */
-.result-card--revealing .result-profile {
-  animation: resultSectionIn 400ms var(--ease-out) 450ms forwards;
-}
-
-/* Block 5: Actions (600ms) */
-.result-card--revealing .result-actions-block {
-  animation: resultSectionIn 400ms var(--ease-out) 600ms forwards;
-}
+/* Tier 2/3 elements: animate on expansion via JS (no CSS reveal stagger needed) */
 
 /* ---- Filter Pill Ink Ripple ---- */
 .filter-pill {

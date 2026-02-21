@@ -322,58 +322,7 @@ export function renderScoreHero(dondeMatch, scores, scoringV2, sentiment, timers
     }
   }
 
-  // ---- Sentiment Arc (thin ring outside gauge arc) ----
-  const $sentimentG = document.getElementById('score-hero-sentiment');
-  if ($sentimentG && sentiment) {
-    $sentimentG.innerHTML = '';
-    const total = (sentiment.pos || 0) + (sentiment.neu || 0) + (sentiment.neg || 0);
-    if (total > 0) {
-      // Outer arc: r=90, same center (100, 110), 180° semicircle
-      const sentR = 90;
-      const sentWidth = 2;
-      const totalAngle = Math.PI; // 180° semicircle
-      const gap = 0.03;
-
-      const posAngle = (sentiment.pos / total) * totalAngle - gap;
-      const neuAngle = (sentiment.neu / total) * totalAngle - gap;
-      const negAngle = (sentiment.neg / total) * totalAngle - gap;
-
-      let currentAngle = Math.PI; // Start from left (180°)
-      const segments = [
-        { angle: posAngle, cls: 'score-hero__sentiment-pos' },
-        { angle: neuAngle, cls: 'score-hero__sentiment-neu' },
-        { angle: negAngle, cls: 'score-hero__sentiment-neg' },
-      ];
-
-      segments.forEach(seg => {
-        if (seg.angle <= 0) { currentAngle += gap; return; }
-        const endAngle = currentAngle + seg.angle;
-        const largeArc = seg.angle > Math.PI / 2 ? 1 : 0;
-        const cx = 100, cy = 110;
-        const x1 = cx + sentR * Math.cos(currentAngle);
-        const y1 = cy + sentR * Math.sin(currentAngle);
-        const x2 = cx + sentR * Math.cos(endAngle);
-        const y2 = cy + sentR * Math.sin(endAngle);
-
-        const arc = svgEl('path');
-        arc.setAttribute('d', `M ${x1} ${y1} A ${sentR} ${sentR} 0 ${largeArc} 1 ${x2} ${y2}`);
-        arc.classList.add(seg.cls);
-        arc.setAttribute('stroke-width', String(sentWidth));
-        arc.setAttribute('fill', 'none');
-
-        if (!REDUCED.matches) {
-          arc.style.opacity = '0';
-          timers.push(setTimeout(() => {
-            arc.style.transition = 'opacity 400ms ease-out';
-            arc.style.opacity = '1';
-          }, 1000));
-        }
-
-        $sentimentG.appendChild(arc);
-        currentAngle = endAngle + gap;
-      });
-    }
-  }
+  // (Sentiment arc removed — sentiment now lives in reviews-row inline bar)
 
   // ---- "Best for" Callout ----
   const available = RADAR_DIMS.filter(d => {

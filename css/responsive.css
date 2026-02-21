@@ -13,6 +13,14 @@
   .profile-facts {
     grid-template-columns: repeat(2, 1fr);
   }
+
+  .match-pill {
+    padding: var(--space-2xs) var(--space-sm);
+  }
+
+  .match-pill__score {
+    font-size: 1.125rem;
+  }
 }
 
 /* ---- 375px: Primary mobile target ---- */
@@ -22,10 +30,15 @@
   }
 }
 
-/* ---- Mobile: Score hero full-width sizing ---- */
+/* ---- Mobile: Score hero compact ---- */
 @media (max-width: 767px) {
   .score-hero__gauge {
     width: min(100%, 200px);
+  }
+
+  .tier--leanin.tier--expanded,
+  .tier--deep.tier--expanded {
+    padding-top: var(--space-sm);
   }
 }
 
@@ -66,6 +79,11 @@
 
   .score-hero__number {
     font-size: var(--text-2xl);
+  }
+
+  /* Match pill: larger on tablet */
+  .match-pill__score {
+    font-size: 1.5rem;
   }
 
   /* Keep score-tile styles for the tile-expand modal */
@@ -120,6 +138,16 @@
   .score-tile .score-ring-wrap {
     width: 148px;
     height: 148px;
+  }
+
+  /* Desktop: Tier 1 glance can be wider layout */
+  .tier--glance {
+    max-width: 640px;
+  }
+
+  /* Match pill: desktop prominence */
+  .match-pill__score {
+    font-size: 1.625rem;
   }
 }
 

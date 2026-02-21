@@ -720,36 +720,57 @@ function wireEvents() {
         break;
       }
 
-      case 'toggle-profile-details': {
-        const $details = document.getElementById('profile-details');
+      case 'expand-tier-2': {
+        const $tier2 = document.getElementById('tier-leanin');
         const isExpanded = btn.getAttribute('aria-expanded') === 'true';
         btn.setAttribute('aria-expanded', String(!isExpanded));
-        if ($details) $details.classList.toggle('profile-details--visible');
-        btn.querySelector('.profile-expand-btn__text').textContent =
-          isExpanded ? 'Details' : 'Collapse';
+        if ($tier2) {
+          $tier2.classList.toggle('tier--expanded');
+          $tier2.setAttribute('aria-hidden', String(isExpanded));
+        }
+        const $btnText = btn.querySelector('.tell-more-btn__text');
+        if ($btnText) $btnText.textContent = isExpanded ? 'Tell Me More' : 'Show Less';
+        // Show bottom actions when tier 2 is expanded
+        const $bottomTryAgain = document.getElementById('bottom-try-again');
+        const $bottomStartOver = document.getElementById('bottom-start-over');
+        if ($bottomTryAgain) $bottomTryAgain.style.display = isExpanded ? 'none' : '';
+        if ($bottomStartOver) $bottomStartOver.style.display = isExpanded ? 'none' : '';
+        // Trigger tier 2 animations on first expand
+        if (!isExpanded) {
+          renderTier2Animations();
+          // Focus on score hero for accessibility
+          const $hero = document.getElementById('score-hero');
+          if ($hero) $hero.focus({ preventScroll: true });
+          announce('Showing detailed recommendation and scores');
+        }
+        break;
+      }
+
+      case 'expand-tier-3': {
+        const $tier3 = document.getElementById('tier-deep');
+        const isExp = btn.getAttribute('aria-expanded') === 'true';
+        btn.setAttribute('aria-expanded', String(!isExp));
+        if ($tier3) {
+          $tier3.classList.toggle('tier--expanded');
+          $tier3.setAttribute('aria-hidden', String(isExp));
+        }
+        const $txt = btn.querySelector('.details-trigger-btn__text');
+        if ($txt) $txt.textContent = isExp ? 'All Details' : 'Collapse';
+        // Trigger tier 3 animations on first expand
+        if (!isExp) {
+          renderTier3Animations();
+          announce('Showing all restaurant details');
+        }
         break;
       }
     }
   });
 
-  // Expandable tile click delegation (DondeAI Match — keep for tile-expand modal)
+  // Score Hero tap in Tier 2 — toggle V2 breakdown
   document.addEventListener('click', (e) => {
-    // Skip if click was on the info button (handled by data-action delegation)
     if (e.target.closest('[data-action]')) return;
-
-    // Skip score hero interactions (handled below)
-    if (e.target.closest('.score-hero')) return;
-
-    const tile = e.target.closest('.score-tile--expandable');
-    if (tile) openTileExpand(tile);
-  });
-
-  // Score Hero interaction — tap to toggle V2 breakdown
-  document.addEventListener('click', (e) => {
     const hero = e.target.closest('.score-hero');
-    if (hero) {
-      toggleScoreBreakdown();
-    }
+    if (hero) toggleScoreBreakdown();
   });
 }
 
@@ -1506,24 +1527,33 @@ function renderResult(data) {
   if (!data?.restaurant) return;
   const r = data.restaurant;
 
-  // Reset profile details to collapsed on mobile
-  const $profileDetails = document.getElementById('profile-details');
-  if ($profileDetails) $profileDetails.classList.remove('profile-details--visible');
-  const $expandBtn = document.querySelector('[data-action="toggle-profile-details"]');
-  if ($expandBtn) {
-    $expandBtn.setAttribute('aria-expanded', 'false');
-    const $btnText = $expandBtn.querySelector('.profile-expand-btn__text');
-    if ($btnText) $btnText.textContent = 'Details';
-  }
-
   // Cancel any in-flight animation timeouts from a previous render
   animationTimers.forEach(clearTimeout);
   animationTimers = [];
 
-  // Cuisine detection (for accent color + Details tile + auto-theme)
+  // Reset tier animation flags for fresh render
+  _tier2Animated = false;
+  _tier3Animated = false;
+
+  // Reset tier expansion state — always start at Tier 1 (Glance)
+  const $tier2 = document.getElementById('tier-leanin');
+  const $tier3 = document.getElementById('tier-deep');
+  const $tellMore = document.getElementById('tell-more-btn');
+  const $detailsTrigger = document.getElementById('details-trigger-btn');
+  if ($tier2) { $tier2.classList.remove('tier--expanded'); $tier2.setAttribute('aria-hidden', 'true'); }
+  if ($tier3) { $tier3.classList.remove('tier--expanded'); $tier3.setAttribute('aria-hidden', 'true'); }
+  if ($tellMore) { $tellMore.setAttribute('aria-expanded', 'false'); const t = $tellMore.querySelector('.tell-more-btn__text'); if (t) t.textContent = 'Tell Me More'; }
+  if ($detailsTrigger) { $detailsTrigger.setAttribute('aria-expanded', 'false'); const t = $detailsTrigger.querySelector('.details-trigger-btn__text'); if (t) t.textContent = 'All Details'; }
+  // Hide bottom actions until tier 2 expands
+  const $bottomTryAgain = document.getElementById('bottom-try-again');
+  const $bottomStartOver = document.getElementById('bottom-start-over');
+  if ($bottomTryAgain) $bottomTryAgain.style.display = 'none';
+  if ($bottomStartOver) $bottomStartOver.style.display = 'none';
+
+  // Cuisine detection (for accent color + auto-theme)
   const cuisine = getCuisineFromResult(data);
 
-  // Auto-theme on result: full theme swap (with labels) based on detected culture
+  // Auto-theme on result
   if (getColorMode() === 'auto') {
     if (cuisine.culture) {
       setTheme(cuisine.culture, getState().theme.mode);
@@ -1540,79 +1570,143 @@ function renderResult(data) {
     $resultCard.classList.remove('result-card--cuisine-accent');
   }
 
-  // Name and oneliner (visible by default — "must show" per spec)
+  // ═══════════════════════════════════════════════════════
+  // TIER 1: GLANCE — "Is this place for me?" (< 2 seconds)
+  // ═══════════════════════════════════════════════════════
+
+  // DondeAI Match pill — the brand hero moment
+  const dondeScore = Math.round(parseFloat(data.donde_match) || 80);
+  const $matchScore = document.getElementById('match-pill-score');
+  const $matchVerdict = document.getElementById('match-pill-verdict');
+  if ($matchScore) $matchScore.textContent = '0'; // Will animate up
+  if ($matchVerdict) {
+    const tier = getScoreTier(dondeScore);
+    $matchVerdict.textContent = tier.verdict;
+    $matchVerdict.setAttribute('data-tier', tier.tier);
+  }
+
+  // Animate score count-up
+  const REDUCED_MQ = matchMedia('(prefers-reduced-motion: reduce)');
+  if ($matchScore && !REDUCED_MQ.matches) {
+    animationTimers.push(setTimeout(() => {
+      const duration = 800;
+      const start = performance.now();
+      const animate = (now) => {
+        const elapsed = now - start;
+        const progress = Math.min(elapsed / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        $matchScore.textContent = Math.round(eased * dondeScore);
+        if (progress < 1) requestAnimationFrame(animate);
+      };
+      requestAnimationFrame(animate);
+    }, 200));
+  } else if ($matchScore) {
+    $matchScore.textContent = dondeScore;
+  }
+
+  // Restaurant name
   const $name = document.getElementById('result-name');
-  const $oneliner = document.getElementById('result-oneliner');
   if ($name) $name.textContent = r.name || '';
-  if ($oneliner) {
-    $oneliner.textContent = r.best_for_oneliner || '';
-  }
 
-  // Awards & Recognition badges (deep_context)
-  const $awards = document.getElementById('result-awards');
-  if ($awards) {
-    $awards.innerHTML = '';
-    const dc = data.deep_context;
-    const badges = [];
+  // One-liner subtitle
+  const $oneliner = document.getElementById('result-oneliner');
+  if ($oneliner) $oneliner.textContent = r.best_for_oneliner || '';
 
-    // Neighborhood integration badge
-    if (dc?.neighborhood_integration) {
-      const niMap = { hidden_local: 'Local Secret', destination: 'Destination Spot', neighborhood_staple: 'Neighborhood Staple' };
-      const niLabel = niMap[dc.neighborhood_integration] || humanizeSnake(dc.neighborhood_integration);
-      badges.push({ text: niLabel, dashed: true });
+  // Quick tags: cuisine + price (only render what's available)
+  const $quickTags = document.getElementById('quick-tags');
+  if ($quickTags) {
+    $quickTags.innerHTML = '';
+    const cuisineLabel = data.deep_context?.cuisine_subcategory || r.cuisine_type;
+    if (cuisineLabel) {
+      const tag = document.createElement('span');
+      tag.className = 'quick-tag type-data--sm';
+      tag.innerHTML = `${svgIcon(cuisine.icon || 'plate', 12)} ${shortenBadgeValue(cuisineLabel)}`;
+      $quickTags.appendChild(tag);
     }
-
-    // Awards
-    if (dc?.awards_recognition?.length > 0) {
-      dc.awards_recognition.slice(0, 3).forEach(a => badges.push({ text: a, dashed: false }));
+    if (r.price_level) {
+      const tag = document.createElement('span');
+      tag.className = 'quick-tag type-data--sm';
+      tag.textContent = r.price_level;
+      $quickTags.appendChild(tag);
     }
-
-    if (badges.length > 0) {
-      badges.forEach(b => {
-        const span = document.createElement('span');
-        span.className = 'award-pill type-data--sm' + (b.dashed ? ' award-pill--dashed' : '');
-        span.textContent = b.text;
-        $awards.appendChild(span);
-      });
-      $awards.style.display = '';
-    } else {
-      $awards.style.display = 'none';
+    // Google rating as quick tag if available
+    if (r.google_rating) {
+      const tag = document.createElement('span');
+      tag.className = 'quick-tag type-data--sm';
+      tag.innerHTML = `${svgIcon('starFull', 12)} ${parseFloat(r.google_rating).toFixed(1)}`;
+      tag.style.color = 'hsl(45 93% 47%)';
+      $quickTags.appendChild(tag);
     }
   }
 
-  // Navigation tile (immediately after name — "What? Where? Why?" flow)
-  const $navTileContainer = document.getElementById('result-nav-tile');
-  if ($navTileContainer) {
-    $navTileContainer.innerHTML = '';
-    if (r.address) {
-      const mapsUrl = buildMapsUrl(r.address);
-      const resDiffRaw = data.deep_context?.reservation_difficulty;
-      const resDiff = resDiffRaw ? humanizeSnake(resDiffRaw) : null;
-      const resDiffHtml = resDiff
-        ? `<span class="nav-tile__note type-data--sm">${resDiff}</span>` : '';
-      $navTileContainer.innerHTML = `
-        <a class="nav-tile__link" href="${mapsUrl}" target="_blank" rel="noopener noreferrer">
-          <span class="nav-tile__icon">${svgIcon('pin', 24)}</span>
-          <span class="nav-tile__content">
-            <span class="nav-tile__label type-data--sm">Navigation</span>
-            <span class="nav-tile__address type-structural">${r.address}</span>
-            ${resDiffHtml}
-          </span>
-          <span class="nav-tile__arrow">${svgIcon('chevronRight', 20)}</span>
-        </a>`;
-      $navTileContainer.style.display = '';
-    } else {
-      $navTileContainer.style.display = 'none';
-    }
-  }
+  // Inject icon into Try Another button in glance
+  const $tryAgainIcon = document.getElementById('try-again-icon');
+  if ($tryAgainIcon) $tryAgainIcon.innerHTML = svgIcon('refresh', 18);
 
-  // Recommendation (chaos-to-order text reveal + collapsible)
+  // ═══════════════════════════════════════════════════════
+  // TIER 2: LEAN-IN — Prepare content (hidden until expanded)
+  // ═══════════════════════════════════════════════════════
+
+  // Store data reference for lazy tier 2/3 rendering
+  _pendingResultData = data;
+  _pendingCuisine = cuisine;
+
+  // Pre-populate Tier 2 content (DOM ready, just hidden)
+  prepareTier2(data, cuisine);
+
+  // ═══════════════════════════════════════════════════════
+  // TIER 3: DEEP DIVE — Prepare content (hidden until expanded)
+  // ═══════════════════════════════════════════════════════
+  prepareTier3(data, cuisine);
+
+  // Inject icon into bottom Start Over button
+  const $startOverIcon = document.getElementById('start-over-icon');
+  const $bottomTryAgainIcon = document.getElementById('bottom-try-again-icon');
+  if ($startOverIcon) $startOverIcon.innerHTML = svgIcon('home', 18);
+  if ($bottomTryAgainIcon) $bottomTryAgainIcon.innerHTML = svgIcon('refresh', 18);
+
+  // Apply progressive reveal (Tier 1 only — Tier 2/3 animate on expand)
+  if ($resultCard) {
+    $resultCard.classList.remove('card-enter', 'result-card--revealing');
+    void $resultCard.offsetWidth;
+    $resultCard.classList.add('result-card--revealing');
+
+    // Clean up reveal class after Tier 1 animations complete
+    setTimeout(() => {
+      $resultCard.classList.remove('result-card--revealing');
+      const glance = document.getElementById('tier-glance');
+      if (glance) {
+        glance.querySelectorAll(':scope > *').forEach(child => {
+          child.style.opacity = '';
+          child.style.transform = '';
+        });
+      }
+    }, 900);
+  }
+}
+
+/* ---- Pending result data for lazy tier rendering ---- */
+let _pendingResultData = null;
+let _pendingCuisine = null;
+
+/* ---- Prepare Tier 2 DOM content (populated but hidden) ---- */
+function prepareTier2(data, cuisine) {
+  const r = data.restaurant;
+
+  // Score Hero arc — populate but don't animate yet
+  renderScoreHero(
+    data.donde_match,
+    data.scores || {},
+    data.scoring_v2 || null,
+    null, // No sentiment in arc anymore
+    [] // No timers — animations triggered on expand
+  );
+
+  // Recommendation text
   const $rec = document.getElementById('result-recommendation');
   if ($rec) {
     $rec.classList.remove('result-recommendation--expanded');
-    chaosToOrderReveal($rec, data.recommendation || '');
-
-    // Show "Read more" toggle only if text overflows 7-line clamp
+    $rec.textContent = data.recommendation || '';
     const $recToggle = document.getElementById('result-rec-toggle');
     if ($recToggle) {
       $recToggle.setAttribute('aria-expanded', 'false');
@@ -1624,7 +1718,7 @@ function renderResult(data) {
     }
   }
 
-  // ---- Story Extras: Dishes + Insider Tip (merged single row) ----
+  // Story Extras: Dishes + Insider Tip
   const $storyExtras = document.getElementById('story-extras');
   const $extrasDishes = document.getElementById('story-extras-dishes');
   const $dishesText = document.getElementById('signature-dishes-text');
@@ -1638,44 +1732,51 @@ function renderResult(data) {
     }
   }
 
-  // ---- Score Hero (Arc gauge + Vibe bars) ----
-  // Build sentiment data
-  let heroSentiment = null;
-  if (r.sentiment_positive != null && r.sentiment_negative != null && r.sentiment_neutral != null) {
-    heroSentiment = { pos: r.sentiment_positive, neu: r.sentiment_neutral, neg: r.sentiment_negative };
-  } else if (r.sentiment_breakdown) {
-    const parts = r.sentiment_breakdown.toLowerCase();
-    const posMatch = parts.match(/(\d+)%?\s*positive/);
-    const neuMatch = parts.match(/(\d+)%?\s*neutral/);
-    const negMatch = parts.match(/(\d+)%?\s*negative/);
-    if (posMatch || neuMatch || negMatch) {
-      heroSentiment = {
-        pos: parseInt(posMatch?.[1] || '33', 10),
-        neu: parseInt(neuMatch?.[1] || '34', 10),
-        neg: parseInt(negMatch?.[1] || '33', 10),
-      };
+  const $extrasTip = document.getElementById('story-extras-tip');
+  const $tipText = document.getElementById('insider-tip-text');
+  const bestSeat = data.deep_context?.best_seat_in_house;
+  if ($extrasTip && $tipText) {
+    let tipContent = data.insider_tip || '';
+    if (bestSeat) {
+      tipContent = tipContent ? `${tipContent} · Best seat: ${bestSeat}` : `Best seat: ${bestSeat}`;
     }
-  } else if (r.sentiment_score != null) {
-    const score = parseFloat(r.sentiment_score);
-    if (!isNaN(score)) {
-      const p = Math.round((score / 10) * 100);
-      const n = Math.round((1 - score / 10) * 30);
-      heroSentiment = { pos: p, neu: 100 - p - n, neg: n };
+    if (tipContent) { $tipText.textContent = tipContent; $extrasTip.style.display = ''; }
+    else { $extrasTip.style.display = 'none'; }
+  }
+
+  if ($storyExtras) {
+    const hasDishes = $extrasDishes && $extrasDishes.style.display !== 'none';
+    const hasTip = $extrasTip && $extrasTip.style.display !== 'none';
+    $storyExtras.style.display = (hasDishes || hasTip) ? '' : 'none';
+  }
+
+  // Awards badges
+  const $awards = document.getElementById('result-awards');
+  if ($awards) {
+    $awards.innerHTML = '';
+    const dc = data.deep_context;
+    const badges = [];
+    if (dc?.neighborhood_integration) {
+      const niMap = { hidden_local: 'Local Secret', destination: 'Destination Spot', neighborhood_staple: 'Neighborhood Staple' };
+      badges.push({ text: niMap[dc.neighborhood_integration] || humanizeSnake(dc.neighborhood_integration), dashed: true });
+    }
+    if (dc?.awards_recognition?.length > 0) {
+      dc.awards_recognition.slice(0, 3).forEach(a => badges.push({ text: a, dashed: false }));
+    }
+    if (badges.length > 0) {
+      badges.forEach(b => {
+        const span = document.createElement('span');
+        span.className = 'award-pill type-data--sm' + (b.dashed ? ' award-pill--dashed' : '');
+        span.textContent = b.text;
+        $awards.appendChild(span);
+      });
+      $awards.style.display = '';
+    } else {
+      $awards.style.display = 'none';
     }
   }
 
-  renderScoreHero(
-    data.donde_match,
-    data.scores || {},
-    data.scoring_v2 || null,
-    heroSentiment,
-    animationTimers
-  );
-
-  // Vibe dimension bars
-  renderVibeBars(data.scores || {}, animationTimers);
-
-  // ---- Google Rating (inline display below ring) ----
+  // Google Rating
   const $googleInline = document.getElementById('google-rating-inline');
   const $googleStars = document.getElementById('google-stars');
   const $googleNum = document.getElementById('google-rating-num');
@@ -1700,171 +1801,76 @@ function renderResult(data) {
       };
     }
     $googleInline.style.display = '';
-    animationTimers.push(setTimeout(() => { $googleInline.style.opacity = '1'; }, 800));
+    $googleInline.style.opacity = '1';
   } else if ($googleInline) {
     $googleInline.style.display = 'none';
   }
 
-  // Petal radar rendering is now handled by renderScoreBloom above
-
-  // ---- Profile Block: Unified badges (facts + atmosphere merged) ----
-  const $profileFacts = document.getElementById('profile-facts');
-
-  // Canonical 9-slot badge order — always render all, dim missing data
-  const parkingPts = r.parking_availability
-    ? parseParkingTypes(r.parking_availability).slice(0, 2).join(' / ') : null;
-  const CANONICAL_BADGES = [
-    { icon: cuisine.icon || 'plate', label: 'Cuisine',
-      value: (data.deep_context?.cuisine_subcategory || r.cuisine_type)
-        ? shortenBadgeValue(data.deep_context?.cuisine_subcategory || r.cuisine_type) : null,
-      raw: r.cuisine_type || '', isCuisine: true, isAtmo: false },
-    { icon: 'tag', label: 'Price',
-      value: r.price_level || null,
-      raw: r.price_level || '', isAtmo: false },
-    { icon: 'car', label: 'Parking',
-      value: parkingPts,
-      raw: r.parking_availability || '', isAtmo: false },
-    { icon: getNoiseIcon(r.noise_level), label: 'Noise',
-      value: r.noise_level ? shortenBadgeValue(r.noise_level) : null,
-      raw: r.noise_level || '', isAtmo: false },
-    { icon: getAmbianceIcon(r.lighting_ambiance), label: 'Ambiance',
-      value: r.lighting_ambiance ? normalizeAmbiance(r.lighting_ambiance) : null,
-      raw: data.deep_context?.decor_style || r.lighting_ambiance || '', isAtmo: false },
-    { icon: 'shirt', label: 'Dress',
-      value: r.dress_code ? shortenBadgeValue(r.dress_code) : null,
-      raw: r.dress_code || '', isAtmo: false },
-    { icon: 'patio', label: 'Patio',
-      value: r.outdoor_seating === true ? 'Yes' : (r.outdoor_seating === false ? 'No' : null),
-      raw: r.outdoor_seating != null ? (r.outdoor_seating ? 'Outdoor seating' : 'No patio') : '',
-      isAtmo: true },
-    { icon: 'music', label: 'Live Music',
-      value: data.deep_context?.music_vibe
-        || (r.live_music === true ? 'Yes' : (r.live_music === false ? 'No' : null)),
-      raw: data.deep_context?.music_vibe
-        || (r.live_music != null ? (r.live_music ? 'Live music venue' : 'No live music') : ''),
-      isAtmo: true },
-    { icon: 'pet', label: 'Pet Friendly',
-      value: r.pet_friendly === true ? 'Yes' : (r.pet_friendly === false ? 'No' : null),
-      raw: r.pet_friendly != null ? (r.pet_friendly ? 'Pet-friendly' : 'Not pet-friendly') : '',
-      isAtmo: true },
-  ];
-
-  // Conditionally add BYOB badge from deep_context
-  const byobPolicy = data.deep_context?.byob_policy;
-  if (byobPolicy && byobPolicy !== 'none') {
-    const byobMap = { full_byob: 'BYOB', wine_only: 'Wine Only' };
-    CANONICAL_BADGES.push({
-      icon: 'wine', label: 'BYOB',
-      value: byobMap[byobPolicy] || humanizeSnake(byobPolicy),
-      raw: humanizeSnake(byobPolicy), isAtmo: false,
-    });
-  }
-
-  const allBadges = CANONICAL_BADGES.map(b => ({
-    ...b,
-    isNA: b.value == null,
-    value: b.value != null ? b.value : '\u2014',
-  }));
-
-  if ($profileFacts) {
-    $profileFacts.innerHTML = '';
-
-    allBadges.forEach(b => {
-      const div = document.createElement('div');
-      const cls = ['details-badge'];
-      if (b.isCuisine) cls.push('details-badge--cuisine');
-      if (b.isAtmo) cls.push('details-badge--atmo');
-      if (b.isNA) cls.push('details-badge--na');
-      div.className = cls.join(' ');
-      div.innerHTML = `
-        <span class="details-badge__icon">${svgIcon(b.icon, 16)}</span>
-        <span class="details-badge__label type-data--sm">${b.label}</span>
-        <span class="details-badge__value type-structural">${b.value}</span>`;
-      if (b.raw && b.raw !== b.value) div.setAttribute('title', b.raw);
-      $profileFacts.appendChild(div);
-    });
-
-    $profileFacts.style.display = '';
-  }
-
-  // ---- Profile Chips (inline icon+label chip strip) ----
-  const $profileChips = document.getElementById('profile-chips');
-  if ($profileChips) {
-    $profileChips.innerHTML = '';
-    const REDUCED_MQ = matchMedia('(prefers-reduced-motion: reduce)');
-    let chipIndex = 0;
-
-    // Render visible (non-NA) badges as chips
-    allBadges.filter(b => !b.isNA).forEach((b) => {
-      const chip = document.createElement('span');
-      chip.className = 'profile-chip'
-        + (b.isAtmo ? ' profile-chip--atmo' : '');
-      chip.setAttribute('aria-label', `${b.label}: ${b.value}`);
-
-      chip.innerHTML = `
-        ${svgIcon(b.icon, 14)}
-        <span class="profile-chip__value">${b.value}</span>`;
-
-      if (!REDUCED_MQ.matches) {
-        chip.style.opacity = '0';
-        chip.style.transform = 'translateY(4px)';
-        const idx = chipIndex;
-        animationTimers.push(setTimeout(() => {
-          chip.style.transition = 'opacity 200ms ease-out, transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
-          chip.style.opacity = '1';
-          chip.style.transform = 'translateY(0)';
-        }, 500 + idx * 40));
+  // Sentiment inline bar
+  const $sentInline = document.getElementById('sentiment-inline');
+  if ($sentInline) {
+    let posVal = null, neuVal = null, negVal = null;
+    if (r.sentiment_positive != null && r.sentiment_negative != null && r.sentiment_neutral != null) {
+      posVal = r.sentiment_positive; neuVal = r.sentiment_neutral; negVal = r.sentiment_negative;
+    } else if (r.sentiment_breakdown) {
+      const parts = r.sentiment_breakdown.toLowerCase();
+      const posMatch = parts.match(/(\d+)%?\s*positive/);
+      const neuMatch = parts.match(/(\d+)%?\s*neutral/);
+      const negMatch = parts.match(/(\d+)%?\s*negative/);
+      if (posMatch || neuMatch || negMatch) {
+        posVal = parseInt(posMatch?.[1] || '33', 10);
+        neuVal = parseInt(neuMatch?.[1] || '34', 10);
+        negVal = parseInt(negMatch?.[1] || '33', 10);
       }
-
-      $profileChips.appendChild(chip);
-      chipIndex++;
-    });
-
-    // Append crowd chips (separated by dot divider)
-    const crowd = data.deep_context?.crowd_profile;
-    if (crowd?.length > 0) {
-      const CROWD_ICONS = {
-        'young_professionals': 'briefcase', 'families': 'home', 'couples': 'heart',
-        'foodies': 'plate', 'tourists': 'pin', 'students': 'user',
-        'date_night': 'heart', 'business': 'briefcase', 'solo_diners': 'user',
-        'groups': 'usersThree', 'locals': 'pin', 'hipsters': 'diamond',
-        'walk_in_friendly': 'chevronRight', 'reservation_recommended': 'refresh',
-      };
-
-      const sep = document.createElement('span');
-      sep.className = 'profile-chips__sep';
-      sep.setAttribute('aria-hidden', 'true');
-      $profileChips.appendChild(sep);
-
-      crowd.slice(0, 4).forEach(text => {
-        const chip = document.createElement('span');
-        chip.className = 'profile-chip profile-chip--crowd';
-        const iconKey = CROWD_ICONS[text] || CROWD_ICONS[text.toLowerCase().replace(/\s+/g, '_')] || 'user';
-        const label = humanizeSnake(text);
-        chip.setAttribute('aria-label', label);
-
-        chip.innerHTML = `
-          ${svgIcon(iconKey, 14)}
-          <span class="profile-chip__value">${label}</span>`;
-
-        if (!REDUCED_MQ.matches) {
-          chip.style.opacity = '0';
-          chip.style.transform = 'translateY(4px)';
-          const idx = chipIndex;
-          animationTimers.push(setTimeout(() => {
-            chip.style.transition = 'opacity 200ms ease-out, transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
-            chip.style.opacity = '1';
-            chip.style.transform = 'translateY(0)';
-          }, 500 + idx * 40));
-        }
-
-        $profileChips.appendChild(chip);
-        chipIndex++;
-      });
+    } else if (r.sentiment_score != null) {
+      const score = parseFloat(r.sentiment_score);
+      if (!isNaN(score)) {
+        posVal = Math.round((score / 10) * 100);
+        negVal = Math.round((1 - score / 10) * 30);
+        neuVal = 100 - posVal - negVal;
+      }
+    }
+    if (posVal != null) {
+      $sentInline.style.display = '';
+      renderSentimentInline(posVal, neuVal, negVal, []);
+      const $tipPos = document.getElementById('sentiment-tip-pos');
+      const $tipNeu = document.getElementById('sentiment-tip-neu');
+      const $tipNeg = document.getElementById('sentiment-tip-neg');
+      if ($tipPos) $tipPos.textContent = `${posVal}% Positive`;
+      if ($tipNeu) $tipNeu.textContent = `${neuVal}% Neutral`;
+      if ($tipNeg) $tipNeg.textContent = `${negVal}% Negative`;
+      $sentInline.onclick = () => $sentInline.classList.toggle('sentiment-inline--active');
+    } else {
+      $sentInline.style.display = 'none';
     }
   }
 
-  // ---- Quick Links (Website, Call, Share) — pill badges with dot separators ----
+  // Navigation tile
+  const $navTileContainer = document.getElementById('result-nav-tile');
+  if ($navTileContainer) {
+    $navTileContainer.innerHTML = '';
+    if (r.address) {
+      const mapsUrl = buildMapsUrl(r.address);
+      const resDiffRaw = data.deep_context?.reservation_difficulty;
+      const resDiff = resDiffRaw ? humanizeSnake(resDiffRaw) : null;
+      const resDiffHtml = resDiff ? `<span class="nav-tile__note type-data--sm">${resDiff}</span>` : '';
+      $navTileContainer.innerHTML = `
+        <a class="nav-tile__link" href="${mapsUrl}" target="_blank" rel="noopener noreferrer">
+          <span class="nav-tile__icon">${svgIcon('pin', 24)}</span>
+          <span class="nav-tile__content">
+            <span class="nav-tile__label type-data--sm">Navigation</span>
+            <span class="nav-tile__address type-structural">${r.address}</span>
+            ${resDiffHtml}
+          </span>
+          <span class="nav-tile__arrow">${svgIcon('chevronRight', 20)}</span>
+        </a>`;
+      $navTileContainer.style.display = '';
+    } else {
+      $navTileContainer.style.display = 'none';
+    }
+  }
+
+  // Quick Links (Website, Call, Share)
   const $resultLinks = document.getElementById('result-links');
   if ($resultLinks) {
     $resultLinks.innerHTML = '';
@@ -1881,7 +1887,6 @@ function renderResult(data) {
     shareLink.setAttribute('data-action', 'share');
     shareLink.classList.add('result-link--accent');
     links.push(shareLink);
-
     links.forEach((link, i) => {
       if (i > 0) {
         const sep = document.createElement('span');
@@ -1894,117 +1899,146 @@ function renderResult(data) {
     });
   }
 
-  // Insider tip (merged into story-extras row)
-  const $extrasTip = document.getElementById('story-extras-tip');
-  const $tipText = document.getElementById('insider-tip-text');
-  const bestSeat = data.deep_context?.best_seat_in_house;
-  if ($extrasTip && $tipText) {
-    let tipContent = data.insider_tip || '';
-    if (bestSeat) {
-      tipContent = tipContent
-        ? `${tipContent} · Best seat: ${bestSeat}`
-        : `Best seat: ${bestSeat}`;
-    }
-    if (tipContent) {
-      $tipText.textContent = tipContent;
-      $extrasTip.style.display = '';
-    } else {
-      $extrasTip.style.display = 'none';
-    }
+  // Profile chips (compact icon+label strip)
+  renderProfileChips(data, cuisine);
+}
+
+/* ---- Prepare Tier 3 DOM content ---- */
+function prepareTier3(data, cuisine) {
+  const r = data.restaurant;
+
+  // Vibe bars — populate but don't animate (bars start at 0 width)
+  renderVibeBars(data.scores || {}, []);
+
+  // V2 Breakdown is triggered by tap on score hero in Tier 2 — no pre-render needed
+
+  // Detail badges grid (full facts + atmosphere)
+  const $profileFacts = document.getElementById('profile-facts');
+  const parkingPts = r.parking_availability
+    ? parseParkingTypes(r.parking_availability).slice(0, 2).join(' / ') : null;
+  const CANONICAL_BADGES = [
+    { icon: cuisine.icon || 'plate', label: 'Cuisine',
+      value: (data.deep_context?.cuisine_subcategory || r.cuisine_type)
+        ? shortenBadgeValue(data.deep_context?.cuisine_subcategory || r.cuisine_type) : null,
+      raw: r.cuisine_type || '', isCuisine: true, isAtmo: false },
+    { icon: 'tag', label: 'Price', value: r.price_level || null, raw: r.price_level || '', isAtmo: false },
+    { icon: 'car', label: 'Parking', value: parkingPts, raw: r.parking_availability || '', isAtmo: false },
+    { icon: getNoiseIcon(r.noise_level), label: 'Noise',
+      value: r.noise_level ? shortenBadgeValue(r.noise_level) : null, raw: r.noise_level || '', isAtmo: false },
+    { icon: getAmbianceIcon(r.lighting_ambiance), label: 'Ambiance',
+      value: r.lighting_ambiance ? normalizeAmbiance(r.lighting_ambiance) : null,
+      raw: data.deep_context?.decor_style || r.lighting_ambiance || '', isAtmo: false },
+    { icon: 'shirt', label: 'Dress', value: r.dress_code ? shortenBadgeValue(r.dress_code) : null,
+      raw: r.dress_code || '', isAtmo: false },
+    { icon: 'patio', label: 'Patio',
+      value: r.outdoor_seating === true ? 'Yes' : (r.outdoor_seating === false ? 'No' : null),
+      raw: r.outdoor_seating != null ? (r.outdoor_seating ? 'Outdoor seating' : 'No patio') : '', isAtmo: true },
+    { icon: 'music', label: 'Live Music',
+      value: data.deep_context?.music_vibe || (r.live_music === true ? 'Yes' : (r.live_music === false ? 'No' : null)),
+      raw: data.deep_context?.music_vibe || (r.live_music != null ? (r.live_music ? 'Live music venue' : 'No live music') : ''), isAtmo: true },
+    { icon: 'pet', label: 'Pet Friendly',
+      value: r.pet_friendly === true ? 'Yes' : (r.pet_friendly === false ? 'No' : null),
+      raw: r.pet_friendly != null ? (r.pet_friendly ? 'Pet-friendly' : 'Not pet-friendly') : '', isAtmo: true },
+  ];
+
+  const byobPolicy = data.deep_context?.byob_policy;
+  if (byobPolicy && byobPolicy !== 'none') {
+    const byobMap = { full_byob: 'BYOB', wine_only: 'Wine Only' };
+    CANONICAL_BADGES.push({ icon: 'wine', label: 'BYOB', value: byobMap[byobPolicy] || humanizeSnake(byobPolicy), raw: humanizeSnake(byobPolicy), isAtmo: false });
   }
 
-  // Show story-extras container if either child is visible
-  if ($storyExtras) {
-    const hasDishes = $extrasDishes && $extrasDishes.style.display !== 'none';
-    const hasTip = $extrasTip && $extrasTip.style.display !== 'none';
-    $storyExtras.style.display = (hasDishes || hasTip) ? '' : 'none';
-  }
-
-  // ---- Sentiment Inline (compact bar in reviews row) ----
-  const $sentInline = document.getElementById('sentiment-inline');
-  if ($sentInline) {
-    // Determine sentiment percentages from best available source
-    let posVal = null, neuVal = null, negVal = null;
-
-    // Priority 1: Use structured integer fields directly (V2 backend)
-    if (r.sentiment_positive != null && r.sentiment_negative != null && r.sentiment_neutral != null) {
-      posVal = r.sentiment_positive;
-      neuVal = r.sentiment_neutral;
-      negVal = r.sentiment_negative;
-    }
-    // Priority 2: Parse sentiment_breakdown string
-    else if (r.sentiment_breakdown) {
-      const parts = r.sentiment_breakdown.toLowerCase();
-      const posMatch = parts.match(/(\d+)%?\s*positive/);
-      const neuMatch = parts.match(/(\d+)%?\s*neutral/);
-      const negMatch = parts.match(/(\d+)%?\s*negative/);
-      if (posMatch || neuMatch || negMatch) {
-        posVal = parseInt(posMatch?.[1] || '33', 10);
-        neuVal = parseInt(neuMatch?.[1] || '34', 10);
-        negVal = parseInt(negMatch?.[1] || '33', 10);
-      }
-    }
-    // Priority 3: Derive from sentiment_score (0-10 scale)
-    else if (r.sentiment_score != null) {
-      const score = parseFloat(r.sentiment_score);
-      if (!isNaN(score)) {
-        posVal = Math.round((score / 10) * 100);
-        negVal = Math.round((1 - score / 10) * 30);
-        neuVal = 100 - posVal - negVal;
-      }
-    }
-
-    if (posVal != null) {
-      $sentInline.style.display = '';
-      renderSentimentInline(posVal, neuVal, negVal, animationTimers);
-
-      // Tooltip labels
-      const $tipPos = document.getElementById('sentiment-tip-pos');
-      const $tipNeu = document.getElementById('sentiment-tip-neu');
-      const $tipNeg = document.getElementById('sentiment-tip-neg');
-      if ($tipPos) $tipPos.textContent = `${posVal}% Positive`;
-      if ($tipNeu) $tipNeu.textContent = `${neuVal}% Neutral`;
-      if ($tipNeg) $tipNeg.textContent = `${negVal}% Negative`;
-
-      // Tap toggle for mobile tooltip
-      $sentInline.addEventListener('click', () => {
-        $sentInline.classList.toggle('sentiment-inline--active');
+  if ($profileFacts) {
+    $profileFacts.innerHTML = '';
+    CANONICAL_BADGES.map(b => ({ ...b, isNA: b.value == null, value: b.value != null ? b.value : '\u2014' }))
+      .forEach(b => {
+        const div = document.createElement('div');
+        const cls = ['details-badge'];
+        if (b.isCuisine) cls.push('details-badge--cuisine');
+        if (b.isAtmo) cls.push('details-badge--atmo');
+        if (b.isNA) cls.push('details-badge--na');
+        div.className = cls.join(' ');
+        div.innerHTML = `
+          <span class="details-badge__icon">${svgIcon(b.icon, 16)}</span>
+          <span class="details-badge__label type-data--sm">${b.label}</span>
+          <span class="details-badge__value type-structural">${b.value}</span>`;
+        if (b.raw && b.raw !== b.value) div.setAttribute('title', b.raw);
+        $profileFacts.appendChild(div);
       });
-    } else {
-      $sentInline.style.display = 'none';
+    $profileFacts.style.display = '';
+  }
+}
+
+/* ---- Render Profile Chips for Tier 2 ---- */
+function renderProfileChips(data, cuisine) {
+  const r = data.restaurant;
+  const $profileChips = document.getElementById('profile-chips');
+  if (!$profileChips) return;
+  $profileChips.innerHTML = '';
+
+  const parkingPts = r.parking_availability
+    ? parseParkingTypes(r.parking_availability).slice(0, 2).join(' / ') : null;
+  const chipItems = [
+    { icon: cuisine.icon || 'plate', label: 'Cuisine',
+      value: (data.deep_context?.cuisine_subcategory || r.cuisine_type)
+        ? shortenBadgeValue(data.deep_context?.cuisine_subcategory || r.cuisine_type) : null },
+    { icon: 'tag', label: 'Price', value: r.price_level || null },
+    { icon: 'car', label: 'Parking', value: parkingPts },
+    { icon: getNoiseIcon(r.noise_level), label: 'Noise',
+      value: r.noise_level ? shortenBadgeValue(r.noise_level) : null },
+  ].filter(b => b.value != null);
+
+  chipItems.forEach(b => {
+    const chip = document.createElement('span');
+    chip.className = 'profile-chip';
+    chip.setAttribute('aria-label', `${b.label}: ${b.value}`);
+    chip.innerHTML = `${svgIcon(b.icon, 14)}<span class="profile-chip__value">${b.value}</span>`;
+    $profileChips.appendChild(chip);
+  });
+}
+
+/* ---- Tier 2 animation trigger (called on first expand) ---- */
+let _tier2Animated = false;
+function renderTier2Animations() {
+  if (_tier2Animated) return;
+  _tier2Animated = true;
+
+  const data = _pendingResultData;
+  if (!data) return;
+
+  // Animate score hero arc
+  renderScoreHero(
+    data.donde_match,
+    data.scores || {},
+    data.scoring_v2 || null,
+    null,
+    animationTimers
+  );
+
+  // Chaos-to-order text reveal for recommendation
+  const $rec = document.getElementById('result-recommendation');
+  if ($rec && data.recommendation) {
+    chaosToOrderReveal($rec, data.recommendation);
+    const $recToggle = document.getElementById('result-rec-toggle');
+    if ($recToggle) {
+      requestAnimationFrame(() => {
+        const isClamped = $rec.scrollHeight > $rec.clientHeight + 2;
+        $recToggle.style.display = isClamped ? '' : 'none';
+      });
     }
   }
+}
 
-  // Hide entire profile block if no badges
-  const $profile = document.getElementById('result-profile');
-  if ($profile) {
-    const hasContent = allBadges.length > 0;
-    $profile.style.display = hasContent ? '' : 'none';
-  }
+/* ---- Tier 3 animation trigger (called on first expand) ---- */
+let _tier3Animated = false;
+function renderTier3Animations() {
+  if (_tier3Animated) return;
+  _tier3Animated = true;
 
-  // Inject icons into result action buttons (Try Another / Start Over)
-  const $tryAgainIcon = document.getElementById('try-again-icon');
-  const $startOverIcon = document.getElementById('start-over-icon');
-  if ($tryAgainIcon) $tryAgainIcon.innerHTML = svgIcon('refresh', 18);
-  if ($startOverIcon) $startOverIcon.innerHTML = svgIcon('home', 18);
+  const data = _pendingResultData;
+  if (!data) return;
 
-
-  // Apply progressive reveal classes (visual stagger within the card)
-  if ($resultCard) {
-    $resultCard.classList.remove('card-enter', 'result-card--revealing');
-    void $resultCard.offsetWidth;
-    $resultCard.classList.add('result-card--revealing');
-
-    // Clean up reveal class after all sections have animated (600ms last delay + 400ms duration)
-    setTimeout(() => {
-      $resultCard.classList.remove('result-card--revealing');
-      $resultCard.querySelectorAll(':scope > *, .score-tile').forEach(child => {
-        child.style.opacity = '';
-        child.style.transform = '';
-      });
-    }, 1200);
-  }
-  // Note: show/hide of loading overlay and result card is handled by orchestrateReveal()
+  // Animate vibe bars
+  renderVibeBars(data.scores || {}, animationTimers);
 }
 
 /* ---- Parking Type Parser ---- */

@@ -270,55 +270,63 @@
         <!-- ========== VIEW 1: Result ========== -->
         <section class="step" data-step="1" aria-hidden="true" aria-label="Your recommendation">
           <div class="step__inner" id="result-container">
-            <!-- Result Card (populated by JS) -->
+            <!-- Result Card (populated by JS) — 3-Tier Progressive Disclosure -->
             <div class="result-card card-enter" id="result-card" style="display: none;">
 
-              <!-- Block 1: Identity — "What? Where?" -->
-              <div class="result-identity">
-                <div class="result-header">
-                  <h2 class="result-name type-emotional--md" id="result-name"></h2>
-                  <p class="result-oneliner type-structural" id="result-oneliner"></p>
-                  <div class="result-awards" id="result-awards" style="display: none;"></div>
+              <!-- ══════ TIER 1: GLANCE — "Is this place for me?" ══════ -->
+              <div class="tier tier--glance" id="tier-glance">
+
+                <!-- Score Pill: Branded DondeAI Match badge — THE hero moment -->
+                <div class="match-pill" id="match-pill" role="figure"
+                     aria-label="DondeAI Match score">
+                  <svg class="match-pill__logo" viewBox="0 0 32 44" width="14" height="19" aria-hidden="true">
+                    <path d="M10.5 1C10.5 1 10 8.5 12.5 11.5Q14 13 14.5 13.5"
+                          fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                    <path d="M21.5 1C21.5 1 22 8.5 19.5 11.5Q18 13 17.5 13.5"
+                          fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                    <path d="M16 13.5C22 11 29 14 28 21C27 27 19 29 16 31L16 34"
+                          fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>
+                    <circle cx="16" cy="40" r="2.8" fill="var(--ac)"/>
+                  </svg>
+                  <span class="match-pill__score type-data" id="match-pill-score">0</span>
+                  <span class="match-pill__verdict type-structural" id="match-pill-verdict"></span>
                 </div>
-                <div class="result-nav" id="result-nav-tile"></div>
+
+                <!-- Restaurant Name -->
+                <h2 class="result-name type-emotional--md" id="result-name"></h2>
+
+                <!-- One-liner subtitle -->
+                <p class="result-oneliner type-structural" id="result-oneliner"></p>
+
+                <!-- Quick tags: cuisine + price (snap-decision helpers) -->
+                <div class="quick-tags" id="quick-tags"></div>
+
+                <!-- Glance actions -->
+                <div class="glance-actions">
+                  <button class="cta-btn cta-btn--secondary cta-btn--icon type-structural" data-action="try-again" data-label="again">
+                    <span class="cta-btn__icon" id="try-again-icon"></span>
+                    <span class="cta-btn__text">Try Another</span>
+                  </button>
+                  <button class="tell-more-btn type-structural" id="tell-more-btn"
+                          data-action="expand-tier-2"
+                          aria-expanded="false" aria-controls="tier-leanin">
+                    <span class="tell-more-btn__text">Tell Me More</span>
+                    <span class="tell-more-btn__arrow">&#8595;</span>
+                  </button>
+                </div>
               </div>
 
-              <!-- Block 2: Story — "Why this spot?" -->
-              <div class="result-story">
-                <div class="result-rec-wrap" id="result-rec-wrap">
-                  <p class="result-recommendation type-structural" id="result-recommendation"></p>
-                  <button class="result-rec-toggle type-structural" id="result-rec-toggle"
-                          data-action="toggle-recommendation" aria-expanded="false"
-                          aria-controls="result-recommendation"
-                          style="display: none;">Read more</button>
-                </div>
-                <div class="story-extras" id="story-extras" style="display: none;">
-                  <div class="story-extras__item" id="story-extras-dishes" style="display: none;">
-                    <span class="story-extras__label type-data--sm">What to Order</span>
-                    <span class="story-extras__text type-structural" id="signature-dishes-text"></span>
-                  </div>
-                  <div class="story-extras__item" id="story-extras-tip" style="display: none;">
-                    <span class="story-extras__label type-data--sm">Insider Tip</span>
-                    <span class="story-extras__text type-structural" id="insider-tip-text"></span>
-                  </div>
-                </div>
-              </div>
+              <!-- ══════ TIER 2: LEAN-IN — "Tell me more / Should I go?" ══════ -->
+              <div class="tier tier--leanin" id="tier-leanin" aria-hidden="true">
 
-              <!-- Block 3: Score Spine — Compact, scannable score visualization -->
-              <div class="score-section" id="score-section">
-
-                <!-- Match Hero: Arc gauge + number + verdict -->
+                <!-- Score Hero: Full arc gauge (morphs from pill) -->
                 <div class="score-hero" id="score-hero"
                      role="figure" tabindex="0"
-                     aria-label="DondeAI score visualization">
+                     aria-label="DondeAI Match score detail">
                   <div class="score-hero__gauge">
                     <svg class="score-hero__svg" viewBox="0 0 200 120" aria-hidden="true">
-                      <!-- Background arc (180° semicircle) -->
                       <path class="score-hero__arc-bg" d="M 20 110 A 80 80 0 0 1 180 110" />
-                      <!-- Fill arc (animated) -->
                       <path class="score-hero__arc-fill" id="score-hero-arc-fill" d="M 20 110 A 80 80 0 0 1 180 110" />
-                      <!-- Sentiment ring (thin arc outside the main arc) -->
-                      <g class="score-hero__sentiment" id="score-hero-sentiment"></g>
                     </svg>
                     <div class="score-hero__center">
                       <span class="score-hero__number type-data" id="score-hero-number">0%</span>
@@ -327,15 +335,6 @@
                   </div>
                   <div class="score-hero__meta">
                     <span class="score-hero__brand type-data--sm">
-                      <svg class="score-hero__logo-mark" viewBox="0 0 32 44" width="12" height="16" aria-hidden="true">
-                        <path d="M10.5 1C10.5 1 10 8.5 12.5 11.5Q14 13 14.5 13.5"
-                              fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-                        <path d="M21.5 1C21.5 1 22 8.5 19.5 11.5Q18 13 17.5 13.5"
-                              fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-                        <path d="M16 13.5C22 11 29 14 28 21C27 27 19 29 16 31L16 34"
-                              fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>
-                        <circle cx="16" cy="40" r="2.8" fill="var(--ac)"/>
-                      </svg>
                       Donde Match<sup>™</sup>
                     </span>
                     <span class="score-hero__callout type-data--sm" id="score-hero-callout" style="display: none;">
@@ -345,15 +344,31 @@
                   </div>
                 </div>
 
-                <!-- Vibe Bars: 6 horizontal dimension bars — always visible -->
-                <div class="vibe-bars" id="vibe-bars" role="list" aria-label="DondeAI Vibe dimensions" style="display: none;">
-                  <div class="vibe-bars__header">
-                    <span class="vibe-bars__title type-data--sm">Vibe Profile<sup>™</sup></span>
+                <!-- AI Recommendation -->
+                <div class="result-story">
+                  <div class="result-rec-wrap" id="result-rec-wrap">
+                    <p class="result-recommendation type-structural" id="result-recommendation"></p>
+                    <button class="result-rec-toggle type-structural" id="result-rec-toggle"
+                            data-action="toggle-recommendation" aria-expanded="false"
+                            aria-controls="result-recommendation"
+                            style="display: none;">Read more</button>
                   </div>
-                  <div class="vibe-bars__list" id="vibe-bars-list"></div>
+                  <div class="story-extras" id="story-extras" style="display: none;">
+                    <div class="story-extras__item" id="story-extras-dishes" style="display: none;">
+                      <span class="story-extras__label type-data--sm">What to Order</span>
+                      <span class="story-extras__text type-structural" id="signature-dishes-text"></span>
+                    </div>
+                    <div class="story-extras__item" id="story-extras-tip" style="display: none;">
+                      <span class="story-extras__label type-data--sm">Insider Tip</span>
+                      <span class="story-extras__text type-structural" id="insider-tip-text"></span>
+                    </div>
+                  </div>
                 </div>
 
-                <!-- Reviews Row: Google + Sentiment inline -->
+                <!-- Awards badges -->
+                <div class="result-awards" id="result-awards" style="display: none;"></div>
+
+                <!-- Google Rating + Sentiment -->
                 <div class="reviews-row" id="reviews-row">
                   <div class="google-rating-inline" id="google-rating-inline" style="display: none;">
                     <div class="google-stars" id="google-stars"></div>
@@ -375,32 +390,50 @@
                   </div>
                 </div>
 
-                <!-- V2 Breakdown (optional — shown on tap of score hero) -->
-                <div class="score-breakdown" id="score-breakdown" aria-live="polite" style="display: none;"></div>
-              </div>
+                <!-- Navigation tile (address + maps) -->
+                <div class="result-nav" id="result-nav-tile"></div>
 
-              <!-- Block 4: Profile — Chip strip + expandable detail grid -->
-              <div class="result-profile" id="result-profile">
-                <div class="profile-chips" id="profile-chips" role="group" aria-label="Restaurant details"></div>
-                <button class="profile-expand-btn type-data--sm"
-                        data-action="toggle-profile-details"
-                        aria-expanded="false" aria-controls="profile-details">
-                  <span class="profile-expand-btn__text">Details</span>
-                </button>
-                <div class="profile-details" id="profile-details">
-                  <div class="profile-facts" id="profile-facts"></div>
-                </div>
-              </div>
-
-              <!-- Block 5: Actions — "Now what?" -->
-              <div class="result-actions-block">
+                <!-- Quick Links (website, call, share) -->
                 <div class="result-links" id="result-links"></div>
+
+                <!-- Profile chips (compact icon+label strip) -->
+                <div class="profile-chips" id="profile-chips" role="group" aria-label="Restaurant details"></div>
+
+                <!-- Tier 2 → Tier 3 trigger -->
+                <button class="details-trigger-btn type-data--sm" id="details-trigger-btn"
+                        data-action="expand-tier-3"
+                        aria-expanded="false" aria-controls="tier-deep">
+                  <span class="details-trigger-btn__text">All Details</span>
+                  <span class="details-trigger-btn__arrow">&#8595;</span>
+                </button>
+              </div>
+
+              <!-- ══════ TIER 3: DEEP DIVE — Full details ══════ -->
+              <div class="tier tier--deep" id="tier-deep" aria-hidden="true">
+
+                <!-- Vibe Bars (6 dimension scores) -->
+                <div class="vibe-bars" id="vibe-bars" role="list" aria-label="DondeAI Vibe dimensions" style="display: none;">
+                  <div class="vibe-bars__header">
+                    <span class="vibe-bars__title type-data--sm">Vibe Profile<sup>™</sup></span>
+                  </div>
+                  <div class="vibe-bars__list" id="vibe-bars-list"></div>
+                </div>
+
+                <!-- V2 Breakdown -->
+                <div class="score-breakdown" id="score-breakdown" aria-live="polite" style="display: none;"></div>
+
+                <!-- Detail Badges Grid (full facts + atmosphere) -->
+                <div class="profile-facts" id="profile-facts"></div>
+              </div>
+
+              <!-- ══════ PERSISTENT ACTIONS — Always visible at bottom ══════ -->
+              <div class="result-actions-block" id="result-actions-block">
                 <div class="result-actions">
-                  <button class="cta-btn cta-btn--secondary cta-btn--icon type-structural" data-action="try-again" data-label="again">
-                    <span class="cta-btn__icon" id="try-again-icon"></span>
+                  <button class="cta-btn cta-btn--secondary cta-btn--icon type-structural" data-action="try-again" data-label="again" id="bottom-try-again" style="display: none;">
+                    <span class="cta-btn__icon" id="bottom-try-again-icon"></span>
                     <span class="cta-btn__text">Try Another</span>
                   </button>
-                  <button class="cta-btn cta-btn--icon type-structural--bold" data-action="reset">
+                  <button class="cta-btn cta-btn--icon type-structural--bold" data-action="reset" id="bottom-start-over" style="display: none;">
                     <span class="cta-btn__icon" id="start-over-icon"></span>
                     <span class="cta-btn__text">Start Over</span>
                   </button>
