@@ -1641,9 +1641,17 @@ function renderResult(data) {
 
   // DondeAI Recommendation blurb — the editorial voice in Tier 1
   const $rec = document.getElementById('result-recommendation');
+  const $blurb = document.getElementById('donde-blurb');
   if ($rec) {
+    const recText = data.recommendation || '';
     $rec.classList.remove('result-recommendation--expanded');
-    chaosToOrderReveal($rec, data.recommendation || '');
+    // Direct textContent (not chaosToOrderReveal) — -webkit-line-clamp
+    // requires flat text in a -webkit-box container; child spans break clamping.
+    $rec.textContent = recText;
+    $rec.style.position = ''; // Clear any leftover inline position from prior render
+
+    // Hide entire blurb when no recommendation text
+    if ($blurb) $blurb.style.display = recText ? '' : 'none';
 
     const $recToggle = document.getElementById('result-rec-toggle');
     if ($recToggle) {
