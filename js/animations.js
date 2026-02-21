@@ -84,7 +84,7 @@ export function animateScoreRing(rawScore) {
 }
 
 /* ---- Petal Radar Chart (Ink Blossom — 6-axis vibe profile) ---- */
-import { svgIcon, buildVibeSummary } from './utils.js';
+import { svgIcon, buildVibeSummary, getVibeDetail } from './utils.js';
 
 const RADAR_DIMS = [
   { key: 'date_friendly_score',    label: 'Date',     icon: 'heart' },
@@ -144,7 +144,7 @@ export function renderPetalRadar(scores, timers = []) {
 
   // Build aria-label with values
   const ariaDesc = slots.filter(s => s.hasData)
-    .map(s => `${s.label} ${s.val.toFixed(1)}`).join(', ');
+    .map(s => `${s.label} ${humanizeVibeScore(s.val)}`).join(', ');
   $tile.setAttribute('aria-label', `Donde Vibe: ${ariaDesc}`);
 
   // Get SVG groups
@@ -254,6 +254,719 @@ export function renderPetalRadar(scores, timers = []) {
     $topVibe.textContent = vibeSummary;
   }
 }
+
+/* ---- Score Bloom (Unified Match Ring + Vibe Petals) ---- */
+
+const BLOOM_STATES = { COMPACT: 'compact', BLOOMED: 'bloomed', PETAL_FOCUSED: 'petal-focused', DEEP_DIVE: 'deep-dive' };
+let bloomState = BLOOM_STATES.COMPACT;
+let bloomData = null;
+let activePetalDim = null;
+
+export function renderScoreBloom(dondeMatch, scores, scoringV2, sentiment, timers = []) {
+  const $bloom = document.getElementById('score-bloom');
+  if (!$bloom) return;
+
+  // Store data for interaction handlers
+  bloomData = { dondeMatch, scores, scoringV2, sentiment };
+  bloomState = BLOOM_STATES.COMPACT;
+  activePetalDim = null;
+  $bloom.setAttribute('data-bloom-state', 'compact');
+  $bloom.setAttribute('aria-expanded', 'false');
+
+  // ---- Match Ring (center of bloom SVG) ----
+  const pct = Math.round(parseFloat(dondeMatch) || 80);
+  const $ringFill = document.getElementById('score-bloom-ring-fill');
+  const $number = document.getElementById('score-bloom-number');
+  const $verdict = document.getElementById('score-bloom-verdict');
+
+  if ($ringFill) {
+    const circumference = 2 * Math.PI * 120; // r=120 in bloom SVG (hero size)
+    const target = circumference - (pct / 100) * circumference;
+    $ringFill.style.stroke = 'var(--ac)';
+    $ringFill.style.strokeDasharray = String(circumference);
+
+    if (REDUCED.matches) {
+      $ringFill.style.strokeDashoffset = String(target);
+      if ($number) $number.textContent = pct + '%';
+    } else {
+      $ringFill.style.strokeDashoffset = String(circumference);
+      timers.push(setTimeout(() => {
+        $ringFill.style.strokeDashoffset = String(target);
+      }, 300));
+
+      // Count-up number
+      if ($number) {
+        const duration = 1200;
+        const start = performance.now();
+        function tick(now) {
+          const elapsed = now - start;
+          const progress = Math.min(elapsed / duration, 1);
+          const eased = 1 - Math.pow(1 - progress, 3);
+          $number.textContent = Math.round(pct * eased) + '%';
+          if (progress < 1) requestAnimationFrame(tick);
+          else $number.textContent = pct + '%';
+        }
+        timers.push(setTimeout(() => requestAnimationFrame(tick), 300));
+      }
+    }
+  }
+
+  // Verdict label
+  if ($verdict) {
+    const tier = pct >= 90 ? { verdict: 'Outstanding', tier: 'high' }
+      : pct >= 85 ? { verdict: 'Excellent', tier: 'high' }
+      : pct >= 75 ? { verdict: 'Solid Pick', tier: 'mid' }
+      : pct >= 60 ? { verdict: 'Worth a Try', tier: 'mid' }
+      : { verdict: 'Adventurous', tier: 'low' };
+    $verdict.textContent = tier.verdict;
+    $verdict.setAttribute('data-tier', tier.tier);
+    if (!REDUCED.matches) {
+      $verdict.style.opacity = '0';
+      timers.push(setTimeout(() => {
+        $verdict.style.transition = 'opacity 400ms ease-out';
+        $verdict.style.opacity = '1';
+      }, 800));
+    }
+  }
+
+  // ---- Vibe Petals (compact mode — small teardrops around ring) ----
+  const cx = 200, cy = 200;
+  const RING_R_COMPACT = 120;
+  const RING_R_EXPANDED = 55;
+  const ringR = RING_R_COMPACT;
+  const compactMaxR = 22; // compact petal max length from ring edge
+  const compactMinR = 6;
+  const angleStep = (2 * Math.PI) / 6;
+  const startAngle = -Math.PI / 2;
+
+  const available = RADAR_DIMS.filter(d => {
+    const v = scores[d.key];
+    return v != null && v !== '' && !isNaN(parseFloat(v));
+  });
+
+  const slots = RADAR_DIMS.map(dim => {
+    const found = available.find(a => a.key === dim.key);
+    const val = found ? Math.min(parseFloat(scores[dim.key]) || 0, 10) : 0;
+    return { ...dim, val, hasData: !!found };
+  });
+
+  // Build aria-label (human-friendly, no raw decimals)
+  const ariaDesc = slots.filter(s => s.hasData)
+    .map(s => `${s.label} ${humanizeVibeScore(s.val)}`).join(', ');
+  $bloom.setAttribute('aria-label', `DondeAI Match ${pct}%. Vibe: ${ariaDesc}`);
+
+  // Render petals
+  const $petals = document.getElementById('score-bloom-petals');
+  if ($petals) {
+    $petals.innerHTML = '';
+
+    if (available.length >= 3) {
+      // Find dominant petal
+      const dominant = slots.reduce((best, s) => (s.hasData && s.val > (best?.val || 0)) ? s : best, null);
+
+      slots.forEach((slot, i) => {
+        if (!slot.hasData) return;
+        const angle = startAngle + i * angleStep;
+        // Compact: petal starts from ring edge
+        const petalStart = ringR + 4;
+        const petalLen = compactMinR + (slot.val / 10) * (compactMaxR - compactMinR);
+        const startX = cx + petalStart * Math.cos(angle);
+        const startY = cy + petalStart * Math.sin(angle);
+        const path = buildTeardropPath(startX, startY, angle, petalLen);
+
+        const pathEl = svgEl('path');
+        pathEl.setAttribute('d', path);
+        pathEl.classList.add('score-bloom__petal');
+        pathEl.setAttribute('data-dim', slot.key);
+        pathEl.setAttribute('data-value', slot.val.toFixed(1));
+        pathEl.setAttribute('data-index', String(i));
+
+        // Dominant petal gets breathing animation
+        if (dominant && slot.key === dominant.key) {
+          pathEl.style.transformOrigin = `${startX}px ${startY}px`;
+          if (!REDUCED.matches) {
+            timers.push(setTimeout(() => {
+              pathEl.classList.add('score-bloom__petal--dominant');
+            }, 1100));
+          }
+        }
+
+        // Entrance animation
+        if (!REDUCED.matches) {
+          pathEl.style.transformOrigin = `${cx}px ${cy}px`;
+          pathEl.style.transform = 'scale(0)';
+          pathEl.style.opacity = '0';
+          const delay = 600 + i * 80;
+          timers.push(setTimeout(() => {
+            pathEl.style.transition = 'transform 500ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 300ms ease-out';
+            pathEl.style.transform = 'scale(1)';
+            pathEl.style.opacity = '1';
+          }, delay));
+        }
+
+        $petals.appendChild(pathEl);
+      });
+    }
+  }
+
+  // ---- Sentiment Arc (thin colored ring outside match ring) ----
+  const $sentimentG = document.getElementById('score-bloom-sentiment');
+  if ($sentimentG && sentiment) {
+    $sentimentG.innerHTML = '';
+    const total = (sentiment.pos || 0) + (sentiment.neu || 0) + (sentiment.neg || 0);
+    if (total > 0) {
+      const sentR = ringR + 8;
+      const sentWidth = 2;
+      const totalAngle = 2 * Math.PI;
+      const gap = 0.04; // small gap between segments
+
+      const posAngle = (sentiment.pos / total) * totalAngle - gap;
+      const neuAngle = (sentiment.neu / total) * totalAngle - gap;
+      const negAngle = (sentiment.neg / total) * totalAngle - gap;
+
+      let currentAngle = -Math.PI / 2;
+      const segments = [
+        { angle: posAngle, cls: 'score-bloom__sentiment-pos' },
+        { angle: neuAngle, cls: 'score-bloom__sentiment-neu' },
+        { angle: negAngle, cls: 'score-bloom__sentiment-neg' },
+      ];
+
+      segments.forEach(seg => {
+        if (seg.angle <= 0) { currentAngle += gap; return; }
+        const endAngle = currentAngle + seg.angle;
+        const largeArc = seg.angle > Math.PI ? 1 : 0;
+        const x1 = cx + sentR * Math.cos(currentAngle);
+        const y1 = cy + sentR * Math.sin(currentAngle);
+        const x2 = cx + sentR * Math.cos(endAngle);
+        const y2 = cy + sentR * Math.sin(endAngle);
+
+        const arc = svgEl('path');
+        arc.setAttribute('d', `M ${x1} ${y1} A ${sentR} ${sentR} 0 ${largeArc} 1 ${x2} ${y2}`);
+        arc.classList.add(seg.cls);
+        arc.setAttribute('stroke-width', String(sentWidth));
+        arc.setAttribute('fill', 'none');
+
+        if (!REDUCED.matches) {
+          arc.style.opacity = '0';
+          timers.push(setTimeout(() => {
+            arc.style.transition = 'opacity 400ms ease-out';
+            arc.style.opacity = '1';
+          }, 1000));
+        }
+
+        $sentimentG.appendChild(arc);
+        currentAngle = endAngle + gap;
+      });
+    }
+  }
+
+  // ---- "Best for" Callout ----
+  const $callout = document.getElementById('score-bloom-callout');
+  const $calloutValue = document.getElementById('score-bloom-callout-value');
+  if ($callout && $calloutValue && available.length >= 1) {
+    const best = slots.filter(s => s.hasData).sort((a, b) => b.val - a.val)[0];
+    if (best) {
+      $calloutValue.textContent = `${best.label} · ${humanizeVibeScore(best.val)}`;
+      $callout.style.display = '';
+      if (!REDUCED.matches) {
+        timers.push(setTimeout(() => {
+          $callout.classList.add('score-bloom__callout--visible');
+        }, 900));
+      } else {
+        $callout.classList.add('score-bloom__callout--visible');
+      }
+    }
+  }
+
+  // ---- "Tap to explore" hint ----
+  const $hint = document.getElementById('score-bloom-hint');
+  if ($hint && !REDUCED.matches) {
+    $hint.style.opacity = '0';
+    timers.push(setTimeout(() => {
+      $hint.style.transition = 'opacity 600ms ease-out';
+      $hint.style.opacity = '0.6';
+    }, 1100));
+  }
+}
+
+/* ---- Bloom Interaction Handlers ---- */
+
+export function toggleBloom() {
+  const $bloom = document.getElementById('score-bloom');
+  if (!$bloom || !bloomData) return;
+
+  if (bloomState === BLOOM_STATES.COMPACT) {
+    expandBloom($bloom);
+  } else {
+    collapseBloom($bloom);
+  }
+}
+
+function expandBloom($bloom) {
+  bloomState = BLOOM_STATES.BLOOMED;
+  $bloom.setAttribute('data-bloom-state', 'bloomed');
+  $bloom.setAttribute('aria-expanded', 'true');
+
+  // Fade sentiment arc (it's positioned for compact ring)
+  const $sentimentG = document.getElementById('score-bloom-sentiment');
+  if ($sentimentG) { $sentimentG.style.transition = 'opacity 300ms ease-out'; $sentimentG.style.opacity = '0'; }
+
+  const scores = bloomData.scores;
+  const cx = 200, cy = 200;
+  const expandedR = 55; // ring shrinks from 120 → 55
+  const orbDistance = 135; // distance from center for vibe orbs
+  const angleStep = (2 * Math.PI) / 6;
+  const startAngle = -Math.PI / 2;
+
+  const available = RADAR_DIMS.filter(d => {
+    const v = scores[d.key];
+    return v != null && v !== '' && !isNaN(parseFloat(v));
+  });
+
+  // ---- Shrink the match ring via SVG r attribute ----
+  const $ringBg = document.querySelector('.score-bloom__ring-bg');
+  const $ringFill = document.getElementById('score-bloom-ring-fill');
+  if ($ringBg) $ringBg.setAttribute('r', String(expandedR));
+  if ($ringFill) {
+    const newCirc = 2 * Math.PI * expandedR;
+    const pct = Math.round(parseFloat(bloomData.dondeMatch) || 80);
+    const target = newCirc - (pct / 100) * newCirc;
+    $ringFill.setAttribute('r', String(expandedR));
+    $ringFill.style.strokeDasharray = String(newCirc);
+    $ringFill.style.strokeDashoffset = String(target);
+    $ringFill.style.strokeWidth = '4';
+  }
+  if ($ringBg) $ringBg.style.strokeWidth = '4';
+
+  // Remove compact petals
+  const $petals = document.getElementById('score-bloom-petals');
+  if ($petals) $petals.innerHTML = '';
+
+  // ---- Vibe Orbs: filled circles with icons orbiting around ----
+  const $labels = document.getElementById('score-bloom-labels');
+  if ($labels) {
+    $labels.innerHTML = '';
+    const slots = RADAR_DIMS.map(dim => {
+      const found = available.find(a => a.key === dim.key);
+      const val = found ? Math.min(parseFloat(scores[dim.key]) || 0, 10) : 0;
+      return { ...dim, val, hasData: !!found };
+    });
+
+    // Find dominant for highlight
+    const dominant = slots.filter(s => s.hasData).sort((a, b) => b.val - a.val)[0];
+
+    slots.forEach((slot, i) => {
+      if (!slot.hasData) return;
+      const angle = startAngle + i * angleStep;
+      const ox = cx + orbDistance * Math.cos(angle);
+      const oy = cy + orbDistance * Math.sin(angle);
+
+      // Orb size scales with score (min 14, max 26)
+      const orbR = 14 + (slot.val / 10) * 12;
+      const isDominant = dominant && slot.key === dominant.key;
+
+      // Container group for the orb
+      const g = svgEl('g');
+      g.classList.add('score-bloom__orb');
+      g.setAttribute('data-dim', slot.key);
+      g.setAttribute('data-label', slot.label);
+      g.setAttribute('data-tier', humanizeVibeScore(slot.val));
+      g.style.cursor = 'pointer';
+
+      // Filled circle
+      const circle = svgEl('circle');
+      circle.setAttribute('cx', String(ox));
+      circle.setAttribute('cy', String(oy));
+      circle.setAttribute('r', String(orbR));
+      circle.classList.add('score-bloom__orb-fill');
+      if (isDominant) circle.classList.add('score-bloom__orb-fill--dominant');
+      g.appendChild(circle);
+
+      // Icon inside orb (use foreignObject for HTML SVG icon)
+      const iconSize = Math.round(orbR * 0.9);
+      const fo = svgEl('foreignObject');
+      fo.setAttribute('x', String(ox - iconSize / 2));
+      fo.setAttribute('y', String(oy - iconSize / 2));
+      fo.setAttribute('width', String(iconSize));
+      fo.setAttribute('height', String(iconSize));
+      fo.style.pointerEvents = 'none';
+      const iconDiv = document.createElement('div');
+      iconDiv.style.cssText = `display:flex;align-items:center;justify-content:center;width:100%;height:100%;color:var(--ac);opacity:0.8;`;
+      iconDiv.innerHTML = svgIcon(slot.icon, iconSize);
+      fo.appendChild(iconDiv);
+      g.appendChild(fo);
+
+      // Label below orb
+      const label = svgEl('text');
+      label.setAttribute('x', String(ox));
+      label.setAttribute('y', String(oy + orbR + 13));
+      label.classList.add('score-bloom__orb-label');
+      label.textContent = slot.label;
+      g.appendChild(label);
+
+      // Tier text below label
+      const tier = svgEl('text');
+      tier.setAttribute('x', String(ox));
+      tier.setAttribute('y', String(oy + orbR + 23));
+      tier.classList.add('score-bloom__orb-tier');
+      tier.textContent = humanizeVibeScore(slot.val);
+      g.appendChild(tier);
+
+      // Spring-pop entrance animation
+      if (!REDUCED.matches) {
+        g.style.transformOrigin = `${ox}px ${oy}px`;
+        g.style.transform = 'scale(0)';
+        g.style.opacity = '0';
+        const delay = 150 + i * 80;
+        setTimeout(() => {
+          g.style.transition = 'transform 500ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 250ms ease-out';
+          g.style.transform = 'scale(1)';
+          g.style.opacity = '1';
+        }, delay);
+      }
+
+      $labels.appendChild(g);
+    });
+
+    // Connector lines from ring to orbs (thin, subtle)
+    const $axes = document.getElementById('score-bloom-axes');
+    if ($axes) {
+      $axes.innerHTML = '';
+      slots.forEach((slot, i) => {
+        if (!slot.hasData) return;
+        const angle = startAngle + i * angleStep;
+        const orbR = 14 + (slot.val / 10) * 12;
+        const line = svgEl('line');
+        line.setAttribute('x1', String(cx + (expandedR + 3) * Math.cos(angle)));
+        line.setAttribute('y1', String(cy + (expandedR + 3) * Math.sin(angle)));
+        line.setAttribute('x2', String(cx + (orbDistance - orbR - 2) * Math.cos(angle)));
+        line.setAttribute('y2', String(cy + (orbDistance - orbR - 2) * Math.sin(angle)));
+        line.classList.add('score-bloom__connector');
+        $axes.appendChild(line);
+      });
+      $axes.style.transition = 'opacity 300ms ease-out';
+      $axes.style.opacity = '1';
+    }
+
+    $labels.style.transition = 'opacity 300ms ease-out';
+    $labels.style.opacity = '1';
+  }
+
+  // Hide grid guides (not needed with orb layout)
+  const $grid = document.getElementById('score-bloom-grid');
+  if ($grid) { $grid.style.opacity = '0'; $grid.innerHTML = ''; }
+}
+
+function collapseBloom($bloom) {
+  bloomState = BLOOM_STATES.COMPACT;
+  activePetalDim = null;
+  $bloom.setAttribute('data-bloom-state', 'compact');
+  $bloom.setAttribute('aria-expanded', 'false');
+
+  // ---- Restore ring to full compact size (hero) ----
+  const compactR = 120;
+  const $ringBg = document.querySelector('.score-bloom__ring-bg');
+  const $ringFill = document.getElementById('score-bloom-ring-fill');
+  if ($ringBg) { $ringBg.setAttribute('r', String(compactR)); $ringBg.style.strokeWidth = '5'; }
+  if ($ringFill && bloomData) {
+    const newCirc = 2 * Math.PI * compactR;
+    const pct = Math.round(parseFloat(bloomData.dondeMatch) || 80);
+    const target = newCirc - (pct / 100) * newCirc;
+    $ringFill.setAttribute('r', String(compactR));
+    $ringFill.style.strokeDasharray = String(newCirc);
+    $ringFill.style.strokeDashoffset = String(target);
+    $ringFill.style.strokeWidth = '5';
+  }
+
+  // Re-render compact petals
+  if (bloomData) {
+    const fakeTimers = [];
+    renderCompactPetals(bloomData.scores, fakeTimers);
+  }
+
+  // Hide axes, labels (orbs)
+  const $grid = document.getElementById('score-bloom-grid');
+  const $axes = document.getElementById('score-bloom-axes');
+  const $labels = document.getElementById('score-bloom-labels');
+  if ($grid) { $grid.style.opacity = '0'; $grid.innerHTML = ''; }
+  if ($axes) { $axes.style.opacity = '0'; $axes.innerHTML = ''; }
+  if ($labels) { $labels.style.opacity = '0'; $labels.innerHTML = ''; }
+
+  // Restore sentiment arc
+  const $sentimentG = document.getElementById('score-bloom-sentiment');
+  if ($sentimentG) { $sentimentG.style.transition = 'opacity 400ms ease-out'; $sentimentG.style.opacity = '1'; }
+
+  // Hide detail strip and V2 strip
+  hideBloomDetail();
+  hideV2Arcs();
+}
+
+function renderCompactPetals(scores, timers) {
+  const cx = 200, cy = 200;
+  const ringR = 120;
+  const compactMaxR = 22;
+  const compactMinR = 6;
+  const angleStep = (2 * Math.PI) / 6;
+  const startAngle = -Math.PI / 2;
+
+  const available = RADAR_DIMS.filter(d => {
+    const v = scores[d.key];
+    return v != null && v !== '' && !isNaN(parseFloat(v));
+  });
+
+  const slots = RADAR_DIMS.map(dim => {
+    const found = available.find(a => a.key === dim.key);
+    const val = found ? Math.min(parseFloat(scores[dim.key]) || 0, 10) : 0;
+    return { ...dim, val, hasData: !!found };
+  });
+
+  const $petals = document.getElementById('score-bloom-petals');
+  if (!$petals || available.length < 3) return;
+  $petals.innerHTML = '';
+
+  const dominant = slots.reduce((best, s) => (s.hasData && s.val > (best?.val || 0)) ? s : best, null);
+
+  slots.forEach((slot, i) => {
+    if (!slot.hasData) return;
+    const angle = startAngle + i * angleStep;
+    const petalStart = ringR + 4;
+    const petalLen = compactMinR + (slot.val / 10) * (compactMaxR - compactMinR);
+    const startX = cx + petalStart * Math.cos(angle);
+    const startY = cy + petalStart * Math.sin(angle);
+    const path = buildTeardropPath(startX, startY, angle, petalLen);
+
+    const pathEl = svgEl('path');
+    pathEl.setAttribute('d', path);
+    pathEl.classList.add('score-bloom__petal');
+    pathEl.setAttribute('data-dim', slot.key);
+    pathEl.setAttribute('data-value', slot.val.toFixed(1));
+    pathEl.setAttribute('data-index', String(i));
+
+    if (dominant && slot.key === dominant.key && !REDUCED.matches) {
+      pathEl.style.transformOrigin = `${startX}px ${startY}px`;
+      pathEl.classList.add('score-bloom__petal--dominant');
+    }
+
+    if (!REDUCED.matches) {
+      pathEl.style.transformOrigin = `${cx}px ${cy}px`;
+      pathEl.style.transform = 'scale(0.6)';
+      pathEl.style.opacity = '0.5';
+      const delay = i * 50;
+      setTimeout(() => {
+        pathEl.style.transition = 'transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 200ms ease-out';
+        pathEl.style.transform = 'scale(1)';
+        pathEl.style.opacity = '1';
+      }, delay);
+    }
+
+    $petals.appendChild(pathEl);
+  });
+}
+
+export function handlePetalTap(dimKey) {
+  if (bloomState !== BLOOM_STATES.BLOOMED && bloomState !== BLOOM_STATES.PETAL_FOCUSED) return;
+  if (!bloomData) return;
+
+  // Toggle same petal off
+  if (activePetalDim === dimKey) {
+    activePetalDim = null;
+    bloomState = BLOOM_STATES.BLOOMED;
+    resetPetalHighlights();
+    hideBloomDetail();
+    return;
+  }
+
+  activePetalDim = dimKey;
+  bloomState = BLOOM_STATES.PETAL_FOCUSED;
+
+  // Highlight active petals/orbs, dim others
+  const $petals = document.querySelectorAll('.score-bloom__petal');
+  $petals.forEach(p => {
+    if (p.getAttribute('data-dim') === dimKey) {
+      p.classList.add('score-bloom__petal--active');
+      p.classList.remove('score-bloom__petal--dimmed');
+    } else {
+      p.classList.remove('score-bloom__petal--active');
+      p.classList.add('score-bloom__petal--dimmed');
+    }
+  });
+
+  // Highlight orbs in expanded view
+  const $orbs = document.querySelectorAll('.score-bloom__orb');
+  $orbs.forEach(o => {
+    if (o.getAttribute('data-dim') === dimKey) {
+      o.classList.add('score-bloom__orb--active');
+      o.classList.remove('score-bloom__orb--dimmed');
+    } else {
+      o.classList.remove('score-bloom__orb--active');
+      o.classList.add('score-bloom__orb--dimmed');
+    }
+  });
+
+  // Show detail strip
+  showBloomDetail(dimKey);
+}
+
+function showBloomDetail(dimKey) {
+  const $detail = document.getElementById('score-bloom-detail');
+  if (!$detail || !bloomData) return;
+
+  const dim = RADAR_DIMS.find(d => d.key === dimKey);
+  if (!dim) return;
+
+  const val = parseFloat(bloomData.scores[dimKey]) || 0;
+  const pct = (val / 10) * 100;
+
+  const $icon = document.getElementById('score-bloom-detail-icon');
+  const $label = document.getElementById('score-bloom-detail-label');
+  const $score = document.getElementById('score-bloom-detail-score');
+  const $fill = document.getElementById('score-bloom-detail-fill');
+  const $desc = document.getElementById('score-bloom-detail-desc');
+
+  if ($icon) $icon.innerHTML = svgIcon(dim.icon, 18);
+  if ($label) $label.textContent = dim.label;
+  if ($score) $score.textContent = humanizeVibeScore(val);
+  if ($fill) $fill.style.width = `${pct}%`;
+  if ($desc) {
+    const detail = getVibeDetail(dimKey, val);
+    $desc.textContent = detail;
+  }
+
+  $detail.style.display = 'block';
+  requestAnimationFrame(() => {
+    $detail.classList.add('score-bloom__detail--visible');
+  });
+}
+
+function hideBloomDetail() {
+  const $detail = document.getElementById('score-bloom-detail');
+  if ($detail) {
+    $detail.classList.remove('score-bloom__detail--visible');
+    setTimeout(() => { $detail.style.display = 'none'; }, 300);
+  }
+}
+
+function resetPetalHighlights() {
+  document.querySelectorAll('.score-bloom__petal').forEach(p => {
+    p.classList.remove('score-bloom__petal--active', 'score-bloom__petal--dimmed');
+  });
+  document.querySelectorAll('.score-bloom__orb').forEach(o => {
+    o.classList.remove('score-bloom__orb--active', 'score-bloom__orb--dimmed');
+  });
+}
+
+export function handleBloomRingTap() {
+  if (!bloomData) return;
+
+  const $bloom = document.getElementById('score-bloom');
+
+  // Deep dive → back to bloomed
+  if (bloomState === BLOOM_STATES.DEEP_DIVE) {
+    bloomState = BLOOM_STATES.BLOOMED;
+    $bloom?.setAttribute('data-bloom-state', 'bloomed');
+    hideV2Arcs();
+    return;
+  }
+
+  // Bloomed/petal-focused → deep dive (if V2 data available)
+  if (bloomState !== BLOOM_STATES.BLOOMED && bloomState !== BLOOM_STATES.PETAL_FOCUSED) return;
+  if (!bloomData.scoringV2) return;
+
+  bloomState = BLOOM_STATES.DEEP_DIVE;
+  $bloom?.setAttribute('data-bloom-state', 'deep-dive');
+  activePetalDim = null;
+  resetPetalHighlights();
+  hideBloomDetail();
+  showV2Arcs();
+}
+
+// Humanize vibe score (0-10 scale) — used for vibe dimensions
+function humanizeVibeScore(val) {
+  if (val >= 9) return 'Outstanding';
+  if (val >= 7.5) return 'Strong';
+  if (val >= 5.5) return 'Good';
+  if (val >= 3.5) return 'Moderate';
+  return 'Low';
+}
+
+// Humanize V2 score (0-100 scale) — used for scoring breakdown
+function humanizeV2Score(val) {
+  if (val >= 90) return 'Perfect';
+  if (val >= 75) return 'Strong';
+  if (val >= 60) return 'Good';
+  if (val >= 40) return 'Fair';
+  return 'Low';
+}
+
+function showV2Arcs() {
+  if (!bloomData?.scoringV2) return;
+
+  // Render V2 breakdown as a clean detail strip (not SVG arcs)
+  const $strip = document.getElementById('score-bloom-v2-strip');
+  if (!$strip) return;
+
+  $strip.innerHTML = '';
+  const sv2 = bloomData.scoringV2;
+
+  const v2Dims = [
+    { key: 'occasion_fit',    label: 'Occasion' },
+    { key: 'craving_match',   label: 'Craving' },
+    { key: 'vibe_alignment',  label: 'Vibe' },
+    { key: 'practical_fit',   label: 'Practical' },
+    { key: 'discovery_value', label: 'Discovery' },
+  ];
+
+  v2Dims.forEach((dim, i) => {
+    const val = Math.min(Math.max(sv2[dim.key] || 0, 0), 100);
+    const row = document.createElement('div');
+    row.className = 'v2-row';
+    row.innerHTML = `
+      <span class="v2-row__label type-data--sm">${dim.label}</span>
+      <div class="v2-row__track">
+        <div class="v2-row__fill" style="width: 0%"></div>
+      </div>
+      <span class="v2-row__score type-data--sm">${humanizeV2Score(val)}</span>`;
+    $strip.appendChild(row);
+
+    // Animate fill bar
+    if (!REDUCED.matches) {
+      setTimeout(() => {
+        row.querySelector('.v2-row__fill').style.width = `${val}%`;
+      }, 100 + i * 60);
+    } else {
+      row.querySelector('.v2-row__fill').style.width = `${val}%`;
+    }
+  });
+
+  $strip.style.display = 'flex';
+  requestAnimationFrame(() => {
+    $strip.classList.add('score-bloom__v2-strip--visible');
+  });
+
+  // Dim orbs while showing breakdown
+  document.querySelectorAll('.score-bloom__orb').forEach(o => {
+    o.classList.add('score-bloom__orb--dimmed');
+  });
+  const $axes = document.getElementById('score-bloom-axes');
+  if ($axes) $axes.style.opacity = '0.2';
+}
+
+function hideV2Arcs() {
+  const $strip = document.getElementById('score-bloom-v2-strip');
+  if ($strip) {
+    $strip.classList.remove('score-bloom__v2-strip--visible');
+    setTimeout(() => { $strip.innerHTML = ''; $strip.style.display = 'none'; }, 300);
+  }
+
+  // Restore orbs
+  document.querySelectorAll('.score-bloom__orb').forEach(o => {
+    o.classList.remove('score-bloom__orb--dimmed');
+  });
+  const $axes = document.getElementById('score-bloom-axes');
+  if ($axes) $axes.style.opacity = '1';
+}
+
+export function getBloomState() { return bloomState; }
 
 /* ---- Sentiment Bar (horizontal mood indicator) ---- */
 export function renderSentimentBar(pos, neu, neg, timers = []) {

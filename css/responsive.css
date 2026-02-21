@@ -22,13 +22,10 @@
   }
 }
 
-/* ---- Mobile: score tile chrome stripping ---- */
+/* ---- Mobile: Score Bloom full-width sizing ---- */
 @media (max-width: 767px) {
-  .score-tile--radar {
-    background: transparent;
-    border: none;
-    padding: var(--space-xs) 0;
-    border-radius: 0;
+  .score-bloom__viz {
+    width: min(100%, 360px);
   }
 }
 
@@ -62,24 +59,18 @@
     padding: var(--space-xl);
   }
 
-  /* Score row: wider tiles on tablet+ */
-  .score-row {
-    gap: var(--space-md);
+  /* Score Bloom: tablet sizing — full container width */
+  .score-bloom__viz {
+    width: min(100%, 440px);
   }
 
-  .score-row .score-tile--donde,
-  .score-row .score-tile--radar {
-    max-width: 280px;
+  .score-bloom__number {
+    font-size: var(--text-2xl);
   }
 
-  /* Score tile breathing room on tablet+ */
+  /* Keep score-tile styles for the tile-expand modal */
   .score-tile {
     padding: var(--space-lg);
-  }
-
-  .petal-radar {
-    width: 180px;
-    height: 180px;
   }
 
   .score-tile .score-ring-wrap {
@@ -117,9 +108,13 @@
     max-height: 450px;
   }
 
-  .petal-radar {
-    width: 200px;
-    height: 200px;
+  /* Score Bloom: desktop sizing — full container width */
+  .score-bloom__viz {
+    width: min(100%, 500px);
+  }
+
+  .score-bloom__number {
+    font-size: 28px;
   }
 
   .score-tile .score-ring-wrap {

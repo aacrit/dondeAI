@@ -980,7 +980,7 @@
   flex-direction: column;
   gap: var(--space-xs);
   width: 100%;
-  max-width: 340px;
+  max-width: 480px;
   margin: 0 auto;
   padding: var(--space-sm) var(--space-md);
   background: var(--bg2);
@@ -1040,61 +1040,209 @@
   background: var(--bg3);
 }
 
-/* ---- Score Row (Match Ring + Petal Radar side by side) ---- */
-.score-row {
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  align-items: stretch;
-  gap: var(--space-sm);
-  width: 100%;
-}
-
-.score-row .score-tile--donde,
-.score-row .score-tile--radar {
-  flex: 1 1 0;
-  min-width: 0;
-  max-width: 200px;
-}
-
-/* ---- Petal Radar Tile ---- */
-.score-tile--radar {
+/* ---- Score Bloom (Unified Match Ring + Vibe Petals) ---- */
+.score-bloom {
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-xs);
-  padding: var(--space-md);
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  gap: var(--space-sm);
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
   cursor: pointer;
-  transition: transform var(--dur-fast) var(--spring),
-              box-shadow var(--dur-fast) var(--ease-out);
+  outline: none;
 }
 
-.score-tile--radar:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px var(--shadow);
+.score-bloom:focus-visible {
+  outline: 2px solid var(--ac);
+  outline-offset: 4px;
+  border-radius: var(--radius);
 }
 
-.score-tile--radar:active {
-  transform: translateY(0);
+/* Brand header */
+.score-bloom__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  line-height: 1;
 }
 
-.score-tile__label {
+.score-bloom__logo-mark {
+  color: var(--fg);
+  flex-shrink: 0;
+}
+
+.score-bloom__wordmark {
+  display: inline-flex;
+  align-items: baseline;
+  line-height: 1;
+  font-size: var(--text-sm);
+  user-select: none;
+}
+
+.score-bloom__label {
   color: var(--fg3);
-  text-transform: uppercase;
   letter-spacing: 0.06em;
+  margin-left: 2px;
+  font-size: var(--text-xs);
 }
 
-/* ---- Petal Radar SVG ---- */
-.petal-radar {
-  width: 160px;
-  height: 160px;
+.score-bloom__label sup {
+  font-size: 0.6em;
+  vertical-align: super;
 }
 
-.petal-radar__guide {
+/* Visualization container — compact shows hero-size ring, grows on bloom */
+.score-bloom__viz {
+  position: relative;
+  width: min(70vw, 240px);
+  aspect-ratio: 1;
+  transition: width 450ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Bloomed/expanded states need more room for orbs */
+[data-bloom-state="bloomed"] .score-bloom__viz,
+[data-bloom-state="petal-focused"] .score-bloom__viz,
+[data-bloom-state="deep-dive"] .score-bloom__viz {
+  width: min(100%, 360px);
+}
+
+@media (min-width: 768px) {
+  .score-bloom__viz {
+    width: min(50vw, 280px);
+  }
+  [data-bloom-state="bloomed"] .score-bloom__viz,
+  [data-bloom-state="petal-focused"] .score-bloom__viz,
+  [data-bloom-state="deep-dive"] .score-bloom__viz {
+    width: min(100%, 400px);
+  }
+}
+
+.score-bloom__svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Match ring inside bloom SVG */
+.score-bloom__ring-bg {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 5;
+  transition: r 450ms cubic-bezier(0.34, 1.56, 0.64, 1),
+              stroke-width 450ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.score-bloom__ring-fill {
+  fill: none;
+  stroke: var(--ac);
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-dasharray: 565;
+  stroke-dashoffset: 565;
+  transform: rotate(-90deg);
+  transform-origin: 200px 200px;
+  transition: stroke-dashoffset 1200ms cubic-bezier(0.2, 1, 0.4, 1),
+              r 450ms cubic-bezier(0.34, 1.56, 0.64, 1),
+              stroke-width 450ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Score number overlay (centered on ring) — pointer-events enabled for tap */
+.score-bloom__center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.score-bloom__number {
+  font-size: clamp(1.75rem, 6vw, 2.5rem);
+  color: var(--fg);
+  line-height: 1;
+  transition: font-size 450ms var(--spring);
+}
+
+/* Shrink number when bloom is expanded */
+[data-bloom-state="bloomed"] .score-bloom__number,
+[data-bloom-state="petal-focused"] .score-bloom__number,
+[data-bloom-state="deep-dive"] .score-bloom__number {
+  font-size: var(--text-lg);
+}
+
+.score-bloom__verdict {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--ac);
+  line-height: 1;
+  transition: font-size 300ms var(--ease-out);
+}
+
+.score-bloom__verdict[data-tier="mid"] {
+  color: var(--fg2);
+}
+
+.score-bloom__verdict[data-tier="low"] {
+  color: var(--fg3);
+}
+
+/* Hint text below ring in compact state */
+.score-bloom__hint {
+  font-family: var(--font-data);
+  font-size: var(--text-xs);
+  color: var(--fg3);
+  opacity: 0.6;
+  letter-spacing: 0.04em;
+  transition: opacity 300ms var(--ease-out);
+}
+
+[data-bloom-state="bloomed"] .score-bloom__hint,
+[data-bloom-state="petal-focused"] .score-bloom__hint,
+[data-bloom-state="deep-dive"] .score-bloom__hint {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Petals */
+.score-bloom__petal {
+  fill: var(--ac);
+  fill-opacity: 0.12;
+  stroke: var(--ac);
+  stroke-width: 1.5;
+  stroke-opacity: 0.30;
+  cursor: pointer;
+  transition: fill-opacity var(--dur-fast) var(--ease-out),
+              stroke-opacity var(--dur-fast) var(--ease-out),
+              stroke-width var(--dur-fast) var(--ease-out);
+}
+
+.score-bloom__petal:hover {
+  fill-opacity: 0.20;
+  stroke-opacity: 0.40;
+}
+
+.score-bloom__petal--active {
+  fill-opacity: 0.25;
+  stroke-opacity: 0.50;
+  stroke-width: 1.8;
+}
+
+.score-bloom__petal--dimmed {
+  fill-opacity: 0.04;
+  stroke-opacity: 0.12;
+}
+
+.score-bloom__petal--dominant {
+  animation: petal-breathe 3s ease-in-out infinite;
+}
+
+/* Grid guides */
+.score-bloom__guide {
   stroke: var(--border);
   stroke-width: 0.5;
   fill: none;
@@ -1102,33 +1250,72 @@
   stroke-dasharray: 3 3;
 }
 
-.petal-radar__axis {
+.score-bloom__axis {
   stroke: var(--border);
   stroke-width: 0.5;
   opacity: 0.3;
 }
 
-.petal-radar__petal {
+/* ---- Vibe Orbs (expanded state) ---- */
+.score-bloom__orb {
+  transition: opacity 300ms var(--ease-out);
+}
+
+.score-bloom__orb--dimmed {
+  opacity: 0.3;
+}
+
+.score-bloom__orb--active {
+  opacity: 1;
+}
+
+.score-bloom__orb-fill {
+  fill: var(--bg2);
+  stroke: var(--ac);
+  stroke-width: 1.5;
+  stroke-opacity: 0.35;
+  transition: stroke-opacity 300ms var(--ease-out),
+              stroke-width 300ms var(--ease-out);
+}
+
+.score-bloom__orb-fill--dominant {
+  stroke-opacity: 0.6;
+  stroke-width: 2;
+}
+
+.score-bloom__orb--active .score-bloom__orb-fill {
+  stroke-opacity: 0.7;
+  stroke-width: 2;
   fill: var(--ac);
   fill-opacity: 0.08;
-  stroke: var(--ac);
-  stroke-width: 1;
-  stroke-opacity: 0.25;
-  transition: fill-opacity var(--dur-fast) var(--ease-out);
 }
 
-.petal-radar__petal:hover {
-  fill-opacity: 0.18;
+.score-bloom__orb-label {
+  font-family: var(--font-structural);
+  font-size: 9px;
+  fill: var(--fg2);
+  text-anchor: middle;
+  font-weight: 600;
 }
 
-.petal-radar__icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--fg2);
+.score-bloom__orb-tier {
+  font-family: var(--font-data);
+  font-size: 7px;
+  fill: var(--fg3);
+  text-anchor: middle;
+  letter-spacing: 0.04em;
 }
 
-.petal-radar__label {
+/* Connector lines from ring to orbs */
+.score-bloom__connector {
+  stroke: var(--border);
+  stroke-width: 0.5;
+  stroke-dasharray: 3 2;
+  opacity: 0.4;
+}
+
+/* Petal tip labels (legacy/fallback) */
+.score-bloom__tip-label {
   font-family: var(--font-data);
   font-size: 9px;
   fill: var(--fg3);
@@ -1136,22 +1323,188 @@
   letter-spacing: 0.04em;
 }
 
-.score-tile__top-vibe {
-  color: var(--fg2);
-  font-size: var(--text-sm);
-  font-style: italic;
-  letter-spacing: 0;
-  margin-top: auto;
-  line-height: 1.4;
-  text-align: center;
+/* Sentiment arc segments */
+.score-bloom__sentiment-pos {
+  fill: none;
+  stroke: hsl(152 50% 50% / 0.4);
+  stroke-linecap: round;
 }
 
-/* Compact radar on mobile — hide SVG, promote text summary */
-.score-tile--radar-compact .petal-radar,
-.score-tile--radar-compact .petal-radar__top-label { display: none; }
-.score-tile--radar-compact .score-tile__top-vibe {
-  font-size: var(--text-base);
-  margin-top: var(--space-xs);
+.score-bloom__sentiment-neu {
+  fill: none;
+  stroke: var(--fg3);
+  stroke-opacity: 0.2;
+  stroke-linecap: round;
+}
+
+.score-bloom__sentiment-neg {
+  fill: none;
+  stroke: hsl(350 60% 58% / 0.4);
+  stroke-linecap: round;
+}
+
+/* V2 Score Breakdown Strip (Tier 3 — center tap in bloomed state) */
+.score-bloom__v2-strip {
+  display: none;
+  flex-direction: column;
+  gap: var(--space-xs);
+  width: 100%;
+  max-width: 320px;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: opacity 300ms var(--ease-out),
+              transform 300ms var(--spring);
+}
+
+.score-bloom__v2-strip--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.v2-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.v2-row__label {
+  width: 64px;
+  flex-shrink: 0;
+  color: var(--fg3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-align: right;
+}
+
+.v2-row__track {
+  flex: 1;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.v2-row__fill {
+  height: 100%;
+  background: var(--ac);
+  opacity: 0.6;
+  border-radius: 2px;
+  transition: width 600ms cubic-bezier(0.2, 1, 0.4, 1);
+}
+
+.v2-row__score {
+  width: 56px;
+  flex-shrink: 0;
+  color: var(--fg2);
+  font-weight: 600;
+}
+
+/* "Best for" callout */
+.score-bloom__callout {
+  text-align: center;
+  line-height: 1.4;
+  margin: 0;
+  opacity: 0;
+  transition: opacity 400ms var(--ease-out);
+}
+
+.score-bloom__callout--visible {
+  opacity: 1;
+}
+
+.score-bloom__callout-prefix {
+  font-family: var(--font-emotional);
+  font-size: var(--text-sm);
+  color: var(--fg2);
+  font-style: italic;
+  margin-right: var(--space-2xs);
+}
+
+.score-bloom__callout-value {
+  font-family: var(--font-data);
+  font-size: var(--text-sm);
+  color: var(--fg);
+  letter-spacing: 0.02em;
+}
+
+/* Detail strip (Tier 2.5 — slides in below bloom) */
+.score-bloom__detail {
+  width: 100%;
+  max-width: 320px;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: opacity 300ms var(--ease-out),
+              transform 300ms var(--spring);
+}
+
+.score-bloom__detail--visible {
+  opacity: 1;
+  transform: translateY(0);
+  display: block !important;
+}
+
+.score-bloom__detail-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-xs);
+}
+
+.score-bloom__detail-icon {
+  color: var(--ac);
+  flex-shrink: 0;
+}
+
+.score-bloom__detail-label {
+  font-weight: 600;
+  color: var(--fg);
+  flex: 1;
+}
+
+.score-bloom__detail-score {
+  font-family: var(--font-data);
+  color: var(--ac);
+  font-weight: 700;
+}
+
+.score-bloom__detail-bar {
+  height: 4px;
+  background: var(--bg3);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: var(--space-xs);
+}
+
+.score-bloom__detail-fill {
+  height: 100%;
+  background: var(--ac);
+  border-radius: 2px;
+  transition: width 400ms var(--spring);
+}
+
+.score-bloom__detail-desc {
+  font-size: var(--text-sm);
+  color: var(--fg2);
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Bloom state modifiers */
+.score-bloom[data-bloom-state="bloomed"] {
+  cursor: default;
+}
+
+.score-bloom[data-bloom-state="bloomed"] .score-bloom__center {
+  pointer-events: auto;
+  cursor: pointer;
 }
 
 /* ---- Sentiment Bar (horizontal mood indicator — inside reviews-unit) ---- */
@@ -1557,36 +1910,25 @@
   color: var(--fg2);
 }
 
-/* ---- Profile Visibility (glyph bar + expand on mobile, badge grid on tablet+) ---- */
+/* ---- Profile Visibility (icon-first: glyph bar always primary, badge grid on expand) ---- */
+.glyph-bar {
+  display: flex;
+}
+
+.profile-details {
+  display: none;
+}
+
+.profile-details--visible {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
 @media (max-width: 767px) {
-  .profile-details {
-    display: none;
-  }
-  .profile-details--visible {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-md);
-  }
-  .glyph-bar {
-    display: flex;
-  }
   .result-profile {
     gap: var(--space-sm);
     padding: var(--space-sm) var(--space-md);
-  }
-}
-
-@media (min-width: 768px) {
-  .glyph-bar {
-    display: none;
-  }
-  .profile-expand-btn {
-    display: none;
-  }
-  .profile-details {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-md);
   }
 }
 
@@ -1624,42 +1966,39 @@
   pointer-events: none;
 }
 
-/* ---- Crowd Profile ("Who Goes Here") ---- */
-.crowd-profile {
+/* ---- Glyph Bar: Separator & Crowd variant ---- */
+.glyph-bar__sep {
+  display: block;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--fg3);
+  opacity: 0.4;
+  align-self: center;
+  margin: 0 var(--space-2xs);
+  flex-shrink: 0;
+}
+
+.glyph-bar__item--crowd {
+  border-radius: 50%;
+  border-color: var(--ac);
+  border-style: dashed;
+  opacity: 0.75;
+}
+
+.glyph-bar__item--crowd:hover {
+  opacity: 1;
+}
+
+/* ---- Story Extras (Dishes + Insider Tip — merged row) ---- */
+.story-extras {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-  padding-top: var(--space-sm);
-  border-top: 1px solid var(--border);
+  gap: var(--space-md);
+  align-items: stretch;
 }
 
-.crowd-profile__label {
-  font-size: var(--text-xs);
-  color: var(--fg3);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.crowd-profile__pills {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2xs);
-}
-
-.crowd-pill {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px var(--space-xs);
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-xs);
-  color: var(--fg2);
-  white-space: nowrap;
-}
-
-/* ---- Signature Dishes ("What to Order") ---- */
-.signature-dishes {
+.story-extras__item {
+  flex: 1;
   position: relative;
   padding: var(--space-sm) var(--space-md);
   background: var(--glass-tip);
@@ -1668,92 +2007,46 @@
   border: 1px solid var(--border);
   border-left: 3px solid var(--fg3);
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  min-width: 0;
 }
 
-.signature-dishes__label {
+#story-extras-tip {
+  border-left-color: var(--amber);
+}
+
+.story-extras__label {
+  display: block;
   font-size: var(--text-xs);
   color: var(--fg3);
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  margin-bottom: var(--space-xs);
-}
-
-.signature-dishes__list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2xs);
-}
-
-.signature-dishes__name {
-  font-weight: 600;
-  font-size: var(--text-sm);
-  color: var(--fg);
-}
-
-.signature-dishes__why {
-  font-size: var(--text-sm);
-  color: var(--fg2);
-}
-
-@media (max-width: 767px) {
-  .signature-dishes {
-    padding: var(--space-xs) var(--space-sm);
-  }
-}
-
-/* ---- Insider Tip ---- */
-.insider-tip {
-  position: relative;
-  padding: var(--space-md);
-  background: var(--glass-tip);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  border: 1px solid var(--border);
-  border-left: 3px solid var(--amber);
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-}
-
-/* Animated border draw on reveal */
-.result-card--revealing .insider-tip {
-  border-left-color: transparent;
-}
-
-.result-card--revealing .insider-tip::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -3px;
-  width: 3px;
-  height: 0;
-  background: var(--amber);
-  border-radius: 0 0 2px 2px;
-  animation: tipBorderDraw 600ms cubic-bezier(0.2, 1, 0.4, 1) 400ms forwards;
-}
-
-.insider-tip__label {
-  font-size: var(--text-xs);
-  color: var(--amber);
   margin-bottom: var(--space-2xs);
 }
 
-.insider-tip__text {
+#story-extras-tip .story-extras__label {
+  color: var(--amber);
+}
+
+.story-extras__text {
+  display: block;
   font-size: var(--text-sm);
   color: var(--fg);
-  line-height: 1.6;
+  line-height: 1.5;
 }
 
 @media (max-width: 767px) {
-  .insider-tip {
+  .story-extras {
+    flex-direction: column;
+    gap: var(--space-xs);
+  }
+  .story-extras__item {
     padding: var(--space-xs) var(--space-sm);
   }
-  .insider-tip__label {
-    margin-bottom: 0;
+  .story-extras__label {
     display: inline;
+    margin-bottom: 0;
   }
-  .insider-tip__text {
+  .story-extras__text {
     display: inline;
   }
 }
@@ -2865,7 +3158,7 @@
   .result-card,
   .nav-tile__link,
   .info-item,
-  .insider-tip,
+  .story-extras__item,
   .color-popover__panel,
   .share-sheet__panel {
     background: var(--bg2);
@@ -2937,12 +3230,12 @@
 /* ---- Actions Block Visual Hierarchy ---- */
 
 /* ---- Section Heading Ink-Underline Reveal ---- */
-.insider-tip__label {
+.story-extras__label {
   position: relative;
   display: inline-block;
 }
 
-.insider-tip__label::after {
+.story-extras__label::after {
   content: '';
   position: absolute;
   bottom: -1px;
@@ -2953,17 +3246,17 @@
   opacity: 0.4;
 }
 
-.result-card--revealing .insider-tip__label::after {
+.result-card--revealing .story-extras__label::after {
   width: 0;
   animation: inkUnderline 400ms var(--ease-out) 200ms forwards;
 }
 
-/* ---- Insider Tip Callout Personality ---- */
-.insider-tip {
+/* ---- Story Extras Callout Personality ---- */
+#story-extras-tip {
   transform: rotate(-0.3deg);
 }
 
-.result-card--revealing .insider-tip {
+.result-card--revealing #story-extras-tip {
   transform: rotate(-1deg);
   animation: tipSettle 400ms var(--spring) 300ms forwards;
 }
@@ -2990,16 +3283,16 @@
     transform: none !important;
   }
 
-  .insider-tip {
+  #story-extras-tip {
     transform: none !important;
   }
 
-  .result-card--revealing .insider-tip {
+  .result-card--revealing #story-extras-tip {
     transform: none !important;
     animation: none !important;
   }
 
-  .result-card--revealing .insider-tip__label::after {
+  .result-card--revealing .story-extras__label::after {
     animation: none !important;
     width: 100% !important;
   }

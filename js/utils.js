@@ -686,3 +686,45 @@ export function buildVibeSummary(scores) {
   if (labels.length === 2) return `${prefix} ${labels[0]} and ${labels[1]}`;
   return `${prefix} ${labels.slice(0, -1).join(', ')}, and ${labels[labels.length - 1]}`;
 }
+
+/* ---- Vibe Detail Descriptors (contextual phrases for bloom detail strip) ---- */
+const VIBE_DETAIL = {
+  date_friendly_score: {
+    high: 'Intimate setting, perfect for two',
+    mid: 'Works well for a casual date',
+    low: 'Better suited for groups than couples',
+  },
+  group_friendly_score: {
+    high: 'Built for big groups and shared plates',
+    mid: 'Can handle a few friends comfortably',
+    low: 'Intimate space, less suited for groups',
+  },
+  family_friendly_score: {
+    high: 'Welcoming for all ages, kid-approved',
+    mid: 'Family-okay with some caveats',
+    low: 'More of an adults-only vibe',
+  },
+  business_lunch_score: {
+    high: 'Polished enough to close a deal',
+    mid: 'Decent for a casual work lunch',
+    low: 'Too casual for business meetings',
+  },
+  solo_dining_score: {
+    high: 'Perfect for a quiet meal with a book',
+    mid: 'Solo-friendly if you grab a bar seat',
+    low: 'You might feel out of place dining alone',
+  },
+  hole_in_wall_factor: {
+    high: 'A true hidden gem — locals only know',
+    mid: 'Somewhat off the beaten path',
+    low: 'Well-known, easy to find',
+  },
+};
+
+export function getVibeDetail(dimKey, score) {
+  const entry = VIBE_DETAIL[dimKey];
+  if (!entry) return '';
+  if (score >= 7.5) return entry.high;
+  if (score >= 4.5) return entry.mid;
+  return entry.low;
+}

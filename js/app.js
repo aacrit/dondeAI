@@ -13,7 +13,7 @@ import { initShare, shareResult, closeShareSheet, handleShareChannel } from './s
 import { initOffline, isOnline } from './offline.js';
 import { initAccessibility, announce } from './accessibility.js';
 import { fetchRecommendation } from './api.js';
-import { animateScoreRing, renderPetalRadar, renderSentimentBar, animateBadge, startParticles, stopParticles, chaosToOrderReveal, initLogoAnimation, startSearchPulse, stopSearchPulse, resolveLogoToFound, cleanupLoadingLogo } from './animations.js';
+import { animateScoreRing, renderPetalRadar, renderSentimentBar, renderScoreBloom, toggleBloom, handlePetalTap, handleBloomRingTap, getBloomState, animateBadge, startParticles, stopParticles, chaosToOrderReveal, initLogoAnimation, startSearchPulse, stopSearchPulse, resolveLogoToFound, cleanupLoadingLogo } from './animations.js';
 import {
   getGreeting, getTimePeriod, getCuisineFromResult, svgIcon,
   getScoreTier, getScoreColor, buildGoogleStars, buildMapsUrl, relativeTime, matchCuisine, matchCulture
@@ -726,18 +726,72 @@ function wireEvents() {
         btn.setAttribute('aria-expanded', String(!isExpanded));
         if ($details) $details.classList.toggle('profile-details--visible');
         btn.querySelector('.profile-expand-btn__text').textContent =
-          isExpanded ? 'View details' : 'Hide details';
+          isExpanded ? 'Details' : 'Collapse';
         break;
       }
     }
   });
 
-  // Expandable tile click delegation (DondeAI Match + Vibe Radar)
+  // Expandable tile click delegation (DondeAI Match — keep for tile-expand modal)
   document.addEventListener('click', (e) => {
     // Skip if click was on the info button (handled by data-action delegation)
     if (e.target.closest('[data-action]')) return;
+
+    // Skip bloom interactions (handled below)
+    if (e.target.closest('.score-bloom')) return;
+
     const tile = e.target.closest('.score-tile--expandable');
     if (tile) openTileExpand(tile);
+  });
+
+  // Score Bloom interaction delegation
+  document.addEventListener('click', (e) => {
+    const bloom = e.target.closest('.score-bloom');
+    if (!bloom) {
+      // Click outside bloom while it's expanded → collapse
+      const state = getBloomState();
+      if (state !== 'compact') {
+        toggleBloom();
+      }
+      return;
+    }
+
+    // Skip if clicking action buttons inside detail strip
+    if (e.target.closest('[data-action]')) return;
+
+    const state = getBloomState();
+    const petal = e.target.closest('.score-bloom__petal');
+    const orb = e.target.closest('.score-bloom__orb');
+    const center = e.target.closest('.score-bloom__center');
+
+    if (state === 'compact') {
+      // Tier 1 → Tier 2: expand bloom, reveal vibe orbs
+      toggleBloom();
+    } else if (center) {
+      // Center tap: bloomed → deep-dive (V2 breakdown), deep-dive → back to bloomed
+      handleBloomRingTap();
+    } else if (petal) {
+      // Tier 2 → 2.5: tap petal for detail
+      const dim = petal.getAttribute('data-dim');
+      if (dim) handlePetalTap(dim);
+    } else if (orb) {
+      // Tier 2 → 2.5: tap orb for detail (expanded view)
+      const dim = orb.getAttribute('data-dim');
+      if (dim) handlePetalTap(dim);
+    } else {
+      // Tap on bloom background while expanded → collapse to compact
+      toggleBloom();
+    }
+  });
+
+  // Keyboard support for bloom
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      const state = getBloomState();
+      if (state !== 'compact') {
+        toggleBloom();
+      }
+    }
   });
 }
 
@@ -1501,7 +1555,7 @@ function renderResult(data) {
   if ($expandBtn) {
     $expandBtn.setAttribute('aria-expanded', 'false');
     const $btnText = $expandBtn.querySelector('.profile-expand-btn__text');
-    if ($btnText) $btnText.textContent = 'View details';
+    if ($btnText) $btnText.textContent = 'Details';
   }
 
   // Cancel any in-flight animation timeouts from a previous render
@@ -1536,18 +1590,6 @@ function renderResult(data) {
     $oneliner.textContent = r.best_for_oneliner || '';
   }
 
-  // Unique Selling Point subtitle (deep_context)
-  const $usp = document.getElementById('result-usp');
-  if ($usp) {
-    const usp = data.deep_context?.unique_selling_point;
-    if (usp && usp !== r.best_for_oneliner) {
-      $usp.textContent = usp;
-      $usp.style.display = '';
-    } else {
-      $usp.style.display = 'none';
-    }
-  }
-
   // Awards & Recognition badges (deep_context)
   const $awards = document.getElementById('result-awards');
   if ($awards) {
@@ -1558,7 +1600,7 @@ function renderResult(data) {
     // Neighborhood integration badge
     if (dc?.neighborhood_integration) {
       const niMap = { hidden_local: 'Local Secret', destination: 'Destination Spot', neighborhood_staple: 'Neighborhood Staple' };
-      const niLabel = niMap[dc.neighborhood_integration] || dc.neighborhood_integration;
+      const niLabel = niMap[dc.neighborhood_integration] || humanizeSnake(dc.neighborhood_integration);
       badges.push({ text: niLabel, dashed: true });
     }
 
@@ -1586,7 +1628,8 @@ function renderResult(data) {
     $navTileContainer.innerHTML = '';
     if (r.address) {
       const mapsUrl = buildMapsUrl(r.address);
-      const resDiff = data.deep_context?.reservation_difficulty;
+      const resDiffRaw = data.deep_context?.reservation_difficulty;
+      const resDiff = resDiffRaw ? humanizeSnake(resDiffRaw) : null;
       const resDiffHtml = resDiff
         ? `<span class="nav-tile__note type-data--sm">${resDiff}</span>` : '';
       $navTileContainer.innerHTML = `
@@ -1623,44 +1666,53 @@ function renderResult(data) {
     }
   }
 
-  // ---- Signature Dishes ("What to Order" — from deep_context) ----
-  const $sigDishes = document.getElementById('signature-dishes');
-  const $sigList = document.getElementById('signature-dishes-list');
-  if ($sigDishes && $sigList) {
+  // ---- Story Extras: Dishes + Insider Tip (merged single row) ----
+  const $storyExtras = document.getElementById('story-extras');
+  const $extrasDishes = document.getElementById('story-extras-dishes');
+  const $dishesText = document.getElementById('signature-dishes-text');
+  if ($storyExtras && $extrasDishes && $dishesText) {
     const dishes = data.deep_context?.signature_dishes;
     if (dishes?.length > 0) {
-      $sigList.innerHTML = '';
-      dishes.slice(0, 3).forEach(d => {
-        const li = document.createElement('li');
-        li.className = 'signature-dishes__item';
-        li.innerHTML = `<span class="signature-dishes__name type-structural">${d.dish}</span>`
-          + (d.why ? ` <span class="signature-dishes__why type-structural">\u2014 ${d.why}</span>` : '');
-        $sigList.appendChild(li);
-      });
-      $sigDishes.style.display = '';
+      $dishesText.textContent = dishes.slice(0, 3).map(d => d.dish).join(', ');
+      $extrasDishes.style.display = '';
     } else {
-      $sigDishes.style.display = 'none';
+      $extrasDishes.style.display = 'none';
     }
   }
 
-  // ---- Match Tile (DondeAI Match) ----
-  const tier = getScoreTier(data.donde_match);
-  const $verdict = document.getElementById('score-verdict');
-  const $scoreTileDonde = document.getElementById('score-tile-donde');
-  if ($verdict) {
-    $verdict.textContent = tier.verdict;
-    $verdict.className = `score-verdict type-structural--bold ${tier.cssClass}`;
-    $verdict.setAttribute('data-tier', tier.tier);
+  // ---- Score Bloom (Unified Match Ring + Vibe Petals) ----
+  // Build sentiment data for the bloom
+  let bloomSentiment = null;
+  if (r.sentiment_positive != null && r.sentiment_negative != null && r.sentiment_neutral != null) {
+    bloomSentiment = { pos: r.sentiment_positive, neu: r.sentiment_neutral, neg: r.sentiment_negative };
+  } else if (r.sentiment_breakdown) {
+    const parts = r.sentiment_breakdown.toLowerCase();
+    const posMatch = parts.match(/(\d+)%?\s*positive/);
+    const neuMatch = parts.match(/(\d+)%?\s*neutral/);
+    const negMatch = parts.match(/(\d+)%?\s*negative/);
+    if (posMatch || neuMatch || negMatch) {
+      bloomSentiment = {
+        pos: parseInt(posMatch?.[1] || '33', 10),
+        neu: parseInt(neuMatch?.[1] || '34', 10),
+        neg: parseInt(negMatch?.[1] || '33', 10),
+      };
+    }
+  } else if (r.sentiment_score != null) {
+    const score = parseFloat(r.sentiment_score);
+    if (!isNaN(score)) {
+      const p = Math.round((score / 10) * 100);
+      const n = Math.round((1 - score / 10) * 30);
+      bloomSentiment = { pos: p, neu: 100 - p - n, neg: n };
+    }
   }
-  if ($scoreTileDonde) {
-    $scoreTileDonde.setAttribute('data-tier', tier.tier);
-    $scoreTileDonde.classList.add('score-tile--expandable');
-    $scoreTileDonde.setAttribute('tabindex', '0');
-    $scoreTileDonde.setAttribute('role', 'button');
-    $scoreTileDonde.setAttribute('aria-label', 'Expand Donde Match');
-  }
-  // Delay score ring to after tile entrance
-  animationTimers.push(setTimeout(() => animateScoreRing(data.donde_match), 800));
+
+  renderScoreBloom(
+    data.donde_match,
+    data.scores || {},
+    data.scoring_v2 || null,
+    bloomSentiment,
+    animationTimers
+  );
 
   // ---- Google Rating (inline display below ring) ----
   const $googleInline = document.getElementById('google-rating-inline');
@@ -1692,16 +1744,7 @@ function renderResult(data) {
     $googleInline.style.display = 'none';
   }
 
-  // ---- Petal Radar (Vibe Profile) ----
-  renderPetalRadar(data.scores || {}, animationTimers);
-
-  // Compact radar on mobile — show text summary, hide SVG
-  const $radarTile = document.getElementById('score-tile-radar');
-  if ($radarTile && window.innerWidth < 768) {
-    $radarTile.classList.add('score-tile--radar-compact');
-  } else if ($radarTile) {
-    $radarTile.classList.remove('score-tile--radar-compact');
-  }
+  // Petal radar rendering is now handled by renderScoreBloom above
 
   // ---- Profile Block: Unified badges (facts + atmosphere merged) ----
   const $profileFacts = document.getElementById('profile-facts');
@@ -1752,8 +1795,8 @@ function renderResult(data) {
     const byobMap = { full_byob: 'BYOB', wine_only: 'Wine Only' };
     CANONICAL_BADGES.push({
       icon: 'wine', label: 'BYOB',
-      value: byobMap[byobPolicy] || byobPolicy,
-      raw: byobPolicy, isAtmo: false,
+      value: byobMap[byobPolicy] || humanizeSnake(byobPolicy),
+      raw: humanizeSnake(byobPolicy), isAtmo: false,
     });
   }
 
@@ -1784,31 +1827,14 @@ function renderResult(data) {
     $profileFacts.style.display = '';
   }
 
-  // ---- Crowd Profile Pills ("Who Goes Here" — from deep_context) ----
-  const $crowdProfile = document.getElementById('crowd-profile');
-  const $crowdPills = document.getElementById('crowd-profile-pills');
-  if ($crowdProfile && $crowdPills) {
-    const crowd = data.deep_context?.crowd_profile;
-    if (crowd?.length > 0) {
-      $crowdPills.innerHTML = '';
-      crowd.slice(0, 4).forEach(text => {
-        const span = document.createElement('span');
-        span.className = 'crowd-pill type-data--sm';
-        span.textContent = text;
-        $crowdPills.appendChild(span);
-      });
-      $crowdProfile.style.display = '';
-    } else {
-      $crowdProfile.style.display = 'none';
-    }
-  }
-
-  // ---- Glyph Bar (icon-only compact view for mobile) ----
+  // ---- Glyph Bar (icon-only compact view — includes crowd chips) ----
   if ($glyphBar) {
     $glyphBar.innerHTML = '';
     const REDUCED_MQ = matchMedia('(prefers-reduced-motion: reduce)');
+    let glyphIndex = 0;
 
-    allBadges.forEach((b, i) => {
+    // Render badge glyphs
+    allBadges.forEach((b) => {
       const glyph = document.createElement('button');
       glyph.className = 'glyph-bar__item'
         + (b.isAtmo ? ' glyph-bar__item--atmo' : '')
@@ -1816,7 +1842,6 @@ function renderResult(data) {
       glyph.setAttribute('aria-label', `${b.label}: ${b.value}`);
       glyph.setAttribute('type', 'button');
 
-      // Handwritten jitter rotation
       const rotation = ((Math.random() - 0.5) * 4).toFixed(1);
 
       const glyphContent = b.label === 'Price'
@@ -1832,7 +1857,6 @@ function renderResult(data) {
           <span class="glyph-bar__tooltip-value">${b.value}</span>
         </div>`;
 
-      // Tap to toggle tooltip
       glyph.addEventListener('click', (e) => {
         e.stopPropagation();
         $glyphBar.querySelectorAll('.glyph-bar__item--active').forEach(g => {
@@ -1841,29 +1865,96 @@ function renderResult(data) {
         glyph.classList.toggle('glyph-bar__item--active');
       });
 
-      // Spring pop stagger entrance
       if (!REDUCED_MQ.matches) {
         glyph.style.opacity = '0';
         const baseTransform = `rotate(${rotation}deg)`;
         glyph.style.transform = `${baseTransform} scale(0.7)`;
+        const idx = glyphIndex;
         animationTimers.push(setTimeout(() => {
           glyph.style.transition = 'opacity 200ms ease-out, transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
           glyph.style.opacity = '1';
           glyph.style.transform = `${baseTransform} scale(1)`;
-        }, 500 + i * 50));
+        }, 500 + idx * 50));
       } else {
         glyph.style.transform = `rotate(${rotation}deg)`;
       }
 
       $glyphBar.appendChild(glyph);
+      glyphIndex++;
     });
 
-    // Close tooltips when clicking outside glyph bar
-    document.addEventListener('click', () => {
-      $glyphBar.querySelectorAll('.glyph-bar__item--active').forEach(g => {
-        g.classList.remove('glyph-bar__item--active');
+    // Append crowd chips as part of glyph bar (separated by dot divider)
+    const crowd = data.deep_context?.crowd_profile;
+    if (crowd?.length > 0) {
+      const CROWD_ICONS = {
+        'young_professionals': 'briefcase', 'families': 'home', 'couples': 'heart',
+        'foodies': 'plate', 'tourists': 'pin', 'students': 'user',
+        'date_night': 'heart', 'business': 'briefcase', 'solo_diners': 'user',
+        'groups': 'usersThree', 'locals': 'pin', 'hipsters': 'diamond',
+        'walk_in_friendly': 'chevronRight', 'reservation_recommended': 'refresh',
+      };
+
+      // Dot separator between fact badges and crowd badges
+      const sep = document.createElement('span');
+      sep.className = 'glyph-bar__sep';
+      sep.setAttribute('aria-hidden', 'true');
+      $glyphBar.appendChild(sep);
+
+      crowd.slice(0, 4).forEach(text => {
+        const glyph = document.createElement('button');
+        glyph.className = 'glyph-bar__item glyph-bar__item--crowd';
+        glyph.type = 'button';
+        const iconKey = CROWD_ICONS[text] || CROWD_ICONS[text.toLowerCase().replace(/\s+/g, '_')] || 'user';
+        const label = humanizeSnake(text);
+        glyph.setAttribute('aria-label', label);
+
+        const rotation = ((Math.random() - 0.5) * 4).toFixed(1);
+
+        glyph.innerHTML = `
+          ${svgIcon(iconKey, 16)}
+          <div class="glyph-bar__tooltip">
+            <span class="glyph-bar__tooltip-label">Crowd</span>
+            <span class="glyph-bar__tooltip-value">${label}</span>
+          </div>`;
+
+        glyph.addEventListener('click', (e) => {
+          e.stopPropagation();
+          $glyphBar.querySelectorAll('.glyph-bar__item--active').forEach(g => {
+            if (g !== glyph) g.classList.remove('glyph-bar__item--active');
+          });
+          glyph.classList.toggle('glyph-bar__item--active');
+        });
+
+        if (!REDUCED_MQ.matches) {
+          glyph.style.opacity = '0';
+          const baseTransform = `rotate(${rotation}deg)`;
+          glyph.style.transform = `${baseTransform} scale(0.7)`;
+          const idx = glyphIndex;
+          animationTimers.push(setTimeout(() => {
+            glyph.style.transition = 'opacity 200ms ease-out, transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
+            glyph.style.opacity = '1';
+            glyph.style.transform = `${baseTransform} scale(1)`;
+          }, 500 + idx * 50));
+        } else {
+          glyph.style.transform = `rotate(${rotation}deg)`;
+        }
+
+        $glyphBar.appendChild(glyph);
+        glyphIndex++;
       });
-    }, { once: true });
+    }
+  }
+
+  // Close all glyph tooltips when clicking outside (one-time setup)
+  if (!window.__glyphCloseWired) {
+    window.__glyphCloseWired = true;
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.glyph-bar__item')) {
+        document.querySelectorAll('.glyph-bar__item--active').forEach(g => {
+          g.classList.remove('glyph-bar__item--active');
+        });
+      }
+    });
   }
 
   // ---- Quick Links (Website, Call, Share) — pill badges with dot separators ----
@@ -1896,21 +1987,30 @@ function renderResult(data) {
     });
   }
 
-  // Insider tip (enhanced with best seat from deep_context)
-  const $tip = document.getElementById('insider-tip');
+  // Insider tip (merged into story-extras row)
+  const $extrasTip = document.getElementById('story-extras-tip');
   const $tipText = document.getElementById('insider-tip-text');
   const bestSeat = data.deep_context?.best_seat_in_house;
-  if ($tip && (data.insider_tip || bestSeat)) {
+  if ($extrasTip && $tipText) {
     let tipContent = data.insider_tip || '';
     if (bestSeat) {
       tipContent = tipContent
-        ? `${tipContent}\nBest seat: ${bestSeat}`
+        ? `${tipContent} · Best seat: ${bestSeat}`
         : `Best seat: ${bestSeat}`;
     }
-    $tipText.textContent = tipContent;
-    $tip.style.display = 'block';
-  } else if ($tip) {
-    $tip.style.display = 'none';
+    if (tipContent) {
+      $tipText.textContent = tipContent;
+      $extrasTip.style.display = '';
+    } else {
+      $extrasTip.style.display = 'none';
+    }
+  }
+
+  // Show story-extras container if either child is visible
+  if ($storyExtras) {
+    const hasDishes = $extrasDishes && $extrasDishes.style.display !== 'none';
+    const hasTip = $extrasTip && $extrasTip.style.display !== 'none';
+    $storyExtras.style.display = (hasDishes || hasTip) ? '' : 'none';
   }
 
   // ---- Sentiment Bar (subtle horizontal indicator) ----
@@ -1944,50 +2044,20 @@ function renderResult(data) {
         posVal = Math.round((score / 10) * 100);
         negVal = Math.round((1 - score / 10) * 30);
         neuVal = 100 - posVal - negVal;
-    // Only show sentiment bar when real data exists — never fabricate
-    if (r.sentiment_breakdown || r.sentiment_score) {
-      $sentBar.style.display = '';
-      let posVal = 33, neuVal = 34, negVal = 33;
-      let sentimentValid = true;
-      if (r.sentiment_breakdown) {
-        const parts = r.sentiment_breakdown.toLowerCase();
-        const posMatch = parts.match(/positive[:\s]+(\d+)/);
-        const neuMatch = parts.match(/neutral[:\s]+(\d+)/);
-        const negMatch = parts.match(/negative[:\s]+(\d+)/);
-        // If none of the regexes matched, the string is unparseable (e.g. "N/A")
-        if (!posMatch && !neuMatch && !negMatch) {
-          sentimentValid = false;
-        } else {
-          posVal = parseInt(posMatch?.[1] || '33', 10);
-          neuVal = parseInt(neuMatch?.[1] || '34', 10);
-          negVal = parseInt(negMatch?.[1] || '33', 10);
-        }
-      } else if (r.sentiment_score) {
-        // Derive from single score: score = positive ratio
-        const score = parseFloat(r.sentiment_score);
-        if (isNaN(score)) {
-          sentimentValid = false;
-        } else {
-          posVal = Math.round(score * 100);
-          negVal = Math.round((1 - score) * 30);
-          neuVal = 100 - posVal - negVal;
-        }
       }
     }
 
     if (posVal != null) {
       $sentBar.style.display = '';
       renderSentimentBar(posVal, neuVal, negVal, animationTimers);
-      if (sentimentValid) {
-        renderSentimentBar(posVal, neuVal, negVal, animationTimers);
 
-        // Tooltip labels
-        const $tipPos = document.getElementById('sentiment-tip-pos');
-        const $tipNeu = document.getElementById('sentiment-tip-neu');
-        const $tipNeg = document.getElementById('sentiment-tip-neg');
-        if ($tipPos) $tipPos.textContent = `${posVal}% Positive`;
-        if ($tipNeu) $tipNeu.textContent = `${neuVal}% Neutral`;
-        if ($tipNeg) $tipNeg.textContent = `${negVal}% Negative`;
+      // Tooltip labels
+      const $tipPos = document.getElementById('sentiment-tip-pos');
+      const $tipNeu = document.getElementById('sentiment-tip-neu');
+      const $tipNeg = document.getElementById('sentiment-tip-neg');
+      if ($tipPos) $tipPos.textContent = `${posVal}% Positive`;
+      if ($tipNeu) $tipNeu.textContent = `${neuVal}% Neutral`;
+      if ($tipNeg) $tipNeg.textContent = `${negVal}% Negative`;
 
       // Sentiment summary in tooltip (V2 backend)
       const $tipSummary = document.getElementById('sentiment-tip-summary');
@@ -2004,13 +2074,6 @@ function renderResult(data) {
       $sentBar.addEventListener('click', () => {
         $sentBar.classList.toggle('sentiment-bar--active');
       });
-        // Tap toggle for mobile tooltip
-        $sentBar.addEventListener('click', () => {
-          $sentBar.classList.toggle('sentiment-bar--active');
-        });
-      } else {
-        $sentBar.style.display = 'none';
-      }
     } else {
       $sentBar.style.display = 'none';
     }
@@ -2067,6 +2130,14 @@ function shortenBadgeValue(value) {
   return value.split(/[,/;]/).at(0).trim();
 }
 
+/* ---- Humanize snake_case strings to Title Case ---- */
+function humanizeSnake(str) {
+  if (!str || typeof str !== 'string') return '';
+  return str
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, c => c.toUpperCase());
+}
+
 /* ---- Noise Level → Speaker Icon Mapper ---- */
 function getNoiseIcon(noiseStr) {
   if (!noiseStr) return 'speakerWave';
@@ -2104,6 +2175,24 @@ function normalizeAmbiance(ambianceStr) {
   if (lower.includes('rustic')) return 'Rustic';
   if (lower.includes('elegant')) return 'Elegant';
   return shortenBadgeValue(ambianceStr);
+}
+
+// Humanize a vibe score (0-10) to a user-friendly label
+function humanizeVibe(val) {
+  if (val >= 9) return 'Outstanding';
+  if (val >= 7.5) return 'Strong';
+  if (val >= 5.5) return 'Good';
+  if (val >= 3.5) return 'Moderate';
+  return 'Low';
+}
+
+// Humanize a V2 score (0-100) to a user-friendly label
+function humanizeV2(val) {
+  if (val >= 90) return 'Perfect';
+  if (val >= 75) return 'Strong';
+  if (val >= 60) return 'Good';
+  if (val >= 40) return 'Fair';
+  return 'Low';
 }
 
 /* ---- Tile Expand Modal ---- */
@@ -2157,11 +2246,11 @@ function openTileExpand(tileEl) {
     const sv2 = data.scoring_v2;
     if (sv2) {
       const v2Dims = [
-        { key: 'occasion_fit',    label: 'Occasion Fit' },
-        { key: 'craving_match',   label: 'Craving Match' },
-        { key: 'vibe_alignment',  label: 'Vibe Alignment' },
-        { key: 'practical_fit',   label: 'Practical Fit' },
-        { key: 'discovery_value', label: 'Discovery Value' },
+        { key: 'occasion_fit',    label: 'Occasion' },
+        { key: 'craving_match',   label: 'Craving' },
+        { key: 'vibe_alignment',  label: 'Vibe' },
+        { key: 'practical_fit',   label: 'Practical' },
+        { key: 'discovery_value', label: 'Discovery' },
       ];
       const v2Available = v2Dims.filter(d => sv2[d.key] != null);
       if (v2Available.length > 0) {
@@ -2173,17 +2262,17 @@ function openTileExpand(tileEl) {
               <div class="tile-expand__dim-bar">
                 <div class="tile-expand__dim-fill" style="width: ${val}%"></div>
               </div>
-              <span class="tile-expand__dim-value type-data--sm">${val}%</span>
+              <span class="tile-expand__dim-value type-data--sm">${humanizeV2(val)}</span>
             </div>`;
         }).join('');
 
         // Find highest weighted dimension for summary line
         let summaryHtml = '';
         if (sv2.weights_used) {
-          const dimLabels = { occasion: 'Occasion', craving: 'Craving', vibe: 'Vibe', practical: 'Practical', discovery: 'Discovery' };
+          const dimLabels = { occasion: 'Occasion', occasion_fit: 'Occasion', craving: 'Craving', craving_match: 'Craving', vibe: 'Vibe', vibe_alignment: 'Vibe', practical: 'Practical', practical_fit: 'Practical', discovery: 'Discovery', discovery_value: 'Discovery' };
           const topDim = Object.entries(sv2.weights_used).sort((a, b) => b[1] - a[1])[0];
-          if (topDim) {
-            summaryHtml = `<p class="tile-expand__summary type-data--sm">Weighted for ${dimLabels[topDim[0]] || topDim[0]}</p>`;
+          if (topDim && dimLabels[topDim[0]]) {
+            summaryHtml = `<p class="tile-expand__summary type-data--sm">Weighted for ${dimLabels[topDim[0]]}</p>`;
           }
         }
 
@@ -2201,7 +2290,7 @@ function openTileExpand(tileEl) {
     const dims = [
       { key: 'date_friendly_score',  label: 'Date',     icon: 'heart' },
       { key: 'group_friendly_score', label: 'Group',    icon: 'usersThree' },
-      { key: 'family_friendly_score',label: 'Family',   icon: 'house' },
+      { key: 'family_friendly_score',label: 'Family',   icon: 'home' },
       { key: 'business_lunch_score', label: 'Business', icon: 'briefcase' },
       { key: 'solo_dining_score',    label: 'Solo',     icon: 'user' },
       { key: 'hole_in_wall_factor',  label: 'Gem',      icon: 'diamond' },
@@ -2220,7 +2309,7 @@ function openTileExpand(tileEl) {
           <div class="tile-expand__dim-bar">
             <div class="tile-expand__dim-fill" style="width: ${pct}%"></div>
           </div>
-          <span class="tile-expand__dim-value type-data--sm">${val.toFixed(1)}</span>
+          <span class="tile-expand__dim-value type-data--sm">${humanizeVibe(val)}</span>
         </div>`;
     }).join('');
 
