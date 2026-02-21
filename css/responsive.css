@@ -22,10 +22,10 @@
   }
 }
 
-/* ---- Mobile: Score Bloom full-width sizing ---- */
+/* ---- Mobile: Score hero full-width sizing ---- */
 @media (max-width: 767px) {
-  .score-bloom__viz {
-    width: min(100%, 360px);
+  .score-hero__gauge {
+    width: min(100%, 200px);
   }
 }
 
@@ -59,12 +59,12 @@
     padding: var(--space-xl);
   }
 
-  /* Score Bloom: tablet sizing — full container width */
-  .score-bloom__viz {
-    width: min(100%, 440px);
+  /* Score Hero: tablet sizing */
+  .score-hero__gauge {
+    width: min(100%, 260px);
   }
 
-  .score-bloom__number {
+  .score-hero__number {
     font-size: var(--text-2xl);
   }
 
@@ -108,12 +108,12 @@
     max-height: 450px;
   }
 
-  /* Score Bloom: desktop sizing — full container width */
-  .score-bloom__viz {
-    width: min(100%, 500px);
+  /* Score Hero: desktop sizing */
+  .score-hero__gauge {
+    width: min(100%, 280px);
   }
 
-  .score-bloom__number {
+  .score-hero__number {
     font-size: 28px;
   }
 

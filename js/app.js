@@ -13,7 +13,7 @@ import { initShare, shareResult, closeShareSheet, handleShareChannel } from './s
 import { initOffline, isOnline } from './offline.js';
 import { initAccessibility, announce } from './accessibility.js';
 import { fetchRecommendation } from './api.js';
-import { animateScoreRing, renderPetalRadar, renderSentimentBar, renderScoreBloom, toggleBloom, handlePetalTap, handleBloomRingTap, getBloomState, animateBadge, startParticles, stopParticles, chaosToOrderReveal, initLogoAnimation, startSearchPulse, stopSearchPulse, resolveLogoToFound, cleanupLoadingLogo } from './animations.js';
+import { animateScoreRing, renderPetalRadar, renderSentimentBar, renderScoreBloom, renderScoreHero, renderVibeBars, renderSentimentInline, toggleBloom, handlePetalTap, handleBloomRingTap, toggleScoreBreakdown, getBloomState, animateBadge, startParticles, stopParticles, chaosToOrderReveal, initLogoAnimation, startSearchPulse, stopSearchPulse, resolveLogoToFound, cleanupLoadingLogo } from './animations.js';
 import {
   getGreeting, getTimePeriod, getCuisineFromResult, svgIcon,
   getScoreTier, getScoreColor, buildGoogleStars, buildMapsUrl, relativeTime, matchCuisine, matchCulture
@@ -737,60 +737,18 @@ function wireEvents() {
     // Skip if click was on the info button (handled by data-action delegation)
     if (e.target.closest('[data-action]')) return;
 
-    // Skip bloom interactions (handled below)
-    if (e.target.closest('.score-bloom')) return;
+    // Skip score hero interactions (handled below)
+    if (e.target.closest('.score-hero')) return;
 
     const tile = e.target.closest('.score-tile--expandable');
     if (tile) openTileExpand(tile);
   });
 
-  // Score Bloom interaction delegation
+  // Score Hero interaction — tap to toggle V2 breakdown
   document.addEventListener('click', (e) => {
-    const bloom = e.target.closest('.score-bloom');
-    if (!bloom) {
-      // Click outside bloom while it's expanded → collapse
-      const state = getBloomState();
-      if (state !== 'compact') {
-        toggleBloom();
-      }
-      return;
-    }
-
-    // Skip if clicking action buttons inside detail strip
-    if (e.target.closest('[data-action]')) return;
-
-    const state = getBloomState();
-    const petal = e.target.closest('.score-bloom__petal');
-    const orb = e.target.closest('.score-bloom__orb');
-    const center = e.target.closest('.score-bloom__center');
-
-    if (state === 'compact') {
-      // Tier 1 → Tier 2: expand bloom, reveal vibe orbs
-      toggleBloom();
-    } else if (center) {
-      // Center tap: bloomed → deep-dive (V2 breakdown), deep-dive → back to bloomed
-      handleBloomRingTap();
-    } else if (petal) {
-      // Tier 2 → 2.5: tap petal for detail
-      const dim = petal.getAttribute('data-dim');
-      if (dim) handlePetalTap(dim);
-    } else if (orb) {
-      // Tier 2 → 2.5: tap orb for detail (expanded view)
-      const dim = orb.getAttribute('data-dim');
-      if (dim) handlePetalTap(dim);
-    } else {
-      // Tap on bloom background while expanded → collapse to compact
-      toggleBloom();
-    }
-  });
-
-  // Keyboard support for bloom
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      const state = getBloomState();
-      if (state !== 'compact') {
-        toggleBloom();
-      }
+    const hero = e.target.closest('.score-hero');
+    if (hero) {
+      toggleScoreBreakdown();
     }
   });
 }
@@ -1680,18 +1638,18 @@ function renderResult(data) {
     }
   }
 
-  // ---- Score Bloom (Unified Match Ring + Vibe Petals) ----
-  // Build sentiment data for the bloom
-  let bloomSentiment = null;
+  // ---- Score Hero (Arc gauge + Vibe bars) ----
+  // Build sentiment data
+  let heroSentiment = null;
   if (r.sentiment_positive != null && r.sentiment_negative != null && r.sentiment_neutral != null) {
-    bloomSentiment = { pos: r.sentiment_positive, neu: r.sentiment_neutral, neg: r.sentiment_negative };
+    heroSentiment = { pos: r.sentiment_positive, neu: r.sentiment_neutral, neg: r.sentiment_negative };
   } else if (r.sentiment_breakdown) {
     const parts = r.sentiment_breakdown.toLowerCase();
     const posMatch = parts.match(/(\d+)%?\s*positive/);
     const neuMatch = parts.match(/(\d+)%?\s*neutral/);
     const negMatch = parts.match(/(\d+)%?\s*negative/);
     if (posMatch || neuMatch || negMatch) {
-      bloomSentiment = {
+      heroSentiment = {
         pos: parseInt(posMatch?.[1] || '33', 10),
         neu: parseInt(neuMatch?.[1] || '34', 10),
         neg: parseInt(negMatch?.[1] || '33', 10),
@@ -1702,17 +1660,20 @@ function renderResult(data) {
     if (!isNaN(score)) {
       const p = Math.round((score / 10) * 100);
       const n = Math.round((1 - score / 10) * 30);
-      bloomSentiment = { pos: p, neu: 100 - p - n, neg: n };
+      heroSentiment = { pos: p, neu: 100 - p - n, neg: n };
     }
   }
 
-  renderScoreBloom(
+  renderScoreHero(
     data.donde_match,
     data.scores || {},
     data.scoring_v2 || null,
-    bloomSentiment,
+    heroSentiment,
     animationTimers
   );
+
+  // Vibe dimension bars
+  renderVibeBars(data.scores || {}, animationTimers);
 
   // ---- Google Rating (inline display below ring) ----
   const $googleInline = document.getElementById('google-rating-inline');
@@ -1748,7 +1709,6 @@ function renderResult(data) {
 
   // ---- Profile Block: Unified badges (facts + atmosphere merged) ----
   const $profileFacts = document.getElementById('profile-facts');
-  const $glyphBar = document.getElementById('glyph-bar');
 
   // Canonical 9-slot badge order — always render all, dim missing data
   const parkingPts = r.parking_availability
@@ -1827,63 +1787,40 @@ function renderResult(data) {
     $profileFacts.style.display = '';
   }
 
-  // ---- Glyph Bar (icon-only compact view — includes crowd chips) ----
-  if ($glyphBar) {
-    $glyphBar.innerHTML = '';
+  // ---- Profile Chips (inline icon+label chip strip) ----
+  const $profileChips = document.getElementById('profile-chips');
+  if ($profileChips) {
+    $profileChips.innerHTML = '';
     const REDUCED_MQ = matchMedia('(prefers-reduced-motion: reduce)');
-    let glyphIndex = 0;
+    let chipIndex = 0;
 
-    // Render badge glyphs
-    allBadges.forEach((b) => {
-      const glyph = document.createElement('button');
-      glyph.className = 'glyph-bar__item'
-        + (b.isAtmo ? ' glyph-bar__item--atmo' : '')
-        + (b.isNA ? ' glyph-bar__item--na' : '');
-      glyph.setAttribute('aria-label', `${b.label}: ${b.value}`);
-      glyph.setAttribute('type', 'button');
+    // Render visible (non-NA) badges as chips
+    allBadges.filter(b => !b.isNA).forEach((b) => {
+      const chip = document.createElement('span');
+      chip.className = 'profile-chip'
+        + (b.isAtmo ? ' profile-chip--atmo' : '');
+      chip.setAttribute('aria-label', `${b.label}: ${b.value}`);
 
-      const rotation = ((Math.random() - 0.5) * 4).toFixed(1);
-
-      const glyphContent = b.label === 'Price'
-        ? `<span class="glyph-bar__text">${b.value}</span>`
-        : svgIcon(b.icon, 16);
-
-      if (b.label === 'Price') glyph.classList.add('glyph-bar__item--text');
-
-      glyph.innerHTML = `
-        ${glyphContent}
-        <div class="glyph-bar__tooltip">
-          <span class="glyph-bar__tooltip-label">${b.label}</span>
-          <span class="glyph-bar__tooltip-value">${b.value}</span>
-        </div>`;
-
-      glyph.addEventListener('click', (e) => {
-        e.stopPropagation();
-        $glyphBar.querySelectorAll('.glyph-bar__item--active').forEach(g => {
-          if (g !== glyph) g.classList.remove('glyph-bar__item--active');
-        });
-        glyph.classList.toggle('glyph-bar__item--active');
-      });
+      chip.innerHTML = `
+        ${svgIcon(b.icon, 14)}
+        <span class="profile-chip__value">${b.value}</span>`;
 
       if (!REDUCED_MQ.matches) {
-        glyph.style.opacity = '0';
-        const baseTransform = `rotate(${rotation}deg)`;
-        glyph.style.transform = `${baseTransform} scale(0.7)`;
-        const idx = glyphIndex;
+        chip.style.opacity = '0';
+        chip.style.transform = 'translateY(4px)';
+        const idx = chipIndex;
         animationTimers.push(setTimeout(() => {
-          glyph.style.transition = 'opacity 200ms ease-out, transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
-          glyph.style.opacity = '1';
-          glyph.style.transform = `${baseTransform} scale(1)`;
-        }, 500 + idx * 50));
-      } else {
-        glyph.style.transform = `rotate(${rotation}deg)`;
+          chip.style.transition = 'opacity 200ms ease-out, transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
+          chip.style.opacity = '1';
+          chip.style.transform = 'translateY(0)';
+        }, 500 + idx * 40));
       }
 
-      $glyphBar.appendChild(glyph);
-      glyphIndex++;
+      $profileChips.appendChild(chip);
+      chipIndex++;
     });
 
-    // Append crowd chips as part of glyph bar (separated by dot divider)
+    // Append crowd chips (separated by dot divider)
     const crowd = data.deep_context?.crowd_profile;
     if (crowd?.length > 0) {
       const CROWD_ICONS = {
@@ -1894,67 +1831,37 @@ function renderResult(data) {
         'walk_in_friendly': 'chevronRight', 'reservation_recommended': 'refresh',
       };
 
-      // Dot separator between fact badges and crowd badges
       const sep = document.createElement('span');
-      sep.className = 'glyph-bar__sep';
+      sep.className = 'profile-chips__sep';
       sep.setAttribute('aria-hidden', 'true');
-      $glyphBar.appendChild(sep);
+      $profileChips.appendChild(sep);
 
       crowd.slice(0, 4).forEach(text => {
-        const glyph = document.createElement('button');
-        glyph.className = 'glyph-bar__item glyph-bar__item--crowd';
-        glyph.type = 'button';
+        const chip = document.createElement('span');
+        chip.className = 'profile-chip profile-chip--crowd';
         const iconKey = CROWD_ICONS[text] || CROWD_ICONS[text.toLowerCase().replace(/\s+/g, '_')] || 'user';
         const label = humanizeSnake(text);
-        glyph.setAttribute('aria-label', label);
+        chip.setAttribute('aria-label', label);
 
-        const rotation = ((Math.random() - 0.5) * 4).toFixed(1);
-
-        glyph.innerHTML = `
-          ${svgIcon(iconKey, 16)}
-          <div class="glyph-bar__tooltip">
-            <span class="glyph-bar__tooltip-label">Crowd</span>
-            <span class="glyph-bar__tooltip-value">${label}</span>
-          </div>`;
-
-        glyph.addEventListener('click', (e) => {
-          e.stopPropagation();
-          $glyphBar.querySelectorAll('.glyph-bar__item--active').forEach(g => {
-            if (g !== glyph) g.classList.remove('glyph-bar__item--active');
-          });
-          glyph.classList.toggle('glyph-bar__item--active');
-        });
+        chip.innerHTML = `
+          ${svgIcon(iconKey, 14)}
+          <span class="profile-chip__value">${label}</span>`;
 
         if (!REDUCED_MQ.matches) {
-          glyph.style.opacity = '0';
-          const baseTransform = `rotate(${rotation}deg)`;
-          glyph.style.transform = `${baseTransform} scale(0.7)`;
-          const idx = glyphIndex;
+          chip.style.opacity = '0';
+          chip.style.transform = 'translateY(4px)';
+          const idx = chipIndex;
           animationTimers.push(setTimeout(() => {
-            glyph.style.transition = 'opacity 200ms ease-out, transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
-            glyph.style.opacity = '1';
-            glyph.style.transform = `${baseTransform} scale(1)`;
-          }, 500 + idx * 50));
-        } else {
-          glyph.style.transform = `rotate(${rotation}deg)`;
+            chip.style.transition = 'opacity 200ms ease-out, transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
+            chip.style.opacity = '1';
+            chip.style.transform = 'translateY(0)';
+          }, 500 + idx * 40));
         }
 
-        $glyphBar.appendChild(glyph);
-        glyphIndex++;
+        $profileChips.appendChild(chip);
+        chipIndex++;
       });
     }
-  }
-
-  // Close all glyph tooltips when clicking outside (one-time setup)
-  if (!window.__glyphCloseWired) {
-    window.__glyphCloseWired = true;
-    document.addEventListener('click', (e) => {
-      if (!e.target.closest('.glyph-bar__item')) {
-        document.querySelectorAll('.glyph-bar__item--active').forEach(g => {
-          g.classList.remove('glyph-bar__item--active');
-        });
-      }
-    });
   }
 
   // ---- Quick Links (Website, Call, Share) — pill badges with dot separators ----
@@ -2013,9 +1920,9 @@ function renderResult(data) {
     $storyExtras.style.display = (hasDishes || hasTip) ? '' : 'none';
   }
 
-  // ---- Sentiment Bar (subtle horizontal indicator) ----
-  const $sentBar = document.getElementById('sentiment-bar');
-  if ($sentBar) {
+  // ---- Sentiment Inline (compact bar in reviews row) ----
+  const $sentInline = document.getElementById('sentiment-inline');
+  if ($sentInline) {
     // Determine sentiment percentages from best available source
     let posVal = null, neuVal = null, negVal = null;
 
@@ -2048,8 +1955,8 @@ function renderResult(data) {
     }
 
     if (posVal != null) {
-      $sentBar.style.display = '';
-      renderSentimentBar(posVal, neuVal, negVal, animationTimers);
+      $sentInline.style.display = '';
+      renderSentimentInline(posVal, neuVal, negVal, animationTimers);
 
       // Tooltip labels
       const $tipPos = document.getElementById('sentiment-tip-pos');
@@ -2059,23 +1966,12 @@ function renderResult(data) {
       if ($tipNeu) $tipNeu.textContent = `${neuVal}% Neutral`;
       if ($tipNeg) $tipNeg.textContent = `${negVal}% Negative`;
 
-      // Sentiment summary in tooltip (V2 backend)
-      const $tipSummary = document.getElementById('sentiment-tip-summary');
-      if ($tipSummary) {
-        if (r.sentiment_summary) {
-          $tipSummary.textContent = r.sentiment_summary;
-          $tipSummary.style.display = '';
-        } else {
-          $tipSummary.style.display = 'none';
-        }
-      }
-
       // Tap toggle for mobile tooltip
-      $sentBar.addEventListener('click', () => {
-        $sentBar.classList.toggle('sentiment-bar--active');
+      $sentInline.addEventListener('click', () => {
+        $sentInline.classList.toggle('sentiment-inline--active');
       });
     } else {
-      $sentBar.style.display = 'none';
+      $sentInline.style.display = 'none';
     }
   }
 

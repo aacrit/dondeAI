@@ -534,16 +534,11 @@
     transition: none !important;
   }
 
-  /* Score Bloom — no breathing, instant transitions */
-  .score-bloom__petal--dominant {
-    animation: none !important;
-  }
-  .score-bloom__petal,
-  .score-bloom__detail,
-  .score-bloom__callout,
-  .score-bloom__v2-arc,
-  .score-bloom__v2-label,
-  .score-bloom__ring-fill {
+  /* Score Hero — instant transitions for reduced motion */
+  .score-hero__arc-fill,
+  .vibe-row__fill,
+  .score-breakdown .v2-row__fill,
+  .sentiment-inline__seg {
     transition: none !important;
   }
 }

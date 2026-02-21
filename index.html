@@ -304,128 +304,89 @@
                 </div>
               </div>
 
-              <!-- Block 3: Scores — Unified Score Bloom -->
+              <!-- Block 3: Score Spine — Compact, scannable score visualization -->
               <div class="score-section" id="score-section">
 
-                <!-- Score Bloom: Unified Match Ring + Vibe Petals -->
-                <div class="score-bloom" id="score-bloom"
+                <!-- Match Hero: Arc gauge + number + verdict -->
+                <div class="score-hero" id="score-hero"
                      role="figure" tabindex="0"
-                     aria-label="DondeAI score visualization"
-                     aria-expanded="false"
-                     data-bloom-state="compact">
-
-                  <!-- Brand header -->
-                  <div class="score-bloom__brand" aria-label="Donde Match">
-                    <svg class="score-bloom__logo-mark" viewBox="0 0 32 44" width="16" height="22" aria-hidden="true">
-                      <path d="M10.5 1C10.5 1 10 8.5 12.5 11.5Q14 13 14.5 13.5"
-                            fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-                      <path d="M21.5 1C21.5 1 22 8.5 19.5 11.5Q18 13 17.5 13.5"
-                            fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-                      <path d="M16 13.5C22 11 29 14 28 21C27 27 19 29 16 31L16 34"
-                            fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>
-                      <circle cx="16" cy="40" r="2.8" fill="var(--ac)"/>
+                     aria-label="DondeAI score visualization">
+                  <div class="score-hero__gauge">
+                    <svg class="score-hero__svg" viewBox="0 0 200 120" aria-hidden="true">
+                      <!-- Background arc (180° semicircle) -->
+                      <path class="score-hero__arc-bg" d="M 20 110 A 80 80 0 0 1 180 110" />
+                      <!-- Fill arc (animated) -->
+                      <path class="score-hero__arc-fill" id="score-hero-arc-fill" d="M 20 110 A 80 80 0 0 1 180 110" />
+                      <!-- Sentiment ring (thin arc outside the main arc) -->
+                      <g class="score-hero__sentiment" id="score-hero-sentiment"></g>
                     </svg>
-                    <span class="score-bloom__wordmark">
-                      <span class="score-tile__wordmark-d">D</span><span
-                        class="score-tile__wordmark-ond">ond</span><span
-                        class="score-tile__wordmark-e">e</span>
+                    <div class="score-hero__center">
+                      <span class="score-hero__number type-data" id="score-hero-number">0%</span>
+                      <span class="score-hero__verdict type-structural" id="score-hero-verdict"></span>
+                    </div>
+                  </div>
+                  <div class="score-hero__meta">
+                    <span class="score-hero__brand type-data--sm">
+                      <svg class="score-hero__logo-mark" viewBox="0 0 32 44" width="12" height="16" aria-hidden="true">
+                        <path d="M10.5 1C10.5 1 10 8.5 12.5 11.5Q14 13 14.5 13.5"
+                              fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                        <path d="M21.5 1C21.5 1 22 8.5 19.5 11.5Q18 13 17.5 13.5"
+                              fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                        <path d="M16 13.5C22 11 29 14 28 21C27 27 19 29 16 31L16 34"
+                              fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>
+                        <circle cx="16" cy="40" r="2.8" fill="var(--ac)"/>
+                      </svg>
+                      Donde Match<sup>™</sup>
                     </span>
-                    <span class="score-bloom__label type-data--sm">Match<sup>™</sup></span>
+                    <span class="score-hero__callout type-data--sm" id="score-hero-callout" style="display: none;">
+                      <span class="score-hero__callout-prefix type-emotional">Best for</span>
+                      <span class="score-hero__callout-value" id="score-hero-callout-value"></span>
+                    </span>
                   </div>
-
-                  <!-- Unified SVG visualization -->
-                  <div class="score-bloom__viz" id="score-bloom-viz">
-                    <svg class="score-bloom__svg" id="score-bloom-svg" viewBox="0 0 400 400" aria-hidden="true">
-                      <!-- Sentiment arc (outermost, thin colored ring) -->
-                      <g class="score-bloom__sentiment" id="score-bloom-sentiment"></g>
-
-
-                      <!-- Grid guides (Tier 2 — hidden by default) -->
-                      <g class="score-bloom__grid" id="score-bloom-grid" style="opacity: 0;"></g>
-                      <g class="score-bloom__axes" id="score-bloom-axes" style="opacity: 0;"></g>
-
-                      <!-- Match ring (center) -->
-                      <circle class="score-bloom__ring-bg" cx="200" cy="200" r="120"></circle>
-                      <circle class="score-bloom__ring-fill" id="score-bloom-ring-fill" cx="200" cy="200" r="120"></circle>
-
-                      <!-- Vibe petals (6 teardrops radiating from ring) -->
-                      <g class="score-bloom__petals" id="score-bloom-petals"></g>
-
-                      <!-- Petal tip icons + labels (visible in Tier 2) -->
-                      <g class="score-bloom__labels" id="score-bloom-labels" style="opacity: 0;"></g>
-                    </svg>
-
-                    <!-- Score number overlay (positioned over ring center) -->
-                    <div class="score-bloom__center" id="score-bloom-center">
-                      <span class="score-bloom__number type-data--lg" id="score-bloom-number">0%</span>
-                      <span class="score-bloom__verdict type-structural--bold" id="score-bloom-verdict"></span>
-                    </div>
-                  </div>
-
-                  <!-- "Best for" callout -->
-                  <p class="score-bloom__callout" id="score-bloom-callout" style="display: none;">
-                    <span class="score-bloom__callout-prefix type-emotional">Best for:</span>
-                    <span class="score-bloom__callout-value type-data" id="score-bloom-callout-value"></span>
-                  </p>
-                  <span class="score-bloom__hint type-data--sm" id="score-bloom-hint">Tap to explore vibes</span>
-
-                  <!-- Petal detail strip (slides in on petal tap — Tier 2.5) -->
-                  <div class="score-bloom__detail" id="score-bloom-detail" aria-live="polite" style="display: none;">
-                    <div class="score-bloom__detail-header">
-                      <span class="score-bloom__detail-icon" id="score-bloom-detail-icon"></span>
-                      <span class="score-bloom__detail-label type-structural" id="score-bloom-detail-label"></span>
-                      <span class="score-bloom__detail-score type-data" id="score-bloom-detail-score"></span>
-                    </div>
-                    <div class="score-bloom__detail-bar">
-                      <div class="score-bloom__detail-fill" id="score-bloom-detail-fill"></div>
-                    </div>
-                    <p class="score-bloom__detail-desc type-structural" id="score-bloom-detail-desc"></p>
-                  </div>
-
-                  <!-- V2 Score Breakdown strip (Tier 3 — center tap in bloomed state) -->
-                  <div class="score-bloom__v2-strip" id="score-bloom-v2-strip" aria-live="polite" style="display: none;"></div>
-
                 </div>
 
-                <!-- Reviews Unit: Google Rating + Sentiment bar (preserved for fallback) -->
-                <div class="reviews-unit" id="reviews-unit">
-                  <div class="reviews-unit__stars-row">
-                    <div class="google-rating-inline" id="google-rating-inline" style="display: none;">
-                      <div class="google-stars" id="google-stars"></div>
-                      <span class="google-rating-number type-data--sm" id="google-rating-num"></span>
-                      <span class="google-count type-data--sm" id="google-count"></span>
-                      <span class="reviews-unit__source type-data--sm">Google</span>
-                    </div>
+                <!-- Vibe Bars: 6 horizontal dimension bars — always visible -->
+                <div class="vibe-bars" id="vibe-bars" role="list" aria-label="DondeAI Vibe dimensions" style="display: none;">
+                  <div class="vibe-bars__header">
+                    <span class="vibe-bars__title type-data--sm">Vibe Profile<sup>™</sup></span>
                   </div>
-                  <div class="sentiment-bar" id="sentiment-bar"
-                       role="img" aria-label="Review sentiment breakdown">
-                    <span class="sentiment-bar__label type-data--sm">Review Sentiment</span>
-                    <div class="sentiment-bar__track">
-                      <span class="sentiment-bar__seg sentiment-bar__seg--pos" id="sentiment-bar-pos"></span>
-                      <span class="sentiment-bar__seg sentiment-bar__seg--neu" id="sentiment-bar-neu"></span>
-                      <span class="sentiment-bar__seg sentiment-bar__seg--neg" id="sentiment-bar-neg"></span>
+                  <div class="vibe-bars__list" id="vibe-bars-list"></div>
+                </div>
+
+                <!-- Reviews Row: Google + Sentiment inline -->
+                <div class="reviews-row" id="reviews-row">
+                  <div class="google-rating-inline" id="google-rating-inline" style="display: none;">
+                    <div class="google-stars" id="google-stars"></div>
+                    <span class="google-rating-number type-data--sm" id="google-rating-num"></span>
+                    <span class="google-count type-data--sm" id="google-count"></span>
+                  </div>
+                  <div class="sentiment-inline" id="sentiment-inline" role="img" aria-label="Review sentiment breakdown">
+                    <span class="sentiment-inline__label type-data--sm">Sentiment</span>
+                    <div class="sentiment-inline__track">
+                      <span class="sentiment-inline__seg sentiment-inline__seg--pos" id="sentiment-bar-pos"></span>
+                      <span class="sentiment-inline__seg sentiment-inline__seg--neu" id="sentiment-bar-neu"></span>
+                      <span class="sentiment-inline__seg sentiment-inline__seg--neg" id="sentiment-bar-neg"></span>
                     </div>
-                    <div class="sentiment-bar__tooltip" id="sentiment-bar-tooltip" role="tooltip">
-                      <span class="sentiment-bar__tip-item sentiment-bar__tip-item--pos" id="sentiment-tip-pos"></span>
-                      <span class="sentiment-bar__tip-item sentiment-bar__tip-item--neu" id="sentiment-tip-neu"></span>
-                      <span class="sentiment-bar__tip-item sentiment-bar__tip-item--neg" id="sentiment-tip-neg"></span>
-                      <span class="sentiment-bar__tip-summary type-structural" id="sentiment-tip-summary" style="display: none;"></span>
+                    <div class="sentiment-inline__tooltip" id="sentiment-bar-tooltip" role="tooltip">
+                      <span class="sentiment-inline__tip-item sentiment-inline__tip-item--pos" id="sentiment-tip-pos"></span>
+                      <span class="sentiment-inline__tip-item sentiment-inline__tip-item--neu" id="sentiment-tip-neu"></span>
+                      <span class="sentiment-inline__tip-item sentiment-inline__tip-item--neg" id="sentiment-tip-neg"></span>
                     </div>
                   </div>
                 </div>
+
+                <!-- V2 Breakdown (optional — shown on tap of score hero) -->
+                <div class="score-breakdown" id="score-breakdown" aria-live="polite" style="display: none;"></div>
               </div>
 
-              <!-- Block 4: Profile (icon-first — tap to reveal details) -->
+              <!-- Block 4: Profile — Chip strip + expandable detail grid -->
               <div class="result-profile" id="result-profile">
-                <!-- Icon-only glyph bar (primary at all sizes) — includes crowd chips -->
-                <div class="glyph-bar" id="glyph-bar" role="group" aria-label="Restaurant details"></div>
-                <!-- Expand toggle -->
+                <div class="profile-chips" id="profile-chips" role="group" aria-label="Restaurant details"></div>
                 <button class="profile-expand-btn type-data--sm"
                         data-action="toggle-profile-details"
                         aria-expanded="false" aria-controls="profile-details">
                   <span class="profile-expand-btn__text">Details</span>
                 </button>
-                <!-- Expandable detail badges grid -->
                 <div class="profile-details" id="profile-details">
                   <div class="profile-facts" id="profile-facts"></div>
                 </div>
