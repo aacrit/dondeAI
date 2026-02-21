@@ -701,14 +701,6 @@ function wireEvents() {
         closeTileExpand();
         break;
 
-      case 'toggle-recommendation': {
-        const $rec = document.getElementById('result-recommendation');
-        const isExpanded = btn.getAttribute('aria-expanded') === 'true';
-        btn.setAttribute('aria-expanded', String(!isExpanded));
-        if ($rec) $rec.classList.toggle('result-recommendation--expanded');
-        btn.textContent = isExpanded ? 'Read more' : 'Read less';
-        break;
-      }
 
       case 'show-match-info': {
         showToast('Donde Match\u2122 shows how likely you are to love this spot \u2014 based on cuisine quality, vibe fit, and hundreds of local reviews.');
@@ -1579,8 +1571,10 @@ function renderResult(data) {
   const $matchScore = document.getElementById('match-pill-score');
   const $matchVerdict = document.getElementById('match-pill-verdict');
   if ($matchScore) $matchScore.textContent = '0'; // Will animate up
+  const tier = getScoreTier(dondeScore);
+  const $matchPill = document.getElementById('match-pill');
+  if ($matchPill) $matchPill.setAttribute('data-tier', tier.tier);
   if ($matchVerdict) {
-    const tier = getScoreTier(dondeScore);
     $matchVerdict.textContent = tier.verdict;
     $matchVerdict.setAttribute('data-tier', tier.tier);
   }
@@ -1644,23 +1638,24 @@ function renderResult(data) {
   const $blurb = document.getElementById('donde-blurb');
   if ($rec) {
     const recText = data.recommendation || '';
-    $rec.classList.remove('result-recommendation--expanded');
-    // Direct textContent (not chaosToOrderReveal) — -webkit-line-clamp
-    // requires flat text in a -webkit-box container; child spans break clamping.
     $rec.textContent = recText;
-    $rec.style.position = ''; // Clear any leftover inline position from prior render
-
-    // Hide entire blurb when no recommendation text
     if ($blurb) $blurb.style.display = recText ? '' : 'none';
+  }
 
-    const $recToggle = document.getElementById('result-rec-toggle');
-    if ($recToggle) {
-      $recToggle.setAttribute('aria-expanded', 'false');
-      $recToggle.textContent = 'Read more';
-      requestAnimationFrame(() => {
-        const isClamped = $rec.scrollHeight > $rec.clientHeight + 2;
-        $recToggle.style.display = isClamped ? '' : 'none';
-      });
+  // Compact navigation tile in glance
+  const $glanceNav = document.getElementById('glance-nav');
+  if ($glanceNav) {
+    if (r.address) {
+      const mapsUrl = buildMapsUrl(r.address);
+      $glanceNav.innerHTML = `
+        <a class="glance-nav__link" href="${mapsUrl}" target="_blank" rel="noopener noreferrer">
+          <span class="glance-nav__icon">${svgIcon('pin', 18)}</span>
+          <span class="glance-nav__address type-structural">${r.address}</span>
+          <span class="glance-nav__arrow">${svgIcon('chevronRight', 16)}</span>
+        </a>`;
+      $glanceNav.style.display = '';
+    } else {
+      $glanceNav.style.display = 'none';
     }
   }
 
@@ -1696,7 +1691,7 @@ function renderResult(data) {
     void $resultCard.offsetWidth;
     $resultCard.classList.add('result-card--revealing');
 
-    // Clean up reveal class after Tier 1 animations complete (blurb at 400ms + 400ms dur)
+    // Clean up reveal class after Tier 1 animations complete (last: glance-actions at 600ms + 300ms)
     setTimeout(() => {
       $resultCard.classList.remove('result-card--revealing');
       const glance = document.getElementById('tier-glance');
@@ -1706,7 +1701,7 @@ function renderResult(data) {
           child.style.transform = '';
         });
       }
-    }, 1000);
+    }, 1100);
   }
 }
 
@@ -1856,22 +1851,17 @@ function prepareTier2(data, cuisine) {
     }
   }
 
-  // Navigation tile
+  // Navigation tile (Tier 2 — address only, no labels)
   const $navTileContainer = document.getElementById('result-nav-tile');
   if ($navTileContainer) {
     $navTileContainer.innerHTML = '';
     if (r.address) {
       const mapsUrl = buildMapsUrl(r.address);
-      const resDiffRaw = data.deep_context?.reservation_difficulty;
-      const resDiff = resDiffRaw ? humanizeSnake(resDiffRaw) : null;
-      const resDiffHtml = resDiff ? `<span class="nav-tile__note type-data--sm">${resDiff}</span>` : '';
       $navTileContainer.innerHTML = `
         <a class="nav-tile__link" href="${mapsUrl}" target="_blank" rel="noopener noreferrer">
           <span class="nav-tile__icon">${svgIcon('pin', 24)}</span>
           <span class="nav-tile__content">
-            <span class="nav-tile__label type-data--sm">Navigation</span>
             <span class="nav-tile__address type-structural">${r.address}</span>
-            ${resDiffHtml}
           </span>
           <span class="nav-tile__arrow">${svgIcon('chevronRight', 20)}</span>
         </a>`;

@@ -732,6 +732,33 @@
   letter-spacing: 0.01em;
 }
 
+/* Score-tier coloring — high=green, mid=accent, low=muted */
+.match-pill[data-tier="high"] {
+  background: var(--green-soft);
+  border-color: var(--green-soft);
+}
+
+.match-pill[data-tier="high"] .match-pill__score,
+.match-pill[data-tier="high"] .match-pill__verdict,
+.match-pill[data-tier="high"] .match-pill__logo {
+  color: var(--green);
+}
+
+.match-pill[data-tier="mid"] {
+  background: var(--ac-soft);
+  border-color: var(--ac-soft);
+}
+
+.match-pill[data-tier="low"] {
+  background: var(--bg2);
+  border-color: var(--border);
+}
+
+.match-pill[data-tier="low"] .match-pill__score,
+.match-pill[data-tier="low"] .match-pill__logo {
+  color: var(--fg2);
+}
+
 .match-pill__verdict[data-tier="mid"] {
   color: var(--fg2);
 }
@@ -790,64 +817,19 @@
   border-radius: var(--radius) 0 0 var(--radius);
 }
 
-.donde-blurb__content {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-  padding-left: var(--space-sm);
-  min-width: 0;
-}
-
-.donde-blurb__label {
-  font-family: var(--font-data);
-  font-size: var(--text-xs);
-  color: var(--fg3);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
 .donde-blurb__text {
-  font-size: var(--text-base);
+  font-size: clamp(1rem, 2.5vw, 1.125rem);
   color: var(--fg);
-  line-height: 1.65;
+  line-height: 1.7;
   overflow-wrap: break-word;
   word-break: break-word;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.donde-blurb__text.result-recommendation--expanded {
-  display: block;
-  -webkit-line-clamp: unset;
-  -webkit-box-orient: unset;
-  overflow: visible;
-}
-
-.donde-blurb__toggle {
-  background: none;
-  border: none;
-  padding: 0;
-  color: var(--fg3);
-  font-size: var(--text-sm);
-  cursor: pointer;
-  align-self: flex-start;
-  transition: color var(--dur-fast) var(--ease-out);
-}
-
-.donde-blurb__toggle:hover {
-  color: var(--fg);
+  padding-left: var(--space-sm);
+  min-width: 0;
 }
 
 @media (max-width: 767px) {
   .donde-blurb {
     padding: var(--space-sm) var(--space-md);
-  }
-
-  .donde-blurb__text {
-    font-size: var(--text-sm);
-    -webkit-line-clamp: 3;
   }
 }
 
@@ -857,6 +839,50 @@
   align-items: center;
   gap: var(--space-sm);
   padding-top: var(--space-xs);
+}
+
+/* ── Glance Navigation Tile (compact address link) ── */
+.glance-nav__link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  text-decoration: none;
+  color: var(--fg);
+  transition: border-color var(--dur-fast) var(--ease-out);
+}
+
+.glance-nav__link:hover {
+  border-color: var(--ac);
+}
+
+.glance-nav__link:active {
+  transform: scale(0.98);
+}
+
+.glance-nav__icon {
+  color: var(--fg3);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.glance-nav__address {
+  flex: 1;
+  font-size: var(--text-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.glance-nav__arrow {
+  color: var(--fg3);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
 }
 
 /* ── Tell Me More / Expand Buttons ── */
@@ -1312,6 +1338,7 @@
 .score-hero__brand {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: var(--space-2xs);
   color: var(--fg3);
   font-family: var(--font-data);
@@ -1323,6 +1350,11 @@
 .score-hero__brand sup {
   font-size: 0.6em;
   vertical-align: super;
+}
+
+.score-hero__brand-logo {
+  color: var(--fg3);
+  flex-shrink: 0;
 }
 
 .score-hero__logo-mark {
@@ -1357,13 +1389,7 @@
   letter-spacing: 0.02em;
 }
 
-/* Separator dot between brand and callout */
-.score-hero__callout::before {
-  content: '·';
-  color: var(--fg3);
-  opacity: 0.4;
-  margin-right: var(--space-2xs);
-}
+/* Callout now stands alone (brand moved above gauge) */
 
 /* ---- Vibe Bars (horizontal dimension bars) ---- */
 .vibe-bars {
@@ -2961,9 +2987,14 @@
   animation: resultSectionIn 400ms var(--ease-out) 400ms forwards;
 }
 
+/* Glance nav: settle in */
+.result-card--revealing .glance-nav {
+  animation: resultSectionIn 300ms var(--ease-out) 500ms forwards;
+}
+
 /* Glance actions: fade in */
 .result-card--revealing .glance-actions {
-  animation: resultSectionIn 300ms var(--ease-out) 550ms forwards;
+  animation: resultSectionIn 300ms var(--ease-out) 600ms forwards;
 }
 
 /* Tier 2/3 elements: animate on expansion via JS (no CSS reveal stagger needed) */
