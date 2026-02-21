@@ -1639,6 +1639,23 @@ function renderResult(data) {
     }
   }
 
+  // DondeAI Recommendation blurb — the editorial voice in Tier 1
+  const $rec = document.getElementById('result-recommendation');
+  if ($rec) {
+    $rec.classList.remove('result-recommendation--expanded');
+    chaosToOrderReveal($rec, data.recommendation || '');
+
+    const $recToggle = document.getElementById('result-rec-toggle');
+    if ($recToggle) {
+      $recToggle.setAttribute('aria-expanded', 'false');
+      $recToggle.textContent = 'Read more';
+      requestAnimationFrame(() => {
+        const isClamped = $rec.scrollHeight > $rec.clientHeight + 2;
+        $recToggle.style.display = isClamped ? '' : 'none';
+      });
+    }
+  }
+
   // Inject icon into Try Another button in glance
   const $tryAgainIcon = document.getElementById('try-again-icon');
   if ($tryAgainIcon) $tryAgainIcon.innerHTML = svgIcon('refresh', 18);
@@ -1671,7 +1688,7 @@ function renderResult(data) {
     void $resultCard.offsetWidth;
     $resultCard.classList.add('result-card--revealing');
 
-    // Clean up reveal class after Tier 1 animations complete
+    // Clean up reveal class after Tier 1 animations complete (blurb at 400ms + 400ms dur)
     setTimeout(() => {
       $resultCard.classList.remove('result-card--revealing');
       const glance = document.getElementById('tier-glance');
@@ -1681,7 +1698,7 @@ function renderResult(data) {
           child.style.transform = '';
         });
       }
-    }, 900);
+    }, 1000);
   }
 }
 
@@ -1702,21 +1719,7 @@ function prepareTier2(data, cuisine) {
     [] // No timers — animations triggered on expand
   );
 
-  // Recommendation text
-  const $rec = document.getElementById('result-recommendation');
-  if ($rec) {
-    $rec.classList.remove('result-recommendation--expanded');
-    $rec.textContent = data.recommendation || '';
-    const $recToggle = document.getElementById('result-rec-toggle');
-    if ($recToggle) {
-      $recToggle.setAttribute('aria-expanded', 'false');
-      $recToggle.textContent = 'Read more';
-      requestAnimationFrame(() => {
-        const isClamped = $rec.scrollHeight > $rec.clientHeight + 2;
-        $recToggle.style.display = isClamped ? '' : 'none';
-      });
-    }
-  }
+  // Recommendation is now rendered in Tier 1 (Glance) via donde-blurb
 
   // Story Extras: Dishes + Insider Tip
   const $storyExtras = document.getElementById('story-extras');
@@ -2013,19 +2016,7 @@ function renderTier2Animations() {
     null,
     animationTimers
   );
-
-  // Chaos-to-order text reveal for recommendation
-  const $rec = document.getElementById('result-recommendation');
-  if ($rec && data.recommendation) {
-    chaosToOrderReveal($rec, data.recommendation);
-    const $recToggle = document.getElementById('result-rec-toggle');
-    if ($recToggle) {
-      requestAnimationFrame(() => {
-        const isClamped = $rec.scrollHeight > $rec.clientHeight + 2;
-        $recToggle.style.display = isClamped ? '' : 'none';
-      });
-    }
-  }
+  // Recommendation is already rendered in Tier 1 — no re-render needed here
 }
 
 /* ---- Tier 3 animation trigger (called on first expand) ---- */

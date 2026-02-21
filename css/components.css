@@ -768,6 +768,89 @@
   color: var(--fg3);
 }
 
+/* ── DondeAI Blurb — The editorial recommendation voice ── */
+.donde-blurb {
+  position: relative;
+  display: flex;
+  gap: 0;
+  padding: var(--space-md);
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.donde-blurb__accent {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--ac);
+  border-radius: var(--radius) 0 0 var(--radius);
+}
+
+.donde-blurb__content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding-left: var(--space-sm);
+  min-width: 0;
+}
+
+.donde-blurb__label {
+  font-family: var(--font-data);
+  font-size: var(--text-xs);
+  color: var(--fg3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.donde-blurb__text {
+  font-size: var(--text-base);
+  color: var(--fg);
+  line-height: 1.65;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.donde-blurb__text.result-recommendation--expanded {
+  display: block;
+  -webkit-line-clamp: unset;
+  -webkit-box-orient: unset;
+  overflow: visible;
+}
+
+.donde-blurb__toggle {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--fg3);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  align-self: flex-start;
+  transition: color var(--dur-fast) var(--ease-out);
+}
+
+.donde-blurb__toggle:hover {
+  color: var(--fg);
+}
+
+@media (max-width: 767px) {
+  .donde-blurb {
+    padding: var(--space-sm) var(--space-md);
+  }
+
+  .donde-blurb__text {
+    font-size: var(--text-sm);
+    -webkit-line-clamp: 3;
+  }
+}
+
 /* ── Glance Actions ── */
 .glance-actions {
   display: flex;
@@ -906,31 +989,7 @@
   border-style: dashed;
 }
 
-.result-recommendation {
-  font-size: var(--text-base);
-  color: var(--fg);
-  line-height: 1.7;
-  max-width: 72ch;
-  overflow-wrap: break-word;
-  word-break: break-word;
-  display: -webkit-box;
-  -webkit-line-clamp: 5;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.result-recommendation--expanded {
-  display: block;
-  -webkit-line-clamp: unset;
-  -webkit-box-orient: unset;
-  overflow: visible;
-}
-
-@media (max-width: 767px) {
-  .result-recommendation {
-    -webkit-line-clamp: 3;
-  }
-}
+/* .result-recommendation styles moved into .donde-blurb__text above */
 
 /* ---- Score Section (legacy container — now part of tier system) ---- */
 
@@ -2353,37 +2412,7 @@
 }
 
 /* ---- Recommendation Wrap (collapsible) ---- */
-.result-rec-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-  width: 100%;
-  min-width: 0;
-  overflow: hidden;
-}
-
-.result-rec-toggle {
-  align-self: flex-start;
-  padding: var(--space-2xs) 0;
-  font-size: var(--text-sm);
-  color: var(--ac);
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-family: var(--font-structural);
-  font-weight: 600;
-  transition: color var(--dur-fast) var(--ease-out);
-}
-
-.result-rec-toggle:hover {
-  opacity: 0.8;
-}
-
-.result-rec-toggle:focus-visible {
-  outline: 2px solid var(--ac);
-  outline-offset: 2px;
-  border-radius: 2px;
-}
+/* .result-rec-wrap and .result-rec-toggle replaced by .donde-blurb */
 
 /* ---- CTA Button with Icon ---- */
 .cta-btn--icon {
@@ -2927,9 +2956,14 @@
   animation: resultSectionIn 300ms var(--ease-out) 350ms forwards;
 }
 
+/* DondeAI Blurb: editorial entrance */
+.result-card--revealing .donde-blurb {
+  animation: resultSectionIn 400ms var(--ease-out) 400ms forwards;
+}
+
 /* Glance actions: fade in */
 .result-card--revealing .glance-actions {
-  animation: resultSectionIn 300ms var(--ease-out) 450ms forwards;
+  animation: resultSectionIn 300ms var(--ease-out) 550ms forwards;
 }
 
 /* Tier 2/3 elements: animate on expansion via JS (no CSS reveal stagger needed) */
