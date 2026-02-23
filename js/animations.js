@@ -255,43 +255,36 @@ export function renderPetalRadar(scores, timers = []) {
   }
 }
 
-/* ---- Score Bloom (Unified Match Ring + Vibe Petals) ---- */
+/* ---- Score Hero (Semicircular arc gauge) ---- */
 
-const BLOOM_STATES = { COMPACT: 'compact', BLOOMED: 'bloomed', PETAL_FOCUSED: 'petal-focused', DEEP_DIVE: 'deep-dive' };
-let bloomState = BLOOM_STATES.COMPACT;
-let bloomData = null;
-let activePetalDim = null;
+let heroData = null;
 
-export function renderScoreBloom(dondeMatch, scores, scoringV2, sentiment, timers = []) {
-  const $bloom = document.getElementById('score-bloom');
-  if (!$bloom) return;
+export function renderScoreHero(dondeMatch, scores, scoringV2, sentiment, timers = []) {
+  const $hero = document.getElementById('score-hero');
+  if (!$hero) return;
 
-  // Store data for interaction handlers
-  bloomData = { dondeMatch, scores, scoringV2, sentiment };
-  bloomState = BLOOM_STATES.COMPACT;
-  activePetalDim = null;
-  $bloom.setAttribute('data-bloom-state', 'compact');
-  $bloom.setAttribute('aria-expanded', 'false');
+  heroData = { dondeMatch, scores, scoringV2, sentiment };
 
-  // ---- Match Ring (center of bloom SVG) ----
+  // ---- Semicircular Arc Gauge ----
   const pct = Math.round(parseFloat(dondeMatch) || 80);
-  const $ringFill = document.getElementById('score-bloom-ring-fill');
-  const $number = document.getElementById('score-bloom-number');
-  const $verdict = document.getElementById('score-bloom-verdict');
+  const $arcFill = document.getElementById('score-hero-arc-fill');
+  const $number = document.getElementById('score-hero-number');
+  const $verdict = document.getElementById('score-hero-verdict');
 
-  if ($ringFill) {
-    const circumference = 2 * Math.PI * 120; // r=120 in bloom SVG (hero size)
-    const target = circumference - (pct / 100) * circumference;
-    $ringFill.style.stroke = 'var(--ac)';
-    $ringFill.style.strokeDasharray = String(circumference);
+  // Calculate arc length for 180° semicircle (r=80, from M 20 110 A 80 80 0 0 1 180 110)
+  const arcLength = Math.PI * 80; // ~251.3
+  const target = arcLength - (pct / 100) * arcLength;
+
+  if ($arcFill) {
+    $arcFill.style.strokeDasharray = String(arcLength);
 
     if (REDUCED.matches) {
-      $ringFill.style.strokeDashoffset = String(target);
+      $arcFill.style.strokeDashoffset = String(target);
       if ($number) $number.textContent = pct + '%';
     } else {
-      $ringFill.style.strokeDashoffset = String(circumference);
+      $arcFill.style.strokeDashoffset = String(arcLength);
       timers.push(setTimeout(() => {
-        $ringFill.style.strokeDashoffset = String(target);
+        $arcFill.style.strokeDashoffset = String(target);
       }, 300));
 
       // Count-up number
@@ -329,16 +322,9 @@ export function renderScoreBloom(dondeMatch, scores, scoringV2, sentiment, timer
     }
   }
 
-  // ---- Vibe Petals (compact mode — small teardrops around ring) ----
-  const cx = 200, cy = 200;
-  const RING_R_COMPACT = 120;
-  const RING_R_EXPANDED = 55;
-  const ringR = RING_R_COMPACT;
-  const compactMaxR = 22; // compact petal max length from ring edge
-  const compactMinR = 6;
-  const angleStep = (2 * Math.PI) / 6;
-  const startAngle = -Math.PI / 2;
+  // (Sentiment arc removed — sentiment now lives in reviews-row inline bar)
 
+  // ---- "Best for" Callout ----
   const available = RADAR_DIMS.filter(d => {
     const v = scores[d.key];
     return v != null && v !== '' && !isNaN(parseFloat(v));
@@ -350,563 +336,100 @@ export function renderScoreBloom(dondeMatch, scores, scoringV2, sentiment, timer
     return { ...dim, val, hasData: !!found };
   });
 
-  // Build aria-label (human-friendly, no raw decimals)
-  const ariaDesc = slots.filter(s => s.hasData)
-    .map(s => `${s.label} ${humanizeVibeScore(s.val)}`).join(', ');
-  $bloom.setAttribute('aria-label', `DondeAI Match ${pct}%. Vibe: ${ariaDesc}`);
-
-  // Render petals
-  const $petals = document.getElementById('score-bloom-petals');
-  if ($petals) {
-    $petals.innerHTML = '';
-
-    if (available.length >= 3) {
-      // Find dominant petal
-      const dominant = slots.reduce((best, s) => (s.hasData && s.val > (best?.val || 0)) ? s : best, null);
-
-      slots.forEach((slot, i) => {
-        if (!slot.hasData) return;
-        const angle = startAngle + i * angleStep;
-        // Compact: petal starts from ring edge
-        const petalStart = ringR + 4;
-        const petalLen = compactMinR + (slot.val / 10) * (compactMaxR - compactMinR);
-        const startX = cx + petalStart * Math.cos(angle);
-        const startY = cy + petalStart * Math.sin(angle);
-        const path = buildTeardropPath(startX, startY, angle, petalLen);
-
-        const pathEl = svgEl('path');
-        pathEl.setAttribute('d', path);
-        pathEl.classList.add('score-bloom__petal');
-        pathEl.setAttribute('data-dim', slot.key);
-        pathEl.setAttribute('data-value', slot.val.toFixed(1));
-        pathEl.setAttribute('data-index', String(i));
-
-        // Dominant petal gets breathing animation
-        if (dominant && slot.key === dominant.key) {
-          pathEl.style.transformOrigin = `${startX}px ${startY}px`;
-          if (!REDUCED.matches) {
-            timers.push(setTimeout(() => {
-              pathEl.classList.add('score-bloom__petal--dominant');
-            }, 1100));
-          }
-        }
-
-        // Entrance animation
-        if (!REDUCED.matches) {
-          pathEl.style.transformOrigin = `${cx}px ${cy}px`;
-          pathEl.style.transform = 'scale(0)';
-          pathEl.style.opacity = '0';
-          const delay = 600 + i * 80;
-          timers.push(setTimeout(() => {
-            pathEl.style.transition = 'transform 500ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 300ms ease-out';
-            pathEl.style.transform = 'scale(1)';
-            pathEl.style.opacity = '1';
-          }, delay));
-        }
-
-        $petals.appendChild(pathEl);
-      });
-    }
-  }
-
-  // ---- Sentiment Arc (thin colored ring outside match ring) ----
-  const $sentimentG = document.getElementById('score-bloom-sentiment');
-  if ($sentimentG && sentiment) {
-    $sentimentG.innerHTML = '';
-    const total = (sentiment.pos || 0) + (sentiment.neu || 0) + (sentiment.neg || 0);
-    if (total > 0) {
-      const sentR = ringR + 8;
-      const sentWidth = 2;
-      const totalAngle = 2 * Math.PI;
-      const gap = 0.04; // small gap between segments
-
-      const posAngle = (sentiment.pos / total) * totalAngle - gap;
-      const neuAngle = (sentiment.neu / total) * totalAngle - gap;
-      const negAngle = (sentiment.neg / total) * totalAngle - gap;
-
-      let currentAngle = -Math.PI / 2;
-      const segments = [
-        { angle: posAngle, cls: 'score-bloom__sentiment-pos' },
-        { angle: neuAngle, cls: 'score-bloom__sentiment-neu' },
-        { angle: negAngle, cls: 'score-bloom__sentiment-neg' },
-      ];
-
-      segments.forEach(seg => {
-        if (seg.angle <= 0) { currentAngle += gap; return; }
-        const endAngle = currentAngle + seg.angle;
-        const largeArc = seg.angle > Math.PI ? 1 : 0;
-        const x1 = cx + sentR * Math.cos(currentAngle);
-        const y1 = cy + sentR * Math.sin(currentAngle);
-        const x2 = cx + sentR * Math.cos(endAngle);
-        const y2 = cy + sentR * Math.sin(endAngle);
-
-        const arc = svgEl('path');
-        arc.setAttribute('d', `M ${x1} ${y1} A ${sentR} ${sentR} 0 ${largeArc} 1 ${x2} ${y2}`);
-        arc.classList.add(seg.cls);
-        arc.setAttribute('stroke-width', String(sentWidth));
-        arc.setAttribute('fill', 'none');
-
-        if (!REDUCED.matches) {
-          arc.style.opacity = '0';
-          timers.push(setTimeout(() => {
-            arc.style.transition = 'opacity 400ms ease-out';
-            arc.style.opacity = '1';
-          }, 1000));
-        }
-
-        $sentimentG.appendChild(arc);
-        currentAngle = endAngle + gap;
-      });
-    }
-  }
-
-  // ---- "Best for" Callout ----
-  const $callout = document.getElementById('score-bloom-callout');
-  const $calloutValue = document.getElementById('score-bloom-callout-value');
+  const $callout = document.getElementById('score-hero-callout');
+  const $calloutValue = document.getElementById('score-hero-callout-value');
   if ($callout && $calloutValue && available.length >= 1) {
     const best = slots.filter(s => s.hasData).sort((a, b) => b.val - a.val)[0];
     if (best) {
-      $calloutValue.textContent = `${best.label} · ${humanizeVibeScore(best.val)}`;
+      $calloutValue.textContent = best.label;
       $callout.style.display = '';
       if (!REDUCED.matches) {
         timers.push(setTimeout(() => {
-          $callout.classList.add('score-bloom__callout--visible');
+          $callout.classList.add('score-hero__callout--visible');
         }, 900));
       } else {
-        $callout.classList.add('score-bloom__callout--visible');
+        $callout.classList.add('score-hero__callout--visible');
       }
     }
   }
 
-  // ---- "Tap to explore" hint ----
-  const $hint = document.getElementById('score-bloom-hint');
-  if ($hint && !REDUCED.matches) {
-    $hint.style.opacity = '0';
-    timers.push(setTimeout(() => {
-      $hint.style.transition = 'opacity 600ms ease-out';
-      $hint.style.opacity = '0.6';
-    }, 1100));
-  }
+  // Build aria-label
+  const ariaDesc = slots.filter(s => s.hasData)
+    .map(s => `${s.label} ${humanizeVibeScore(s.val)}`).join(', ');
+  $hero.setAttribute('aria-label', `DondeAI Match ${pct}%. Vibe: ${ariaDesc}`);
 }
 
-/* ---- Bloom Interaction Handlers ---- */
+/* ---- Vibe Bars (horizontal dimension bars) ---- */
 
-export function toggleBloom() {
-  const $bloom = document.getElementById('score-bloom');
-  if (!$bloom || !bloomData) return;
-
-  if (bloomState === BLOOM_STATES.COMPACT) {
-    expandBloom($bloom);
-  } else {
-    collapseBloom($bloom);
-  }
-}
-
-function expandBloom($bloom) {
-  bloomState = BLOOM_STATES.BLOOMED;
-  $bloom.setAttribute('data-bloom-state', 'bloomed');
-  $bloom.setAttribute('aria-expanded', 'true');
-
-  // Fade sentiment arc (it's positioned for compact ring)
-  const $sentimentG = document.getElementById('score-bloom-sentiment');
-  if ($sentimentG) { $sentimentG.style.transition = 'opacity 300ms ease-out'; $sentimentG.style.opacity = '0'; }
-
-  const scores = bloomData.scores;
-  const cx = 200, cy = 200;
-  const expandedR = 55; // ring shrinks from 120 → 55
-  const orbDistance = 135; // distance from center for vibe orbs
-  const angleStep = (2 * Math.PI) / 6;
-  const startAngle = -Math.PI / 2;
+export function renderVibeBars(scores, timers = []) {
+  const $container = document.getElementById('vibe-bars');
+  const $list = document.getElementById('vibe-bars-list');
+  if (!$container || !$list) return;
 
   const available = RADAR_DIMS.filter(d => {
     const v = scores[d.key];
     return v != null && v !== '' && !isNaN(parseFloat(v));
   });
 
-  // ---- Shrink the match ring via SVG r attribute ----
-  const $ringBg = document.querySelector('.score-bloom__ring-bg');
-  const $ringFill = document.getElementById('score-bloom-ring-fill');
-  if ($ringBg) $ringBg.setAttribute('r', String(expandedR));
-  if ($ringFill) {
-    const newCirc = 2 * Math.PI * expandedR;
-    const pct = Math.round(parseFloat(bloomData.dondeMatch) || 80);
-    const target = newCirc - (pct / 100) * newCirc;
-    $ringFill.setAttribute('r', String(expandedR));
-    $ringFill.style.strokeDasharray = String(newCirc);
-    $ringFill.style.strokeDashoffset = String(target);
-    $ringFill.style.strokeWidth = '4';
-  }
-  if ($ringBg) $ringBg.style.strokeWidth = '4';
-
-  // Remove compact petals
-  const $petals = document.getElementById('score-bloom-petals');
-  if ($petals) $petals.innerHTML = '';
-
-  // ---- Vibe Orbs: filled circles with icons orbiting around ----
-  const $labels = document.getElementById('score-bloom-labels');
-  if ($labels) {
-    $labels.innerHTML = '';
-    const slots = RADAR_DIMS.map(dim => {
-      const found = available.find(a => a.key === dim.key);
-      const val = found ? Math.min(parseFloat(scores[dim.key]) || 0, 10) : 0;
-      return { ...dim, val, hasData: !!found };
-    });
-
-    // Find dominant for highlight
-    const dominant = slots.filter(s => s.hasData).sort((a, b) => b.val - a.val)[0];
-
-    slots.forEach((slot, i) => {
-      if (!slot.hasData) return;
-      const angle = startAngle + i * angleStep;
-      const ox = cx + orbDistance * Math.cos(angle);
-      const oy = cy + orbDistance * Math.sin(angle);
-
-      // Orb size scales with score (min 14, max 26)
-      const orbR = 14 + (slot.val / 10) * 12;
-      const isDominant = dominant && slot.key === dominant.key;
-
-      // Container group for the orb
-      const g = svgEl('g');
-      g.classList.add('score-bloom__orb');
-      g.setAttribute('data-dim', slot.key);
-      g.setAttribute('data-label', slot.label);
-      g.setAttribute('data-tier', humanizeVibeScore(slot.val));
-      g.style.cursor = 'pointer';
-
-      // Filled circle
-      const circle = svgEl('circle');
-      circle.setAttribute('cx', String(ox));
-      circle.setAttribute('cy', String(oy));
-      circle.setAttribute('r', String(orbR));
-      circle.classList.add('score-bloom__orb-fill');
-      if (isDominant) circle.classList.add('score-bloom__orb-fill--dominant');
-      g.appendChild(circle);
-
-      // Icon inside orb (use foreignObject for HTML SVG icon)
-      const iconSize = Math.round(orbR * 0.9);
-      const fo = svgEl('foreignObject');
-      fo.setAttribute('x', String(ox - iconSize / 2));
-      fo.setAttribute('y', String(oy - iconSize / 2));
-      fo.setAttribute('width', String(iconSize));
-      fo.setAttribute('height', String(iconSize));
-      fo.style.pointerEvents = 'none';
-      const iconDiv = document.createElement('div');
-      iconDiv.style.cssText = `display:flex;align-items:center;justify-content:center;width:100%;height:100%;color:var(--ac);opacity:0.8;`;
-      iconDiv.innerHTML = svgIcon(slot.icon, iconSize);
-      fo.appendChild(iconDiv);
-      g.appendChild(fo);
-
-      // Label below orb
-      const label = svgEl('text');
-      label.setAttribute('x', String(ox));
-      label.setAttribute('y', String(oy + orbR + 13));
-      label.classList.add('score-bloom__orb-label');
-      label.textContent = slot.label;
-      g.appendChild(label);
-
-      // Tier text below label
-      const tier = svgEl('text');
-      tier.setAttribute('x', String(ox));
-      tier.setAttribute('y', String(oy + orbR + 23));
-      tier.classList.add('score-bloom__orb-tier');
-      tier.textContent = humanizeVibeScore(slot.val);
-      g.appendChild(tier);
-
-      // Spring-pop entrance animation
-      if (!REDUCED.matches) {
-        g.style.transformOrigin = `${ox}px ${oy}px`;
-        g.style.transform = 'scale(0)';
-        g.style.opacity = '0';
-        const delay = 150 + i * 80;
-        setTimeout(() => {
-          g.style.transition = 'transform 500ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 250ms ease-out';
-          g.style.transform = 'scale(1)';
-          g.style.opacity = '1';
-        }, delay);
-      }
-
-      $labels.appendChild(g);
-    });
-
-    // Connector lines from ring to orbs (thin, subtle)
-    const $axes = document.getElementById('score-bloom-axes');
-    if ($axes) {
-      $axes.innerHTML = '';
-      slots.forEach((slot, i) => {
-        if (!slot.hasData) return;
-        const angle = startAngle + i * angleStep;
-        const orbR = 14 + (slot.val / 10) * 12;
-        const line = svgEl('line');
-        line.setAttribute('x1', String(cx + (expandedR + 3) * Math.cos(angle)));
-        line.setAttribute('y1', String(cy + (expandedR + 3) * Math.sin(angle)));
-        line.setAttribute('x2', String(cx + (orbDistance - orbR - 2) * Math.cos(angle)));
-        line.setAttribute('y2', String(cy + (orbDistance - orbR - 2) * Math.sin(angle)));
-        line.classList.add('score-bloom__connector');
-        $axes.appendChild(line);
-      });
-      $axes.style.transition = 'opacity 300ms ease-out';
-      $axes.style.opacity = '1';
-    }
-
-    $labels.style.transition = 'opacity 300ms ease-out';
-    $labels.style.opacity = '1';
+  if (available.length < 2) {
+    $container.style.display = 'none';
+    return;
   }
 
-  // Hide grid guides (not needed with orb layout)
-  const $grid = document.getElementById('score-bloom-grid');
-  if ($grid) { $grid.style.opacity = '0'; $grid.innerHTML = ''; }
-}
-
-function collapseBloom($bloom) {
-  bloomState = BLOOM_STATES.COMPACT;
-  activePetalDim = null;
-  $bloom.setAttribute('data-bloom-state', 'compact');
-  $bloom.setAttribute('aria-expanded', 'false');
-
-  // ---- Restore ring to full compact size (hero) ----
-  const compactR = 120;
-  const $ringBg = document.querySelector('.score-bloom__ring-bg');
-  const $ringFill = document.getElementById('score-bloom-ring-fill');
-  if ($ringBg) { $ringBg.setAttribute('r', String(compactR)); $ringBg.style.strokeWidth = '5'; }
-  if ($ringFill && bloomData) {
-    const newCirc = 2 * Math.PI * compactR;
-    const pct = Math.round(parseFloat(bloomData.dondeMatch) || 80);
-    const target = newCirc - (pct / 100) * newCirc;
-    $ringFill.setAttribute('r', String(compactR));
-    $ringFill.style.strokeDasharray = String(newCirc);
-    $ringFill.style.strokeDashoffset = String(target);
-    $ringFill.style.strokeWidth = '5';
-  }
-
-  // Re-render compact petals
-  if (bloomData) {
-    const fakeTimers = [];
-    renderCompactPetals(bloomData.scores, fakeTimers);
-  }
-
-  // Hide axes, labels (orbs)
-  const $grid = document.getElementById('score-bloom-grid');
-  const $axes = document.getElementById('score-bloom-axes');
-  const $labels = document.getElementById('score-bloom-labels');
-  if ($grid) { $grid.style.opacity = '0'; $grid.innerHTML = ''; }
-  if ($axes) { $axes.style.opacity = '0'; $axes.innerHTML = ''; }
-  if ($labels) { $labels.style.opacity = '0'; $labels.innerHTML = ''; }
-
-  // Restore sentiment arc
-  const $sentimentG = document.getElementById('score-bloom-sentiment');
-  if ($sentimentG) { $sentimentG.style.transition = 'opacity 400ms ease-out'; $sentimentG.style.opacity = '1'; }
-
-  // Hide detail strip and V2 strip
-  hideBloomDetail();
-  hideV2Arcs();
-}
-
-function renderCompactPetals(scores, timers) {
-  const cx = 200, cy = 200;
-  const ringR = 120;
-  const compactMaxR = 22;
-  const compactMinR = 6;
-  const angleStep = (2 * Math.PI) / 6;
-  const startAngle = -Math.PI / 2;
-
-  const available = RADAR_DIMS.filter(d => {
-    const v = scores[d.key];
-    return v != null && v !== '' && !isNaN(parseFloat(v));
-  });
+  $container.style.display = '';
+  $list.innerHTML = '';
 
   const slots = RADAR_DIMS.map(dim => {
     const found = available.find(a => a.key === dim.key);
     const val = found ? Math.min(parseFloat(scores[dim.key]) || 0, 10) : 0;
     return { ...dim, val, hasData: !!found };
-  });
+  }).filter(s => s.hasData);
 
-  const $petals = document.getElementById('score-bloom-petals');
-  if (!$petals || available.length < 3) return;
-  $petals.innerHTML = '';
-
-  const dominant = slots.reduce((best, s) => (s.hasData && s.val > (best?.val || 0)) ? s : best, null);
+  // Find dominant dimension
+  const dominant = slots.reduce((best, s) => s.val > (best?.val || 0) ? s : best, null);
 
   slots.forEach((slot, i) => {
-    if (!slot.hasData) return;
-    const angle = startAngle + i * angleStep;
-    const petalStart = ringR + 4;
-    const petalLen = compactMinR + (slot.val / 10) * (compactMaxR - compactMinR);
-    const startX = cx + petalStart * Math.cos(angle);
-    const startY = cy + petalStart * Math.sin(angle);
-    const path = buildTeardropPath(startX, startY, angle, petalLen);
+    const row = document.createElement('div');
+    row.className = 'vibe-row' + (dominant && slot.key === dominant.key ? ' vibe-row--dominant' : '');
+    row.setAttribute('role', 'listitem');
 
-    const pathEl = svgEl('path');
-    pathEl.setAttribute('d', path);
-    pathEl.classList.add('score-bloom__petal');
-    pathEl.setAttribute('data-dim', slot.key);
-    pathEl.setAttribute('data-value', slot.val.toFixed(1));
-    pathEl.setAttribute('data-index', String(i));
+    const pctVal = (slot.val / 10) * 100;
+    row.innerHTML = `
+      <span class="vibe-row__icon">${svgIcon(slot.icon, 14)}</span>
+      <span class="vibe-row__label type-data--sm">${slot.label}</span>
+      <div class="vibe-row__track">
+        <div class="vibe-row__fill" style="width: 0%"></div>
+      </div>
+      <span class="vibe-row__score type-data--sm">${humanizeVibeScore(slot.val)}</span>`;
 
-    if (dominant && slot.key === dominant.key && !REDUCED.matches) {
-      pathEl.style.transformOrigin = `${startX}px ${startY}px`;
-      pathEl.classList.add('score-bloom__petal--dominant');
-    }
+    $list.appendChild(row);
 
+    // Animate fill bar
     if (!REDUCED.matches) {
-      pathEl.style.transformOrigin = `${cx}px ${cy}px`;
-      pathEl.style.transform = 'scale(0.6)';
-      pathEl.style.opacity = '0.5';
-      const delay = i * 50;
-      setTimeout(() => {
-        pathEl.style.transition = 'transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 200ms ease-out';
-        pathEl.style.transform = 'scale(1)';
-        pathEl.style.opacity = '1';
-      }, delay);
-    }
-
-    $petals.appendChild(pathEl);
-  });
-}
-
-export function handlePetalTap(dimKey) {
-  if (bloomState !== BLOOM_STATES.BLOOMED && bloomState !== BLOOM_STATES.PETAL_FOCUSED) return;
-  if (!bloomData) return;
-
-  // Toggle same petal off
-  if (activePetalDim === dimKey) {
-    activePetalDim = null;
-    bloomState = BLOOM_STATES.BLOOMED;
-    resetPetalHighlights();
-    hideBloomDetail();
-    return;
-  }
-
-  activePetalDim = dimKey;
-  bloomState = BLOOM_STATES.PETAL_FOCUSED;
-
-  // Highlight active petals/orbs, dim others
-  const $petals = document.querySelectorAll('.score-bloom__petal');
-  $petals.forEach(p => {
-    if (p.getAttribute('data-dim') === dimKey) {
-      p.classList.add('score-bloom__petal--active');
-      p.classList.remove('score-bloom__petal--dimmed');
+      timers.push(setTimeout(() => {
+        row.querySelector('.vibe-row__fill').style.width = `${pctVal}%`;
+      }, 500 + i * 80));
     } else {
-      p.classList.remove('score-bloom__petal--active');
-      p.classList.add('score-bloom__petal--dimmed');
+      row.querySelector('.vibe-row__fill').style.width = `${pctVal}%`;
     }
   });
-
-  // Highlight orbs in expanded view
-  const $orbs = document.querySelectorAll('.score-bloom__orb');
-  $orbs.forEach(o => {
-    if (o.getAttribute('data-dim') === dimKey) {
-      o.classList.add('score-bloom__orb--active');
-      o.classList.remove('score-bloom__orb--dimmed');
-    } else {
-      o.classList.remove('score-bloom__orb--active');
-      o.classList.add('score-bloom__orb--dimmed');
-    }
-  });
-
-  // Show detail strip
-  showBloomDetail(dimKey);
 }
 
-function showBloomDetail(dimKey) {
-  const $detail = document.getElementById('score-bloom-detail');
-  if (!$detail || !bloomData) return;
+/* ---- Score Breakdown (V2 — optional detail rows) ---- */
 
-  const dim = RADAR_DIMS.find(d => d.key === dimKey);
-  if (!dim) return;
-
-  const val = parseFloat(bloomData.scores[dimKey]) || 0;
-  const pct = (val / 10) * 100;
-
-  const $icon = document.getElementById('score-bloom-detail-icon');
-  const $label = document.getElementById('score-bloom-detail-label');
-  const $score = document.getElementById('score-bloom-detail-score');
-  const $fill = document.getElementById('score-bloom-detail-fill');
-  const $desc = document.getElementById('score-bloom-detail-desc');
-
-  if ($icon) $icon.innerHTML = svgIcon(dim.icon, 18);
-  if ($label) $label.textContent = dim.label;
-  if ($score) $score.textContent = humanizeVibeScore(val);
-  if ($fill) $fill.style.width = `${pct}%`;
-  if ($desc) {
-    const detail = getVibeDetail(dimKey, val);
-    $desc.textContent = detail;
-  }
-
-  $detail.style.display = 'block';
-  requestAnimationFrame(() => {
-    $detail.classList.add('score-bloom__detail--visible');
-  });
-}
-
-function hideBloomDetail() {
-  const $detail = document.getElementById('score-bloom-detail');
-  if ($detail) {
-    $detail.classList.remove('score-bloom__detail--visible');
-    setTimeout(() => { $detail.style.display = 'none'; }, 300);
-  }
-}
-
-function resetPetalHighlights() {
-  document.querySelectorAll('.score-bloom__petal').forEach(p => {
-    p.classList.remove('score-bloom__petal--active', 'score-bloom__petal--dimmed');
-  });
-  document.querySelectorAll('.score-bloom__orb').forEach(o => {
-    o.classList.remove('score-bloom__orb--active', 'score-bloom__orb--dimmed');
-  });
-}
-
-export function handleBloomRingTap() {
-  if (!bloomData) return;
-
-  const $bloom = document.getElementById('score-bloom');
-
-  // Deep dive → back to bloomed
-  if (bloomState === BLOOM_STATES.DEEP_DIVE) {
-    bloomState = BLOOM_STATES.BLOOMED;
-    $bloom?.setAttribute('data-bloom-state', 'bloomed');
-    hideV2Arcs();
-    return;
-  }
-
-  // Bloomed/petal-focused → deep dive (if V2 data available)
-  if (bloomState !== BLOOM_STATES.BLOOMED && bloomState !== BLOOM_STATES.PETAL_FOCUSED) return;
-  if (!bloomData.scoringV2) return;
-
-  bloomState = BLOOM_STATES.DEEP_DIVE;
-  $bloom?.setAttribute('data-bloom-state', 'deep-dive');
-  activePetalDim = null;
-  resetPetalHighlights();
-  hideBloomDetail();
-  showV2Arcs();
-}
-
-// Humanize vibe score (0-10 scale) — used for vibe dimensions
-function humanizeVibeScore(val) {
-  if (val >= 9) return 'Outstanding';
-  if (val >= 7.5) return 'Strong';
-  if (val >= 5.5) return 'Good';
-  if (val >= 3.5) return 'Moderate';
-  return 'Low';
-}
-
-// Humanize V2 score (0-100 scale) — used for scoring breakdown
-function humanizeV2Score(val) {
-  if (val >= 90) return 'Perfect';
-  if (val >= 75) return 'Strong';
-  if (val >= 60) return 'Good';
-  if (val >= 40) return 'Fair';
-  return 'Low';
-}
-
-function showV2Arcs() {
-  if (!bloomData?.scoringV2) return;
-
-  // Render V2 breakdown as a clean detail strip (not SVG arcs)
-  const $strip = document.getElementById('score-bloom-v2-strip');
+export function toggleScoreBreakdown() {
+  if (!heroData?.scoringV2) return;
+  const $strip = document.getElementById('score-breakdown');
   if (!$strip) return;
 
+  if ($strip.classList.contains('score-breakdown--visible')) {
+    $strip.classList.remove('score-breakdown--visible');
+    setTimeout(() => { $strip.innerHTML = ''; $strip.style.display = 'none'; }, 300);
+    return;
+  }
+
   $strip.innerHTML = '';
-  const sv2 = bloomData.scoringV2;
+  const sv2 = heroData.scoringV2;
 
   const v2Dims = [
     { key: 'occasion_fit',    label: 'Occasion' },
@@ -928,7 +451,6 @@ function showV2Arcs() {
       <span class="v2-row__score type-data--sm">${humanizeV2Score(val)}</span>`;
     $strip.appendChild(row);
 
-    // Animate fill bar
     if (!REDUCED.matches) {
       setTimeout(() => {
         row.querySelector('.v2-row__fill').style.width = `${val}%`;
@@ -940,42 +462,280 @@ function showV2Arcs() {
 
   $strip.style.display = 'flex';
   requestAnimationFrame(() => {
-    $strip.classList.add('score-bloom__v2-strip--visible');
+    $strip.classList.add('score-breakdown--visible');
   });
-
-  // Dim orbs while showing breakdown
-  document.querySelectorAll('.score-bloom__orb').forEach(o => {
-    o.classList.add('score-bloom__orb--dimmed');
-  });
-  const $axes = document.getElementById('score-bloom-axes');
-  if ($axes) $axes.style.opacity = '0.2';
 }
 
-function hideV2Arcs() {
-  const $strip = document.getElementById('score-bloom-v2-strip');
-  if ($strip) {
-    $strip.classList.remove('score-bloom__v2-strip--visible');
-    setTimeout(() => { $strip.innerHTML = ''; $strip.style.display = 'none'; }, 300);
+/* ---- Bloom: Petal Radar inside Score Hero ---- */
+
+let _bloomState = 'compact'; // 'compact' | 'bloomed' | 'breakdown'
+let _bloomRendered = false;
+let _breakdownRendered = false;
+
+export function getBloomState() { return _bloomState; }
+
+export function resetBloomState() {
+  _bloomState = 'compact';
+  _bloomRendered = false;
+  _breakdownRendered = false;
+  const $hero = document.getElementById('score-hero');
+  if ($hero) {
+    $hero.classList.remove('score-hero--bloomed', 'score-hero--breakdown');
+  }
+  const $petalsG = document.getElementById('bloom-petals');
+  const $iconsG = document.getElementById('bloom-icons');
+  const $bloom = document.getElementById('score-hero-bloom');
+  if ($petalsG) $petalsG.innerHTML = '';
+  if ($iconsG) $iconsG.innerHTML = '';
+  if ($bloom) {
+    const gridG = $bloom.querySelector('.bloom__grid');
+    const axesG = $bloom.querySelector('.bloom__axes');
+    if (gridG) gridG.innerHTML = '';
+    if (axesG) axesG.innerHTML = '';
+  }
+  // Clear breakdown strip
+  const $breakdownStrip = document.getElementById('bloom-breakdown');
+  if ($breakdownStrip) $breakdownStrip.remove();
+}
+
+/**
+ * 3-state cycle: compact → bloomed (petals) → breakdown (V2 bars) → compact
+ */
+export function toggleBloom(scores, scoringV2, timers = []) {
+  const $hero = document.getElementById('score-hero');
+  if (!$hero) return _bloomState;
+
+  if (_bloomState === 'compact') {
+    // → bloomed: show petal radar
+    $hero.classList.add('score-hero--bloomed');
+    $hero.classList.remove('score-hero--breakdown');
+    if (!_bloomRendered) {
+      renderBloomPetals(scores || {}, timers);
+      _bloomRendered = true;
+    }
+    _bloomState = 'bloomed';
+    return 'bloomed';
+
+  } else if (_bloomState === 'bloomed') {
+    // → breakdown: show V2 scoring bars below bloom
+    if (scoringV2 && Object.keys(scoringV2).length > 0) {
+      $hero.classList.remove('score-hero--bloomed');
+      $hero.classList.add('score-hero--breakdown');
+      if (!_breakdownRendered) {
+        renderBloomBreakdown(scoringV2, timers);
+        _breakdownRendered = true;
+      }
+      _bloomState = 'breakdown';
+      return 'breakdown';
+    }
+    // No V2 data — skip straight to compact
+    $hero.classList.remove('score-hero--bloomed');
+    _bloomState = 'compact';
+    return 'compact';
+
+  } else {
+    // → compact: collapse everything
+    $hero.classList.remove('score-hero--bloomed', 'score-hero--breakdown');
+    _bloomState = 'compact';
+    return 'compact';
+  }
+}
+
+export function handlePetalTap() {}
+export function handleBloomRingTap() {
+  toggleScoreBreakdown();
+}
+
+/**
+ * Render 6 teardrop petals inside the bloom overlay SVG.
+ * Adapted from legacy renderPetalRadar — same geometry, new DOM targets.
+ */
+function renderBloomPetals(scores, timers = []) {
+  const $bloom = document.getElementById('score-hero-bloom');
+  const $petalsG = document.getElementById('bloom-petals');
+  const $iconsG = document.getElementById('bloom-icons');
+  if (!$bloom || !$petalsG || !$iconsG) return;
+
+  const available = RADAR_DIMS.filter(d => {
+    const v = scores[d.key];
+    return v != null && v !== '' && !isNaN(parseFloat(v));
+  });
+
+  if (available.length < 3) return;
+
+  const gridG = $bloom.querySelector('.bloom__grid');
+  const axesG = $bloom.querySelector('.bloom__axes');
+  $petalsG.innerHTML = '';
+  $iconsG.innerHTML = '';
+  if (gridG) gridG.innerHTML = '';
+  if (axesG) axesG.innerHTML = '';
+
+  const cx = 120, cy = 120;
+  const maxR = 55;
+  const minR = 8;
+  const angleStep = (2 * Math.PI) / 6;
+  const startAngle = -Math.PI / 2;
+
+  // Build slots — all 6 positions
+  const slots = RADAR_DIMS.map(dim => {
+    const found = available.find(a => a.key === dim.key);
+    const val = found ? Math.min(parseFloat(scores[dim.key]) || 0, 10) : 0;
+    return { ...dim, val, hasData: !!found };
+  });
+
+  // Concentric hexagonal guides at 33% and 66%
+  if (gridG) {
+    [0.33, 0.66].forEach(pct => {
+      const r = maxR * pct;
+      const pts = [];
+      for (let i = 0; i < 6; i++) {
+        const a = startAngle + i * angleStep;
+        pts.push(`${cx + r * Math.cos(a)},${cy + r * Math.sin(a)}`);
+      }
+      const poly = svgEl('polygon');
+      poly.setAttribute('points', pts.join(' '));
+      poly.classList.add('bloom__guide');
+      gridG.appendChild(poly);
+    });
   }
 
-  // Restore orbs
-  document.querySelectorAll('.score-bloom__orb').forEach(o => {
-    o.classList.remove('score-bloom__orb--dimmed');
+  // Axis lines from center to each vertex
+  if (axesG) {
+    for (let i = 0; i < 6; i++) {
+      const a = startAngle + i * angleStep;
+      const line = svgEl('line');
+      line.setAttribute('x1', cx);
+      line.setAttribute('y1', cy);
+      line.setAttribute('x2', cx + maxR * Math.cos(a));
+      line.setAttribute('y2', cy + maxR * Math.sin(a));
+      line.classList.add('bloom__axis');
+      axesG.appendChild(line);
+    }
+  }
+
+  // Petals
+  slots.forEach((slot, i) => {
+    if (!slot.hasData) return;
+    const angle = startAngle + i * angleStep;
+    const r = minR + (slot.val / 10) * (maxR - minR);
+    const path = svgEl('path');
+    path.setAttribute('d', buildTeardropPath(cx, cy, angle, r));
+    path.classList.add('bloom__petal');
+    path.setAttribute('data-dim', slot.key);
+    path.setAttribute('data-value', slot.val.toFixed(1));
+
+    // Accessible title
+    const title = svgEl('title');
+    title.textContent = `${slot.label}: ${humanizeVibeScore(slot.val)} (${slot.val.toFixed(1)}/10)`;
+    path.appendChild(title);
+
+    if (!REDUCED.matches) {
+      path.style.transformOrigin = `${cx}px ${cy}px`;
+      path.style.transform = 'scale(0)';
+      path.style.opacity = '0';
+      const delay = 200 + i * 80;
+      timers.push(setTimeout(() => {
+        path.style.transition = 'transform 500ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 300ms ease-out';
+        path.style.transform = 'scale(1)';
+        path.style.opacity = '1';
+      }, delay));
+    }
+    $petalsG.appendChild(path);
   });
-  const $axes = document.getElementById('score-bloom-axes');
-  if ($axes) $axes.style.opacity = '1';
+
+  // Icons + labels at axis tips
+  slots.forEach((slot, i) => {
+    if (!slot.hasData) return;
+    const angle = startAngle + i * angleStep;
+    const iconR = maxR + 16;
+    const ix = cx + iconR * Math.cos(angle);
+    const iy = cy + iconR * Math.sin(angle);
+
+    // Icon via foreignObject
+    const fo = svgEl('foreignObject');
+    fo.setAttribute('x', ix - 10);
+    fo.setAttribute('y', iy - 10);
+    fo.setAttribute('width', 20);
+    fo.setAttribute('height', 20);
+    fo.setAttribute('class', 'bloom__icon-fo');
+    const div = document.createElement('div');
+    div.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml');
+    div.className = 'bloom__icon';
+    div.innerHTML = svgIcon(slot.icon, 14);
+    fo.appendChild(div);
+    $iconsG.appendChild(fo);
+
+    // Label text
+    const labelR = maxR + 28;
+    const lx = cx + labelR * Math.cos(angle);
+    const ly = cy + labelR * Math.sin(angle);
+    const text = svgEl('text');
+    text.setAttribute('x', lx);
+    text.setAttribute('y', ly + 3);
+    text.classList.add('bloom__label');
+    text.textContent = slot.label;
+    $iconsG.appendChild(text);
+  });
 }
 
-export function getBloomState() { return bloomState; }
+/**
+ * Render V2 scoring breakdown as compact bars below the bloom.
+ * Inserted into score-hero__meta area.
+ */
+function renderBloomBreakdown(scoringV2, timers = []) {
+  const $hero = document.getElementById('score-hero');
+  if (!$hero) return;
 
-/* ---- Sentiment Bar (horizontal mood indicator) ---- */
-export function renderSentimentBar(pos, neu, neg, timers = []) {
+  // Create breakdown container after the meta area
+  let $strip = document.getElementById('bloom-breakdown');
+  if (!$strip) {
+    $strip = document.createElement('div');
+    $strip.id = 'bloom-breakdown';
+    $strip.className = 'bloom-breakdown';
+    // Insert after score-hero__meta
+    const $meta = $hero.querySelector('.score-hero__meta');
+    if ($meta) {
+      $meta.after($strip);
+    } else {
+      $hero.appendChild($strip);
+    }
+  }
+  $strip.innerHTML = '';
+
+  const v2Dims = [
+    { key: 'occasion_fit',    label: 'Occasion' },
+    { key: 'craving_match',   label: 'Craving' },
+    { key: 'vibe_alignment',  label: 'Vibe' },
+    { key: 'practical_fit',   label: 'Practical' },
+    { key: 'discovery_value', label: 'Discovery' },
+  ];
+
+  v2Dims.forEach((dim, i) => {
+    const val = Math.min(Math.max(scoringV2[dim.key] || 0, 0), 100);
+    const row = document.createElement('div');
+    row.className = 'bloom-v2-row';
+    row.innerHTML = `
+      <span class="bloom-v2-row__label">${dim.label}</span>
+      <div class="bloom-v2-row__track">
+        <div class="bloom-v2-row__fill" style="width: 0%"></div>
+      </div>
+      <span class="bloom-v2-row__score">${humanizeV2Score(val)}</span>`;
+    $strip.appendChild(row);
+
+    if (!REDUCED.matches) {
+      timers.push(setTimeout(() => {
+        row.querySelector('.bloom-v2-row__fill').style.width = `${val}%`;
+      }, 100 + i * 60));
+    } else {
+      row.querySelector('.bloom-v2-row__fill').style.width = `${val}%`;
+    }
+  });
+}
+
+/* ---- Sentiment Inline (compact horizontal bar) ---- */
+export function renderSentimentInline(pos, neu, neg, timers = []) {
   const total = pos + neu + neg;
   if (total === 0) return;
-
-  const $bar = document.getElementById('sentiment-bar');
-  if (!$bar) return;
-  $bar.style.display = '';
 
   const posEl = document.getElementById('sentiment-bar-pos');
   const neuEl = document.getElementById('sentiment-bar-neu');
@@ -1000,6 +760,32 @@ export function renderSentimentBar(pos, neu, neg, timers = []) {
     if (negEl) negEl.style.flex = String(negPct);
   }
 }
+
+// Keep renderSentimentBar as alias for backward compatibility
+export function renderSentimentBar(pos, neu, neg, timers = []) {
+  return renderSentimentInline(pos, neu, neg, timers);
+}
+
+// Humanize vibe score (0-10 scale) — used for vibe dimensions
+function humanizeVibeScore(val) {
+  if (val >= 9) return 'Outstanding';
+  if (val >= 7.5) return 'Strong';
+  if (val >= 5.5) return 'Good';
+  if (val >= 3.5) return 'Moderate';
+  return 'Low';
+}
+
+// Humanize V2 score (0-100 scale) — used for scoring breakdown
+function humanizeV2Score(val) {
+  if (val >= 90) return 'Perfect';
+  if (val >= 75) return 'Strong';
+  if (val >= 60) return 'Good';
+  if (val >= 40) return 'Fair';
+  return 'Low';
+}
+
+// Backward-compatible alias
+export { renderScoreHero as renderScoreBloom };
 
 /* ---- Badge Fade-In with Scale Spring ---- */
 export function animateBadge(badgeEl, delayMs = 0) {

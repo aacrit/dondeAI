@@ -470,11 +470,13 @@
   .logo-mark--searching .logo-mark__curve,
   .loading-logo__text,
   .loading-status,
-  .result-card--revealing > *,
-  .result-card--revealing .score-tile,
-  .result-card--revealing .result-name,
-  .result-card--revealing .result-nav,
-  .result-card--revealing .result-rec-wrap,
+  .result-card--revealing .tier--glance > *,
+  .result-card--revealing .match-pill,
+  .result-card--revealing .result-header,
+  .result-card--revealing .result-oneliner,
+  .result-card--revealing .donde-blurb,
+  .result-card--revealing .glance-nav,
+  .result-card--revealing .glance-actions,
   .cta-btn--ready,
   .cta-btn--alive,
   .cta-btn--boosted {
@@ -534,16 +536,11 @@
     transition: none !important;
   }
 
-  /* Score Bloom — no breathing, instant transitions */
-  .score-bloom__petal--dominant {
-    animation: none !important;
-  }
-  .score-bloom__petal,
-  .score-bloom__detail,
-  .score-bloom__callout,
-  .score-bloom__v2-arc,
-  .score-bloom__v2-label,
-  .score-bloom__ring-fill {
+  /* Score Hero — instant transitions for reduced motion */
+  .score-hero__arc-fill,
+  .vibe-row__fill,
+  .score-breakdown .v2-row__fill,
+  .sentiment-inline__seg {
     transition: none !important;
   }
 }

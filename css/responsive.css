@@ -13,6 +13,14 @@
   .profile-facts {
     grid-template-columns: repeat(2, 1fr);
   }
+
+  .match-pill {
+    padding: var(--space-2xs) var(--space-sm);
+  }
+
+  .match-pill__score {
+    font-size: 1.125rem;
+  }
 }
 
 /* ---- 375px: Primary mobile target ---- */
@@ -22,10 +30,11 @@
   }
 }
 
-/* ---- Mobile: Score Bloom full-width sizing ---- */
+/* ---- Mobile: Score hero + tier tweaks ---- */
 @media (max-width: 767px) {
-  .score-bloom__viz {
-    width: min(100%, 360px);
+  .tier--leanin.tier--expanded,
+  .tier--deep.tier--expanded {
+    padding-top: var(--space-sm);
   }
 }
 
@@ -59,13 +68,20 @@
     padding: var(--space-xl);
   }
 
-  /* Score Bloom: tablet sizing — full container width */
-  .score-bloom__viz {
-    width: min(100%, 440px);
+  /* Score Hero: tablet sizing */
+  .score-hero__gauge {
+    width: min(65vw, 340px);
   }
 
-  .score-bloom__number {
-    font-size: var(--text-2xl);
+  /* Score Hero bloom: tablet */
+  .score-hero--bloomed .score-hero__gauge,
+  .score-hero--breakdown .score-hero__gauge {
+    width: min(70vw, 420px);
+  }
+
+  /* Match pill: larger on tablet */
+  .match-pill__score {
+    font-size: 1.5rem;
   }
 
   /* Keep score-tile styles for the tile-expand modal */
@@ -108,18 +124,25 @@
     max-height: 450px;
   }
 
-  /* Score Bloom: desktop sizing — full container width */
-  .score-bloom__viz {
-    width: min(100%, 500px);
+  /* Score Hero: desktop sizing */
+  .score-hero__gauge {
+    width: min(50vw, 380px);
   }
 
-  .score-bloom__number {
-    font-size: 28px;
+  /* Score Hero bloom: desktop */
+  .score-hero--bloomed .score-hero__gauge,
+  .score-hero--breakdown .score-hero__gauge {
+    width: min(45vw, 460px);
   }
 
   .score-tile .score-ring-wrap {
     width: 148px;
     height: 148px;
+  }
+
+  /* Match pill: desktop prominence */
+  .match-pill__score {
+    font-size: 1.625rem;
   }
 }
 
