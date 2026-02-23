@@ -5,7 +5,7 @@
 
 import { getState, setState, subscribe, resetState } from './state.js';
 import { initRouter, goToStep, goToStepInstant } from './router.js';
-import { loadTheme, loadSound, loadHistory, addToHistory, saveTheme, loadColorMode } from './persistence.js';
+import { loadTheme, loadSound, loadHistory, addToHistory, saveTheme, loadColorMode, loadBookmarks, addBookmark, removeBookmark, isBookmarked, getOrCreateUserId, saveFeedback, loadFeedback } from './persistence.js';
 import { initTheme, setTheme, setThemeInstant, setThemeVisualOnly, revertAutoTheme, setManualOverride, isManualOverride, setColorMode, getColorMode, getLabels, CULTURES, CULTURE_DISPLAY_NAMES } from './theme.js';
 import { initAudio, toggleSound, playChime } from './audio.js';
 import { initVoice, startVoice } from './voice.js';
@@ -75,6 +75,12 @@ function init() {
 
   // Render taste memory (recent searches)
   renderTasteMemory();
+
+  // F4: Render saved spots (bookmarks)
+  renderSavedSpots();
+
+  // F9: Initialize anonymous user ID
+  getOrCreateUserId();
 
   // Wire swipe gestures
   wireSwipe();
@@ -499,11 +505,19 @@ function wireEvents() {
     switch (action) {
       case 'reset':
         resetState();
-        if ($cravingInput) $cravingInput.value = '';
+        if ($cravingInput) {
+          $cravingInput.value = '';
+          $cravingInput.style.height = ''; // F19: reset textarea height
+        }
         clearAllSelections();
+        // F5: Clear dietary pills
+        document.querySelectorAll('[data-action="toggle-dietary"]').forEach(pill => {
+          pill.setAttribute('aria-pressed', 'false');
+        });
         setupLanding();
         renderSmartChips();
         renderTasteMemory();
+        renderSavedSpots();
         goToStep(0);
         updateCtaState();
         updateFilterSummary();
@@ -584,6 +598,94 @@ function wireEvents() {
         const isExpanded = btn.getAttribute('aria-expanded') === 'true';
         btn.setAttribute('aria-expanded', String(!isExpanded));
         if (content) content.hidden = isExpanded;
+        break;
+      }
+
+      // F5: Dietary restriction toggle (multi-select)
+      case 'toggle-dietary': {
+        const val = btn.dataset.value;
+        const current = [...getState().dietaryRestrictions];
+        const isActive = btn.getAttribute('aria-pressed') === 'true';
+        btn.setAttribute('aria-pressed', String(!isActive));
+        if (isActive) {
+          setState({ dietaryRestrictions: current.filter(d => d !== val) });
+        } else {
+          current.push(val);
+          setState({ dietaryRestrictions: current });
+        }
+        // Ink ripple feedback
+        const ripple = document.createElement('span');
+        ripple.className = 'filter-pill__ripple';
+        btn.appendChild(ripple);
+        ripple.addEventListener('animationend', () => ripple.remove(), { once: true });
+        updateFilterSummary();
+        break;
+      }
+
+      // F14: Surprise Me
+      case 'surprise-me': {
+        const surprisePrompts = [
+          "surprise me with the best spot tonight",
+          "the most underrated gem nearby",
+          "whatever locals are obsessed with",
+          "a place that'll blow my mind",
+          "the hidden gem nobody talks about",
+          "something completely different",
+          "the best meal I'll have this month",
+          "chef's pick — go wild",
+        ];
+        const prompt = surprisePrompts[Math.floor(Math.random() * surprisePrompts.length)];
+        if ($cravingInput) {
+          $cravingInput.value = prompt;
+          // Auto-grow for textarea
+          $cravingInput.style.height = 'auto';
+          $cravingInput.style.height = $cravingInput.scrollHeight + 'px';
+        }
+        setState({ craving: prompt, excludeIds: [] });
+        updateCtaState();
+        // Auto-submit after 800ms delay (per BR-H1)
+        setTimeout(() => handleSubmit(), 800);
+        break;
+      }
+
+      // F11: Feedback (like/dislike)
+      case 'feedback': {
+        const fb = btn.dataset.feedback;
+        const resultData = getState().result;
+        const restaurantId = resultData?.restaurant?.id;
+        if (!restaurantId || !fb) break;
+        saveFeedback(restaurantId, fb);
+        setState({ pendingFeedback: { restaurant_id: restaurantId, feedback: fb } });
+        // Visual toggle
+        document.querySelectorAll('.feedback-btn').forEach(b => b.classList.remove('feedback-btn--active'));
+        btn.classList.add('feedback-btn--active');
+        showToast(fb === 'like' ? 'Noted — glad you like it!' : 'Got it — we\'ll adjust.', false);
+        break;
+      }
+
+      // F4: Bookmark toggle
+      case 'bookmark': {
+        const result = getState().result;
+        const restaurant = result?.restaurant;
+        if (!restaurant?.id) break;
+        const wasBookmarked = isBookmarked(restaurant.id);
+        if (wasBookmarked) {
+          removeBookmark(restaurant.id);
+        } else {
+          addBookmark(restaurant);
+        }
+        updateBookmarkBtn(restaurant.id);
+        renderSavedSpots();
+        showToast(wasBookmarked ? 'Removed from saved' : 'Saved!', false);
+        break;
+      }
+
+      // F2: Toggle business hours detail
+      case 'toggle-hours': {
+        const detail = document.getElementById('hours-detail');
+        const isExp = btn.getAttribute('aria-expanded') === 'true';
+        btn.setAttribute('aria-expanded', String(!isExp));
+        if (detail) detail.hidden = isExp;
         break;
       }
 
@@ -1038,6 +1140,9 @@ function wireCravingInput() {
   $cravingInput.addEventListener('input', () => {
     setState({ craving: $cravingInput.value });
     updateCtaState();
+    // F19: Auto-grow textarea
+    $cravingInput.style.height = 'auto';
+    $cravingInput.style.height = $cravingInput.scrollHeight + 'px';
 
     // Debounced chip reactivity
     clearTimeout(chipDebounce);
@@ -1097,7 +1202,8 @@ function wireCravingInput() {
       }
     }
 
-    if (e.key === 'Enter') {
+    // F19: Enter submits, Shift+Enter inserts new line (textarea)
+    if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSubmit();
     }
@@ -1210,7 +1316,13 @@ function selectFilter(field, btn) {
   setState({ [field]: btn.dataset.value });
   updateFilterSummary();
   boostCta();
+
+  // F17: Auto-collapse filter drawer after selection (Momentum principle)
+  clearTimeout(autoAdvanceTimer);
+  autoAdvanceTimer = setTimeout(() => collapseFilters(), 600);
 }
+
+let autoAdvanceTimer = null;
 
 function boostCta() {
   const $cta = document.querySelector('.cta-btn');
@@ -1256,6 +1368,7 @@ function updateFilterSummary() {
   if (s.occasion !== 'Any') parts.push(s.occasion);
   if (s.neighborhood !== 'Anywhere') parts.push(s.neighborhood);
   if (s.priceLevel !== 'Any') parts.push(s.priceLevel);
+  if (s.dietaryRestrictions?.length) parts.push(s.dietaryRestrictions.join(', '));
   const $summary = document.getElementById('filter-summary');
   if ($summary) {
     $summary.textContent = parts.length ? parts.join(' \u00B7 ') : '';
@@ -1327,6 +1440,15 @@ async function handleSubmit() {
       price_level: s.priceLevel,
     };
     if (s.excludeIds.length) payload.exclude = s.excludeIds;
+    // F5: Dietary restrictions
+    if (s.dietaryRestrictions.length) payload.dietary_restrictions = s.dietaryRestrictions;
+    // F9: Anonymous user ID for personalization
+    payload.user_id = getOrCreateUserId();
+    // F11: Send pending feedback with request
+    if (s.pendingFeedback) {
+      payload.feedback = s.pendingFeedback;
+      setState({ pendingFeedback: null });
+    }
     const data = await fetchRecommendation(payload);
 
     // Save to history with cuisine icon
@@ -1499,6 +1621,11 @@ async function orchestrateReveal(data) {
   // 6. Restore header
   if ($header) $header.style.opacity = '';
 
+  // F18: Haptic feedback on reveal (mobile only, graceful degrade)
+  if (navigator.vibrate) {
+    navigator.vibrate([50, 30, 50]);
+  }
+
   // 7. After transitions complete, clean up
   await new Promise(r => setTimeout(r, 550));
 
@@ -1595,6 +1722,9 @@ function renderResult(data) {
     }
   }
 
+  // F1: Render restaurant photos
+  renderPhotos(data);
+
   // Cuisine accent color on card border
   if ($resultCard && cuisine.hue !== null) {
     $resultCard.classList.add('result-card--cuisine-accent');
@@ -1674,6 +1804,15 @@ function renderResult(data) {
     }
   }
 
+  // F2: Open Now / Closed badge in quick tags
+  renderOpenNowTag(data);
+
+  // F4: Set bookmark button state
+  if (r.id) updateBookmarkBtn(r.id);
+
+  // F11: Set feedback button state
+  if (r.id) renderFeedbackState(r.id);
+
   // DondeAI Recommendation blurb — the editorial voice in Tier 1
   const $rec = document.getElementById('result-recommendation');
   const $blurb = document.getElementById('donde-blurb');
@@ -1683,22 +1822,8 @@ function renderResult(data) {
     if ($blurb) $blurb.style.display = recText ? '' : 'none';
   }
 
-  // Compact navigation tile in glance
-  const $glanceNav = document.getElementById('glance-nav');
-  if ($glanceNav) {
-    if (r.address) {
-      const mapsUrl = buildMapsUrl(r.address);
-      $glanceNav.innerHTML = `
-        <a class="glance-nav__link" href="${mapsUrl}" target="_blank" rel="noopener noreferrer">
-          <span class="glance-nav__icon">${svgIcon('pin', 18)}</span>
-          <span class="glance-nav__address type-structural">${r.address}</span>
-          <span class="glance-nav__arrow">${svgIcon('chevronRight', 16)}</span>
-        </a>`;
-      $glanceNav.style.display = '';
-    } else {
-      $glanceNav.style.display = 'none';
-    }
-  }
+  // F3: Enhanced map navigation tile
+  renderMapPreview(data);
 
   // Inject icons into glance action buttons
   const $tryAgainIcon = document.getElementById('try-again-icon');
@@ -1923,6 +2048,15 @@ function prepareTier2(data, cuisine) {
     });
   }
 
+  // F7: Reservation/booking link
+  renderReservationLink(data);
+
+  // F2: Business hours detail
+  renderBusinessHours(data);
+
+  // 1D: Deep context extras (USP, wow factors, origin story)
+  renderDeepContextExtras(data);
+
   // Profile chips (compact icon+label strip)
   renderProfileChips(data, cuisine);
 }
@@ -1988,6 +2122,9 @@ function prepareTier3(data, cuisine) {
       });
     $profileFacts.style.display = '';
   }
+
+  // 1D: Add deep context badges (reservation difficulty, wait time, etc.)
+  addDeepContextBadges(data);
 }
 
 /* ---- Render Profile Chips for Tier 2 ---- */
@@ -2281,6 +2418,289 @@ function closeTileExpand() {
     // Return focus to the tile that was expanded
     document.querySelector('.score-tile--expandable')?.focus();
   }
+}
+
+/* ---- F1: Render Restaurant Photos ---- */
+function renderPhotos(data) {
+  const $photos = document.getElementById('result-photos');
+  if (!$photos) return;
+  const photoUrls = data.restaurant?.photo_urls;
+  if (!photoUrls || photoUrls.length === 0) {
+    $photos.style.display = 'none';
+    return;
+  }
+  $photos.innerHTML = '';
+  photoUrls.slice(0, 5).forEach((url, i) => {
+    const img = document.createElement('img');
+    img.className = 'result-photos__img';
+    img.src = url;
+    img.alt = `${data.restaurant.name} photo ${i + 1}`;
+    img.loading = i === 0 ? 'eager' : 'lazy';
+    img.decoding = 'async';
+    $photos.appendChild(img);
+  });
+  $photos.style.display = '';
+}
+
+/* ---- F2: Render Business Hours ---- */
+function renderBusinessHours(data) {
+  const $hours = document.getElementById('business-hours');
+  if (!$hours) return;
+  const openingHours = data.restaurant?.opening_hours;
+  if (!openingHours) {
+    $hours.style.display = 'none';
+    return;
+  }
+  const $status = document.getElementById('hours-status');
+  const $detail = document.getElementById('hours-detail');
+  if ($status) {
+    if (openingHours.open_now === true) {
+      $status.innerHTML = '<span class="hours-badge hours-badge--open">Open Now</span>';
+    } else if (openingHours.open_now === false) {
+      $status.innerHTML = '<span class="hours-badge hours-badge--closed">Closed</span>';
+    } else {
+      $status.textContent = 'Hours';
+    }
+  }
+  if ($detail && openingHours.weekday_text?.length) {
+    $detail.innerHTML = openingHours.weekday_text
+      .map(line => `<p class="hours-line type-data--sm">${line}</p>`)
+      .join('');
+  }
+  $hours.style.display = '';
+}
+
+/* ---- F2: Open Now badge in quick tags ---- */
+function renderOpenNowTag(data) {
+  const $quickTags = document.getElementById('quick-tags');
+  if (!$quickTags) return;
+  const oh = data.restaurant?.opening_hours;
+  if (oh?.open_now === true) {
+    const tag = document.createElement('span');
+    tag.className = 'quick-tag quick-tag--open type-data--sm';
+    tag.textContent = 'Open';
+    $quickTags.insertBefore(tag, $quickTags.firstChild);
+  } else if (oh?.open_now === false) {
+    const tag = document.createElement('span');
+    tag.className = 'quick-tag quick-tag--closed type-data--sm';
+    tag.textContent = 'Closed';
+    $quickTags.insertBefore(tag, $quickTags.firstChild);
+  }
+}
+
+/* ---- F3: Enhanced Map Navigation Tile ---- */
+function renderMapPreview(data) {
+  const r = data.restaurant;
+  const $glanceNav = document.getElementById('glance-nav');
+  if (!$glanceNav || !r?.address) return;
+  const mapsUrl = r.google_place_id
+    ? `https://www.google.com/maps/place/?q=place_id:${r.google_place_id}`
+    : buildMapsUrl(r.address);
+  const neighborhood = r.neighborhood_name || '';
+  $glanceNav.innerHTML = `
+    <a class="glance-nav__link glance-nav__link--enhanced" href="${mapsUrl}" target="_blank" rel="noopener noreferrer">
+      <div class="glance-nav__map-icon">${svgIcon('pin', 24)}</div>
+      <div class="glance-nav__info">
+        ${neighborhood ? `<span class="glance-nav__hood type-data--sm">${neighborhood}</span>` : ''}
+        <span class="glance-nav__address type-structural">${r.address}</span>
+      </div>
+      <span class="glance-nav__cta type-structural">Directions ${svgIcon('chevronRight', 16)}</span>
+    </a>`;
+  $glanceNav.style.display = '';
+}
+
+/* ---- F4: Update Bookmark Button State ---- */
+function updateBookmarkBtn(restaurantId) {
+  const $btn = document.getElementById('bookmark-btn');
+  if (!$btn) return;
+  const saved = isBookmarked(restaurantId);
+  $btn.querySelector('.bookmark-icon--outline').style.display = saved ? 'none' : '';
+  $btn.querySelector('.bookmark-icon--filled').style.display = saved ? '' : 'none';
+  $btn.setAttribute('aria-label', saved ? 'Remove from saved' : 'Save this spot');
+  $btn.classList.toggle('feedback-btn--active', saved);
+}
+
+/* ---- F4: Render Saved Spots on Canvas ---- */
+function renderSavedSpots() {
+  const $container = document.getElementById('saved-spots');
+  const $list = document.getElementById('saved-spots-list');
+  if (!$container || !$list) return;
+  const bookmarks = loadBookmarks();
+  if (bookmarks.length === 0) {
+    $container.style.display = 'none';
+    return;
+  }
+  $list.innerHTML = '';
+  bookmarks.slice(0, 5).forEach(b => {
+    const item = document.createElement('button');
+    item.className = 'saved-spot type-structural';
+    item.innerHTML = `
+      <span class="saved-spot__name">${b.name}</span>
+      ${b.cuisine_type ? `<span class="saved-spot__meta type-data--sm">${b.cuisine_type}</span>` : ''}
+    `;
+    item.addEventListener('click', () => {
+      if ($cravingInput) {
+        $cravingInput.value = b.name;
+        setState({ craving: b.name });
+        updateCtaState();
+      }
+    });
+    $list.appendChild(item);
+  });
+  $container.style.display = '';
+}
+
+/* ---- F7: Reservation/Booking Link ---- */
+function renderReservationLink(data) {
+  const r = data.restaurant;
+  const $resultLinks = document.getElementById('result-links');
+  if (!$resultLinks || !r) return;
+  // Add reserve link using Google Maps or restaurant website
+  const reserveUrl = r.google_place_id
+    ? `https://www.google.com/maps/place/?q=place_id:${r.google_place_id}`
+    : r.website;
+  if (reserveUrl) {
+    const reserveLink = createResultLink('a', 'calendar', 'Reserve', reserveUrl);
+    // Insert before the Share button
+    const shareBtn = $resultLinks.querySelector('[data-action="share"]');
+    if (shareBtn) {
+      const sep = document.createElement('span');
+      sep.className = 'result-links__sep';
+      sep.textContent = '\u00b7';
+      sep.setAttribute('aria-hidden', 'true');
+      $resultLinks.insertBefore(sep, shareBtn.previousSibling || shareBtn);
+      $resultLinks.insertBefore(reserveLink, sep.nextSibling);
+    } else {
+      $resultLinks.appendChild(reserveLink);
+    }
+  }
+}
+
+/* ---- F11: Render Feedback Button State ---- */
+function renderFeedbackState(restaurantId) {
+  const existing = loadFeedback(restaurantId);
+  document.querySelectorAll('.feedback-btn--like, .feedback-btn--dislike').forEach(btn => {
+    btn.classList.toggle('feedback-btn--active', btn.dataset.feedback === existing);
+  });
+}
+
+/* ---- 1D: Render Deep Context Extras (USP, Wow Factors, Origin Story) ---- */
+function renderDeepContextExtras(data) {
+  const dc = data.deep_context;
+  if (!dc) return;
+
+  // Unique Selling Point
+  const $usp = document.getElementById('usp-callout');
+  const $uspText = document.getElementById('usp-callout-text');
+  if ($usp && $uspText && dc.unique_selling_point) {
+    $uspText.textContent = dc.unique_selling_point;
+    $usp.style.display = '';
+  } else if ($usp) {
+    $usp.style.display = 'none';
+  }
+
+  // Wow Factors
+  const $wow = document.getElementById('wow-factors');
+  if ($wow && dc.wow_factors?.length) {
+    $wow.innerHTML = '';
+    dc.wow_factors.slice(0, 4).forEach(w => {
+      const pill = document.createElement('span');
+      pill.className = 'wow-pill type-data--sm';
+      pill.textContent = w;
+      $wow.appendChild(pill);
+    });
+    $wow.style.display = '';
+  } else if ($wow) {
+    $wow.style.display = 'none';
+  }
+
+  // Origin Story
+  const $origin = document.getElementById('origin-story');
+  const $originText = document.getElementById('origin-story-text');
+  if ($origin && $originText && dc.origin_story) {
+    $originText.textContent = dc.origin_story;
+    $origin.style.display = '';
+  } else if ($origin) {
+    $origin.style.display = 'none';
+  }
+}
+
+/* ---- 1D: Add Deep Context Badges to Tier 3 ---- */
+function addDeepContextBadges(data) {
+  const $profileFacts = document.getElementById('profile-facts');
+  if (!$profileFacts) return;
+  const dc = data.deep_context;
+  if (!dc) return;
+
+  const extraBadges = [];
+
+  // Reservation difficulty
+  if (dc.reservation_difficulty && dc.reservation_difficulty !== 'none') {
+    extraBadges.push({ icon: 'calendar', label: 'Reservations', value: humanizeSnake(dc.reservation_difficulty) });
+  }
+
+  // Wait time
+  if (dc.typical_wait_minutes) {
+    extraBadges.push({ icon: 'clock', label: 'Typical Wait', value: `~${dc.typical_wait_minutes} min` });
+  }
+
+  // Check average
+  if (dc.check_average_per_person) {
+    extraBadges.push({ icon: 'tag', label: 'Avg Check', value: `~$${dc.check_average_per_person}/pp` });
+  }
+
+  // Energy level (0-10 → label)
+  if (dc.energy_level != null) {
+    const e = dc.energy_level;
+    const label = e >= 8 ? 'High Energy' : e >= 5 ? 'Moderate' : 'Chill';
+    extraBadges.push({ icon: 'bolt', label: 'Energy', value: label });
+  }
+
+  // Conversation friendliness (0-10)
+  if (dc.conversation_friendliness != null) {
+    const c = dc.conversation_friendliness;
+    const label = c >= 7 ? 'Great for Convo' : c >= 4 ? 'Moderate' : 'Loud';
+    extraBadges.push({ icon: 'chat', label: 'Talk-Friendly', value: label });
+  }
+
+  // Cultural authenticity (0-10)
+  if (dc.cultural_authenticity != null) {
+    const a = dc.cultural_authenticity;
+    const label = a >= 8 ? 'Very Authentic' : a >= 5 ? 'Authentic' : 'Fusion';
+    extraBadges.push({ icon: 'globe', label: 'Authenticity', value: label });
+  }
+
+  // Transit accessibility
+  if (dc.transit_accessibility) {
+    extraBadges.push({ icon: 'train', label: 'Transit', value: dc.transit_accessibility });
+  }
+
+  // Instagram worthiness (0-10, only show if >= 7)
+  if (dc.instagram_worthiness != null && dc.instagram_worthiness >= 7) {
+    extraBadges.push({ icon: 'camera', label: 'Insta-Worthy', value: `${dc.instagram_worthiness}/10` });
+  }
+
+  // Crowd profile (as text)
+  if (dc.crowd_profile?.length) {
+    extraBadges.push({ icon: 'usersThree', label: 'Crowd', value: dc.crowd_profile.slice(0, 2).join(', ') });
+  }
+
+  // Seating options
+  if (dc.seating_options?.length) {
+    extraBadges.push({ icon: 'chair', label: 'Seating', value: dc.seating_options.slice(0, 3).join(', ') });
+  }
+
+  // Render extra badges
+  extraBadges.forEach(b => {
+    if (!b.value) return;
+    const div = document.createElement('div');
+    div.className = 'details-badge';
+    div.innerHTML = `
+      <span class="details-badge__icon">${svgIcon(b.icon, 16)}</span>
+      <span class="details-badge__label type-data--sm">${b.label}</span>
+      <span class="details-badge__value type-structural">${b.value}</span>`;
+    $profileFacts.appendChild(div);
+  });
 }
 
 /* ---- Quick Link Helper ---- */
