@@ -37,7 +37,7 @@
   height: 1.5px;
   width: 0;
   background: var(--ac);
-  transition: width 400ms cubic-bezier(0.2, 1, 0.4, 1);
+  transition: width 400ms var(--spring);
   z-index: 1;
 }
 
@@ -142,7 +142,7 @@
   border-radius: 0;
   outline: none;
   caret-color: var(--ac);
-  transition: border-color 200ms cubic-bezier(0.2, 0, 0, 1);
+  transition: border-color 200ms var(--ease-out);
 }
 
 .craving-input::placeholder {
@@ -221,7 +221,7 @@
 }
 
 .smart-chips--visible .smart-chip {
-  animation: chipReveal 200ms cubic-bezier(0.2, 0, 0, 1) forwards;
+  animation: chipReveal 200ms var(--ease-out) forwards;
 }
 
 .smart-chips--visible .smart-chip:nth-child(1) { animation-delay: 100ms; }
@@ -525,7 +525,7 @@
 
 .filter-drawer__summary {
   margin-left: auto;
-  color: var(--ac);
+  color: var(--fg2);
   font-size: var(--text-xs);
   white-space: nowrap;
   overflow: hidden;
@@ -814,7 +814,7 @@
   left: 0;
   bottom: 0;
   width: 3px;
-  background: var(--ac);
+  background: var(--fg3);
   border-radius: var(--radius) 0 0 var(--radius);
 }
 
@@ -1082,7 +1082,7 @@
   font-family: var(--font-emotional);
   font-weight: 700;
   font-size: 1.15em;
-  color: var(--ac);
+  color: var(--fg);
   letter-spacing: -0.03em;
 }
 
@@ -1099,7 +1099,7 @@
   font-weight: 700;
   font-style: italic;
   font-size: 1.05em;
-  color: var(--ac);
+  color: var(--fg);
   letter-spacing: -0.01em;
 }
 
@@ -1355,7 +1355,7 @@
 }
 
 .score-hero__brand-logo {
-  color: var(--ac);
+  color: var(--fg);
   flex-shrink: 0;
   align-self: center;
 }
@@ -1364,7 +1364,7 @@
   font-family: var(--font-emotional);
   font-size: var(--text-sm);
   font-weight: 700;
-  color: var(--ac);
+  color: var(--fg);
   letter-spacing: -0.01em;
 }
 
@@ -1836,6 +1836,46 @@
 .sentiment-inline__tip-item--neu::before { background: var(--fg3); }
 .sentiment-inline__tip-item--neg::before { background: hsl(350 60% 58% / 0.5); }
 
+/* ---- I6: Sentiment Summary ---- */
+.sentiment-summary {
+  margin: 0;
+  padding: var(--space-xs) 0;
+  font-size: var(--text-sm);
+  color: var(--fg2);
+  line-height: 1.45;
+  font-style: italic;
+}
+
+/* ---- I5: Review Snippets (social proof quotes) ---- */
+.review-snippets {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-sm) 0;
+}
+
+.review-snippet {
+  margin: 0;
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--bg2);
+  border-left: 2px solid var(--border);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.review-snippet__stars {
+  font-size: var(--text-xs);
+  color: var(--fg3);
+  letter-spacing: 1px;
+}
+
+.review-snippet__text {
+  margin: var(--space-2xs) 0 0;
+  font-size: var(--text-sm);
+  color: var(--fg2);
+  line-height: 1.45;
+  font-style: italic;
+}
+
 /* ---- Score Breakdown (V2 — optional detail rows) ---- */
 .score-breakdown {
   display: none;
@@ -2002,12 +2042,12 @@
 
 .result-link--accent {
   background: var(--ac-soft);
-  color: var(--ac);
+  color: var(--fg);
   border-color: transparent;
 }
 
 .result-link--accent:hover {
-  background: var(--ac);
+  background: var(--fg);
   color: var(--bg);
 }
 
@@ -2887,7 +2927,7 @@
   justify-content: center;
   background: var(--ac-soft);
   border-radius: var(--radius-sm);
-  color: var(--ac);
+  color: var(--fg2);
   flex-shrink: 0;
 }
 
@@ -2976,7 +3016,7 @@
 .logo-mark__dot {
   transition: transform var(--dur-fast) var(--spring);
   transform-origin: 16px 40px;
-  animation: gentleBreathe 4s ease-in-out infinite;
+  animation: gentleBreathe 4s var(--ease-out) infinite;
 }
 
 /* ---- Header Logo Hover ---- */
@@ -3029,7 +3069,7 @@
 }
 
 .header__logo:hover .logo-wordmark__ond {
-  color: var(--ac);
+  color: var(--fg);
   transition-delay: 50ms;
 }
 
@@ -3049,7 +3089,7 @@
 }
 
 .header__logo:focus-visible .logo-wordmark__ond {
-  color: var(--ac);
+  color: var(--fg);
   transition-delay: 50ms;
 }
 
@@ -3122,12 +3162,12 @@
 
 /* ---- Search Pulse State (Act 2 — looping during API call) ---- */
 .logo-mark--searching .logo-mark__dot {
-  animation: searchPulse 1.2s ease-in-out infinite;
+  animation: searchPulse 1.2s var(--ease-out) infinite;
   transform-origin: 16px 40px;
 }
 
 .logo-mark--searching .logo-mark__curve {
-  animation: curveBreathe 2s ease-in-out infinite;
+  animation: curveBreathe 2s var(--ease-out) infinite;
   transform-origin: 16px 22px;
 }
 
@@ -3248,7 +3288,7 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%) scale(0);
-  animation: inkRipple 500ms cubic-bezier(0.2, 1, 0.4, 1) forwards;
+  animation: inkRipple 500ms var(--spring) forwards;
 }
 
 /* ---- Glass Fallback ---- */

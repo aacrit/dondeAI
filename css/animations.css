@@ -114,7 +114,7 @@
 }
 
 .shake {
-  animation: shake 400ms ease-in-out;
+  animation: shake 400ms var(--spring);
 }
 
 /* ---- Orbit Dot (score ring) ---- */
@@ -137,7 +137,7 @@
     var(--bg3) 75%
   );
   background-size: 200% 100%;
-  animation: shimmer 1.5s ease-in-out infinite;
+  animation: shimmer 1.5s var(--ease-out) infinite;
 }
 
 /* ---- Chip Reveal (staggered smart chips) ---- */
@@ -382,7 +382,7 @@
 }
 
 .cta-btn--alive:not(:hover):not(:active):not(:disabled) {
-  animation: ctaBreathe 3s ease-in-out infinite;
+  animation: ctaBreathe 3s var(--ease-out) infinite;
 }
 
 /* ---- Voice Recording Pulse Ring ---- */

@@ -29,8 +29,8 @@
   border-radius: 50%;
   filter: blur(80px) saturate(0.6);
   opacity: 0.6;
-  animation: blobDrift 20s ease-in-out infinite alternate;
-  transition: filter 600ms ease;
+  animation: blobDrift 20s var(--ease-out) infinite alternate;
+  transition: filter 600ms var(--ease-out);
 }
 
 .app:has(:focus-within) .ambient__blob {
@@ -274,7 +274,7 @@
   opacity: 0;
   z-index: var(--z-above);
   pointer-events: none;
-  animation: edgeHint 3s ease-in-out 2s 1 forwards;
+  animation: edgeHint 3s var(--ease-out) 2s 1 forwards;
 }
 
 /* Replay class restarts the hint animation */
@@ -282,7 +282,7 @@
   animation: none;
 }
 .step[data-step="1"].edge-hint-replay-run::before {
-  animation: edgeHint 3s ease-in-out 0s 1 forwards;
+  animation: edgeHint 3s var(--ease-out) 0s 1 forwards;
 }
 
 .step[aria-hidden="true"] {
@@ -498,7 +498,7 @@
   z-index: 0;
   opacity: 0;
   will-change: transform;
-  transition: opacity 300ms ease;
+  transition: opacity 300ms var(--ease-out);
 }
 
 @media (hover: none) {

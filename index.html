@@ -481,6 +481,12 @@
                   </div>
                 </div>
 
+                <!-- I6: Sentiment summary (AI review summary) -->
+                <p class="sentiment-summary type-structural" id="sentiment-summary" style="display:none"></p>
+
+                <!-- I5: Review snippets (social proof quotes) -->
+                <div class="review-snippets" id="review-snippets" style="display:none"></div>
+
                 <!-- Navigation tile (address + maps) -->
                 <div class="result-nav" id="result-nav-tile"></div>
 
@@ -585,7 +591,7 @@
     <div class="share-sheet" id="share-sheet" role="dialog" aria-label="Share recommendation" aria-modal="true">
       <div class="share-sheet__backdrop" data-action="close-share"></div>
       <div class="share-sheet__panel">
-        <h3 class="type-emotional" style="margin-bottom: var(--space-md);">Share This Spot</h3>
+        <h3 class="type-structural" style="margin-bottom: var(--space-md);">Share This Spot</h3>
         <!-- Canvas Share Preview -->
         <div class="share-preview" id="share-preview">
           <canvas id="share-canvas"></canvas>

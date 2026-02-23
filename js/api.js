@@ -6,6 +6,15 @@
 const ENDPOINT = 'https://vwbzkgsxmgwcvmvuxnbe.supabase.co/functions/v1/recommend';
 const TIMEOUT_MS = 15000;
 
+// I3: Map frontend time periods to backend time_of_day values
+function getBackendTimeOfDay() {
+  const h = new Date().getHours();
+  if (h >= 6 && h < 11) return 'breakfast';
+  if (h >= 11 && h < 15) return 'lunch';
+  if (h >= 15 && h < 21) return 'dinner';
+  return 'late_night';
+}
+
 export async function fetchRecommendation({ special_request, occasion, neighborhood, price_level, exclude, dietary_restrictions, user_id, feedback }) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
@@ -15,6 +24,7 @@ export async function fetchRecommendation({ special_request, occasion, neighborh
   if (dietary_restrictions?.length) body.dietary_restrictions = dietary_restrictions;
   if (user_id) body.user_id = user_id;
   if (feedback) body.feedback = feedback;
+  body.time_of_day = getBackendTimeOfDay(); // I3/B2: Send client time context
 
   try {
     const res = await fetch(ENDPOINT, {
