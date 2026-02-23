@@ -1659,9 +1659,11 @@ function renderResult(data) {
     }
   }
 
-  // Inject icon into Try Another button in glance
+  // Inject icons into glance action buttons
   const $tryAgainIcon = document.getElementById('try-again-icon');
   if ($tryAgainIcon) $tryAgainIcon.innerHTML = svgIcon('refresh', 18);
+  const $glanceStartOverIcon = document.getElementById('glance-start-over-icon');
+  if ($glanceStartOverIcon) $glanceStartOverIcon.innerHTML = svgIcon('home', 18);
 
   // ═══════════════════════════════════════════════════════
   // TIER 2: LEAN-IN — Prepare content (hidden until expanded)

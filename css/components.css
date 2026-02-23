@@ -955,6 +955,14 @@
   min-width: 0;
 }
 
+/* ── Result Header (name + tags inline) ── */
+.result-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-xs);
+}
+
 .result-name {
   font-size: var(--text-xl);
   color: var(--ac);
@@ -1292,10 +1300,10 @@
 
 /* (Sentiment arc removed — sentiment now in reviews-row inline bar) */
 
-/* Number + verdict overlay */
+/* Brand + number + verdict overlay (inside the arc) */
 .score-hero__center {
   position: absolute;
-  bottom: 0;
+  bottom: 4px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -1335,31 +1343,38 @@
   width: 100%;
 }
 
+/* Brand label — inside semicircle above the number */
 .score-hero__brand {
   display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2xs);
-  color: var(--fg3);
-  font-family: var(--font-data);
-  font-size: var(--text-xs);
-  letter-spacing: 0.04em;
+  align-items: baseline;
+  gap: 3px;
   line-height: 1;
 }
 
-.score-hero__brand sup {
+.score-hero__brand-logo {
+  color: var(--ac);
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.score-hero__brand-donde {
+  font-family: var(--font-emotional);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--ac);
+  letter-spacing: -0.01em;
+}
+
+.score-hero__brand-match {
+  font-family: var(--font-data);
+  font-size: var(--text-xs);
+  color: var(--fg3);
+  letter-spacing: 0.04em;
+}
+
+.score-hero__brand-match sup {
   font-size: 0.6em;
   vertical-align: super;
-}
-
-.score-hero__brand-logo {
-  color: var(--fg3);
-  flex-shrink: 0;
-}
-
-.score-hero__logo-mark {
-  color: var(--fg3);
-  flex-shrink: 0;
 }
 
 /* "Best for" callout inline */
@@ -2459,6 +2474,19 @@
   height: 18px;
 }
 
+/* Ghost variant — borderless, subtle text */
+.cta-btn--ghost {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--fg2);
+  box-shadow: none;
+}
+
+.cta-btn--ghost:hover {
+  background: var(--bg2);
+  color: var(--fg);
+}
+
 /* ---- Particle Canvas ---- */
 .particle-canvas {
   position: absolute;
@@ -2965,21 +2993,14 @@
   animation: tileRevealIn 500ms var(--spring) 0ms forwards;
 }
 
-/* Restaurant name: ink reveal (left-to-right clip) */
-.result-card--revealing .result-name {
-  opacity: 1;
-  transform: none;
-  animation: inkReveal 600ms cubic-bezier(0.2, 1, 0.4, 1) 100ms both;
+/* Result header (name + tags): reveal as a unit */
+.result-card--revealing .result-header {
+  animation: resultSectionIn 400ms var(--ease-out) 100ms forwards;
 }
 
 /* One-liner: settle in */
 .result-card--revealing .result-oneliner {
-  animation: resultSectionIn 300ms var(--ease-out) 250ms forwards;
-}
-
-/* Quick tags: stagger pop */
-.result-card--revealing .quick-tags {
-  animation: resultSectionIn 300ms var(--ease-out) 350ms forwards;
+  animation: resultSectionIn 300ms var(--ease-out) 300ms forwards;
 }
 
 /* DondeAI Blurb: editorial entrance */

@@ -292,14 +292,14 @@
                   <span class="match-pill__verdict type-structural" id="match-pill-verdict"></span>
                 </div>
 
-                <!-- Restaurant Name -->
-                <h2 class="result-name type-emotional--md" id="result-name"></h2>
+                <!-- Restaurant Name + Quick Tags (inline) -->
+                <div class="result-header">
+                  <h2 class="result-name type-emotional--md" id="result-name"></h2>
+                  <div class="quick-tags" id="quick-tags"></div>
+                </div>
 
                 <!-- One-liner subtitle -->
                 <p class="result-oneliner type-structural" id="result-oneliner"></p>
-
-                <!-- Quick tags: cuisine + price (snap-decision helpers) -->
-                <div class="quick-tags" id="quick-tags"></div>
 
                 <!-- DondeAI Recommendation — THE editorial voice -->
                 <div class="donde-blurb" id="donde-blurb">
@@ -315,6 +315,10 @@
                   <button class="cta-btn cta-btn--secondary cta-btn--icon type-structural" data-action="try-again" data-label="again">
                     <span class="cta-btn__icon" id="try-again-icon"></span>
                     <span class="cta-btn__text">Try Another</span>
+                  </button>
+                  <button class="cta-btn cta-btn--ghost cta-btn--icon type-structural" data-action="reset">
+                    <span class="cta-btn__icon" id="glance-start-over-icon"></span>
+                    <span class="cta-btn__text">Start Over</span>
                   </button>
                   <button class="tell-more-btn type-structural" id="tell-more-btn"
                           data-action="expand-tier-2"
@@ -332,24 +336,25 @@
                 <div class="score-hero" id="score-hero"
                      role="figure" tabindex="0"
                      aria-label="DondeAI Match score detail">
-                  <span class="score-hero__brand type-data--sm">
-                    <svg class="score-hero__brand-logo" viewBox="0 0 32 44" width="12" height="16" aria-hidden="true">
-                      <path d="M10.5 1C10.5 1 10 8.5 12.5 11.5Q14 13 14.5 13.5"
-                            fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-                      <path d="M21.5 1C21.5 1 22 8.5 19.5 11.5Q18 13 17.5 13.5"
-                            fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-                      <path d="M16 13.5C22 11 29 14 28 21C27 27 19 29 16 31L16 34"
-                            fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>
-                      <circle cx="16" cy="40" r="2.8" fill="var(--ac)"/>
-                    </svg>
-                    Donde Match<sup>™</sup>
-                  </span>
                   <div class="score-hero__gauge">
                     <svg class="score-hero__svg" viewBox="0 0 200 120" aria-hidden="true">
                       <path class="score-hero__arc-bg" d="M 20 110 A 80 80 0 0 1 180 110" />
                       <path class="score-hero__arc-fill" id="score-hero-arc-fill" d="M 20 110 A 80 80 0 0 1 180 110" />
                     </svg>
                     <div class="score-hero__center">
+                      <span class="score-hero__brand">
+                        <svg class="score-hero__brand-logo" viewBox="0 0 32 44" width="10" height="14" aria-hidden="true">
+                          <path d="M10.5 1C10.5 1 10 8.5 12.5 11.5Q14 13 14.5 13.5"
+                                fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                          <path d="M21.5 1C21.5 1 22 8.5 19.5 11.5Q18 13 17.5 13.5"
+                                fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                          <path d="M16 13.5C22 11 29 14 28 21C27 27 19 29 16 31L16 34"
+                                fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>
+                          <circle cx="16" cy="40" r="2.8" fill="var(--ac)"/>
+                        </svg>
+                        <span class="score-hero__brand-donde type-emotional">Donde</span>
+                        <span class="score-hero__brand-match type-data--sm">Match<sup>™</sup></span>
+                      </span>
                       <span class="score-hero__number type-data" id="score-hero-number">0%</span>
                       <span class="score-hero__verdict type-structural" id="score-hero-verdict"></span>
                     </div>
