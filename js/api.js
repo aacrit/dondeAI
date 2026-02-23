@@ -6,12 +6,15 @@
 const ENDPOINT = 'https://vwbzkgsxmgwcvmvuxnbe.supabase.co/functions/v1/recommend';
 const TIMEOUT_MS = 15000;
 
-export async function fetchRecommendation({ special_request, occasion, neighborhood, price_level, exclude }) {
+export async function fetchRecommendation({ special_request, occasion, neighborhood, price_level, exclude, dietary_restrictions, user_id, feedback }) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
   const body = { special_request, occasion, neighborhood, price_level };
   if (exclude?.length) body.exclude = exclude;
+  if (dietary_restrictions?.length) body.dietary_restrictions = dietary_restrictions;
+  if (user_id) body.user_id = user_id;
+  if (feedback) body.feedback = feedback;
 
   try {
     const res = await fetch(ENDPOINT, {

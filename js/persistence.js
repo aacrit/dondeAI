@@ -1,6 +1,7 @@
 /* ============================================
    DondeAI — localStorage Persistence
-   3 keys: theme, sound, history
+   Keys: theme, sound, history, colorMode,
+         bookmarks, userId, feedback
    ============================================ */
 
 const KEYS = {
@@ -8,6 +9,9 @@ const KEYS = {
   sound: 'dondeai-sound',
   history: 'dondeai-history',
   colorMode: 'dondeai-colormode',
+  bookmarks: 'dondeai-bookmarks',
+  userId: 'dondeai-user-id',
+  feedback: 'dondeai-feedback',
 };
 
 function safeGet(key) {
@@ -67,4 +71,75 @@ export function addToHistory(label, payload, cuisineIcon = 'plate') {
   const trimmed = deduped.slice(0, 3);
   saveHistory(trimmed);
   return trimmed;
+}
+
+/* ---- F4: Bookmarks (Save/Favorite) ---- */
+export function loadBookmarks() {
+  return safeGet(KEYS.bookmarks) || [];
+}
+
+export function saveBookmarks(bookmarks) {
+  safeSet(KEYS.bookmarks, bookmarks);
+}
+
+export function addBookmark(restaurant) {
+  const bookmarks = loadBookmarks();
+  if (bookmarks.some(b => b.id === restaurant.id)) return bookmarks;
+  bookmarks.unshift({
+    id: restaurant.id,
+    name: restaurant.name,
+    cuisine_type: restaurant.cuisine_type,
+    neighborhood_name: restaurant.neighborhood_name,
+    price_level: restaurant.price_level,
+    google_place_id: restaurant.google_place_id,
+    timestamp: Date.now(),
+  });
+  const trimmed = bookmarks.slice(0, 20);
+  saveBookmarks(trimmed);
+  return trimmed;
+}
+
+export function removeBookmark(id) {
+  const bookmarks = loadBookmarks().filter(b => b.id !== id);
+  saveBookmarks(bookmarks);
+  return bookmarks;
+}
+
+export function isBookmarked(id) {
+  return loadBookmarks().some(b => b.id === id);
+}
+
+/* ---- F9: Anonymous User ID ---- */
+export function getOrCreateUserId() {
+  let userId = safeGet(KEYS.userId);
+  if (!userId) {
+    userId = crypto.randomUUID ? crypto.randomUUID() : (
+      'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+        const r = Math.random() * 16 | 0;
+        return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+      })
+    );
+    safeSet(KEYS.userId, userId);
+  }
+  return userId;
+}
+
+/* ---- F11: Feedback Persistence ---- */
+export function saveFeedback(restaurantId, feedback) {
+  const all = safeGet(KEYS.feedback) || {};
+  all[restaurantId] = { feedback, timestamp: Date.now() };
+  // Keep max 100 entries
+  const entries = Object.entries(all);
+  if (entries.length > 100) {
+    entries.sort((a, b) => b[1].timestamp - a[1].timestamp);
+    const trimmed = Object.fromEntries(entries.slice(0, 100));
+    safeSet(KEYS.feedback, trimmed);
+  } else {
+    safeSet(KEYS.feedback, all);
+  }
+}
+
+export function loadFeedback(restaurantId) {
+  const all = safeGet(KEYS.feedback) || {};
+  return all[restaurantId]?.feedback || null;
 }

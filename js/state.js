@@ -11,6 +11,7 @@ const state = {
   occasion: 'Any',
   neighborhood: 'Anywhere',
   priceLevel: 'Any',
+  dietaryRestrictions: [], // F5: multi-select dietary filter
   result: null,
   loading: false,
   error: null,
@@ -19,6 +20,7 @@ const state = {
   colorMode: 'auto', // 'auto' = auto-theme active, 'off' = Studio locked
   soundEnabled: false,
   history: [],
+  pendingFeedback: null, // F11: feedback to send with next request
 };
 
 export function getState() {
@@ -49,9 +51,11 @@ export function resetState() {
     occasion: 'Any',
     neighborhood: 'Anywhere',
     priceLevel: 'Any',
+    dietaryRestrictions: [],
     result: null,
     loading: false,
     error: null,
     excludeIds: [],
+    pendingFeedback: null,
   });
 }

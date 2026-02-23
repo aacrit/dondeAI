@@ -3396,3 +3396,398 @@
   }
 }
 
+/* ============================================
+   Gap Analysis Enhancements
+   ============================================ */
+
+/* ---- F1: Restaurant Photos ---- */
+.result-photos {
+  display: flex;
+  gap: var(--space-xs);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 0 var(--space-sm);
+  border-radius: var(--radius) var(--radius) 0 0;
+  margin: calc(-1 * var(--space-md)) calc(-1 * var(--space-md)) var(--space-sm);
+}
+
+.result-photos::-webkit-scrollbar { display: none; }
+
+.result-photos__img {
+  scroll-snap-align: start;
+  flex: 0 0 auto;
+  width: 100%;
+  max-width: 320px;
+  height: 200px;
+  object-fit: cover;
+  border-radius: var(--radius);
+  background: var(--bg3);
+}
+
+.result-photos__img:first-child {
+  border-radius: var(--radius) 0 0 0;
+}
+
+/* ---- F2: Business Hours ---- */
+.business-hours {
+  padding: var(--space-xs) 0;
+}
+
+.business-hours__toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  background: none;
+  border: none;
+  color: var(--fg2);
+  cursor: pointer;
+  padding: var(--space-xs);
+  border-radius: var(--radius-sm);
+  width: 100%;
+}
+
+.business-hours__toggle:hover { background: var(--bg2); }
+
+.business-hours__arrow {
+  margin-left: auto;
+  transition: transform 200ms var(--ease-out);
+}
+
+.business-hours__toggle[aria-expanded="true"] .business-hours__arrow {
+  transform: rotate(180deg);
+}
+
+.business-hours__detail {
+  padding: var(--space-xs) var(--space-sm);
+}
+
+.hours-line {
+  color: var(--fg2);
+  padding: 2px 0;
+}
+
+.hours-badge {
+  display: inline-flex;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+.hours-badge--open {
+  background: hsl(142 70% 49% / 0.15);
+  color: hsl(142 70% 35%);
+}
+
+.hours-badge--closed {
+  background: hsl(0 70% 55% / 0.15);
+  color: hsl(0 70% 45%);
+}
+
+/* Open/Closed quick tag */
+.quick-tag--open {
+  background: hsl(142 70% 49% / 0.15) !important;
+  color: hsl(142 70% 35%) !important;
+  font-weight: 600;
+}
+
+.quick-tag--closed {
+  background: hsl(0 70% 55% / 0.15) !important;
+  color: hsl(0 70% 45%) !important;
+  font-weight: 600;
+}
+
+[data-mode="dark"] .hours-badge--open,
+[data-mode="dark"] .quick-tag--open {
+  color: hsl(142 70% 60%);
+}
+
+[data-mode="dark"] .hours-badge--closed,
+[data-mode="dark"] .quick-tag--closed {
+  color: hsl(0 70% 65%);
+}
+
+/* ---- F3: Enhanced Map Navigation ---- */
+.glance-nav__link--enhanced {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg2);
+  border-radius: var(--radius);
+  text-decoration: none;
+  color: var(--fg);
+  transition: background 200ms var(--ease-out), transform 150ms var(--spring);
+}
+
+.glance-nav__link--enhanced:hover {
+  background: var(--bg3);
+  transform: translateY(-1px);
+}
+
+.glance-nav__map-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--ac);
+  color: white;
+  flex-shrink: 0;
+}
+
+.glance-nav__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.glance-nav__hood {
+  color: var(--ac);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.glance-nav__address {
+  color: var(--fg2);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.glance-nav__cta {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--ac);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ---- F4: Saved Spots ---- */
+.saved-spots {
+  padding-top: var(--space-sm);
+}
+
+.saved-spots__label {
+  color: var(--fg3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: block;
+  margin-bottom: var(--space-xs);
+}
+
+.saved-spots__list {
+  display: flex;
+  gap: var(--space-xs);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: var(--space-xs);
+}
+
+.saved-spots__list::-webkit-scrollbar { display: none; }
+
+.saved-spot {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 150ms var(--ease-out);
+  min-width: 0;
+  flex-shrink: 0;
+}
+
+.saved-spot:hover { background: var(--bg3); }
+
+.saved-spot__name {
+  font-weight: 500;
+  color: var(--fg);
+  font-size: var(--text-sm);
+}
+
+.saved-spot__meta {
+  color: var(--fg3);
+}
+
+/* ---- F5: Dietary toggle pills ---- */
+.filter-pill--toggle[aria-pressed="true"] {
+  background: var(--ac);
+  color: white;
+  border-color: var(--ac);
+}
+
+/* ---- F11: Feedback Buttons ---- */
+.feedback-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  justify-content: center;
+  padding: var(--space-xs) 0;
+}
+
+.feedback-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--bg2);
+  color: var(--fg2);
+  cursor: pointer;
+  transition: all 200ms var(--ease-out);
+}
+
+.feedback-btn:hover {
+  background: var(--bg3);
+  transform: scale(1.1);
+}
+
+.feedback-btn--active {
+  border-color: var(--ac);
+  color: var(--ac);
+  background: hsl(var(--ac-h, 220) var(--ac-s, 70%) var(--ac-l, 50%) / 0.12);
+}
+
+.feedback-btn--like.feedback-btn--active {
+  border-color: hsl(142 70% 49%);
+  color: hsl(142 70% 40%);
+  background: hsl(142 70% 49% / 0.12);
+}
+
+.feedback-btn--dislike.feedback-btn--active {
+  border-color: hsl(0 70% 55%);
+  color: hsl(0 70% 45%);
+  background: hsl(0 70% 55% / 0.12);
+}
+
+.feedback-btn--bookmark.feedback-btn--active {
+  border-color: hsl(350 80% 55%);
+  color: hsl(350 80% 50%);
+  background: hsl(350 80% 55% / 0.12);
+}
+
+/* ---- F14: Surprise Me Button ---- */
+.surprise-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-md);
+  background: none;
+  border: 1.5px dashed var(--border);
+  border-radius: 999px;
+  color: var(--fg2);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  transition: all 200ms var(--ease-out);
+  margin: 0 auto;
+}
+
+.surprise-btn:hover {
+  border-color: var(--ac);
+  color: var(--ac);
+  border-style: solid;
+  background: hsl(var(--ac-h, 220) var(--ac-s, 70%) var(--ac-l, 50%) / 0.06);
+}
+
+.surprise-btn__icon {
+  display: flex;
+  color: var(--ac);
+}
+
+/* ---- F19: Textarea craving input ---- */
+.craving-input {
+  resize: none;
+  overflow: hidden;
+  min-height: 44px;
+  field-sizing: content;
+}
+
+/* ---- 1D: USP Callout ---- */
+.usp-callout {
+  padding: var(--space-sm);
+  background: hsl(var(--ac-h, 220) var(--ac-s, 70%) var(--ac-l, 50%) / 0.06);
+  border-left: 3px solid var(--ac);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  margin: var(--space-sm) 0;
+}
+
+.usp-callout__text {
+  color: var(--fg);
+  font-style: italic;
+}
+
+/* ---- 1D: Wow Factors ---- */
+.wow-factors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  padding: var(--space-xs) 0;
+}
+
+.wow-pill {
+  display: inline-flex;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  color: var(--fg2);
+}
+
+/* ---- 1D: Origin Story ---- */
+.origin-story {
+  padding: var(--space-sm) 0;
+}
+
+.origin-story__label {
+  color: var(--fg3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: block;
+  margin-bottom: var(--space-xs);
+}
+
+.origin-story__text {
+  color: var(--fg2);
+  line-height: 1.5;
+}
+
+/* ---- F22: Filter Drawer Scrollability ---- */
+.filter-content {
+  max-height: 50vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* ---- F21: Virtual Keyboard Adaptation ---- */
+@media (max-height: 500px) and (max-width: 768px) {
+  .header { display: none; }
+  .canvas-layout { padding-top: var(--space-sm); }
+  .step__title { font-size: var(--text-lg); }
+  .smart-chips { display: none; }
+  .taste-memory { display: none; }
+  .saved-spots { display: none; }
+  .surprise-btn { display: none; }
+}
+
+@supports (height: env(keyboard-inset-height)) {
+  .app {
+    padding-bottom: env(keyboard-inset-height, 0px);
+  }
+}
+
