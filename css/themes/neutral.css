@@ -32,7 +32,6 @@
   --blob-2:      hsl(0 0% 40% / 0.04);
   --blob-3:      hsl(0 0% 60% / 0.04);
   --grain-opacity: 0.03;
-  --texture-url: none;
   --textile-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72' fill='none' stroke='%23000000' stroke-linecap='round'%3E%3Cpath d='M12 8Q14 12 18 16' stroke-width='0.9' opacity='0.14'/%3E%3Cpath d='M18 8Q15 13 12 16' stroke-width='0.8' opacity='0.12'/%3E%3Cpath d='M52 14l3 1M57 16l3 0.5M62 17l2 0' stroke-width='0.7' opacity='0.10'/%3E%3Ccircle cx='35' cy='9' r='0.9' fill='%23000000' stroke='none' opacity='0.13'/%3E%3Cpath d='M8 42Q10 40 11 43' stroke-width='0.6' opacity='0.09'/%3E%3Cpath d='M14 45Q15 43 17 46' stroke-width='0.7' opacity='0.11'/%3E%3Cpath d='M48 38Q51 42 54 46' stroke-width='1.0' opacity='0.16'/%3E%3Cpath d='M54 37Q50 43 47 47' stroke-width='0.9' opacity='0.14'/%3E%3Cpath d='M22 58l4 0.5' stroke-width='0.8' opacity='0.12'/%3E%3Cpath d='M28 60l3-0.3' stroke-width='0.6' opacity='0.10'/%3E%3Ccircle cx='60' cy='55' r='0.7' fill='%23000000' stroke='none' opacity='0.11'/%3E%3Cpath d='M65 30l4 4M69 30l-4 4' stroke-width='0.5' opacity='0.08'/%3E%3C/svg%3E");
   --textile-opacity: 0.35;
   --glass-header: hsl(0 0% 100% / 0.65);
@@ -72,7 +71,6 @@
   --blob-2:      hsl(0 0% 40% / 0.06);
   --blob-3:      hsl(0 0% 60% / 0.05);
   --grain-opacity: 0.04;
-  --texture-url: none;
   --textile-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72' fill='none' stroke='%23ffffff' stroke-linecap='round'%3E%3Cpath d='M12 8Q14 12 18 16' stroke-width='0.9' opacity='0.16'/%3E%3Cpath d='M18 8Q15 13 12 16' stroke-width='0.8' opacity='0.14'/%3E%3Cpath d='M52 14l3 1M57 16l3 0.5M62 17l2 0' stroke-width='0.7' opacity='0.12'/%3E%3Ccircle cx='35' cy='9' r='0.9' fill='%23ffffff' stroke='none' opacity='0.15'/%3E%3Cpath d='M8 42Q10 40 11 43' stroke-width='0.6' opacity='0.11'/%3E%3Cpath d='M14 45Q15 43 17 46' stroke-width='0.7' opacity='0.13'/%3E%3Cpath d='M48 38Q51 42 54 46' stroke-width='1.0' opacity='0.18'/%3E%3Cpath d='M54 37Q50 43 47 47' stroke-width='0.9' opacity='0.16'/%3E%3Cpath d='M22 58l4 0.5' stroke-width='0.8' opacity='0.14'/%3E%3Cpath d='M28 60l3-0.3' stroke-width='0.6' opacity='0.12'/%3E%3Ccircle cx='60' cy='55' r='0.7' fill='%23ffffff' stroke='none' opacity='0.13'/%3E%3Cpath d='M65 30l4 4M69 30l-4 4' stroke-width='0.5' opacity='0.10'/%3E%3C/svg%3E");
   --textile-opacity: 0.45;
   --glass-header: hsl(0 0% 11% / 0.7);

@@ -2015,6 +2015,34 @@ function prepareTier2(data, cuisine) {
     }
   }
 
+  // I6: Sentiment summary (AI-generated review summary)
+  const $sentSummary = document.getElementById('sentiment-summary');
+  if ($sentSummary) {
+    if (r.sentiment_summary) {
+      $sentSummary.textContent = r.sentiment_summary;
+      $sentSummary.style.display = '';
+    } else {
+      $sentSummary.style.display = 'none';
+    }
+  }
+
+  // I5: Review snippets (social proof quotes from Google reviews)
+  const $reviewSnippets = document.getElementById('review-snippets');
+  if ($reviewSnippets) {
+    const snippets = r.review_snippets || [];
+    if (snippets.length > 0) {
+      $reviewSnippets.innerHTML = snippets.map(s =>
+        `<blockquote class="review-snippet">
+          <span class="review-snippet__stars">${'★'.repeat(s.rating)}${'☆'.repeat(5 - s.rating)}</span>
+          <p class="review-snippet__text type-structural">\u201c${s.text}\u201d</p>
+        </blockquote>`
+      ).join('');
+      $reviewSnippets.style.display = '';
+    } else {
+      $reviewSnippets.style.display = 'none';
+    }
+  }
+
   // Navigation tile — now in Tier 1 only (glance-nav); hide Tier 2 duplicate
   const $navTileContainer = document.getElementById('result-nav-tile');
   if ($navTileContainer) $navTileContainer.style.display = 'none';
