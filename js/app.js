@@ -13,7 +13,7 @@ import { initShare, shareResult, closeShareSheet, handleShareChannel } from './s
 import { initOffline, isOnline } from './offline.js';
 import { initAccessibility, announce } from './accessibility.js';
 import { fetchRecommendation } from './api.js';
-import { animateScoreRing, renderPetalRadar, renderSentimentBar, renderScoreBloom, renderScoreHero, renderVibeBars, renderSentimentInline, toggleBloom, handlePetalTap, handleBloomRingTap, toggleScoreBreakdown, getBloomState, animateBadge, startParticles, stopParticles, chaosToOrderReveal, initLogoAnimation, startSearchPulse, stopSearchPulse, resolveLogoToFound, cleanupLoadingLogo } from './animations.js';
+import { animateScoreRing, renderPetalRadar, renderSentimentBar, renderScoreBloom, renderScoreHero, renderVibeBars, renderSentimentInline, toggleBloom, resetBloomState, handlePetalTap, handleBloomRingTap, toggleScoreBreakdown, getBloomState, animateBadge, startParticles, stopParticles, chaosToOrderReveal, initLogoAnimation, startSearchPulse, stopSearchPulse, resolveLogoToFound, cleanupLoadingLogo } from './animations.js';
 import {
   getGreeting, getTimePeriod, getCuisineFromResult, svgIcon,
   getScoreTier, getScoreColor, buildGoogleStars, buildMapsUrl, relativeTime, matchCuisine, matchCulture
@@ -734,38 +734,30 @@ function wireEvents() {
           const $hero = document.getElementById('score-hero');
           if ($hero) $hero.focus({ preventScroll: true });
           announce('Showing detailed recommendation and scores');
+        } else {
+          // Collapsing — reset bloom state
+          resetBloomState();
         }
         break;
       }
 
       case 'show-vibe-profile': {
-        // Expand Tier 2 + 3 if not already, then scroll to vibe bars
-        const $t2 = document.getElementById('tier-leanin');
-        const $t3 = document.getElementById('tier-deep');
-        const $tmBtn = document.getElementById('tell-more-btn');
-        const $dtBtn = document.getElementById('details-trigger-btn');
-        if ($t2 && !$t2.classList.contains('tier--expanded')) {
-          $t2.classList.add('tier--expanded');
-          $t2.setAttribute('aria-hidden', 'false');
-          if ($tmBtn) { $tmBtn.setAttribute('aria-expanded', 'true'); const t = $tmBtn.querySelector('.tell-more-btn__text'); if (t) t.textContent = 'Show Less'; }
-          renderTier2Animations();
-          const $bta = document.getElementById('bottom-try-again');
-          const $bso = document.getElementById('bottom-start-over');
-          if ($bta) $bta.style.display = '';
-          if ($bso) $bso.style.display = '';
+        // Toggle bloom state on the score hero (3-state cycle)
+        const data = _pendingResultData;
+        if (!data) break;
+        const newState = toggleBloom(
+          data.scores || {},
+          data.scoring_v2 || null,
+          animationTimers
+        );
+        // Update callout arrow direction
+        const $calloutArrow = document.getElementById('score-hero-callout')
+          ?.querySelector('.score-hero__callout-arrow');
+        if ($calloutArrow) {
+          $calloutArrow.textContent = newState === 'compact' ? '\u2193' : '\u2191';
         }
-        if ($t3 && !$t3.classList.contains('tier--expanded')) {
-          $t3.classList.add('tier--expanded');
-          $t3.setAttribute('aria-hidden', 'false');
-          if ($dtBtn) { $dtBtn.setAttribute('aria-expanded', 'true'); const t = $dtBtn.querySelector('.details-trigger-btn__text'); if (t) t.textContent = 'Collapse'; }
-          renderTier3Animations();
-        }
-        // Scroll to vibe bars after expansion settles
-        setTimeout(() => {
-          const $vb = document.getElementById('vibe-bars');
-          if ($vb) $vb.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }, 350);
-        announce('Showing vibe profile breakdown');
+        const msgs = { bloomed: 'Showing vibe profile', breakdown: 'Showing score breakdown', compact: 'Collapsed vibe profile' };
+        announce(msgs[newState] || '');
         break;
       }
 
@@ -789,11 +781,26 @@ function wireEvents() {
     }
   });
 
-  // Score Hero tap in Tier 2 — toggle V2 breakdown
+  // Score Hero tap in Tier 2 — toggle bloom (3-state: compact → petals → V2 → compact)
   document.addEventListener('click', (e) => {
     if (e.target.closest('[data-action]')) return;
     const hero = e.target.closest('.score-hero');
-    if (hero) toggleScoreBreakdown();
+    if (!hero) return;
+    const data = _pendingResultData;
+    if (!data) return;
+    const newState = toggleBloom(
+      data.scores || {},
+      data.scoring_v2 || null,
+      animationTimers
+    );
+    // Update callout arrow
+    const $calloutArrow = document.getElementById('score-hero-callout')
+      ?.querySelector('.score-hero__callout-arrow');
+    if ($calloutArrow) {
+      $calloutArrow.textContent = newState === 'compact' ? '\u2193' : '\u2191';
+    }
+    const msgs = { bloomed: 'Showing vibe profile', breakdown: 'Showing score breakdown', compact: 'Collapsed vibe profile' };
+    announce(msgs[newState] || '');
   });
 }
 
@@ -1558,6 +1565,9 @@ function renderResult(data) {
   _tier2Animated = false;
   _tier3Animated = false;
 
+  // Reset bloom state (petal radar overlay)
+  resetBloomState();
+
   // Reset tier expansion state — always start at Tier 1 (Glance)
   const $tier2 = document.getElementById('tier-leanin');
   const $tier3 = document.getElementById('tier-deep');
@@ -1921,9 +1931,7 @@ function prepareTier2(data, cuisine) {
 function prepareTier3(data, cuisine) {
   const r = data.restaurant;
 
-  // Vibe bars — populate but don't animate (bars start at 0 width)
-  renderVibeBars(data.scores || {}, []);
-
+  // Vibe profile now lives in the bloom overlay on score hero — no separate bars needed
   // V2 Breakdown is triggered by tap on score hero in Tier 2 — no pre-render needed
 
   // Detail badges grid (full facts + atmosphere)
@@ -2035,12 +2043,7 @@ let _tier3Animated = false;
 function renderTier3Animations() {
   if (_tier3Animated) return;
   _tier3Animated = true;
-
-  const data = _pendingResultData;
-  if (!data) return;
-
-  // Animate vibe bars
-  renderVibeBars(data.scores || {}, animationTimers);
+  // Vibe bars removed — vibe profile now lives in score hero bloom overlay
 }
 
 /* ---- Parking Type Parser ---- */

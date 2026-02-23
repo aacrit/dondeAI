@@ -1255,7 +1255,7 @@
   align-items: center;
   gap: var(--space-2xs);
   width: 100%;
-  max-width: 280px;
+  max-width: 100%;
   margin: 0 auto;
   outline: none;
 }
@@ -1269,14 +1269,9 @@
 /* Gauge container */
 .score-hero__gauge {
   position: relative;
-  width: min(60vw, 220px);
+  width: min(80vw, 300px);
   aspect-ratio: 200 / 120;
-}
-
-@media (min-width: 768px) {
-  .score-hero__gauge {
-    width: min(40vw, 240px);
-  }
+  transition: width 500ms var(--spring), aspect-ratio 500ms var(--spring);
 }
 
 .score-hero__svg {
@@ -1291,6 +1286,7 @@
   stroke: var(--border);
   stroke-width: 6;
   stroke-linecap: round;
+  transition: opacity 400ms var(--ease-out);
 }
 
 /* Fill arc — accent color, animated via stroke-dashoffset */
@@ -1314,17 +1310,19 @@
   flex-direction: column;
   align-items: center;
   gap: 2px;
+  z-index: 2;
+  transition: transform 400ms var(--spring), opacity 300ms var(--ease-out);
 }
 
 .score-hero__number {
-  font-size: clamp(1.75rem, 5vw, 2.25rem);
+  font-size: clamp(2rem, 7vw, 3rem);
   font-weight: 700;
   color: var(--fg);
   line-height: 1;
 }
 
 .score-hero__verdict {
-  font-size: var(--text-sm);
+  font-size: var(--text-md);
   font-weight: 700;
   color: var(--ac);
   line-height: 1;
@@ -1353,6 +1351,7 @@
   align-items: baseline;
   gap: 3px;
   line-height: 1;
+  transition: opacity 200ms var(--ease-out);
 }
 
 .score-hero__brand-logo {
@@ -1425,6 +1424,198 @@
 }
 
 /* Callout now stands alone (brand moved above gauge) */
+
+/* ---- Bloom State (Petal Radar inside Score Hero) ---- */
+.score-hero__bloom {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 400ms var(--ease-out);
+  z-index: 1;
+}
+
+.score-hero--bloomed .score-hero__bloom {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.score-hero__bloom-svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* During bloom: dim the arc tracks */
+.score-hero--bloomed .score-hero__arc-bg {
+  opacity: 0.15;
+  transition: opacity 400ms var(--ease-out);
+}
+
+.score-hero--bloomed .score-hero__arc-fill {
+  opacity: 0.3;
+  transition: opacity 400ms var(--ease-out);
+}
+
+/* During bloom: shrink center text to make room for petals */
+.score-hero--bloomed .score-hero__center {
+  transform: translateX(-50%) scale(0.7);
+  opacity: 0.6;
+  transition: transform 400ms var(--spring), opacity 300ms var(--ease-out);
+}
+
+/* During bloom: hide brand label */
+.score-hero--bloomed .score-hero__brand {
+  opacity: 0;
+  transition: opacity 200ms var(--ease-out);
+}
+
+/* Bloom gauge expansion — becomes square for full petal radar */
+.score-hero--bloomed .score-hero__gauge {
+  width: min(90vw, 360px);
+  aspect-ratio: 1 / 1;
+}
+
+/* Bloom petals — accent color at subtle opacity (Ink Rule) */
+.bloom__petal {
+  fill: var(--ac);
+  fill-opacity: 0.08;
+  stroke: var(--ac);
+  stroke-opacity: 0.25;
+  stroke-width: 1;
+  cursor: pointer;
+  transition: fill-opacity 200ms var(--ease-out);
+}
+
+.bloom__petal:hover,
+.bloom__petal--active {
+  fill-opacity: 0.2;
+}
+
+/* Guide rings */
+.bloom__guide {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 0.5;
+  opacity: 0.3;
+}
+
+.bloom__axis {
+  stroke: var(--border);
+  stroke-width: 0.5;
+  opacity: 0.2;
+}
+
+/* Icons at petal tips */
+.bloom__icon-fo {
+  overflow: visible;
+}
+
+.bloom__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fg3);
+}
+
+.bloom__label {
+  fill: var(--fg3);
+  font-family: var(--font-data);
+  font-size: 8px;
+  text-anchor: middle;
+  letter-spacing: 0.04em;
+}
+
+/* Bloom summary below gauge */
+.score-hero__bloom-summary {
+  font-family: var(--font-structural);
+  font-size: var(--text-xs);
+  color: var(--fg2);
+  text-align: center;
+  opacity: 0;
+  transition: opacity 300ms var(--ease-out);
+}
+
+.score-hero--bloomed .score-hero__bloom-summary {
+  opacity: 1;
+}
+
+/* ---- Bloom + Breakdown State (V2 bars below petals) ---- */
+.score-hero--breakdown .score-hero__bloom {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.score-hero--breakdown .score-hero__arc-bg { opacity: 0.15; }
+.score-hero--breakdown .score-hero__arc-fill { opacity: 0.3; }
+.score-hero--breakdown .score-hero__center {
+  transform: translateX(-50%) scale(0.7);
+  opacity: 0.6;
+}
+.score-hero--breakdown .score-hero__brand { opacity: 0; }
+.score-hero--breakdown .score-hero__gauge {
+  width: min(90vw, 360px);
+  aspect-ratio: 1 / 1;
+}
+
+/* V2 breakdown strip below bloom */
+.bloom-breakdown {
+  width: 100%;
+  max-width: 360px;
+  margin: var(--space-xs) auto 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: opacity 300ms var(--ease-out), transform 300ms var(--ease-out);
+}
+
+.score-hero--breakdown .bloom-breakdown {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.bloom-v2-row {
+  display: grid;
+  grid-template-columns: 60px 1fr 36px;
+  align-items: center;
+  gap: var(--space-xs);
+  min-height: 24px;
+}
+
+.bloom-v2-row__label {
+  font-family: var(--font-data);
+  font-size: var(--text-xs);
+  color: var(--fg3);
+  letter-spacing: 0.04em;
+}
+
+.bloom-v2-row__track {
+  height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.bloom-v2-row__fill {
+  height: 100%;
+  background: var(--ac);
+  border-radius: 2px;
+  opacity: 0.5;
+  transition: width 500ms cubic-bezier(0.2, 1, 0.4, 1);
+}
+
+.bloom-v2-row__score {
+  font-family: var(--font-data);
+  font-size: var(--text-xs);
+  color: var(--fg2);
+  font-weight: 700;
+  text-align: right;
+}
 
 /* ---- Vibe Bars (horizontal dimension bars) ---- */
 .vibe-bars {
@@ -1776,7 +1967,7 @@
 .result-links {
   display: flex;
   flex-wrap: wrap;
-  justify-content: flex-start;
+  justify-content: center;
   align-items: center;
   gap: var(--space-2xs);
 }
@@ -1916,6 +2107,15 @@
 }
 
 /* Dimmed profile chip items (unavailable data — filtered out in JS, kept as fallback) */
+
+/* ---- Profile Chips: Container ---- */
+.profile-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-2xs);
+}
 
 /* ---- Profile Chips: Separator ---- */
 .profile-chips__sep {

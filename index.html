@@ -341,6 +341,15 @@
                       <path class="score-hero__arc-bg" d="M 20 110 A 80 80 0 0 1 180 110" />
                       <path class="score-hero__arc-fill" id="score-hero-arc-fill" d="M 20 110 A 80 80 0 0 1 180 110" />
                     </svg>
+                    <!-- Bloom overlay: petal radar rendered here on tap -->
+                    <div class="score-hero__bloom" id="score-hero-bloom" aria-hidden="true">
+                      <svg class="score-hero__bloom-svg" viewBox="0 0 240 240" aria-hidden="true">
+                        <g class="bloom__grid"></g>
+                        <g class="bloom__axes"></g>
+                        <g class="bloom__petals" id="bloom-petals"></g>
+                        <g class="bloom__icons" id="bloom-icons"></g>
+                      </svg>
+                    </div>
                     <div class="score-hero__center">
                       <span class="score-hero__brand">
                         <svg class="score-hero__brand-logo" viewBox="0 0 32 44" width="10" height="14" aria-hidden="true">
@@ -362,7 +371,7 @@
                   <div class="score-hero__meta">
                     <button class="score-hero__callout type-data--sm" id="score-hero-callout"
                             data-action="show-vibe-profile" style="display: none;"
-                            aria-label="Show vibe profile breakdown">
+                            aria-label="Toggle vibe profile bloom">
                       <span class="score-hero__callout-prefix type-emotional">Best for</span>
                       <span class="score-hero__callout-value" id="score-hero-callout-value"></span>
                       <span class="score-hero__callout-arrow">&#8595;</span>
@@ -428,15 +437,7 @@
               <!-- ══════ TIER 3: DEEP DIVE — Full details ══════ -->
               <div class="tier tier--deep" id="tier-deep" aria-hidden="true">
 
-                <!-- Vibe Bars (6 dimension scores) -->
-                <div class="vibe-bars" id="vibe-bars" role="list" aria-label="DondeAI Vibe dimensions" style="display: none;">
-                  <div class="vibe-bars__header">
-                    <span class="vibe-bars__title type-data--sm">Vibe Profile<sup>™</sup></span>
-                  </div>
-                  <div class="vibe-bars__list" id="vibe-bars-list"></div>
-                </div>
-
-                <!-- V2 Breakdown -->
+                <!-- V2 Breakdown (also accessible via score hero bloom 3rd tap) -->
                 <div class="score-breakdown" id="score-breakdown" aria-live="polite" style="display: none;"></div>
 
                 <!-- Detail Badges Grid (full facts + atmosphere) -->

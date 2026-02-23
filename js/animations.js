@@ -466,13 +466,271 @@ export function toggleScoreBreakdown() {
   });
 }
 
-/* ---- Legacy bloom exports (no-op stubs for backward compatibility) ---- */
-export function toggleBloom() {}
+/* ---- Bloom: Petal Radar inside Score Hero ---- */
+
+let _bloomState = 'compact'; // 'compact' | 'bloomed' | 'breakdown'
+let _bloomRendered = false;
+let _breakdownRendered = false;
+
+export function getBloomState() { return _bloomState; }
+
+export function resetBloomState() {
+  _bloomState = 'compact';
+  _bloomRendered = false;
+  _breakdownRendered = false;
+  const $hero = document.getElementById('score-hero');
+  if ($hero) {
+    $hero.classList.remove('score-hero--bloomed', 'score-hero--breakdown');
+  }
+  const $petalsG = document.getElementById('bloom-petals');
+  const $iconsG = document.getElementById('bloom-icons');
+  const $bloom = document.getElementById('score-hero-bloom');
+  if ($petalsG) $petalsG.innerHTML = '';
+  if ($iconsG) $iconsG.innerHTML = '';
+  if ($bloom) {
+    const gridG = $bloom.querySelector('.bloom__grid');
+    const axesG = $bloom.querySelector('.bloom__axes');
+    if (gridG) gridG.innerHTML = '';
+    if (axesG) axesG.innerHTML = '';
+  }
+  // Clear breakdown strip
+  const $breakdownStrip = document.getElementById('bloom-breakdown');
+  if ($breakdownStrip) $breakdownStrip.remove();
+}
+
+/**
+ * 3-state cycle: compact → bloomed (petals) → breakdown (V2 bars) → compact
+ */
+export function toggleBloom(scores, scoringV2, timers = []) {
+  const $hero = document.getElementById('score-hero');
+  if (!$hero) return _bloomState;
+
+  if (_bloomState === 'compact') {
+    // → bloomed: show petal radar
+    $hero.classList.add('score-hero--bloomed');
+    $hero.classList.remove('score-hero--breakdown');
+    if (!_bloomRendered) {
+      renderBloomPetals(scores || {}, timers);
+      _bloomRendered = true;
+    }
+    _bloomState = 'bloomed';
+    return 'bloomed';
+
+  } else if (_bloomState === 'bloomed') {
+    // → breakdown: show V2 scoring bars below bloom
+    if (scoringV2 && Object.keys(scoringV2).length > 0) {
+      $hero.classList.remove('score-hero--bloomed');
+      $hero.classList.add('score-hero--breakdown');
+      if (!_breakdownRendered) {
+        renderBloomBreakdown(scoringV2, timers);
+        _breakdownRendered = true;
+      }
+      _bloomState = 'breakdown';
+      return 'breakdown';
+    }
+    // No V2 data — skip straight to compact
+    $hero.classList.remove('score-hero--bloomed');
+    _bloomState = 'compact';
+    return 'compact';
+
+  } else {
+    // → compact: collapse everything
+    $hero.classList.remove('score-hero--bloomed', 'score-hero--breakdown');
+    _bloomState = 'compact';
+    return 'compact';
+  }
+}
+
 export function handlePetalTap() {}
 export function handleBloomRingTap() {
   toggleScoreBreakdown();
 }
-export function getBloomState() { return 'compact'; }
+
+/**
+ * Render 6 teardrop petals inside the bloom overlay SVG.
+ * Adapted from legacy renderPetalRadar — same geometry, new DOM targets.
+ */
+function renderBloomPetals(scores, timers = []) {
+  const $bloom = document.getElementById('score-hero-bloom');
+  const $petalsG = document.getElementById('bloom-petals');
+  const $iconsG = document.getElementById('bloom-icons');
+  if (!$bloom || !$petalsG || !$iconsG) return;
+
+  const available = RADAR_DIMS.filter(d => {
+    const v = scores[d.key];
+    return v != null && v !== '' && !isNaN(parseFloat(v));
+  });
+
+  if (available.length < 3) return;
+
+  const gridG = $bloom.querySelector('.bloom__grid');
+  const axesG = $bloom.querySelector('.bloom__axes');
+  $petalsG.innerHTML = '';
+  $iconsG.innerHTML = '';
+  if (gridG) gridG.innerHTML = '';
+  if (axesG) axesG.innerHTML = '';
+
+  const cx = 120, cy = 120;
+  const maxR = 55;
+  const minR = 8;
+  const angleStep = (2 * Math.PI) / 6;
+  const startAngle = -Math.PI / 2;
+
+  // Build slots — all 6 positions
+  const slots = RADAR_DIMS.map(dim => {
+    const found = available.find(a => a.key === dim.key);
+    const val = found ? Math.min(parseFloat(scores[dim.key]) || 0, 10) : 0;
+    return { ...dim, val, hasData: !!found };
+  });
+
+  // Concentric hexagonal guides at 33% and 66%
+  if (gridG) {
+    [0.33, 0.66].forEach(pct => {
+      const r = maxR * pct;
+      const pts = [];
+      for (let i = 0; i < 6; i++) {
+        const a = startAngle + i * angleStep;
+        pts.push(`${cx + r * Math.cos(a)},${cy + r * Math.sin(a)}`);
+      }
+      const poly = svgEl('polygon');
+      poly.setAttribute('points', pts.join(' '));
+      poly.classList.add('bloom__guide');
+      gridG.appendChild(poly);
+    });
+  }
+
+  // Axis lines from center to each vertex
+  if (axesG) {
+    for (let i = 0; i < 6; i++) {
+      const a = startAngle + i * angleStep;
+      const line = svgEl('line');
+      line.setAttribute('x1', cx);
+      line.setAttribute('y1', cy);
+      line.setAttribute('x2', cx + maxR * Math.cos(a));
+      line.setAttribute('y2', cy + maxR * Math.sin(a));
+      line.classList.add('bloom__axis');
+      axesG.appendChild(line);
+    }
+  }
+
+  // Petals
+  slots.forEach((slot, i) => {
+    if (!slot.hasData) return;
+    const angle = startAngle + i * angleStep;
+    const r = minR + (slot.val / 10) * (maxR - minR);
+    const path = svgEl('path');
+    path.setAttribute('d', buildTeardropPath(cx, cy, angle, r));
+    path.classList.add('bloom__petal');
+    path.setAttribute('data-dim', slot.key);
+    path.setAttribute('data-value', slot.val.toFixed(1));
+
+    // Accessible title
+    const title = svgEl('title');
+    title.textContent = `${slot.label}: ${humanizeVibeScore(slot.val)} (${slot.val.toFixed(1)}/10)`;
+    path.appendChild(title);
+
+    if (!REDUCED.matches) {
+      path.style.transformOrigin = `${cx}px ${cy}px`;
+      path.style.transform = 'scale(0)';
+      path.style.opacity = '0';
+      const delay = 200 + i * 80;
+      timers.push(setTimeout(() => {
+        path.style.transition = 'transform 500ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 300ms ease-out';
+        path.style.transform = 'scale(1)';
+        path.style.opacity = '1';
+      }, delay));
+    }
+    $petalsG.appendChild(path);
+  });
+
+  // Icons + labels at axis tips
+  slots.forEach((slot, i) => {
+    if (!slot.hasData) return;
+    const angle = startAngle + i * angleStep;
+    const iconR = maxR + 16;
+    const ix = cx + iconR * Math.cos(angle);
+    const iy = cy + iconR * Math.sin(angle);
+
+    // Icon via foreignObject
+    const fo = svgEl('foreignObject');
+    fo.setAttribute('x', ix - 10);
+    fo.setAttribute('y', iy - 10);
+    fo.setAttribute('width', 20);
+    fo.setAttribute('height', 20);
+    fo.setAttribute('class', 'bloom__icon-fo');
+    const div = document.createElement('div');
+    div.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml');
+    div.className = 'bloom__icon';
+    div.innerHTML = svgIcon(slot.icon, 14);
+    fo.appendChild(div);
+    $iconsG.appendChild(fo);
+
+    // Label text
+    const labelR = maxR + 28;
+    const lx = cx + labelR * Math.cos(angle);
+    const ly = cy + labelR * Math.sin(angle);
+    const text = svgEl('text');
+    text.setAttribute('x', lx);
+    text.setAttribute('y', ly + 3);
+    text.classList.add('bloom__label');
+    text.textContent = slot.label;
+    $iconsG.appendChild(text);
+  });
+}
+
+/**
+ * Render V2 scoring breakdown as compact bars below the bloom.
+ * Inserted into score-hero__meta area.
+ */
+function renderBloomBreakdown(scoringV2, timers = []) {
+  const $hero = document.getElementById('score-hero');
+  if (!$hero) return;
+
+  // Create breakdown container after the meta area
+  let $strip = document.getElementById('bloom-breakdown');
+  if (!$strip) {
+    $strip = document.createElement('div');
+    $strip.id = 'bloom-breakdown';
+    $strip.className = 'bloom-breakdown';
+    // Insert after score-hero__meta
+    const $meta = $hero.querySelector('.score-hero__meta');
+    if ($meta) {
+      $meta.after($strip);
+    } else {
+      $hero.appendChild($strip);
+    }
+  }
+  $strip.innerHTML = '';
+
+  const v2Dims = [
+    { key: 'occasion_fit',    label: 'Occasion' },
+    { key: 'craving_match',   label: 'Craving' },
+    { key: 'vibe_alignment',  label: 'Vibe' },
+    { key: 'practical_fit',   label: 'Practical' },
+    { key: 'discovery_value', label: 'Discovery' },
+  ];
+
+  v2Dims.forEach((dim, i) => {
+    const val = Math.min(Math.max(scoringV2[dim.key] || 0, 0), 100);
+    const row = document.createElement('div');
+    row.className = 'bloom-v2-row';
+    row.innerHTML = `
+      <span class="bloom-v2-row__label">${dim.label}</span>
+      <div class="bloom-v2-row__track">
+        <div class="bloom-v2-row__fill" style="width: 0%"></div>
+      </div>
+      <span class="bloom-v2-row__score">${humanizeV2Score(val)}</span>`;
+    $strip.appendChild(row);
+
+    if (!REDUCED.matches) {
+      timers.push(setTimeout(() => {
+        row.querySelector('.bloom-v2-row__fill').style.width = `${val}%`;
+      }, 100 + i * 60));
+    } else {
+      row.querySelector('.bloom-v2-row__fill').style.width = `${val}%`;
+    }
+  });
+}
 
 /* ---- Sentiment Inline (compact horizontal bar) ---- */
 export function renderSentimentInline(pos, neu, neg, timers = []) {
