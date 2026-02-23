@@ -140,11 +140,6 @@
     height: 148px;
   }
 
-  /* Desktop: Tier 1 glance can be wider layout */
-  .tier--glance {
-    max-width: 640px;
-  }
-
   /* Match pill: desktop prominence */
   .match-pill__score {
     font-size: 1.625rem;

@@ -341,7 +341,7 @@ export function renderScoreHero(dondeMatch, scores, scoringV2, sentiment, timers
   if ($callout && $calloutValue && available.length >= 1) {
     const best = slots.filter(s => s.hasData).sort((a, b) => b.val - a.val)[0];
     if (best) {
-      $calloutValue.textContent = `${best.label} · ${humanizeVibeScore(best.val)}`;
+      $calloutValue.textContent = best.label;
       $callout.style.display = '';
       if (!REDUCED.matches) {
         timers.push(setTimeout(() => {

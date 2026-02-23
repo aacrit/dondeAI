@@ -738,6 +738,37 @@ function wireEvents() {
         break;
       }
 
+      case 'show-vibe-profile': {
+        // Expand Tier 2 + 3 if not already, then scroll to vibe bars
+        const $t2 = document.getElementById('tier-leanin');
+        const $t3 = document.getElementById('tier-deep');
+        const $tmBtn = document.getElementById('tell-more-btn');
+        const $dtBtn = document.getElementById('details-trigger-btn');
+        if ($t2 && !$t2.classList.contains('tier--expanded')) {
+          $t2.classList.add('tier--expanded');
+          $t2.setAttribute('aria-hidden', 'false');
+          if ($tmBtn) { $tmBtn.setAttribute('aria-expanded', 'true'); const t = $tmBtn.querySelector('.tell-more-btn__text'); if (t) t.textContent = 'Show Less'; }
+          renderTier2Animations();
+          const $bta = document.getElementById('bottom-try-again');
+          const $bso = document.getElementById('bottom-start-over');
+          if ($bta) $bta.style.display = '';
+          if ($bso) $bso.style.display = '';
+        }
+        if ($t3 && !$t3.classList.contains('tier--expanded')) {
+          $t3.classList.add('tier--expanded');
+          $t3.setAttribute('aria-hidden', 'false');
+          if ($dtBtn) { $dtBtn.setAttribute('aria-expanded', 'true'); const t = $dtBtn.querySelector('.details-trigger-btn__text'); if (t) t.textContent = 'Collapse'; }
+          renderTier3Animations();
+        }
+        // Scroll to vibe bars after expansion settles
+        setTimeout(() => {
+          const $vb = document.getElementById('vibe-bars');
+          if ($vb) $vb.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 350);
+        announce('Showing vibe profile breakdown');
+        break;
+      }
+
       case 'expand-tier-3': {
         const $tier3 = document.getElementById('tier-deep');
         const isExp = btn.getAttribute('aria-expanded') === 'true';
@@ -1764,17 +1795,13 @@ function prepareTier2(data, cuisine) {
     $awards.innerHTML = '';
     const dc = data.deep_context;
     const badges = [];
-    if (dc?.neighborhood_integration) {
-      const niMap = { hidden_local: 'Local Secret', destination: 'Destination Spot', neighborhood_staple: 'Neighborhood Staple' };
-      badges.push({ text: niMap[dc.neighborhood_integration] || humanizeSnake(dc.neighborhood_integration), dashed: true });
-    }
     if (dc?.awards_recognition?.length > 0) {
-      dc.awards_recognition.slice(0, 3).forEach(a => badges.push({ text: a, dashed: false }));
+      dc.awards_recognition.slice(0, 3).forEach(a => badges.push({ text: a }));
     }
     if (badges.length > 0) {
       badges.forEach(b => {
         const span = document.createElement('span');
-        span.className = 'award-pill type-data--sm' + (b.dashed ? ' award-pill--dashed' : '');
+        span.className = 'award-pill type-data--sm';
         span.textContent = b.text;
         $awards.appendChild(span);
       });
@@ -1853,25 +1880,9 @@ function prepareTier2(data, cuisine) {
     }
   }
 
-  // Navigation tile (Tier 2 — address only, no labels)
+  // Navigation tile — now in Tier 1 only (glance-nav); hide Tier 2 duplicate
   const $navTileContainer = document.getElementById('result-nav-tile');
-  if ($navTileContainer) {
-    $navTileContainer.innerHTML = '';
-    if (r.address) {
-      const mapsUrl = buildMapsUrl(r.address);
-      $navTileContainer.innerHTML = `
-        <a class="nav-tile__link" href="${mapsUrl}" target="_blank" rel="noopener noreferrer">
-          <span class="nav-tile__icon">${svgIcon('pin', 24)}</span>
-          <span class="nav-tile__content">
-            <span class="nav-tile__address type-structural">${r.address}</span>
-          </span>
-          <span class="nav-tile__arrow">${svgIcon('chevronRight', 20)}</span>
-        </a>`;
-      $navTileContainer.style.display = '';
-    } else {
-      $navTileContainer.style.display = 'none';
-    }
-  }
+  if ($navTileContainer) $navTileContainer.style.display = 'none';
 
   // Quick Links (Website, Call, Share)
   const $resultLinks = document.getElementById('result-links');
