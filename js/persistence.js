@@ -12,6 +12,7 @@ const KEYS = {
   bookmarks: 'dondeai-bookmarks',
   userId: 'dondeai-user-id',
   feedback: 'dondeai-feedback',
+  authDismissed: 'dondeai-auth-dismissed',
 };
 
 function safeGet(key) {
@@ -142,6 +143,15 @@ export function saveFeedback(restaurantId, feedback) {
 export function loadFeedback(restaurantId) {
   const all = safeGet(KEYS.feedback) || {};
   return all[restaurantId]?.feedback || null;
+}
+
+/* ---- SSO: Guest Dismiss (auto-prompt suppression) ---- */
+export function hasGuestDismissed() {
+  return safeGet(KEYS.authDismissed) === true;
+}
+
+export function setGuestDismissed() {
+  safeSet(KEYS.authDismissed, true);
 }
 
 /* ---- SSO: Server Sync Functions ---- */

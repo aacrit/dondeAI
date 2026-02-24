@@ -5,7 +5,7 @@
 
 import { getState, setState, subscribe, resetState } from './state.js';
 import { initRouter, goToStep, goToStepInstant } from './router.js';
-import { loadTheme, loadSound, loadHistory, addToHistory, saveTheme, loadColorMode, loadBookmarks, addBookmark, removeBookmark, isBookmarked, getOrCreateUserId, saveFeedback, loadFeedback } from './persistence.js';
+import { loadTheme, loadSound, loadHistory, addToHistory, saveTheme, loadColorMode, loadBookmarks, addBookmark, removeBookmark, isBookmarked, getOrCreateUserId, saveFeedback, loadFeedback, hasGuestDismissed, setGuestDismissed } from './persistence.js';
 import { initTheme, setTheme, setThemeInstant, setThemeVisualOnly, revertAutoTheme, setManualOverride, isManualOverride, setColorMode, getColorMode, getLabels, CULTURES, CULTURE_DISPLAY_NAMES } from './theme.js';
 import { initAudio, toggleSound, playChime } from './audio.js';
 import { initVoice, startVoice } from './voice.js';
@@ -62,6 +62,13 @@ function init() {
   initOffline();
   initAccessibility();
   initAuth(); // SSO: non-blocking, restores session if exists
+
+  // SSO: Auto-show auth popup on first visit (unless guest-dismissed or already authenticated)
+  setTimeout(() => {
+    if (!isAuthAuthenticated() && !hasGuestDismissed()) {
+      openAuthSheet();
+    }
+  }, 800);
 
   // Set up greeting
   setupLanding();
@@ -799,6 +806,11 @@ function wireEvents() {
 
       case 'close-auth':
         closeAuthSheet();
+        break;
+
+      case 'guest-dismiss':
+        closeAuthSheet();
+        setGuestDismissed();
         break;
 
       case 'sign-out':

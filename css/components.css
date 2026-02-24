@@ -3807,14 +3807,15 @@
   display: block !important;
 }
 
-/* Auth Bottom Sheet — mirrors .share-sheet pattern */
+/* Auth Modal — centered dialog, inherits active Donde theme */
 .auth-sheet {
   position: fixed;
   inset: 0;
   z-index: var(--z-modal);
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
+  padding: var(--space-lg);
   pointer-events: none;
   opacity: 0;
   transition: opacity var(--dur-normal) var(--ease-out);
@@ -3839,14 +3840,16 @@
   backdrop-filter: blur(var(--glass-blur)) saturate(180%);
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  border-radius: var(--radius-lg);
   padding: var(--space-lg);
-  transform: translateY(100%);
-  transition: transform var(--dur-step) var(--spring);
+  transform: translateY(24px) scale(0.97);
+  opacity: 0;
+  transition: transform var(--dur-step) var(--spring), opacity var(--dur-normal) var(--ease-out);
 }
 
 .auth-sheet--open .auth-sheet__panel {
-  transform: translateY(0);
+  transform: translateY(0) scale(1);
+  opacity: 1;
 }
 
 /* Provider buttons */
@@ -3895,6 +3898,24 @@
 .auth-provider-btn__badge {
   color: var(--fg3);
   font-size: 0.7rem;
+}
+
+/* Guest dismiss button */
+.auth-guest-btn {
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  margin-top: var(--space-sm);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--fg2);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+
+.auth-guest-btn:hover {
+  background: var(--bg2);
+  color: var(--fg);
 }
 
 /* User Menu Dropdown — mirrors .color-popover pattern */
