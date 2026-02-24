@@ -1,9 +1,14 @@
 /* ============================================
    DondeAI — Backend Integration
    POST to webhook, handle all error states.
+   SSO: Uses user JWT when authenticated, falls
+   back to anon key for anonymous users.
    ============================================ */
 
+import { getAccessToken } from './auth.js';
+
 const ENDPOINT = 'https://vwbzkgsxmgwcvmvuxnbe.supabase.co/functions/v1/recommend';
+const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3YnprZ3N4bWd3Y3ZtdnV4bmJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk5NjUzNTYsImV4cCI6MjA4NTU0MTM1Nn0.YBhmusYxc28TD5FOZv4TBpFpDVHHk1V894wUkNtJtcc';
 const TIMEOUT_MS = 15000;
 
 // I3: Map frontend time periods to backend time_of_day values
@@ -26,13 +31,18 @@ export async function fetchRecommendation({ special_request, occasion, neighborh
   if (feedback) body.feedback = feedback;
   body.time_of_day = getBackendTimeOfDay(); // I3/B2: Send client time context
 
+  // SSO: Use user JWT when authenticated, anon key otherwise
+  let authToken = null;
+  try { authToken = await getAccessToken(); } catch { /* auth module not loaded yet */ }
+  const bearerToken = authToken || ANON_KEY;
+
   try {
     const res = await fetch(ENDPOINT, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3YnprZ3N4bWd3Y3ZtdnV4bmJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk5NjUzNTYsImV4cCI6MjA4NTU0MTM1Nn0.YBhmusYxc28TD5FOZv4TBpFpDVHHk1V894wUkNtJtcc',
-        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3YnprZ3N4bWd3Y3ZtdnV4bmJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk5NjUzNTYsImV4cCI6MjA4NTU0MTM1Nn0.YBhmusYxc28TD5FOZv4TBpFpDVHHk1V894wUkNtJtcc',
+        'Authorization': `Bearer ${bearerToken}`,
+        'apikey': ANON_KEY,
       },
       body: JSON.stringify(body),
       signal: controller.signal,

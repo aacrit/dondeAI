@@ -5,7 +5,7 @@
 
 import { getState, setState, subscribe, resetState } from './state.js';
 import { initRouter, goToStep, goToStepInstant } from './router.js';
-import { loadTheme, loadSound, loadHistory, addToHistory, saveTheme, loadColorMode, loadBookmarks, addBookmark, removeBookmark, isBookmarked, getOrCreateUserId, saveFeedback, loadFeedback } from './persistence.js';
+import { loadTheme, loadSound, loadHistory, addToHistory, saveTheme, loadColorMode, loadBookmarks, addBookmark, removeBookmark, isBookmarked, getOrCreateUserId, saveFeedback, loadFeedback, hasGuestDismissed, setGuestDismissed } from './persistence.js';
 import { initTheme, setTheme, setThemeInstant, setThemeVisualOnly, revertAutoTheme, setManualOverride, isManualOverride, setColorMode, getColorMode, getLabels, CULTURES, CULTURE_DISPLAY_NAMES } from './theme.js';
 import { initAudio, toggleSound, playChime } from './audio.js';
 import { initVoice, startVoice } from './voice.js';
@@ -13,6 +13,7 @@ import { initShare, shareResult, closeShareSheet, handleShareChannel } from './s
 import { initOffline, isOnline } from './offline.js';
 import { initAccessibility, announce } from './accessibility.js';
 import { fetchRecommendation } from './api.js';
+import { initAuth, signIn as signInWith, signOut as authSignOut, isAuthenticated as isAuthAuthenticated, getUser as getAuthUser, addFavoriteToServer, removeFavoriteFromServer } from './auth.js';
 import { animateScoreRing, renderPetalRadar, renderSentimentBar, renderScoreBloom, renderScoreHero, renderVibeBars, toggleBloom, resetBloomState, handlePetalTap, handleBloomRingTap, toggleScoreBreakdown, getBloomState, animateBadge, startParticles, stopParticles, chaosToOrderReveal, initLogoAnimation, startSearchPulse, stopSearchPulse, resolveLogoToFound, cleanupLoadingLogo } from './animations.js';
 import {
   getGreeting, getTimePeriod, getCuisineFromResult, svgIcon,
@@ -60,6 +61,14 @@ function init() {
   initShare();
   initOffline();
   initAccessibility();
+  initAuth(); // SSO: non-blocking, restores session if exists
+
+  // SSO: Auto-show auth popup on first visit (unless guest-dismissed or already authenticated)
+  setTimeout(() => {
+    if (!isAuthAuthenticated() && !hasGuestDismissed()) {
+      openAuthSheet();
+    }
+  }, 800);
 
   // Set up greeting
   setupLanding();
@@ -671,12 +680,19 @@ function wireEvents() {
         const wasBookmarked = isBookmarked(restaurant.id);
         if (wasBookmarked) {
           removeBookmark(restaurant.id);
+          // SSO: sync removal to server
+          if (isAuthAuthenticated()) removeFavoriteFromServer(restaurant.id);
         } else {
           addBookmark(restaurant);
+          // SSO: sync addition to server
+          if (isAuthAuthenticated()) addFavoriteToServer(restaurant);
         }
         updateBookmarkBtn(restaurant.id);
         renderSavedSpots();
-        showToast(wasBookmarked ? 'Removed from saved' : 'Saved!', false);
+        const savedMsg = isAuthAuthenticated()
+          ? (wasBookmarked ? 'Removed from saved' : 'Saved to your account')
+          : (wasBookmarked ? 'Removed from saved' : 'Saved!');
+        showToast(savedMsg, false);
         break;
       }
 
@@ -772,7 +788,41 @@ function wireEvents() {
         handleShareChannel(btn.dataset.channel);
         break;
 
+      // SSO: Auth events
+      case 'toggle-auth': {
+        if (isAuthAuthenticated()) {
+          toggleUserMenu();
+        } else {
+          openAuthSheet();
+        }
+        break;
+      }
 
+      case 'sign-in': {
+        const provider = btn.dataset.provider;
+        if (provider) signInWith(provider);
+        break;
+      }
+
+      case 'close-auth':
+        closeAuthSheet();
+        break;
+
+      case 'guest-dismiss':
+        closeAuthSheet();
+        setGuestDismissed();
+        break;
+
+      case 'sign-out':
+        authSignOut().then(() => {
+          closeUserMenu();
+          showToast('Signed out');
+        });
+        break;
+
+      case 'close-user-menu':
+        closeUserMenu();
+        break;
 
       case 'clear-filters': {
         setState({ occasion: 'Any', neighborhood: 'Anywhere', priceLevel: 'Any' });
@@ -3439,6 +3489,81 @@ function closeColorPopover() {
   popover.classList.remove('color-popover--open');
   document.querySelector('[data-action="toggle-color"]')?.focus();
 }
+
+/* ---- SSO: Auth UI Helpers ---- */
+
+function openAuthSheet() {
+  const sheet = document.getElementById('auth-sheet');
+  if (sheet) sheet.classList.add('auth-sheet--open');
+}
+
+function closeAuthSheet() {
+  const sheet = document.getElementById('auth-sheet');
+  if (sheet) sheet.classList.remove('auth-sheet--open');
+}
+
+function toggleUserMenu() {
+  const menu = document.getElementById('user-menu');
+  if (!menu) return;
+  if (menu.classList.contains('user-menu--open')) {
+    closeUserMenu();
+  } else {
+    const user = getAuthUser();
+    if (user) {
+      const $name = document.getElementById('user-menu-name');
+      const $email = document.getElementById('user-menu-email');
+      const $avatar = document.getElementById('user-menu-avatar');
+      if ($name) $name.textContent = user.name || 'User';
+      if ($email) $email.textContent = user.email || '';
+      if ($avatar) $avatar.src = user.avatar_url || '';
+    }
+    menu.classList.add('user-menu--open');
+  }
+}
+
+function closeUserMenu() {
+  const menu = document.getElementById('user-menu');
+  if (menu) menu.classList.remove('user-menu--open');
+}
+
+function updateAuthUI() {
+  const $btn = document.getElementById('auth-btn');
+  const $avatarImg = document.getElementById('auth-avatar-img');
+  if (!$btn) return;
+
+  const user = getAuthUser();
+  if (user && isAuthAuthenticated()) {
+    $btn.classList.add('is-authenticated');
+    $btn.setAttribute('aria-label', 'Account');
+    $btn.setAttribute('title', user.name || 'Account');
+    if ($avatarImg && user.avatar_url) {
+      $avatarImg.src = user.avatar_url;
+      $avatarImg.alt = user.name || '';
+      $avatarImg.style.display = '';
+    }
+  } else {
+    $btn.classList.remove('is-authenticated');
+    $btn.setAttribute('aria-label', 'Sign in');
+    $btn.setAttribute('title', 'Sign in');
+    if ($avatarImg) {
+      $avatarImg.src = '';
+      $avatarImg.style.display = 'none';
+    }
+  }
+}
+
+// SSO: Subscribe to auth state changes
+subscribe((state, prev) => {
+  if (state.isAuthenticated !== prev.isAuthenticated || state.user !== prev.user) {
+    updateAuthUI();
+    closeAuthSheet();
+    if (state.isAuthenticated && !prev.isAuthenticated && state.user) {
+      showToast(`Welcome, ${state.user.name || 'friend'}!`);
+      renderTasteMemory();
+      renderSavedSpots();
+    }
+  }
+});
 
 /* ---- Boot ---- */
 init();

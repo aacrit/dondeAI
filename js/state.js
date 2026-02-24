@@ -21,6 +21,8 @@ const state = {
   soundEnabled: false,
   history: [],
   pendingFeedback: null, // F11: feedback to send with next request
+  user: null,            // SSO: { id, email, name, avatar_url } or null
+  isAuthenticated: false, // SSO: true when signed in
 };
 
 export function getState() {
