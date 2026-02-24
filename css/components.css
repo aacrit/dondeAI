@@ -975,6 +975,7 @@
 }
 .badge-popout__sentiment .sentiment-inline__track {
   display: flex;
+  flex: none;
   width: 100%;
   height: 6px;
   border-radius: 3px;
@@ -1019,19 +1020,6 @@
   letter-spacing: 0.04em;
   flex-shrink: 0;
   white-space: nowrap;
-}
-/* "View Reviews" CTA link */
-.badge-popout__view-link {
-  font-family: var(--font-data);
-  font-size: var(--text-xs);
-  color: var(--fg2);
-  text-decoration: underline;
-  text-underline-offset: 2px;
-  cursor: pointer;
-  align-self: flex-start;
-}
-.badge-popout__view-link:hover {
-  color: var(--fg);
 }
 
 @media (prefers-reduced-motion: reduce) {

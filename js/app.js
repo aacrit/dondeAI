@@ -1943,17 +1943,6 @@ function renderResult(data) {
         popout.appendChild(sentWrap);
       }
 
-      // "View Reviews" link
-      if (googleUrl) {
-        const viewLink = document.createElement('a');
-        viewLink.className = 'badge-popout__view-link';
-        viewLink.href = googleUrl;
-        viewLink.target = '_blank';
-        viewLink.rel = 'noopener noreferrer';
-        viewLink.textContent = 'View Reviews';
-        popout.appendChild(viewLink);
-      }
-
       tag.appendChild(popout);
       $quickTags.appendChild(tag);
     }
