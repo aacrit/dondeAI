@@ -39,7 +39,7 @@ This is the most important visual rule. Accent color (`--ac`) is **earned, not g
 **ALWAYS neutral (grayscale foreground/background tokens):**
 - All detail badges (cuisine, price, parking, noise, ambiance, dress)
 - Score tile backgrounds
-- Google stars (use amber `hsl(45 93% 47%)`, NOT accent)
+- Google stars (use `var(--star-gold)`, NOT accent)
 - Atmosphere tags (patio, music, pets)
 - Navigation tile
 - Quick links (website, call, share)
@@ -104,7 +104,7 @@ Two tiles side-by-side in a flex row, followed by a sentiment bar and inline Goo
 
 - **DondeAI Match™** ring (112px mobile, 120px tablet+, 160px expanded modal). Expandable (tap opens modal). Score ring uses `--ac` for stroke. Verdict label color varies by tier: accent (high), `--fg2` (mid), `--fg3` (low).
 - **DondeAI Vibe™** petal radar ("Ink Blossom"). 6-axis teardrop petals with subtle accent color (8% fill, 25% stroke). Shows "Top: Label X.X" for dominant dimension. Hidden when <3 dimensions present. Expandable (tap opens modal with dimension bar chart).
-- **Sentiment bar**: Always visible, 4px horizontal RAG bar (green/gray/rose at 50% opacity). Labeled "Review Sentiment" above the track. Defaults to 33/33/34 when no sentiment data. Tooltip on hover/tap shows percentages.
+- **Sentiment bar**: Always visible, 4px horizontal RAG bar (`--rag-green`/`--fg3`/`--rag-red` at 70% opacity). Labeled "Review Sentiment" above the track. Defaults to 33/33/34 when no sentiment data. Tooltip on hover/tap shows percentages.
 - **Google rating**: Inline stars + numeric + review count. Links to Google Maps when `google_place_id` present.
 
 ## SVG Icon System

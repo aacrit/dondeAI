@@ -606,9 +606,9 @@ export function getScoreTier(score) {
 
 export function getScoreColor(score) {
   const pct = Math.round(parseFloat(score) || 80);
-  if (pct >= 86) return 'var(--score-green)';
-  if (pct >= 75) return 'var(--amber)';
-  return 'var(--rose)';
+  if (pct >= 86) return 'var(--rag-green)';
+  if (pct >= 75) return 'var(--rag-amber)';
+  return 'var(--rag-red)';
 }
 
 /**
@@ -618,9 +618,9 @@ export function getScoreColor(score) {
  * @returns {string} CSS variable string
  */
 export function getScoreThresholdColor(score) {
-  if (score >= 86) return 'var(--score-green)';
-  if (score >= 75) return 'var(--amber)';
-  return 'var(--rose)';
+  if (score >= 86) return 'var(--rag-green)';
+  if (score >= 75) return 'var(--rag-amber)';
+  return 'var(--rag-red)';
 }
 
 /**
@@ -630,9 +630,9 @@ export function getScoreThresholdColor(score) {
  * @returns {string} CSS variable string
  */
 export function getVibeColor(score) {
-  if (score >= 8.6) return 'var(--score-green)';
-  if (score >= 7.5) return 'var(--amber)';
-  return 'var(--rose)';
+  if (score >= 8.6) return 'var(--rag-green)';
+  if (score >= 7.5) return 'var(--rag-amber)';
+  return 'var(--rag-red)';
 }
 
 export function buildGoogleStars(rating) {

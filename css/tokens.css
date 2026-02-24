@@ -66,6 +66,26 @@
   --chip-h:      44px;
 }
 
+/* ---- Universal RAG Scale (theme-independent) ---- */
+[data-mode="light"] {
+  --rag-green:      hsl(145 63% 35%);
+  --rag-amber:      hsl(40 82% 44%);
+  --rag-red:        hsl(4 72% 46%);
+  --rag-green-soft: hsl(145 63% 35% / 0.14);
+  --rag-amber-soft: hsl(40 82% 44% / 0.14);
+  --rag-red-soft:   hsl(4 72% 46% / 0.14);
+  --star-gold:      hsl(44 90% 48%);
+}
+[data-mode="dark"] {
+  --rag-green:      hsl(145 56% 50%);
+  --rag-amber:      hsl(40 78% 55%);
+  --rag-red:        hsl(4 65% 56%);
+  --rag-green-soft: hsl(145 56% 50% / 0.18);
+  --rag-amber-soft: hsl(40 78% 55% / 0.18);
+  --rag-red-soft:   hsl(4 65% 56% / 0.18);
+  --star-gold:      hsl(44 85% 52%);
+}
+
 /* ---- Reduced Motion Override ---- */
 @media (prefers-reduced-motion: reduce) {
   :root {
