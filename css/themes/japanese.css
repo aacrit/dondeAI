@@ -16,6 +16,7 @@
   --ac-soft:     hsl(220 35% 45% / 0.1);
   --green:       hsl(155 40% 40%);
   --green-soft:  hsl(155 40% 40% / 0.1);
+  --score-green: hsl(130 65% 38%);
   --rose:        hsl(350 55% 52%);
   --rose-soft:   hsl(350 55% 52% / 0.1);
   --amber:       hsl(35 60% 48%);
@@ -65,6 +66,7 @@
   --ac-soft:     hsl(220 30% 62% / 0.14);
   --green:       hsl(155 35% 50%);
   --green-soft:  hsl(155 35% 50% / 0.14);
+  --score-green: hsl(130 60% 50%);
   --rose:        hsl(350 50% 60%);
   --rose-soft:   hsl(350 50% 60% / 0.14);
   --amber:       hsl(35 55% 55%);
