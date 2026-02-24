@@ -2916,13 +2916,22 @@ function renderDeepContextExtras(data) {
   if (!dc) return;
 
   // Wow Factors
+  const WOW_LABELS = {
+    open_kitchen: 'Open Kitchen', rooftop_skyline_view: 'Rooftop Views',
+    tableside_preparation: 'Tableside Prep', secret_entrance: 'Secret Entrance',
+    live_cooking_show: 'Live Cooking Show', river_view: 'River View',
+    lake_view: 'Lake View', historic_building: 'Historic Building',
+    celebrity_chef: 'Celebrity Chef', unique_decor: 'Unique Decor',
+    speakeasy_vibe: 'Speakeasy Vibe', garden_dining: 'Garden Dining',
+    fireplace: 'Fireplace', chef_interaction: 'Chef Interaction',
+  };
   const $wow = document.getElementById('wow-factors');
   if ($wow && dc.wow_factors?.length) {
     $wow.innerHTML = '';
     dc.wow_factors.filter(w => w !== 'unique_decor').slice(0, 4).forEach(w => {
       const pill = document.createElement('span');
       pill.className = 'wow-pill type-data--sm';
-      pill.textContent = w;
+      pill.textContent = WOW_LABELS[w] || humanizeSnake(w);
       $wow.appendChild(pill);
     });
     $wow.style.display = '';
