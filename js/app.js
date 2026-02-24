@@ -823,33 +823,32 @@ function wireEvents() {
 
       case 'expand-tier-2': {
         const $tier2 = document.getElementById('tier-leanin');
-        const $tier3 = document.getElementById('tier-deep');
         const isExpanded = btn.getAttribute('aria-expanded') === 'true';
         btn.setAttribute('aria-expanded', String(!isExpanded));
         if ($tier2) {
           $tier2.classList.toggle('tier--expanded');
           $tier2.setAttribute('aria-hidden', String(isExpanded));
         }
-        if ($tier3) {
-          $tier3.classList.toggle('tier--expanded');
-          $tier3.setAttribute('aria-hidden', String(isExpanded));
-        }
         const $btnText = btn.querySelector('.tell-more-btn__text');
         if ($btnText) $btnText.textContent = isExpanded ? 'Show More' : 'Show Less';
-        // Show bottom actions when expanded
-        const $bottomTryAgain = document.getElementById('bottom-try-again');
-        const $bottomStartOver = document.getElementById('bottom-start-over');
-        if ($bottomTryAgain) $bottomTryAgain.style.display = isExpanded ? 'none' : '';
-        if ($bottomStartOver) $bottomStartOver.style.display = isExpanded ? 'none' : '';
-        // Trigger tier 2 + tier 3 animations on first expand
         if (!isExpanded) {
           renderTier2Animations();
-          renderTier3Animations();
           const $hero = document.getElementById('score-hero');
           if ($hero) $hero.focus({ preventScroll: true });
-          announce('Showing all details');
+          announce('Showing more details');
         } else {
-          // Collapsing — reset bloom state
+          // Collapsing — also collapse tier 3 if open
+          const $tier3 = document.getElementById('tier-deep');
+          const $detailsBtn = document.getElementById('details-trigger-btn');
+          if ($tier3?.classList.contains('tier--expanded')) {
+            $tier3.classList.remove('tier--expanded');
+            $tier3.setAttribute('aria-hidden', 'true');
+          }
+          if ($detailsBtn) {
+            $detailsBtn.setAttribute('aria-expanded', 'false');
+            const t = $detailsBtn.querySelector('.details-trigger-btn__text');
+            if (t) t.textContent = 'All Details';
+          }
           resetBloomState();
         }
         break;
@@ -1738,11 +1737,6 @@ function renderResult(data) {
   if ($tier3) { $tier3.classList.remove('tier--expanded'); $tier3.setAttribute('aria-hidden', 'true'); }
   if ($tellMore) { $tellMore.setAttribute('aria-expanded', 'false'); const t = $tellMore.querySelector('.tell-more-btn__text'); if (t) t.textContent = 'Show More'; }
   if ($detailsTrigger) { $detailsTrigger.setAttribute('aria-expanded', 'false'); const t = $detailsTrigger.querySelector('.details-trigger-btn__text'); if (t) t.textContent = 'All Details'; }
-  // Hide bottom actions until tier 2 expands
-  const $bottomTryAgain = document.getElementById('bottom-try-again');
-  const $bottomStartOver = document.getElementById('bottom-start-over');
-  if ($bottomTryAgain) $bottomTryAgain.style.display = 'none';
-  if ($bottomStartOver) $bottomStartOver.style.display = 'none';
 
   // Cuisine detection (for accent color + auto-theme)
   const cuisine = getCuisineFromResult(data);
@@ -1984,12 +1978,6 @@ function renderResult(data) {
   // TIER 3: DEEP DIVE — Prepare content (hidden until expanded)
   // ═══════════════════════════════════════════════════════
   prepareTier3(data, cuisine);
-
-  // Inject icon into bottom Start Over button
-  const $startOverIcon = document.getElementById('start-over-icon');
-  const $bottomTryAgainIcon = document.getElementById('bottom-try-again-icon');
-  if ($startOverIcon) $startOverIcon.innerHTML = svgIcon('home', 18);
-  if ($bottomTryAgainIcon) $bottomTryAgainIcon.innerHTML = svgIcon('refresh', 18);
 
   // Apply progressive reveal (Tier 1 only — Tier 2/3 animate on expand)
   if ($resultCard) {

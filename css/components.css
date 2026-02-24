@@ -1031,13 +1031,13 @@
   }
 }
 
-/* ── Glance Actions ── */
+/* ── Glance Actions (inside card-footer) ── */
 .glance-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: center;
   gap: var(--space-sm);
-  padding-top: var(--space-xs);
   width: 100%;
 }
 
@@ -1135,14 +1135,6 @@
 
 .details-trigger-btn {
   display: none;
-}
-
-/* ── Bottom Actions (show after Tier 2 expands) ── */
-.result-actions-block {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-  width: 100%;
 }
 
 /* ── Semantic Block Wrappers ── */
@@ -2502,37 +2494,15 @@
   font-style: italic;
 }
 
-/* ---- Result Actions Block (links + buttons) ---- */
-.result-actions-block {
+/* ---- Card Footer — feedback + actions, always visible at bottom ---- */
+.card-footer {
   display: flex;
   flex-direction: column;
-  gap: var(--space-md);
+  align-items: center;
+  gap: var(--space-sm);
   width: 100%;
   padding-top: var(--space-md);
   border-top: 1px solid var(--border);
-}
-
-.result-actions {
-  display: flex;
-  gap: var(--space-sm);
-  width: 100%;
-  max-width: 480px;
-  margin: 0 auto;
-  justify-content: center;
-}
-
-.result-actions .cta-btn {
-  flex: 1;
-}
-
-.result-actions .cta-btn--secondary {
-  background: var(--bg3);
-  color: var(--fg);
-  box-shadow: none;
-}
-
-.result-actions .cta-btn--secondary:hover {
-  background: var(--border);
 }
 
 /* ---- Color Mode Toggle Icon Visibility ---- */
@@ -3461,9 +3431,11 @@
   animation: resultSectionIn 300ms var(--ease-out) 500ms forwards;
 }
 
-/* Glance actions: fade in */
-.result-card--revealing .glance-actions {
-  animation: resultSectionIn 300ms var(--ease-out) 600ms forwards;
+/* Card footer (feedback + actions): settle in last */
+.result-card--revealing .card-footer {
+  opacity: 0;
+  transform: translateY(12px);
+  animation: resultSectionIn 300ms var(--ease-out) 550ms forwards;
 }
 
 /* Tier 2/3 elements: animate on expansion via JS (no CSS reveal stagger needed) */
@@ -3521,8 +3493,7 @@
   .result-identity,
   .result-story,
   .score-section,
-  .result-profile,
-  .result-actions-block {
+  .result-profile {
     transition: transform 200ms var(--ease-out),
                 box-shadow 200ms var(--ease-out);
   }
@@ -3530,8 +3501,7 @@
   .result-identity:hover,
   .result-story:hover,
   .score-section:hover,
-  .result-profile:hover,
-  .result-actions-block:hover {
+  .result-profile:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 16px -4px var(--shadow);
   }
@@ -3612,7 +3582,6 @@
   .result-story:hover,
   .score-section:hover,
   .result-profile:hover,
-  .result-actions-block:hover,
   .score-tile--expandable:hover {
     transform: none !important;
   }
