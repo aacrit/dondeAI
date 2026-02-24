@@ -974,12 +974,11 @@
   margin-top: var(--space-2xs);
 }
 .badge-popout__sentiment .sentiment-inline__track {
-  display: flex;
   width: 100%;
   height: 6px;
   border-radius: 3px;
   overflow: hidden;
-  gap: 1px;
+  background: var(--border);
 }
 .badge-popout__sentiment-legend {
   display: flex;
@@ -1875,22 +1874,32 @@
 }
 
 .sentiment-inline__track {
-  display: flex;
   flex: 1;
   height: 4px;
   border-radius: 2px;
   overflow: hidden;
-  gap: 1px;
+  background: var(--border);
+  min-width: 40px;
 }
 
-.sentiment-inline__seg {
+.sentiment-inline__fill {
+  display: block;
   height: 100%;
-  transition: flex var(--dur-normal) var(--ease-out);
+  border-radius: 2px;
+  width: 0%;
+  transition: width var(--dur-normal) var(--ease-out);
 }
 
-.sentiment-inline__seg--pos { background: var(--rag-green); opacity: 0.7; }
-.sentiment-inline__seg--neu { background: var(--fg3); opacity: 0.3; }
-.sentiment-inline__seg--neg { background: var(--rag-red); opacity: 0.7; }
+.sentiment-inline__value {
+  font-family: var(--font-data);
+  font-size: var(--text-xs);
+  color: var(--fg2);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  min-width: 28px;
+  text-align: right;
+  flex-shrink: 0;
+}
 
 .sentiment-inline__tooltip {
   position: absolute;

@@ -498,32 +498,35 @@ export function toggleBloom(scores, scoringV2, timers = []) {
 export function handlePetalTap() {}
 export function handleBloomRingTap() {}
 
-/* ---- Sentiment Inline (compact horizontal bar) ---- */
+/* ---- Sentiment Inline (RAG progress bar) ---- */
 export function renderSentimentInline(pos, neu, neg, timers = []) {
   const total = pos + neu + neg;
   if (total === 0) return;
 
-  const posEl = document.getElementById('sentiment-bar-pos');
-  const neuEl = document.getElementById('sentiment-bar-neu');
-  const negEl = document.getElementById('sentiment-bar-neg');
+  const fillEl = document.getElementById('sentiment-bar-fill');
+  const valueEl = document.getElementById('sentiment-bar-value');
+  const trackEl = fillEl?.parentElement;
 
-  const posPct = pos / total;
-  const neuPct = neu / total;
-  const negPct = neg / total;
+  const posPct = Math.round((pos / total) * 100);
+  const color = getScoreThresholdColor(posPct);
+
+  if (fillEl) {
+    fillEl.style.background = color;
+    fillEl.style.width = '0%';
+  }
+  if (trackEl) trackEl.setAttribute('aria-valuenow', String(posPct));
+  if (valueEl) {
+    valueEl.textContent = posPct + '%';
+    valueEl.style.color = color;
+  }
 
   // Animated width grow
-  [posEl, neuEl, negEl].forEach(el => { if (el) el.style.flex = '0'; });
-
   if (!REDUCED.matches) {
     timers.push(setTimeout(() => {
-      if (posEl) posEl.style.flex = String(posPct);
-      if (neuEl) neuEl.style.flex = String(neuPct);
-      if (negEl) negEl.style.flex = String(negPct);
+      if (fillEl) fillEl.style.width = posPct + '%';
     }, 800));
   } else {
-    if (posEl) posEl.style.flex = String(posPct);
-    if (neuEl) neuEl.style.flex = String(neuPct);
-    if (negEl) negEl.style.flex = String(negPct);
+    if (fillEl) fillEl.style.width = posPct + '%';
   }
 }
 

@@ -435,11 +435,10 @@
                   </div>
                   <div class="sentiment-inline" id="sentiment-inline" role="img" aria-label="Review sentiment breakdown">
                     <span class="sentiment-inline__label type-data--sm">Sentiment</span>
-                    <div class="sentiment-inline__track">
-                      <span class="sentiment-inline__seg sentiment-inline__seg--pos" id="sentiment-bar-pos"></span>
-                      <span class="sentiment-inline__seg sentiment-inline__seg--neu" id="sentiment-bar-neu"></span>
-                      <span class="sentiment-inline__seg sentiment-inline__seg--neg" id="sentiment-bar-neg"></span>
+                    <div class="sentiment-inline__track" role="meter" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-label="Positive sentiment">
+                      <span class="sentiment-inline__fill" id="sentiment-bar-fill"></span>
                     </div>
+                    <span class="sentiment-inline__value type-data--sm" id="sentiment-bar-value"></span>
                     <div class="sentiment-inline__tooltip" id="sentiment-bar-tooltip" role="tooltip">
                       <span class="sentiment-inline__tip-item sentiment-inline__tip-item--pos" id="sentiment-tip-pos"></span>
                       <span class="sentiment-inline__tip-item sentiment-inline__tip-item--neu" id="sentiment-tip-neu"></span>
