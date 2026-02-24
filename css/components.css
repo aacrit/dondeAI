@@ -723,6 +723,7 @@
   flex-shrink: 0;
   gap: 2px;
   padding: var(--space-2xs) var(--space-xs);
+  cursor: pointer;
 }
 
 /* Score-wrap: arc + number stacked vertically */
