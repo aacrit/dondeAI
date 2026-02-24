@@ -78,10 +78,10 @@
 }
 [data-mode="dark"] {
   --rag-green:      hsl(145 56% 50%);
-  --rag-amber:      hsl(40 78% 55%);
+  --rag-amber:      hsl(40 82% 58%);
   --rag-red:        hsl(4 65% 56%);
   --rag-green-soft: hsl(145 56% 50% / 0.18);
-  --rag-amber-soft: hsl(40 78% 55% / 0.18);
+  --rag-amber-soft: hsl(40 82% 58% / 0.18);
   --rag-red-soft:   hsl(4 65% 56% / 0.18);
   --star-gold:      hsl(44 85% 52%);
 }
