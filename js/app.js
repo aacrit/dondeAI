@@ -914,6 +914,11 @@ function wireEvents() {
     announce(newState === 'expanded' ? 'Showing vibe profile' : 'Collapsed vibe profile');
   });
 
+  // Match-mini click → expand Tier 2 (same as "Show More")
+  document.getElementById('match-pill')?.addEventListener('click', () => {
+    document.getElementById('tell-more-btn')?.click();
+  });
+
   // Badge popout: click-outside to close
   document.addEventListener('click', (e) => {
     if (_activePopout && !_activePopout.badge.contains(e.target)) {
