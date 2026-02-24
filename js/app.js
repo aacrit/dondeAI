@@ -1879,7 +1879,7 @@ function renderResult(data) {
       tag.setAttribute('aria-haspopup', 'true');
       tag.setAttribute('data-action', 'toggle-badge-popout');
       tag.innerHTML = `${svgIcon('starFull', 12)} ${parseFloat(r.google_rating).toFixed(1)}`;
-      tag.style.color = 'hsl(45 93% 47%)';
+      tag.style.color = 'var(--star-gold)';
 
       const popout = document.createElement('div');
       popout.className = 'badge-popout';

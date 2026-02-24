@@ -749,7 +749,7 @@
 
 .match-mini__arc-fill {
   fill: none;
-  stroke: var(--rose);
+  stroke: var(--rag-red);
   stroke-width: 2.5;
   stroke-linecap: round;
   transform-origin: center bottom;
@@ -764,9 +764,9 @@
 }
 
 /* Score-tier coloring — only the number is colored */
-.match-mini[data-tier="high"] .match-mini__score { color: var(--score-green); }
-.match-mini[data-tier="mid"]  .match-mini__score { color: var(--amber); }
-.match-mini[data-tier="low"]  .match-mini__score { color: var(--rose); }
+.match-mini[data-tier="high"] .match-mini__score { color: var(--rag-green); }
+.match-mini[data-tier="mid"]  .match-mini__score { color: var(--rag-amber); }
+.match-mini[data-tier="low"]  .match-mini__score { color: var(--rag-red); }
 
 /* ── Match Mini Brand (multi-voice wordmark) ── */
 .match-mini__brand {
@@ -958,7 +958,7 @@
 .badge-popout__stars-row {
   display: flex;
   gap: 2px;
-  color: hsl(45 93% 47%);
+  color: var(--star-gold);
 }
 .badge-popout__stars-row svg {
   width: 14px;
@@ -999,9 +999,9 @@
   border-radius: 50%;
   flex-shrink: 0;
 }
-.badge-popout__sentiment-dot--pos { background: hsl(152 50% 50% / 0.7); }
+.badge-popout__sentiment-dot--pos { background: var(--rag-green); opacity: 0.85; }
 .badge-popout__sentiment-dot--neu { background: var(--fg3); }
-.badge-popout__sentiment-dot--neg { background: hsl(350 60% 58% / 0.7); }
+.badge-popout__sentiment-dot--neg { background: var(--rag-red); opacity: 0.85; }
 
 @media (prefers-reduced-motion: reduce) {
   .badge-popout { transition: none; }
@@ -1464,7 +1464,7 @@
 .google-rating-inline .google-stars {
   display: flex;
   gap: 2px;
-  color: hsl(45 93% 47%); /* amber — NOT accent (Ink Rule) */
+  color: var(--star-gold); /* NOT accent (Ink Rule) */
 }
 
 .google-rating-inline .google-rating-number {
@@ -1536,7 +1536,7 @@
 /* Fill arc — color set by JS animation (red → amber → green) */
 .score-hero__arc-fill {
   fill: none;
-  stroke: var(--rose);
+  stroke: var(--rag-red);
   stroke-width: 6;
   stroke-linecap: round;
 }
@@ -1888,9 +1888,9 @@
   transition: flex var(--dur-normal) var(--ease-out);
 }
 
-.sentiment-inline__seg--pos { background: hsl(152 50% 50% / 0.5); }
+.sentiment-inline__seg--pos { background: var(--rag-green); opacity: 0.7; }
 .sentiment-inline__seg--neu { background: var(--fg3); opacity: 0.3; }
-.sentiment-inline__seg--neg { background: hsl(350 60% 58% / 0.5); }
+.sentiment-inline__seg--neg { background: var(--rag-red); opacity: 0.7; }
 
 .sentiment-inline__tooltip {
   position: absolute;
@@ -1938,9 +1938,9 @@
   flex-shrink: 0;
 }
 
-.sentiment-inline__tip-item--pos::before { background: hsl(152 50% 50% / 0.5); }
+.sentiment-inline__tip-item--pos::before { background: var(--rag-green); opacity: 0.7; }
 .sentiment-inline__tip-item--neu::before { background: var(--fg3); }
-.sentiment-inline__tip-item--neg::before { background: hsl(350 60% 58% / 0.5); }
+.sentiment-inline__tip-item--neg::before { background: var(--rag-red); opacity: 0.7; }
 
 /* ---- I6: Sentiment Summary ---- */
 .sentiment-summary {
@@ -3323,7 +3323,7 @@
   display: flex;
   gap: 1px;
   align-items: center;
-  color: var(--amber);
+  color: var(--star-gold);
 }
 
 .google-stars svg {
