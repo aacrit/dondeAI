@@ -580,11 +580,11 @@ const QUICK_PICKS = {
 /* ---- Match System (Percentage-based, 60-99%) ---- */
 const MATCH_WORDS = {
   93: 'Perfect Match',
-  85: 'Great Match',
+  86: 'Great Match',
   75: 'Good Match',
   60: 'Worth Exploring',
 };
-const MATCH_THRESHOLDS = [93, 85, 75, 60];
+const MATCH_THRESHOLDS = [93, 86, 75, 60];
 
 export function getScoreTier(score) {
   const pct = Math.round(parseFloat(score) || 80);
@@ -592,7 +592,7 @@ export function getScoreTier(score) {
   const matched = MATCH_THRESHOLDS.find(t => clamped >= t) ?? 60;
   const verdict = MATCH_WORDS[matched];
   let tier, cssClass;
-  if (clamped >= 85) { tier = 'high'; cssClass = 'score-verdict--high'; }
+  if (clamped >= 86) { tier = 'high'; cssClass = 'score-verdict--high'; }
   else if (clamped >= 75) { tier = 'mid'; cssClass = 'score-verdict--mid'; }
   else { tier = 'low'; cssClass = 'score-verdict--low'; }
   return { tier, verdict, cssClass, integer: clamped };
@@ -600,8 +600,21 @@ export function getScoreTier(score) {
 
 export function getScoreColor(score) {
   const pct = Math.round(parseFloat(score) || 80);
-  if (pct >= 85) return 'var(--green)';
-  return 'var(--ac)';
+  if (pct >= 86) return 'var(--score-green)';
+  if (pct >= 75) return 'var(--amber)';
+  return 'var(--rose)';
+}
+
+/**
+ * Returns the CSS color variable for the current score threshold.
+ * Used during animations to progressively color-code as the counter ticks up.
+ * @param {number} score — current animated score value (0–100)
+ * @returns {string} CSS variable string
+ */
+export function getScoreThresholdColor(score) {
+  if (score >= 86) return 'var(--score-green)';
+  if (score >= 75) return 'var(--amber)';
+  return 'var(--rose)';
 }
 
 export function buildGoogleStars(rating) {

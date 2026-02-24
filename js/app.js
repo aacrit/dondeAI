@@ -16,7 +16,7 @@ import { fetchRecommendation } from './api.js';
 import { animateScoreRing, renderPetalRadar, renderSentimentBar, renderScoreBloom, renderScoreHero, renderVibeBars, renderSentimentInline, toggleBloom, resetBloomState, handlePetalTap, handleBloomRingTap, toggleScoreBreakdown, getBloomState, animateBadge, startParticles, stopParticles, chaosToOrderReveal, initLogoAnimation, startSearchPulse, stopSearchPulse, resolveLogoToFound, cleanupLoadingLogo } from './animations.js';
 import {
   getGreeting, getTimePeriod, getCuisineFromResult, svgIcon,
-  getScoreTier, getScoreColor, buildGoogleStars, buildMapsUrl, relativeTime, matchCuisine, matchCulture
+  getScoreTier, getScoreColor, getScoreThresholdColor, buildGoogleStars, buildMapsUrl, relativeTime, matchCuisine, matchCulture
 } from './utils.js';
 
 /* ---- Cached DOM Elements ---- */
@@ -855,12 +855,12 @@ function wireEvents() {
       }
 
       case 'show-vibe-profile': {
-        // Toggle bloom state on the score hero (3-state cycle)
+        // Toggle vibe bars (2-state: compact ↔ expanded)
         const data = _pendingResultData;
         if (!data) break;
         const newState = toggleBloom(
           data.scores || {},
-          data.scoring_v2 || null,
+          null,
           animationTimers
         );
         // Update callout arrow direction
@@ -869,8 +869,7 @@ function wireEvents() {
         if ($calloutArrow) {
           $calloutArrow.textContent = newState === 'compact' ? '\u2193' : '\u2191';
         }
-        const msgs = { bloomed: 'Showing vibe profile', breakdown: 'Showing score breakdown', compact: 'Collapsed vibe profile' };
-        announce(msgs[newState] || '');
+        announce(newState === 'expanded' ? 'Showing vibe profile' : 'Collapsed vibe profile');
         break;
       }
 
@@ -894,7 +893,7 @@ function wireEvents() {
     }
   });
 
-  // Score Hero tap in Tier 2 — toggle bloom (3-state: compact → petals → V2 → compact)
+  // Score Hero tap in Tier 2 — toggle vibe bars (2-state: compact ↔ expanded)
   document.addEventListener('click', (e) => {
     if (e.target.closest('[data-action]')) return;
     const hero = e.target.closest('.score-hero');
@@ -903,7 +902,7 @@ function wireEvents() {
     if (!data) return;
     const newState = toggleBloom(
       data.scores || {},
-      data.scoring_v2 || null,
+      null,
       animationTimers
     );
     // Update callout arrow
@@ -912,8 +911,7 @@ function wireEvents() {
     if ($calloutArrow) {
       $calloutArrow.textContent = newState === 'compact' ? '\u2193' : '\u2191';
     }
-    const msgs = { bloomed: 'Showing vibe profile', breakdown: 'Showing score breakdown', compact: 'Collapsed vibe profile' };
-    announce(msgs[newState] || '');
+    announce(newState === 'expanded' ? 'Showing vibe profile' : 'Collapsed vibe profile');
   });
 
   // Badge popout: click-outside to close
@@ -1778,23 +1776,49 @@ function renderResult(data) {
     $matchVerdict.setAttribute('data-tier', tier.tier);
   }
 
-  // Animate score count-up
+  // Micro arc setup
+  const $arcFill = document.getElementById('match-pill-arc-fill');
+  const arcLength = Math.PI * 20; // ~62.83 (r=20 semicircle)
+  if ($arcFill) {
+    $arcFill.style.strokeDasharray = String(arcLength);
+    $arcFill.style.strokeDashoffset = String(arcLength); // Start empty
+  }
+
+  // Animate score count-up + arc fill + progressive color coding
   const REDUCED_MQ = matchMedia('(prefers-reduced-motion: reduce)');
   if ($matchScore && !REDUCED_MQ.matches) {
     animationTimers.push(setTimeout(() => {
-      const duration = 800;
+      const duration = 1400;
       const start = performance.now();
       const animate = (now) => {
         const elapsed = now - start;
         const progress = Math.min(elapsed / duration, 1);
         const eased = 1 - Math.pow(1 - progress, 3);
-        $matchScore.textContent = Math.round(eased * dondeScore);
-        if (progress < 1) requestAnimationFrame(animate);
+        const current = Math.round(eased * dondeScore);
+        $matchScore.textContent = current;
+        const thresholdColor = getScoreThresholdColor(current);
+        $matchScore.style.color = thresholdColor;
+        // Update arc fill + color
+        if ($arcFill) {
+          $arcFill.style.strokeDashoffset = String(arcLength - (current / 100) * arcLength);
+          $arcFill.style.stroke = thresholdColor;
+        }
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        } else if ($arcFill) {
+          $arcFill.style.animation = 'arcSettle 400ms var(--spring)';
+        }
       };
       requestAnimationFrame(animate);
     }, 200));
   } else if ($matchScore) {
     $matchScore.textContent = dondeScore;
+    const finalColor = getScoreThresholdColor(dondeScore);
+    $matchScore.style.color = finalColor;
+    if ($arcFill) {
+      $arcFill.style.strokeDashoffset = String(arcLength - (dondeScore / 100) * arcLength);
+      $arcFill.style.stroke = finalColor;
+    }
   }
 
   // Restaurant name

@@ -15,7 +15,7 @@
   }
 
   .match-pill {
-    padding: var(--space-2xs) var(--space-sm);
+    padding: var(--space-2xs) var(--space-xs);
   }
 
   .match-pill__score {

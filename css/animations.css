@@ -235,6 +235,13 @@
   50%      { transform: scale(1.02) translateY(-1px); }
 }
 
+/* ---- Match Pill Arc Settle (micro-pulse on landing) ---- */
+@keyframes arcSettle {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+
 /* ---- Score Ring Celebration Glow (9+ scores) ---- */
 @keyframes scoreGlow {
   0%   { box-shadow: 0 0 0 0 var(--ac-soft); }
