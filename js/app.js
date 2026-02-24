@@ -2915,31 +2915,7 @@ function renderDeepContextExtras(data) {
   const dc = data.deep_context;
   if (!dc) return;
 
-  // Wow Factors
-  const WOW_LABELS = {
-    open_kitchen: 'Open Kitchen', rooftop_skyline_view: 'Rooftop Views',
-    tableside_preparation: 'Tableside Prep', secret_entrance: 'Secret Entrance',
-    live_cooking_show: 'Live Cooking Show', river_view: 'River View',
-    lake_view: 'Lake View', historic_building: 'Historic Building',
-    celebrity_chef: 'Celebrity Chef', unique_decor: 'Unique Decor',
-    speakeasy_vibe: 'Speakeasy Vibe', garden_dining: 'Garden Dining',
-    fireplace: 'Fireplace', chef_interaction: 'Chef Interaction',
-  };
-  const $wow = document.getElementById('wow-factors');
-  if ($wow && dc.wow_factors?.length) {
-    $wow.innerHTML = '';
-    dc.wow_factors.filter(w => w !== 'unique_decor').slice(0, 4).forEach(w => {
-      const pill = document.createElement('span');
-      pill.className = 'wow-pill type-data--sm';
-      pill.textContent = WOW_LABELS[w] || humanizeSnake(w);
-      $wow.appendChild(pill);
-    });
-    $wow.style.display = '';
-  } else if ($wow) {
-    $wow.style.display = 'none';
-  }
-
-  // Quick Stats ribbon — compact deep-context data strip
+  // Quick Stats ribbon — compact deep-context data strip (includes wow factors)
   renderQuickStats(dc);
 
   // Origin Story — presented as a micro-fable
@@ -2959,7 +2935,7 @@ function renderDeepContextExtras(data) {
   }
 }
 
-/* ---- Quick Stats: Compact deep-context data ribbon ---- */
+/* ---- Quick Stats: Compact deep-context data ribbon (includes wow factors) ---- */
 function renderQuickStats(dc) {
   const $stats = document.getElementById('quick-stats');
   if (!$stats) return;
@@ -2967,6 +2943,32 @@ function renderQuickStats(dc) {
 
   const items = [];
 
+  // Wow factors — prepend as icon+text items
+  const WOW_LABELS = {
+    open_kitchen: 'Open Kitchen', rooftop_skyline_view: 'Rooftop Views',
+    tableside_preparation: 'Tableside Prep', secret_entrance: 'Secret Entrance',
+    live_cooking_show: 'Live Cooking Show', river_view: 'River View',
+    lake_view: 'Lake View', historic_building: 'Historic Building',
+    celebrity_chef: 'Celebrity Chef', speakeasy_vibe: 'Speakeasy Vibe',
+    garden_dining: 'Garden Dining', fireplace: 'Fireplace',
+    chef_interaction: 'Chef Interaction',
+  };
+  const WOW_ICONS = {
+    open_kitchen: 'forkKnife', rooftop_skyline_view: 'sun',
+    tableside_preparation: 'plate', secret_entrance: 'diamond',
+    live_cooking_show: 'fire', river_view: 'globe',
+    lake_view: 'globe', historic_building: 'home',
+    celebrity_chef: 'starFull', speakeasy_vibe: 'cocktail',
+    garden_dining: 'patio', fireplace: 'fire',
+    chef_interaction: 'user',
+  };
+  if (dc.wow_factors?.length) {
+    dc.wow_factors.filter(w => w !== 'unique_decor').slice(0, 3).forEach(w => {
+      items.push({ icon: WOW_ICONS[w] || 'starFull', text: WOW_LABELS[w] || humanizeSnake(w) });
+    });
+  }
+
+  // Practical stats
   if (dc.typical_wait_minutes) {
     items.push({ icon: 'clock', text: `~${dc.typical_wait_minutes} min wait` });
   }
@@ -3001,8 +3003,8 @@ function renderQuickStats(dc) {
     items.push({ icon: 'usersThree', text: `Best for ${range}` });
   }
 
-  // Cap at 5 for compactness
-  const shown = items.slice(0, 5);
+  // Cap at 6 for compactness
+  const shown = items.slice(0, 6);
   if (shown.length === 0) {
     $stats.style.display = 'none';
     return;
