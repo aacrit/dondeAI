@@ -70,8 +70,8 @@ export function animateScoreRing(rawScore) {
     }
   }
 
-  // Celebration glow for exceptional matches (90%+)
-  if (!REDUCED.matches && pct >= 90) {
+  // Celebration glow for exceptional matches (92%+ Perfect Match)
+  if (!REDUCED.matches && pct >= 92) {
     setTimeout(() => {
       const tile = document.getElementById('score-tile-donde');
       if (tile) {
@@ -306,11 +306,11 @@ export function renderScoreHero(dondeMatch, scores, scoringV2, sentiment, timers
 
   // Verdict label
   if ($verdict) {
-    const tier = pct >= 90 ? { verdict: 'Outstanding', tier: 'high' }
-      : pct >= 85 ? { verdict: 'Excellent', tier: 'high' }
-      : pct >= 75 ? { verdict: 'Solid Pick', tier: 'mid' }
-      : pct >= 60 ? { verdict: 'Worth a Try', tier: 'mid' }
-      : { verdict: 'Adventurous', tier: 'low' };
+    const tier = pct >= 92 ? { verdict: 'Perfect Match', tier: 'high' }
+      : pct >= 82 ? { verdict: 'Great Match', tier: 'high' }
+      : pct >= 70 ? { verdict: 'Good Match', tier: 'mid' }
+      : pct >= 55 ? { verdict: 'Fair Match', tier: 'low' }
+      : { verdict: 'Stretch', tier: 'low' };
     $verdict.textContent = tier.verdict;
     $verdict.setAttribute('data-tier', tier.tier);
     if (!REDUCED.matches) {

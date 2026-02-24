@@ -577,30 +577,31 @@ const QUICK_PICKS = {
   ],
 };
 
-/* ---- Match System (Percentage-based, 60-99%) ---- */
+/* ---- Match System (Percentage-based, 45-99%) ---- */
 const MATCH_WORDS = {
-  93: 'Perfect Match',
-  85: 'Great Match',
-  75: 'Good Match',
-  60: 'Worth Exploring',
+  92: 'Perfect Match',
+  82: 'Great Match',
+  70: 'Good Match',
+  55: 'Fair Match',
+  45: 'Stretch',
 };
-const MATCH_THRESHOLDS = [93, 85, 75, 60];
+const MATCH_THRESHOLDS = [92, 82, 70, 55, 45];
 
 export function getScoreTier(score) {
-  const pct = Math.round(parseFloat(score) || 80);
+  const pct = Math.round(parseFloat(score) || 75);
   const clamped = Math.max(0, Math.min(100, pct));
-  const matched = MATCH_THRESHOLDS.find(t => clamped >= t) ?? 60;
+  const matched = MATCH_THRESHOLDS.find(t => clamped >= t) ?? 45;
   const verdict = MATCH_WORDS[matched];
   let tier, cssClass;
-  if (clamped >= 85) { tier = 'high'; cssClass = 'score-verdict--high'; }
-  else if (clamped >= 75) { tier = 'mid'; cssClass = 'score-verdict--mid'; }
+  if (clamped >= 82) { tier = 'high'; cssClass = 'score-verdict--high'; }
+  else if (clamped >= 70) { tier = 'mid'; cssClass = 'score-verdict--mid'; }
   else { tier = 'low'; cssClass = 'score-verdict--low'; }
   return { tier, verdict, cssClass, integer: clamped };
 }
 
 export function getScoreColor(score) {
-  const pct = Math.round(parseFloat(score) || 80);
-  if (pct >= 85) return 'var(--green)';
+  const pct = Math.round(parseFloat(score) || 75);
+  if (pct >= 82) return 'var(--green)';
   return 'var(--ac)';
 }
 
