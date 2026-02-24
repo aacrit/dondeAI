@@ -16,6 +16,7 @@
   --space-3xl: clamp(3rem, 2rem + 4vw, 8rem);
 
   /* ---- Type Scale (Fluid) ---- */
+  --text-2xs:  clamp(0.5625rem, 0.5rem + 0.25vw, 0.625rem);
   --text-xs:   clamp(0.625rem, 0.55rem + 0.35vw, 0.75rem);
   --text-sm:   clamp(0.75rem, 0.7rem + 0.25vw, 0.875rem);
   --text-base: clamp(0.875rem, 0.8rem + 0.4vw, 1rem);
