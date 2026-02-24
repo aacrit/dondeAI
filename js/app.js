@@ -1908,16 +1908,31 @@ function renderResult(data) {
 
       const sentimentData = computeSentiment(r);
       if (sentimentData) {
+        const total = sentimentData.pos + sentimentData.neu + sentimentData.neg;
+        const posPct = total > 0 ? Math.round((sentimentData.pos / total) * 100) : 0;
+        const ragColor = getScoreThresholdColor(posPct);
+
         const sentWrap = document.createElement('div');
         sentWrap.className = 'badge-popout__sentiment';
-        // RGB track bar
+        // RAG progress bar with value
+        const trackRow = document.createElement('div');
+        trackRow.style.display = 'flex';
+        trackRow.style.alignItems = 'center';
+        trackRow.style.gap = 'var(--space-xs)';
         const track = document.createElement('div');
         track.className = 'sentiment-inline__track';
-        track.innerHTML =
-          `<span class="sentiment-inline__seg sentiment-inline__seg--pos" style="flex:${sentimentData.pos}"></span>` +
-          `<span class="sentiment-inline__seg sentiment-inline__seg--neu" style="flex:${sentimentData.neu}"></span>` +
-          `<span class="sentiment-inline__seg sentiment-inline__seg--neg" style="flex:${sentimentData.neg}"></span>`;
-        sentWrap.appendChild(track);
+        track.setAttribute('role', 'meter');
+        track.setAttribute('aria-valuenow', String(posPct));
+        track.setAttribute('aria-valuemin', '0');
+        track.setAttribute('aria-valuemax', '100');
+        track.innerHTML = `<span class="sentiment-inline__fill" style="width:${posPct}%;background:${ragColor}"></span>`;
+        trackRow.appendChild(track);
+        const valueSpan = document.createElement('span');
+        valueSpan.className = 'sentiment-inline__value type-data--sm';
+        valueSpan.textContent = posPct + '%';
+        valueSpan.style.color = ragColor;
+        trackRow.appendChild(valueSpan);
+        sentWrap.appendChild(trackRow);
         // Colored-dot legend
         const legend = document.createElement('div');
         legend.className = 'badge-popout__sentiment-legend';
