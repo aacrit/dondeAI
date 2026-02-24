@@ -1412,10 +1412,10 @@ function updateFilterSummary() {
   if ($summary) {
     $summary.textContent = parts.length ? parts.join(' \u00B7 ') : '';
   }
-  // Filter count badge on toggle button
-  const $toggle = document.querySelector('[data-action="toggle-filters"]');
-  if ($toggle) {
-    $toggle.setAttribute('data-filter-count', parts.length || '');
+  // Filter count badge — inline element after "Filters" label
+  const $count = document.getElementById('filter-count');
+  if ($count) {
+    $count.textContent = parts.length ? String(parts.length) : '';
   }
 }
 

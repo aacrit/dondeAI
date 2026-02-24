@@ -442,7 +442,7 @@
 }
 
 .filter-drawer__toggle {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: var(--space-xs);
   padding: var(--space-xs) 0;
@@ -496,12 +496,8 @@
   flex-shrink: 0;
 }
 
-/* Filter count badge */
-.filter-drawer__toggle[data-filter-count]:not([data-filter-count=""])::before {
-  content: attr(data-filter-count);
-  position: absolute;
-  top: 2px;
-  left: 14px;
+/* Filter count badge — inline after "Filters" label */
+.filter-drawer__count:not(:empty) {
   min-width: 16px;
   height: 16px;
   padding: 0 4px;
@@ -513,8 +509,7 @@
   font-weight: 700;
   line-height: 16px;
   text-align: center;
-  pointer-events: none;
-  transform: scale(1);
+  flex-shrink: 0;
   animation: badgePop 300ms var(--spring);
 }
 
@@ -524,13 +519,13 @@
 }
 
 .filter-drawer__summary {
-  margin-left: auto;
+  flex: 1;
+  min-width: 0;
   color: var(--fg2);
   font-size: var(--text-xs);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 200px;
 }
 
 /* Hide summary when drawer is open — info already visible in pills */
