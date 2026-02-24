@@ -158,15 +158,6 @@
     height: 240px;
   }
 
-  /* Prose readability: cap line length to ~65 characters */
-  .donde-blurb__text {
-    max-width: 640px;
-  }
-
-  .origin-story__text {
-    max-width: 640px;
-  }
-
   /* Profile facts: 4-column grid on desktop */
   .profile-facts {
     max-width: 600px;
