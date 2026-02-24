@@ -323,8 +323,14 @@
                     </span>
                     <span class="match-pill__tm type-data--sm">Match<sup>™</sup></span>
                   </span>
-                  <span class="match-pill__score type-data" id="match-pill-score">0</span>
-                  <span class="match-pill__verdict type-structural" id="match-pill-verdict"></span>
+                  <span class="match-pill__score-wrap">
+                    <svg class="match-pill__arc" viewBox="0 0 50 30" aria-hidden="true">
+                      <path class="match-pill__arc-bg" d="M 5 28 A 20 20 0 0 1 45 28" />
+                      <path class="match-pill__arc-fill" id="match-pill-arc-fill" d="M 5 28 A 20 20 0 0 1 45 28" />
+                    </svg>
+                    <span class="match-pill__score type-data" id="match-pill-score">0</span>
+                  </span>
+                  <span class="match-pill__verdict type-data--sm" id="match-pill-verdict"></span>
                 </div>
 
                 <!-- Restaurant Name + Quick Tags (inline) -->

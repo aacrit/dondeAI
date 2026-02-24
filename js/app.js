@@ -1748,7 +1748,15 @@ function renderResult(data) {
     $matchVerdict.setAttribute('data-tier', tier.tier);
   }
 
-  // Animate score count-up with progressive border color coding
+  // Micro arc setup
+  const $arcFill = document.getElementById('match-pill-arc-fill');
+  const arcLength = Math.PI * 20; // ~62.83 (r=20 semicircle)
+  if ($arcFill) {
+    $arcFill.style.strokeDasharray = String(arcLength);
+    $arcFill.style.strokeDashoffset = String(arcLength); // Start empty
+  }
+
+  // Animate score count-up + arc fill + progressive color coding
   const REDUCED_MQ = matchMedia('(prefers-reduced-motion: reduce)');
   if ($matchScore && !REDUCED_MQ.matches) {
     animationTimers.push(setTimeout(() => {
@@ -1760,20 +1768,29 @@ function renderResult(data) {
         const eased = 1 - Math.pow(1 - progress, 3);
         const current = Math.round(eased * dondeScore);
         $matchScore.textContent = current;
-        // Progressive border + score number color based on current animated value
         const thresholdColor = getScoreThresholdColor(current);
-        if ($matchPill) $matchPill.style.borderColor = thresholdColor;
         $matchScore.style.color = thresholdColor;
-        if (progress < 1) requestAnimationFrame(animate);
+        // Update arc fill + color
+        if ($arcFill) {
+          $arcFill.style.strokeDashoffset = String(arcLength - (current / 100) * arcLength);
+          $arcFill.style.stroke = thresholdColor;
+        }
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        } else if ($arcFill) {
+          $arcFill.style.animation = 'arcSettle 400ms var(--spring)';
+        }
       };
       requestAnimationFrame(animate);
     }, 200));
   } else if ($matchScore) {
     $matchScore.textContent = dondeScore;
-    // Set final border + score color immediately for reduced motion
     const finalColor = getScoreThresholdColor(dondeScore);
-    if ($matchPill) $matchPill.style.borderColor = finalColor;
     $matchScore.style.color = finalColor;
+    if ($arcFill) {
+      $arcFill.style.strokeDashoffset = String(arcLength - (dondeScore / 100) * arcLength);
+      $arcFill.style.stroke = finalColor;
+    }
   }
 
   // Restaurant name

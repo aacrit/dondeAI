@@ -407,24 +407,22 @@ export function renderVibeBars(scores, timers = []) {
     row.className = 'vibe-row' + (dominant && slot.key === dominant.key ? ' vibe-row--dominant' : '');
     row.setAttribute('role', 'listitem');
 
-    const pctVal = (slot.val / 10) * 100;
     row.innerHTML = `
       <span class="vibe-row__icon">${svgIcon(slot.icon, 14)}</span>
       <span class="vibe-row__label type-data--sm">${slot.label}</span>
-      <div class="vibe-row__track">
-        <div class="vibe-row__fill" style="width: 0%"></div>
-      </div>
       <span class="vibe-row__score type-data--sm">${humanizeVibeScore(slot.val)}</span>`;
 
     $list.appendChild(row);
 
-    // Animate fill bar
+    // Staggered fade-in
     if (!REDUCED.matches) {
+      row.style.opacity = '0';
+      row.style.transform = 'translateY(4px)';
+      row.style.transition = 'opacity 300ms ease-out, transform 300ms ease-out';
       timers.push(setTimeout(() => {
-        row.querySelector('.vibe-row__fill').style.width = `${pctVal}%`;
-      }, 500 + i * 80));
-    } else {
-      row.querySelector('.vibe-row__fill').style.width = `${pctVal}%`;
+        row.style.opacity = '1';
+        row.style.transform = 'translateY(0)';
+      }, 400 + i * 60));
     }
   });
 }
