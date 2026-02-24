@@ -145,6 +145,12 @@ export function loadFeedback(restaurantId) {
   return all[restaurantId]?.feedback || null;
 }
 
+export function clearFeedback(restaurantId) {
+  const all = safeGet(KEYS.feedback) || {};
+  delete all[restaurantId];
+  safeSet(KEYS.feedback, all);
+}
+
 /* ---- SSO: Guest Dismiss (auto-prompt suppression) ---- */
 export function hasGuestDismissed() {
   return safeGet(KEYS.authDismissed) === true;

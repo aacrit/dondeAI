@@ -8,6 +8,7 @@
 import { getAccessToken } from './auth.js';
 
 const ENDPOINT = 'https://vwbzkgsxmgwcvmvuxnbe.supabase.co/functions/v1/recommend';
+const SUPABASE_URL = 'https://vwbzkgsxmgwcvmvuxnbe.supabase.co';
 const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3YnprZ3N4bWd3Y3ZtdnV4bmJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk5NjUzNTYsImV4cCI6MjA4NTU0MTM1Nn0.YBhmusYxc28TD5FOZv4TBpFpDVHHk1V894wUkNtJtcc';
 const TIMEOUT_MS = 15000;
 
@@ -18,6 +19,33 @@ function getBackendTimeOfDay() {
   if (h >= 11 && h < 15) return 'lunch';
   if (h >= 15 && h < 21) return 'dinner';
   return 'late_night';
+}
+
+/**
+ * Send feedback immediately to the backend (fire-and-forget).
+ * Updates the most recent user_queries row for this restaurant + user.
+ */
+export async function sendFeedback(restaurantId, feedback, userId) {
+  if (!restaurantId || !feedback || !userId) return;
+  let authToken = null;
+  try { authToken = await getAccessToken(); } catch { /* ok */ }
+  const bearerToken = authToken || ANON_KEY;
+  // Use Supabase REST API to update user_queries directly
+  try {
+    await fetch(
+      `${SUPABASE_URL}/rest/v1/user_queries?recommended_restaurant_id=eq.${restaurantId}&user_id=eq.${userId}&order=created_at.desc&limit=1`,
+      {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${bearerToken}`,
+          'apikey': ANON_KEY,
+          'Prefer': 'return=minimal',
+        },
+        body: JSON.stringify({ feedback }),
+      }
+    );
+  } catch { /* fire-and-forget — localStorage is the fallback */ }
 }
 
 export async function fetchRecommendation({ special_request, occasion, neighborhood, price_level, exclude, dietary_restrictions, user_id, feedback }) {

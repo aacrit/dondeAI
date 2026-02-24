@@ -5,14 +5,14 @@
 
 import { getState, setState, subscribe, resetState } from './state.js';
 import { initRouter, goToStep, goToStepInstant } from './router.js';
-import { loadTheme, loadSound, loadHistory, addToHistory, saveTheme, loadColorMode, loadBookmarks, addBookmark, removeBookmark, isBookmarked, getOrCreateUserId, saveFeedback, loadFeedback, hasGuestDismissed, setGuestDismissed } from './persistence.js';
+import { loadTheme, loadSound, loadHistory, addToHistory, saveTheme, loadColorMode, loadBookmarks, addBookmark, removeBookmark, isBookmarked, getOrCreateUserId, saveFeedback, loadFeedback, clearFeedback, hasGuestDismissed, setGuestDismissed } from './persistence.js';
 import { initTheme, setTheme, setThemeInstant, setThemeVisualOnly, revertAutoTheme, setManualOverride, isManualOverride, setColorMode, getColorMode, getLabels, CULTURES, CULTURE_DISPLAY_NAMES } from './theme.js';
 import { initAudio, toggleSound, playChime } from './audio.js';
 import { initVoice, startVoice } from './voice.js';
 import { initShare, shareResult, closeShareSheet, handleShareChannel } from './share.js';
 import { initOffline, isOnline } from './offline.js';
 import { initAccessibility, announce } from './accessibility.js';
-import { fetchRecommendation } from './api.js';
+import { fetchRecommendation, sendFeedback } from './api.js';
 import { initAuth, signIn as signInWith, signOut as authSignOut, isAuthenticated as isAuthAuthenticated, getUser as getAuthUser, addFavoriteToServer, removeFavoriteFromServer } from './auth.js';
 import { animateScoreRing, renderPetalRadar, renderSentimentBar, renderScoreBloom, renderScoreHero, renderVibeBars, toggleBloom, resetBloomState, handlePetalTap, handleBloomRingTap, toggleScoreBreakdown, getBloomState, animateBadge, startParticles, stopParticles, chaosToOrderReveal, initLogoAnimation, startSearchPulse, stopSearchPulse, resolveLogoToFound, cleanupLoadingLogo } from './animations.js';
 import {
@@ -73,6 +73,9 @@ function init() {
   // Set up greeting
   setupLanding();
 
+  // Sync offline banner text with current culture
+  syncOfflineBannerText();
+
   // Wire event delegation
   wireEvents();
 
@@ -126,6 +129,7 @@ function init() {
     if (state.theme.culture !== prev.theme.culture) {
       renderSmartChips();
       closeSuggestions();
+      syncOfflineBannerText();
       // Update greeting for new culture
       const $greeting = document.querySelector('[data-step="0"] .step__title');
       if ($greeting) $greeting.textContent = getGreeting(state.theme.culture);
@@ -657,18 +661,30 @@ function wireEvents() {
         break;
       }
 
-      // F11: Feedback (like/dislike)
+      // F11: Feedback (like/dislike) — togglable: tap again to undo
       case 'feedback': {
         const fb = btn.dataset.feedback;
         const resultData = getState().result;
         const restaurantId = resultData?.restaurant?.id;
         if (!restaurantId || !fb) break;
-        saveFeedback(restaurantId, fb);
-        setState({ pendingFeedback: { restaurant_id: restaurantId, feedback: fb } });
-        // Visual toggle
-        document.querySelectorAll('.feedback-btn').forEach(b => b.classList.remove('feedback-btn--active'));
-        btn.classList.add('feedback-btn--active');
-        showToast(fb === 'like' ? 'Noted — glad you like it!' : 'Got it — we\'ll adjust.', false);
+        const userId = getOrCreateUserId();
+        const isAlreadyActive = btn.classList.contains('feedback-btn--active');
+        if (isAlreadyActive) {
+          // Undo: clear feedback
+          clearFeedback(restaurantId);
+          setState({ pendingFeedback: null });
+          btn.classList.remove('feedback-btn--active');
+          sendFeedback(restaurantId, null, userId); // clear on server
+          showToast(toasts().feedbackCleared, false);
+        } else {
+          // Set feedback (or switch from opposite)
+          saveFeedback(restaurantId, fb);
+          setState({ pendingFeedback: { restaurant_id: restaurantId, feedback: fb } });
+          document.querySelectorAll('.feedback-btn').forEach(b => b.classList.remove('feedback-btn--active'));
+          btn.classList.add('feedback-btn--active');
+          sendFeedback(restaurantId, fb, userId); // dispatch immediately
+          showToast(fb === 'like' ? toasts().feedbackLike : toasts().feedbackDislike, false);
+        }
         break;
       }
 
@@ -689,21 +705,14 @@ function wireEvents() {
         }
         updateBookmarkBtn(restaurant.id);
         renderSavedSpots();
+        const t = toasts();
         const savedMsg = isAuthAuthenticated()
-          ? (wasBookmarked ? 'Removed from saved' : 'Saved to your account')
-          : (wasBookmarked ? 'Removed from saved' : 'Saved!');
+          ? (wasBookmarked ? t.bookmarkRemove : t.bookmarkAddAuth)
+          : (wasBookmarked ? t.bookmarkRemove : t.bookmarkAdd);
         showToast(savedMsg, false);
         break;
       }
 
-      // F2: Toggle business hours detail
-      case 'toggle-hours': {
-        const detail = document.getElementById('hours-detail');
-        const isExp = btn.getAttribute('aria-expanded') === 'true';
-        btn.setAttribute('aria-expanded', String(!isExp));
-        if (detail) detail.hidden = isExp;
-        break;
-      }
 
       case 'submit':
         setState({ excludeIds: [] });
@@ -717,6 +726,13 @@ function wireEvents() {
           const exclude = [...getState().excludeIds];
           if (!exclude.includes(prevId)) exclude.push(prevId);
           setState({ excludeIds: exclude });
+        }
+        const MAX_EXCLUDES = 15;
+        const currentExcludes = getState().excludeIds.length;
+        if (currentExcludes >= MAX_EXCLUDES) {
+          // Exhausted — don't submit, show guidance
+          showToast("You've seen all top picks for this search. Try starting over with different cravings!", false);
+          break;
         }
         handleSubmit();
         break;
@@ -816,7 +832,7 @@ function wireEvents() {
       case 'sign-out':
         authSignOut().then(() => {
           closeUserMenu();
-          showToast('Signed out');
+          showToast(toasts().signedOut);
         });
         break;
 
@@ -828,7 +844,8 @@ function wireEvents() {
         setState({ occasion: 'Any', neighborhood: 'Anywhere', priceLevel: 'Any' });
         clearAllSelections();
         updateFilterSummary();
-        showToast('Filters cleared');
+        clearEmptyState();
+        showToast(toasts().filtersCleared);
         break;
       }
 
@@ -843,7 +860,7 @@ function wireEvents() {
           priceLevel: budgets[Math.floor(Math.random() * budgets.length)],
         });
         updateFilterSummary();
-        showToast('Filters randomized!');
+        showToast(toasts().filtersRandom);
         break;
       }
 
@@ -862,12 +879,12 @@ function wireEvents() {
 
 
       case 'show-match-info': {
-        showToast('Donde Match\u2122 shows how likely you are to love this spot \u2014 based on cuisine quality, vibe fit, and hundreds of local reviews.');
+        showToast(toasts().matchExplainer);
         break;
       }
 
       case 'show-vibe-info': {
-        showToast('Donde Vibe\u2122 maps how this spot scores across date nights, groups, family, business, solo dining, and hidden gem factor.');
+        showToast(toasts().vibeExplainer);
         break;
       }
 
@@ -1226,6 +1243,7 @@ function wireCravingInput() {
   $cravingInput.addEventListener('input', () => {
     setState({ craving: $cravingInput.value });
     updateCtaState();
+    clearEmptyState();
     // F19: Auto-grow textarea
     $cravingInput.style.height = 'auto';
     $cravingInput.style.height = $cravingInput.scrollHeight + 'px';
@@ -1492,7 +1510,7 @@ async function handleSubmit() {
   }
 
   if (!isOnline()) {
-    showToast("You're offline \u2014 can't reach the engine.", true, {
+    showToast(toasts().offline, true, {
       label: 'Try Again',
       callback: () => handleSubmit(),
     });
@@ -1515,6 +1533,7 @@ async function handleSubmit() {
   }
 
   setState({ loading: true, error: null, result: null });
+  clearEmptyState();
   // Don't goToStep(1) — the loading overlay covers everything;
   // step-track positioning happens in orchestrateReveal()
 
@@ -1562,7 +1581,9 @@ async function handleSubmit() {
     toggleLoading(false);
     setState({ loading: false });
     goToStep(0);
-    showToast(err.message || "Something went wrong.", true, {
+    // Show persistent inline feedback on canvas + toast with retry
+    showEmptyState(err.message || toasts().noResults);
+    showToast(err.message || toasts().genericError, true, {
       label: 'Retry',
       callback: () => handleSubmit(),
     });
@@ -2051,6 +2072,9 @@ function renderResult(data) {
   const $glanceStartOverIcon = document.getElementById('glance-start-over-icon');
   if ($glanceStartOverIcon) $glanceStartOverIcon.innerHTML = svgIcon('home', 18);
 
+  // Update Try Another button with exhaustion indicator
+  updateTryAgainState();
+
   // ═══════════════════════════════════════════════════════
   // TIER 2: LEAN-IN — Prepare content (hidden until expanded)
   // ═══════════════════════════════════════════════════════
@@ -2106,20 +2130,8 @@ function prepareTier2(data, cuisine) {
 
   // Recommendation is now rendered in Tier 1 (Glance) via donde-blurb
 
-  // Story Extras: Dishes + Insider Tip
+  // Story Extras: Insider Tip
   const $storyExtras = document.getElementById('story-extras');
-  const $extrasDishes = document.getElementById('story-extras-dishes');
-  const $dishesText = document.getElementById('signature-dishes-text');
-  if ($storyExtras && $extrasDishes && $dishesText) {
-    const dishes = data.deep_context?.signature_dishes;
-    if (dishes?.length > 0) {
-      $dishesText.textContent = dishes.slice(0, 3).map(d => d.dish).join(', ');
-      $extrasDishes.style.display = '';
-    } else {
-      $extrasDishes.style.display = 'none';
-    }
-  }
-
   const $extrasTip = document.getElementById('story-extras-tip');
   const $tipText = document.getElementById('insider-tip-text');
   if ($extrasTip && $tipText) {
@@ -2131,9 +2143,8 @@ function prepareTier2(data, cuisine) {
   }
 
   if ($storyExtras) {
-    const hasDishes = $extrasDishes && $extrasDishes.style.display !== 'none';
     const hasTip = $extrasTip && $extrasTip.style.display !== 'none';
-    $storyExtras.style.display = (hasDishes || hasTip) ? '' : 'none';
+    $storyExtras.style.display = hasTip ? '' : 'none';
   }
 
   // Awards badges
@@ -2158,78 +2169,10 @@ function prepareTier2(data, cuisine) {
     }
   }
 
-  // I6: Sentiment summary (AI-generated review summary)
-  const $sentSummary = document.getElementById('sentiment-summary');
-  if ($sentSummary) {
-    if (r.sentiment_summary) {
-      $sentSummary.textContent = r.sentiment_summary;
-      $sentSummary.style.display = '';
-    } else {
-      $sentSummary.style.display = 'none';
-    }
-  }
 
-  // I5: Review snippets (social proof quotes from Google reviews)
-  const $reviewSnippets = document.getElementById('review-snippets');
-  if ($reviewSnippets) {
-    const snippets = r.review_snippets || [];
-    if (snippets.length > 0) {
-      $reviewSnippets.innerHTML = snippets.map(s =>
-        `<blockquote class="review-snippet">
-          <span class="review-snippet__stars">${'★'.repeat(s.rating)}${'☆'.repeat(5 - s.rating)}</span>
-          <p class="review-snippet__text type-structural">\u201c${s.text}\u201d</p>
-        </blockquote>`
-      ).join('');
-      $reviewSnippets.style.display = '';
-    } else {
-      $reviewSnippets.style.display = 'none';
-    }
-  }
-
-  // Navigation tile — now in Tier 1 only (glance-nav); hide Tier 2 duplicate
-  const $navTileContainer = document.getElementById('result-nav-tile');
-  if ($navTileContainer) $navTileContainer.style.display = 'none';
-
-  // Quick Links (Website, Call, Share)
-  const $resultLinks = document.getElementById('result-links');
-  if ($resultLinks) {
-    $resultLinks.innerHTML = '';
-    const links = [];
-    if (r.website) {
-      let hostname = 'Visit';
-      try { hostname = new URL(r.website).hostname.replace('www.', ''); } catch { /* keep fallback */ }
-      links.push(createResultLink('a', 'globe', hostname, r.website));
-    }
-    if (r.phone) {
-      links.push(createResultLink('a', 'phone', 'Call', `tel:${r.phone}`));
-    }
-    const shareLink = createResultLink('button', 'shareNetwork', 'Share');
-    shareLink.setAttribute('data-action', 'share');
-    shareLink.classList.add('result-link--accent');
-    links.push(shareLink);
-    links.forEach((link, i) => {
-      if (i > 0) {
-        const sep = document.createElement('span');
-        sep.className = 'result-links__sep';
-        sep.textContent = '\u00b7';
-        sep.setAttribute('aria-hidden', 'true');
-        $resultLinks.appendChild(sep);
-      }
-      $resultLinks.appendChild(link);
-    });
-  }
-
-  // F7: Reservation/booking link
-  renderReservationLink(data);
-
-  // F2: Business hours detail
-  renderBusinessHours(data);
 
   // 1D: Deep context extras (USP, wow factors, origin story)
   renderDeepContextExtras(data);
-
-  // Profile chips (compact icon+label strip)
-  renderProfileChips(data, cuisine);
 }
 
 /* ---- Prepare Tier 3 DOM content ---- */
@@ -2298,33 +2241,6 @@ function prepareTier3(data, cuisine) {
   addDeepContextBadges(data);
 }
 
-/* ---- Render Profile Chips for Tier 2 ---- */
-function renderProfileChips(data, cuisine) {
-  const r = data.restaurant;
-  const $profileChips = document.getElementById('profile-chips');
-  if (!$profileChips) return;
-  $profileChips.innerHTML = '';
-
-  const parkingPts = r.parking_availability
-    ? parseParkingTypes(r.parking_availability).slice(0, 2).join(' / ') : null;
-  const chipItems = [
-    { icon: cuisine.icon || 'plate', label: 'Cuisine',
-      value: (data.deep_context?.cuisine_subcategory || r.cuisine_type)
-        ? shortenBadgeValue(data.deep_context?.cuisine_subcategory || r.cuisine_type) : null },
-    { icon: 'tag', label: 'Price', value: r.price_level || null },
-    { icon: 'car', label: 'Parking', value: parkingPts },
-    { icon: getNoiseIcon(r.noise_level), label: 'Noise',
-      value: r.noise_level ? shortenBadgeValue(r.noise_level) : null },
-  ].filter(b => b.value != null);
-
-  chipItems.forEach(b => {
-    const chip = document.createElement('span');
-    chip.className = 'profile-chip';
-    chip.setAttribute('aria-label', `${b.label}: ${b.value}`);
-    chip.innerHTML = `${svgIcon(b.icon, 14)}<span class="profile-chip__value">${b.value}</span>`;
-    $profileChips.appendChild(chip);
-  });
-}
 
 /* ---- Tier 2 animation trigger (called on first expand) ---- */
 let _tier2Animated = false;
@@ -2746,33 +2662,6 @@ function renderPhotos(data) {
   $photos.style.display = '';
 }
 
-/* ---- F2: Render Business Hours ---- */
-function renderBusinessHours(data) {
-  const $hours = document.getElementById('business-hours');
-  if (!$hours) return;
-  const openingHours = data.restaurant?.opening_hours;
-  if (!openingHours) {
-    $hours.style.display = 'none';
-    return;
-  }
-  const $status = document.getElementById('hours-status');
-  const $detail = document.getElementById('hours-detail');
-  if ($status) {
-    if (openingHours.open_now === true) {
-      $status.innerHTML = '<span class="hours-badge hours-badge--open">Open Now</span>';
-    } else if (openingHours.open_now === false) {
-      $status.innerHTML = '<span class="hours-badge hours-badge--closed">Closed</span>';
-    } else {
-      $status.textContent = 'Hours';
-    }
-  }
-  if ($detail && openingHours.weekday_text?.length) {
-    $detail.innerHTML = openingHours.weekday_text
-      .map(line => `<p class="hours-line type-data--sm">${line}</p>`)
-      .join('');
-  }
-  $hours.style.display = '';
-}
 
 /* ---- F2: Open Now badge in quick tags (interactive with hours popout) ---- */
 function renderOpenNowTag(data) {
@@ -2879,31 +2768,6 @@ function renderSavedSpots() {
   $container.style.display = '';
 }
 
-/* ---- F7: Reservation/Booking Link ---- */
-function renderReservationLink(data) {
-  const r = data.restaurant;
-  const $resultLinks = document.getElementById('result-links');
-  if (!$resultLinks || !r) return;
-  // Add reserve link using Google Maps or restaurant website
-  const reserveUrl = r.google_place_id
-    ? `https://www.google.com/maps/place/?q=place_id:${r.google_place_id}`
-    : r.website;
-  if (reserveUrl) {
-    const reserveLink = createResultLink('a', 'calendar', 'Reserve', reserveUrl);
-    // Insert before the Share button
-    const shareBtn = $resultLinks.querySelector('[data-action="share"]');
-    if (shareBtn) {
-      const sep = document.createElement('span');
-      sep.className = 'result-links__sep';
-      sep.textContent = '\u00b7';
-      sep.setAttribute('aria-hidden', 'true');
-      $resultLinks.insertBefore(sep, shareBtn.previousSibling || shareBtn);
-      $resultLinks.insertBefore(reserveLink, sep.nextSibling);
-    } else {
-      $resultLinks.appendChild(reserveLink);
-    }
-  }
-}
 
 /* ---- F11: Render Feedback Button State ---- */
 function renderFeedbackState(restaurantId) {
@@ -3166,18 +3030,52 @@ function addDeepContextBadges(data) {
   });
 }
 
-/* ---- Quick Link Helper ---- */
-function createResultLink(tag, icon, label, href) {
-  const el = document.createElement(tag);
-  el.className = 'result-link type-structural';
-  if (tag === 'a' && href) {
-    el.href = href;
-    el.target = '_blank';
-    el.rel = 'noopener noreferrer';
+
+/* ---- Culture-Aware Toast Strings ---- */
+function toasts() {
+  return getLabels(getState().theme.culture).toasts;
+}
+
+/* ---- Try Another Exhaustion Indicator ---- */
+function updateTryAgainState() {
+  const $btn = document.querySelector('[data-action="try-again"]');
+  if (!$btn) return;
+  const MAX_EXCLUDES = 15;
+  const count = getState().excludeIds.length;
+  const remaining = MAX_EXCLUDES - count;
+  const $text = $btn.querySelector('.cta-btn__text');
+  if (!$text) return;
+  const labels = getLabels(getState().theme.culture);
+  if (remaining <= 0) {
+    $text.textContent = 'Start Over';
+    $btn.classList.add('cta-btn--exhausted');
+  } else if (remaining <= 5) {
+    $text.textContent = `${labels.again} (${remaining} left)`;
+    $btn.classList.remove('cta-btn--exhausted');
+  } else {
+    $text.textContent = labels.again;
+    $btn.classList.remove('cta-btn--exhausted');
   }
-  if (tag === 'button') el.type = 'button';
-  el.innerHTML = `${svgIcon(icon, 14)}<span>${label}</span>`;
-  return el;
+}
+
+/* ---- Offline Banner Text Sync ---- */
+function syncOfflineBannerText() {
+  const $banner = document.getElementById('offline-banner');
+  if ($banner) $banner.textContent = toasts().offline;
+}
+
+/* ---- Inline Empty State (persistent no-result feedback) ---- */
+function showEmptyState(message) {
+  const $el = document.getElementById('empty-state');
+  const $text = document.getElementById('empty-state-text');
+  if (!$el || !$text) return;
+  $text.textContent = message;
+  $el.style.display = '';
+}
+
+function clearEmptyState() {
+  const $el = document.getElementById('empty-state');
+  if ($el) $el.style.display = 'none';
 }
 
 /* ---- Toast ---- */
@@ -3558,7 +3456,7 @@ subscribe((state, prev) => {
     updateAuthUI();
     closeAuthSheet();
     if (state.isAuthenticated && !prev.isAuthenticated && state.user) {
-      showToast(`Welcome, ${state.user.name || 'friend'}!`);
+      showToast(toasts().welcomeUser(state.user.name));
       renderTasteMemory();
       renderSavedSpots();
     }

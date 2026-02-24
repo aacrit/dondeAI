@@ -31,8 +31,8 @@
   <!-- Skip Navigation -->
   <a href="#main-content" class="skip-nav type-structural">Skip to main content</a>
 
-  <!-- Offline Banner -->
-  <div class="offline-banner" role="alert" aria-live="assertive">
+  <!-- Offline Banner (text set by JS for culture-awareness) -->
+  <div class="offline-banner" id="offline-banner" role="alert" aria-live="assertive">
     You're offline — reconnect to get recommendations.
   </div>
 
@@ -299,6 +299,12 @@
               Type what you're craving to get started
             </p>
 
+            <!-- Inline error/empty state (persists until user modifies input) -->
+            <div class="empty-state" id="empty-state" style="display: none;" role="alert" aria-live="polite">
+              <p class="empty-state__text type-structural" id="empty-state-text"></p>
+              <button class="empty-state__btn type-structural" data-action="clear-filters">Adjust Filters</button>
+            </div>
+
             <!-- Taste Memory (recent searches) -->
             <div class="taste-memory" id="taste-memory" aria-label="Recent searches">
               <span class="taste-memory__label type-data--sm">Recent</span>
@@ -421,12 +427,8 @@
                   </div>
                 </div>
 
-                <!-- Story extras: Dishes + Insider Tip -->
+                <!-- Story extras: Insider Tip -->
                 <div class="story-extras" id="story-extras" style="display: none;">
-                  <div class="story-extras__item" id="story-extras-dishes" style="display: none;">
-                    <span class="story-extras__label type-data--sm">What to Order</span>
-                    <span class="story-extras__text type-structural" id="signature-dishes-text"></span>
-                  </div>
                   <div class="story-extras__item" id="story-extras-tip" style="display: none;">
                     <span class="story-extras__label type-data--sm">Insider Tip</span>
                     <span class="story-extras__text type-structural" id="insider-tip-text"></span>
@@ -444,30 +446,6 @@
                   <span class="origin-story__label type-data--sm">Once Upon a Table</span>
                   <p class="origin-story__text type-emotional" id="origin-story-text"></p>
                 </div>
-
-                <!-- F2: Business Hours -->
-                <div class="business-hours" id="business-hours" style="display: none;">
-                  <button class="business-hours__toggle type-structural" data-action="toggle-hours" aria-expanded="false">
-                    <span class="business-hours__status" id="hours-status"></span>
-                    <span class="business-hours__arrow">&#8595;</span>
-                  </button>
-                  <div class="business-hours__detail" id="hours-detail" hidden></div>
-                </div>
-
-                <!-- I6: Sentiment summary (AI review summary) -->
-                <p class="sentiment-summary type-structural" id="sentiment-summary" style="display:none"></p>
-
-                <!-- I5: Review snippets (social proof quotes) -->
-                <div class="review-snippets" id="review-snippets" style="display:none"></div>
-
-                <!-- Navigation tile (address + maps) -->
-                <div class="result-nav" id="result-nav-tile"></div>
-
-                <!-- Quick Links (website, call, share) -->
-                <div class="result-links" id="result-links"></div>
-
-                <!-- Profile chips (compact icon+label strip) -->
-                <div class="profile-chips" id="profile-chips" role="group" aria-label="Restaurant details"></div>
 
                 <!-- Tier 2 → Tier 3 trigger -->
                 <button class="details-trigger-btn type-data--sm" id="details-trigger-btn"
