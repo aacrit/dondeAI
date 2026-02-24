@@ -2199,7 +2199,7 @@
 }
 
 #story-extras-tip {
-  border-left-color: var(--amber);
+  border-left-color: var(--ac);
 }
 
 .story-extras__label {
@@ -2212,7 +2212,7 @@
 }
 
 #story-extras-tip .story-extras__label {
-  color: var(--amber);
+  color: var(--ac);
 }
 
 .story-extras__text {
@@ -3743,20 +3743,6 @@
   field-sizing: content;
 }
 
-/* ---- 1D: USP Callout ---- */
-.usp-callout {
-  padding: var(--space-sm);
-  background: hsl(var(--ac-h, 220) var(--ac-s, 70%) var(--ac-l, 50%) / 0.06);
-  border-left: 3px solid var(--ac);
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-  margin: var(--space-sm) 0;
-}
-
-.usp-callout__text {
-  color: var(--fg);
-  font-style: italic;
-}
-
 /* ---- 1D: Wow Factors ---- */
 .wow-factors {
   display: flex;
@@ -3774,6 +3760,36 @@
   color: var(--fg2);
 }
 
+/* ---- Quick Stats ribbon (compact deep-context data) ---- */
+.quick-stats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2xs) var(--space-xs);
+  padding: var(--space-xs) 0;
+}
+
+.quick-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: var(--text-xs);
+  color: var(--fg3);
+  white-space: nowrap;
+}
+
+.quick-stat svg {
+  opacity: 0.6;
+  flex-shrink: 0;
+}
+
+.quick-stat__dot {
+  color: var(--fg3);
+  opacity: 0.25;
+  font-size: 0.6em;
+  user-select: none;
+}
+
 /* ---- 1D: Origin Story ---- */
 .origin-story {
   padding: var(--space-sm) 0;
@@ -3789,7 +3805,30 @@
 
 .origin-story__text {
   color: var(--fg2);
-  line-height: 1.5;
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  line-height: 1.7;
+  font-size: clamp(0.9375rem, 2.2vw, 1.0625rem);
+}
+
+.origin-story__text::before {
+  content: '\201C';
+  font-size: 1.5em;
+  line-height: 0;
+  vertical-align: -0.15em;
+  color: var(--ac);
+  opacity: 0.5;
+  margin-right: 2px;
+}
+
+.origin-story__text::after {
+  content: '\201D';
+  font-size: 1.5em;
+  line-height: 0;
+  vertical-align: -0.15em;
+  color: var(--ac);
+  opacity: 0.5;
+  margin-left: 1px;
 }
 
 /* ---- F22: Filter Drawer Scrollability ---- */
