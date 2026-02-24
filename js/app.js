@@ -3014,6 +3014,28 @@ function addDeepContextBadges(data) {
     extraBadges.push({ icon: 'chair', label: 'Seating', value: dc.seating_options.slice(0, 3).join(', ') });
   }
 
+  // Spice level (text: "Mild", "Medium", "Hot", etc.)
+  if (dc.spice_level) {
+    extraBadges.push({ icon: 'fire', label: 'Spice', value: humanizeSnake(dc.spice_level) });
+  }
+
+  // Kid friendliness (0-10 → label)
+  if (dc.kid_friendliness != null) {
+    const k = dc.kid_friendliness;
+    const label = k >= 7 ? 'Kid Friendly' : k >= 4 ? 'Okay for Kids' : 'Adults Preferred';
+    extraBadges.push({ icon: 'baby', label: 'Kids', value: label });
+  }
+
+  // Service style (text: "Counter", "Table Service", "Buffet", etc.)
+  if (dc.service_style) {
+    extraBadges.push({ icon: 'forkKnife', label: 'Service', value: humanizeSnake(dc.service_style) });
+  }
+
+  // Meal pacing (text: "Fast-paced", "Relaxed", "Leisurely", etc.)
+  if (dc.meal_pacing) {
+    extraBadges.push({ icon: 'timer', label: 'Pacing', value: humanizeSnake(dc.meal_pacing) });
+  }
+
   // Render extra badges
   extraBadges.forEach(b => {
     if (!b.value) return;
