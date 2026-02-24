@@ -14,12 +14,12 @@
     grid-template-columns: repeat(2, 1fr);
   }
 
-  .match-pill {
+  .match-mini {
     padding: var(--space-2xs) var(--space-xs);
   }
 
-  .match-pill__score {
-    font-size: 1.125rem;
+  .match-mini__score {
+    font-size: 1rem;
   }
 }
 
@@ -79,9 +79,9 @@
     width: min(70vw, 420px);
   }
 
-  /* Match pill: larger on tablet */
-  .match-pill__score {
-    font-size: 1.5rem;
+  /* Match mini: larger on tablet */
+  .match-mini__score {
+    font-size: 1.375rem;
   }
 
   /* Keep score-tile styles for the tile-expand modal */
@@ -140,9 +140,9 @@
     height: 148px;
   }
 
-  /* Match pill: desktop prominence */
-  .match-pill__score {
-    font-size: 1.625rem;
+  /* Match mini: desktop prominence */
+  .match-mini__score {
+    font-size: 1.5rem;
   }
 }
 

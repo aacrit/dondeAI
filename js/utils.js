@@ -620,6 +620,18 @@ export function getScoreThresholdColor(score) {
   return 'var(--rose)';
 }
 
+/**
+ * Returns the CSS color variable for a vibe dimension score (0–10 scale).
+ * Green >= 8.6, Amber >= 7.5, Red < 7.5
+ * @param {number} score — vibe score (0–10)
+ * @returns {string} CSS variable string
+ */
+export function getVibeColor(score) {
+  if (score >= 8.6) return 'var(--score-green)';
+  if (score >= 7.5) return 'var(--amber)';
+  return 'var(--rose)';
+}
+
 export function buildGoogleStars(rating) {
   const n = parseFloat(rating) || 0;
   const full = Math.floor(n);
