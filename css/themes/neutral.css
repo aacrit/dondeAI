@@ -10,9 +10,9 @@
   --fg:          hsl(0 0% 10%);
   --fg2:         hsl(0 0% 40%);
   --fg3:         hsl(0 0% 45%);
-  --ac:          hsl(0 0% 22%);
-  --ac2:         hsl(0 0% 15%);
-  --ac-soft:     hsl(0 0% 22% / 0.10);
+  --ac:          hsl(25 6% 22%);
+  --ac2:         hsl(25 6% 15%);
+  --ac-soft:     hsl(25 6% 22% / 0.10);
   --green:       hsl(152 60% 40%);
   --green-soft:  hsl(152 60% 40% / 0.12);
 
@@ -50,9 +50,9 @@
   --fg:          hsl(0 0% 92%);
   --fg2:         hsl(0 0% 65%);
   --fg3:         hsl(0 0% 53%);
-  --ac:          hsl(0 0% 82%);
-  --ac2:         hsl(0 0% 90%);
-  --ac-soft:     hsl(0 0% 82% / 0.12);
+  --ac:          hsl(25 4% 82%);
+  --ac2:         hsl(25 4% 90%);
+  --ac-soft:     hsl(25 4% 82% / 0.12);
   --green:       hsl(152 55% 55%);
   --green-soft:  hsl(152 55% 55% / 0.15);
 
@@ -62,7 +62,7 @@
   --amber-soft:  hsl(38 85% 60% / 0.15);
   --glass:       hsl(0 0% 11% / 0.78);
   --glass-blur:  24px;
-  --border:      hsl(0 0% 20%);
+  --border:      hsl(0 0% 22%);
   --shadow:      transparent;
   --shadow-lg:   transparent;
   --radius:      12px;
@@ -74,10 +74,15 @@
   --blob-3:      hsl(0 0% 60% / 0.05);
   --grain-opacity: 0.04;
   --textile-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72' fill='none' stroke='%23ffffff' stroke-linecap='round'%3E%3Cpath d='M12 8Q14 12 18 16' stroke-width='0.9' opacity='0.16'/%3E%3Cpath d='M18 8Q15 13 12 16' stroke-width='0.8' opacity='0.14'/%3E%3Cpath d='M52 14l3 1M57 16l3 0.5M62 17l2 0' stroke-width='0.7' opacity='0.12'/%3E%3Ccircle cx='35' cy='9' r='0.9' fill='%23ffffff' stroke='none' opacity='0.15'/%3E%3Cpath d='M8 42Q10 40 11 43' stroke-width='0.6' opacity='0.11'/%3E%3Cpath d='M14 45Q15 43 17 46' stroke-width='0.7' opacity='0.13'/%3E%3Cpath d='M48 38Q51 42 54 46' stroke-width='1.0' opacity='0.18'/%3E%3Cpath d='M54 37Q50 43 47 47' stroke-width='0.9' opacity='0.16'/%3E%3Cpath d='M22 58l4 0.5' stroke-width='0.8' opacity='0.14'/%3E%3Cpath d='M28 60l3-0.3' stroke-width='0.6' opacity='0.12'/%3E%3Ccircle cx='60' cy='55' r='0.7' fill='%23ffffff' stroke='none' opacity='0.13'/%3E%3Cpath d='M65 30l4 4M69 30l-4 4' stroke-width='0.5' opacity='0.10'/%3E%3C/svg%3E");
-  --textile-opacity: 0.45;
+  --textile-opacity: 0.41;
   --glass-header: hsl(0 0% 11% / 0.7);
   --glass-toast:  hsl(0 0% 14% / 0.88);
   --glass-info:   hsl(0 0% 14% / 0.55);
   --glass-tip:    hsl(0 0% 14% / 0.6);
   --glass-score:  var(--glass);
+}
+
+/* Studio restraint: neutral blob presence */
+[data-theme="neutral"] .ambient__blob {
+  filter: blur(90px) saturate(0.6);
 }

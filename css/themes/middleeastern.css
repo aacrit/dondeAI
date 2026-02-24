@@ -11,8 +11,8 @@
   --fg:          hsl(35 25% 12%);
   --fg2:         hsl(35 12% 38%);
   --fg3:         hsl(35 8% 42%);
-  --ac:          hsl(48 72% 30%);
-  --ac2:         hsl(48 72% 24%);
+  --ac:          hsl(48 72% 25%);
+  --ac2:         hsl(48 72% 20%);
   --ac-soft:     hsl(48 72% 30% / 0.14);
   --green:       hsl(155 48% 38%);
   --green-soft:  hsl(155 48% 38% / 0.12);
@@ -41,6 +41,11 @@
   --glass-info:   hsl(48 18% 96% / 0.52);
   --glass-tip:    hsl(35 30% 96% / 0.6);
   --glass-score:  var(--glass);
+}
+
+/* Bazaar warmth: warm, moderate blobs */
+[data-theme="middleeastern"] .ambient__blob {
+  filter: blur(80px) saturate(0.65);
 }
 
 /* ---- Dark Mode ---- */
