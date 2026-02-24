@@ -32,6 +32,10 @@ export function startVoice() {
   recognition.onstart = () => {
     isListening = true;
     if (btn) btn.classList.add('craving-voice-btn--recording');
+    if (input) {
+      input.dataset.prevPlaceholder = input.placeholder;
+      input.placeholder = 'Listening...';
+    }
   };
 
   recognition.onresult = (event) => {
@@ -46,14 +50,23 @@ export function startVoice() {
     if (ctaBtn) ctaBtn.disabled = !text.trim();
   };
 
+  const restorePlaceholder = () => {
+    if (input && input.dataset.prevPlaceholder) {
+      input.placeholder = input.dataset.prevPlaceholder;
+      delete input.dataset.prevPlaceholder;
+    }
+  };
+
   recognition.onerror = () => {
     isListening = false;
     if (btn) btn.classList.remove('craving-voice-btn--recording');
+    restorePlaceholder();
   };
 
   recognition.onend = () => {
     isListening = false;
     if (btn) btn.classList.remove('craving-voice-btn--recording');
+    restorePlaceholder();
   };
 
   recognition.start();

@@ -1846,45 +1846,6 @@
 .sentiment-inline__seg--neu { background: var(--fg3); opacity: 0.3; }
 .sentiment-inline__seg--neg { background: var(--rag-red); opacity: 0.7; }
 
-/* ---- I6: Sentiment Summary ---- */
-.sentiment-summary {
-  margin: 0;
-  padding: var(--space-xs) 0;
-  font-size: var(--text-sm);
-  color: var(--fg2);
-  line-height: 1.45;
-  font-style: italic;
-}
-
-/* ---- I5: Review Snippets (social proof quotes) ---- */
-.review-snippets {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-  padding: var(--space-sm) 0;
-}
-
-.review-snippet {
-  margin: 0;
-  padding: var(--space-xs) var(--space-sm);
-  background: var(--bg2);
-  border-left: 2px solid var(--border);
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-}
-
-.review-snippet__stars {
-  font-size: var(--text-xs);
-  color: var(--fg3);
-  letter-spacing: 1px;
-}
-
-.review-snippet__text {
-  margin: var(--space-2xs) 0 0;
-  font-size: var(--text-sm);
-  color: var(--fg2);
-  line-height: 1.45;
-  font-style: italic;
-}
 
 /* ---- Tile Badge (legacy — preserved for compatibility) ---- */
 
@@ -1947,120 +1908,7 @@
 /* Badge semantic color classes removed — all badges use neutral styling.
    Color is reserved for the score ring only ("Ink Rule"). */
 
-/* ---- Quick Links (subtle utility row) ---- */
-.result-links {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: center;
-  gap: var(--space-2xs);
-}
 
-.result-link {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2xs);
-  font-size: var(--text-sm);
-  color: var(--fg2);
-  text-decoration: none;
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-pill);
-  padding: var(--space-2xs) var(--space-sm);
-  cursor: pointer;
-  transition: color var(--dur-fast) var(--ease-out),
-              background var(--dur-fast) var(--ease-out),
-              border-color var(--dur-fast) var(--ease-out);
-}
-
-.result-link svg {
-  width: 14px;
-  height: 14px;
-  flex-shrink: 0;
-}
-
-.result-link:hover {
-  color: var(--fg);
-  background: var(--bg3);
-}
-
-.result-link--accent {
-  background: var(--ac-soft);
-  color: var(--fg);
-  border-color: transparent;
-}
-
-.result-link--accent:hover {
-  background: var(--fg);
-  color: var(--bg);
-}
-
-.result-links__sep {
-  color: var(--fg3);
-  opacity: 0.3;
-  font-size: var(--text-xs);
-  user-select: none;
-}
-
-.result-link:focus-visible {
-  outline: none;
-  color: var(--ac);
-  box-shadow: 0 0 0 2px var(--ac-soft);
-}
-
-/* (Profile chips defined above in tier section) */
-
-.profile-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2xs);
-  padding: var(--space-2xs) var(--space-xs);
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-pill);
-  color: var(--fg2);
-  font-family: var(--font-data);
-  font-size: var(--text-xs);
-  line-height: 1;
-  cursor: default;
-  transition: transform var(--dur-fast) var(--spring),
-              background var(--dur-fast) var(--ease-out);
-  min-height: 28px;
-}
-
-.profile-chip svg {
-  width: 14px;
-  height: 14px;
-  flex-shrink: 0;
-  color: var(--fg3);
-}
-
-.profile-chip__value {
-  font-weight: 600;
-  color: var(--fg);
-  white-space: nowrap;
-}
-
-.profile-chip--na {
-  opacity: 0.3;
-  pointer-events: none;
-}
-
-.profile-chip--crowd {
-  border-style: dashed;
-  opacity: 0.75;
-}
-
-.profile-chip--crowd:hover {
-  opacity: 1;
-}
-
-.profile-chip--atmo {
-  background: var(--bg3);
-  border-color: var(--border);
-}
-
-/* (Profile expand/collapse now handled by tier system) */
 
 /* Profile: Facts (badge grid — Cuisine, Price, Parking, Noise) */
 .profile-facts {
@@ -2092,28 +1940,6 @@
   color: var(--fg3);
 }
 
-/* Dimmed profile chip items (unavailable data — filtered out in JS, kept as fallback) */
-
-/* ---- Profile Chips: Container ---- */
-.profile-chips {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: center;
-  gap: var(--space-2xs);
-}
-
-/* ---- Profile Chips: Separator ---- */
-.profile-chips__sep {
-  display: block;
-  width: 3px;
-  height: 3px;
-  border-radius: 50%;
-  background: var(--fg3);
-  opacity: 0.4;
-  align-self: center;
-  flex-shrink: 0;
-}
 
 /* ---- Story Extras (Dishes + Insider Tip — merged row) ---- */
 .story-extras {
@@ -2663,6 +2489,11 @@
   color: var(--fg);
 }
 
+.cta-btn--exhausted {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
 /* ---- Particle Canvas ---- */
 .particle-canvas {
   position: absolute;
@@ -3158,6 +2989,46 @@
   animation: ctaNudge 400ms var(--spring);
 }
 
+/* ---- Inline Empty State (no-result feedback) ---- */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-md) var(--space-lg);
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  text-align: center;
+  max-width: 400px;
+  margin: var(--space-sm) auto 0;
+  animation: fadeIn 300ms var(--ease-out);
+}
+
+.empty-state__text {
+  color: var(--fg2);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.empty-state__btn {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: var(--space-2xs) var(--space-sm);
+  color: var(--fg2);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  transition: background var(--dur-fast) var(--ease-out),
+              color var(--dur-fast) var(--ease-out);
+}
+
+.empty-state__btn:hover {
+  background: var(--fg);
+  color: var(--bg);
+}
+
 /* ---- Progressive Result Card Reveal (Tier 1: Glance) ---- */
 .result-card--revealing .tier--glance > * {
   opacity: 0;
@@ -3382,62 +3253,6 @@
   border-radius: var(--radius) 0 0 0;
 }
 
-/* ---- F2: Business Hours ---- */
-.business-hours {
-  padding: var(--space-xs) 0;
-}
-
-.business-hours__toggle {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  background: none;
-  border: none;
-  color: var(--fg2);
-  cursor: pointer;
-  padding: var(--space-xs);
-  border-radius: var(--radius-sm);
-  width: 100%;
-}
-
-.business-hours__toggle:hover { background: var(--bg2); }
-
-.business-hours__arrow {
-  margin-left: auto;
-  transition: transform 200ms var(--ease-out);
-}
-
-.business-hours__toggle[aria-expanded="true"] .business-hours__arrow {
-  transform: rotate(180deg);
-}
-
-.business-hours__detail {
-  padding: var(--space-xs) var(--space-sm);
-}
-
-.hours-line {
-  color: var(--fg2);
-  padding: 2px 0;
-}
-
-.hours-badge {
-  display: inline-flex;
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: var(--text-xs);
-  font-weight: 600;
-}
-
-.hours-badge--open {
-  background: hsl(142 70% 49% / 0.15);
-  color: hsl(142 70% 35%);
-}
-
-.hours-badge--closed {
-  background: hsl(0 70% 55% / 0.15);
-  color: hsl(0 70% 45%);
-}
-
 /* Open/Closed quick tag */
 .quick-tag--open {
   background: hsl(142 70% 49% / 0.15) !important;
@@ -3451,12 +3266,10 @@
   font-weight: 600;
 }
 
-[data-mode="dark"] .hours-badge--open,
 [data-mode="dark"] .quick-tag--open {
   color: hsl(142 70% 60%);
 }
 
-[data-mode="dark"] .hours-badge--closed,
 [data-mode="dark"] .quick-tag--closed {
   color: hsl(0 70% 65%);
 }
@@ -3771,14 +3584,6 @@
   .surprise-btn { display: none; }
 }
 
-/* ── Tier 2 elements relocated to badge popouts / utility pills ── */
-.business-hours { display: none; }
-.sentiment-summary { display: none; }
-.review-snippets { display: none; }
-.result-links { display: none; }
-.profile-chips { display: none; }
-#story-extras-dishes { display: none; }
-
 @supports (height: env(keyboard-inset-height)) {
   .app {
     padding-bottom: env(keyboard-inset-height, 0px);
@@ -3902,7 +3707,12 @@
 
 .auth-provider-btn__badge {
   color: var(--fg3);
-  font-size: 0.7rem;
+  font-size: 0.65rem;
+  font-style: italic;
+  background: var(--bg2);
+  padding: 1px 6px;
+  border-radius: var(--radius-pill);
+  margin-left: auto;
 }
 
 /* Guest dismiss button */
