@@ -786,7 +786,9 @@
   font-family: var(--font-data);
   font-size: var(--text-xs);
   color: var(--fg2);
-  line-height: 1.4;
+  line-height: 1;
+  min-height: 22px;
+  white-space: nowrap;
 }
 
 .quick-tag svg {
@@ -798,39 +800,32 @@
 /* ── DondeAI Blurb — The editorial recommendation voice ── */
 .donde-blurb {
   position: relative;
-  display: flex;
-  gap: 0;
-  padding: var(--space-md);
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  overflow: hidden;
+  display: block;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 0;
+  overflow: visible;
   width: 100%;
 }
 
 .donde-blurb__accent {
-  position: absolute;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  width: 3px;
-  background: var(--fg3);
-  border-radius: var(--radius) 0 0 var(--radius);
+  display: none;
 }
 
 .donde-blurb__text {
-  font-size: clamp(1rem, 2.5vw, 1.125rem);
+  font-size: clamp(1.0625rem, 2.5vw, 1.1875rem);
   color: var(--fg);
-  line-height: 1.7;
+  line-height: 1.75;
   overflow-wrap: break-word;
   word-break: break-word;
-  padding-left: var(--space-sm);
+  padding-left: 0;
   min-width: 0;
 }
 
 @media (max-width: 767px) {
   .donde-blurb {
-    padding: var(--space-sm) var(--space-md);
+    padding: 0;
   }
 }
 
@@ -937,8 +932,7 @@
 }
 
 .details-trigger-btn {
-  align-self: center;
-  margin-top: var(--space-xs);
+  display: none;
 }
 
 /* ── Bottom Actions (show after Tier 2 expands) ── */
@@ -962,7 +956,7 @@
 .result-header {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
+  align-items: center;
   gap: var(--space-xs);
   width: 100%;
 }
