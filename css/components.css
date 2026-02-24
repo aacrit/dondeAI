@@ -797,6 +797,172 @@
   color: var(--fg3);
 }
 
+/* ── Interactive Quick Tags (badge popouts) ── */
+.quick-tag--interactive {
+  position: relative;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out);
+}
+.quick-tag--interactive:hover {
+  background: var(--bg2);
+}
+.quick-tag--interactive[aria-expanded="true"] {
+  background: var(--bg2);
+  border-color: var(--fg3);
+}
+
+/* ── Badge Popout — glass morphism panel ── */
+.badge-popout {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) scale(0.95);
+  transform-origin: top center;
+  display: none;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--glass);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  z-index: var(--z-above);
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease-out),
+              transform var(--dur-fast) var(--spring);
+  min-width: 200px;
+  max-width: 280px;
+  white-space: normal;
+  pointer-events: none;
+}
+.badge-popout--open {
+  display: flex;
+  opacity: 1;
+  transform: translateX(-50%) scale(1);
+  pointer-events: auto;
+}
+.badge-popout--align-left {
+  left: 0;
+  transform: translateX(0) scale(0.95);
+}
+.badge-popout--align-left.badge-popout--open {
+  transform: translateX(0) scale(1);
+}
+.badge-popout--align-right {
+  left: auto;
+  right: 0;
+  transform: translateX(0) scale(0.95);
+}
+.badge-popout--align-right.badge-popout--open {
+  transform: translateX(0) scale(1);
+}
+.badge-popout__title {
+  font-family: var(--font-data);
+  font-size: var(--text-xs);
+  color: var(--fg3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.badge-popout__body {
+  font-family: var(--font-structural);
+  font-size: var(--text-sm);
+  color: var(--fg);
+  line-height: 1.5;
+}
+.badge-popout__item {
+  font-family: var(--font-data);
+  font-size: var(--text-xs);
+  color: var(--fg2);
+  line-height: 1.6;
+}
+.badge-popout__link {
+  color: var(--fg2);
+  text-decoration: underline;
+  text-decoration-color: var(--border);
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.badge-popout__link:hover {
+  color: var(--fg);
+}
+.badge-popout__stars-row {
+  display: flex;
+  gap: 2px;
+  color: hsl(45 93% 47%);
+}
+.badge-popout__stars-row svg {
+  width: 14px;
+  height: 14px;
+}
+.badge-popout__sentiment {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: var(--space-2xs);
+}
+.badge-popout__sentiment .sentiment-inline__track {
+  height: 4px;
+  border-radius: 2px;
+}
+.badge-popout__sentiment-labels {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-xs);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .badge-popout { transition: none; }
+}
+
+/* ── Action Quick Tags (Reserve, Share) ── */
+.quick-tag--action {
+  background: transparent;
+  border: 1px dashed var(--border);
+  color: var(--fg3);
+  cursor: pointer;
+  transition: color var(--dur-fast) var(--ease-out),
+              border-color var(--dur-fast) var(--ease-out),
+              background var(--dur-fast) var(--ease-out);
+  text-decoration: none;
+}
+.quick-tag--action:hover {
+  color: var(--fg);
+  border-color: var(--fg3);
+  background: var(--bg2);
+}
+
+/* ── Utility Pills (below action buttons) ── */
+.utility-pills {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2xs);
+  padding-top: var(--space-xs);
+}
+.utility-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px var(--space-xs);
+  font-family: var(--font-data);
+  font-size: 0.625rem;
+  color: var(--fg3);
+  background: none;
+  border: none;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color var(--dur-fast) var(--ease-out);
+}
+.utility-pill:hover {
+  color: var(--fg2);
+}
+.utility-pill svg {
+  width: 11px;
+  height: 11px;
+  opacity: 0.6;
+}
+
 /* ── DondeAI Blurb — The editorial recommendation voice ── */
 .donde-blurb {
   position: relative;
@@ -3818,6 +3984,15 @@
   .saved-spots { display: none; }
   .surprise-btn { display: none; }
 }
+
+/* ── Tier 2 elements relocated to badge popouts / utility pills ── */
+.business-hours { display: none; }
+.reviews-row { display: none; }
+.sentiment-summary { display: none; }
+.review-snippets { display: none; }
+.result-links { display: none; }
+.profile-chips { display: none; }
+#story-extras-dishes { display: none; }
 
 @supports (height: env(keyboard-inset-height)) {
   .app {
