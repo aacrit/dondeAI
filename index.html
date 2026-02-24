@@ -306,15 +306,23 @@
                 <!-- Score Pill: Branded DondeAI Match badge — THE hero moment -->
                 <div class="match-pill" id="match-pill" role="figure"
                      aria-label="DondeAI Match score">
-                  <svg class="match-pill__logo" viewBox="0 0 32 44" width="14" height="19" aria-hidden="true">
-                    <path d="M10.5 1C10.5 1 10 8.5 12.5 11.5Q14 13 14.5 13.5"
-                          fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-                    <path d="M21.5 1C21.5 1 22 8.5 19.5 11.5Q18 13 17.5 13.5"
-                          fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-                    <path d="M16 13.5C22 11 29 14 28 21C27 27 19 29 16 31L16 34"
-                          fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>
-                    <circle cx="16" cy="40" r="2.8" fill="currentColor"/>
-                  </svg>
+                  <span class="match-pill__brand" aria-hidden="true">
+                    <svg class="match-pill__logo" viewBox="0 0 32 44" width="12" height="16" aria-hidden="true">
+                      <path d="M10.5 1C10.5 1 10 8.5 12.5 11.5Q14 13 14.5 13.5"
+                            fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                      <path d="M21.5 1C21.5 1 22 8.5 19.5 11.5Q18 13 17.5 13.5"
+                            fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                      <path d="M16 13.5C22 11 29 14 28 21C27 27 19 29 16 31L16 34"
+                            fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>
+                      <circle cx="16" cy="40" r="2.8" fill="var(--ac)"/>
+                    </svg>
+                    <span class="match-pill__wordmark">
+                      <span class="match-pill__wm-d">D</span><span
+                        class="match-pill__wm-ond">ond</span><span
+                        class="match-pill__wm-e">e</span>
+                    </span>
+                    <span class="match-pill__tm type-data--sm">Match<sup>™</sup></span>
+                  </span>
                   <span class="match-pill__score type-data" id="match-pill-score">0</span>
                   <span class="match-pill__verdict type-structural" id="match-pill-verdict"></span>
                 </div>
@@ -383,15 +391,6 @@
                       <path class="score-hero__arc-bg" d="M 20 110 A 80 80 0 0 1 180 110" />
                       <path class="score-hero__arc-fill" id="score-hero-arc-fill" d="M 20 110 A 80 80 0 0 1 180 110" />
                     </svg>
-                    <!-- Bloom overlay: petal radar rendered here on tap -->
-                    <div class="score-hero__bloom" id="score-hero-bloom" aria-hidden="true">
-                      <svg class="score-hero__bloom-svg" viewBox="0 0 240 240" aria-hidden="true">
-                        <g class="bloom__grid"></g>
-                        <g class="bloom__axes"></g>
-                        <g class="bloom__petals" id="bloom-petals"></g>
-                        <g class="bloom__icons" id="bloom-icons"></g>
-                      </svg>
-                    </div>
                     <div class="score-hero__center">
                       <span class="score-hero__brand">
                         <svg class="score-hero__brand-logo" viewBox="0 0 32 44" width="10" height="14" aria-hidden="true">
@@ -403,7 +402,11 @@
                                 fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>
                           <circle cx="16" cy="40" r="2.8" fill="var(--ac)"/>
                         </svg>
-                        <span class="score-hero__brand-donde type-emotional">Donde</span>
+                        <span class="score-hero__brand-donde">
+                          <span class="score-hero__wm-d">D</span><span
+                            class="score-hero__wm-ond">ond</span><span
+                            class="score-hero__wm-e">e</span>
+                        </span>
                         <span class="score-hero__brand-match type-data--sm">Match<sup>™</sup></span>
                       </span>
                       <span class="score-hero__number type-data" id="score-hero-number">0%</span>
@@ -413,11 +416,14 @@
                   <div class="score-hero__meta">
                     <button class="score-hero__callout type-data--sm" id="score-hero-callout"
                             data-action="show-vibe-profile" style="display: none;"
-                            aria-label="Toggle vibe profile bloom">
+                            aria-label="Toggle vibe profile">
                       <span class="score-hero__callout-prefix type-emotional">Best for</span>
                       <span class="score-hero__callout-value" id="score-hero-callout-value"></span>
                       <span class="score-hero__callout-arrow">&#8595;</span>
                     </button>
+                    <div class="score-hero__vibe-bars" id="vibe-bars" aria-hidden="true">
+                      <div class="vibe-bars__list" id="vibe-bars-list" role="list"></div>
+                    </div>
                   </div>
                 </div>
 
@@ -507,9 +513,6 @@
 
               <!-- ══════ TIER 3: DEEP DIVE — Full details ══════ -->
               <div class="tier tier--deep" id="tier-deep" aria-hidden="true">
-
-                <!-- V2 Breakdown (also accessible via score hero bloom 3rd tap) -->
-                <div class="score-breakdown" id="score-breakdown" aria-live="polite" style="display: none;"></div>
 
                 <!-- Detail Badges Grid (full facts + atmosphere) -->
                 <div class="profile-facts" id="profile-facts"></div>

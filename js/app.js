@@ -844,12 +844,12 @@ function wireEvents() {
       }
 
       case 'show-vibe-profile': {
-        // Toggle bloom state on the score hero (3-state cycle)
+        // Toggle vibe bars (2-state: compact ↔ expanded)
         const data = _pendingResultData;
         if (!data) break;
         const newState = toggleBloom(
           data.scores || {},
-          data.scoring_v2 || null,
+          null,
           animationTimers
         );
         // Update callout arrow direction
@@ -858,8 +858,7 @@ function wireEvents() {
         if ($calloutArrow) {
           $calloutArrow.textContent = newState === 'compact' ? '\u2193' : '\u2191';
         }
-        const msgs = { bloomed: 'Showing vibe profile', breakdown: 'Showing score breakdown', compact: 'Collapsed vibe profile' };
-        announce(msgs[newState] || '');
+        announce(newState === 'expanded' ? 'Showing vibe profile' : 'Collapsed vibe profile');
         break;
       }
 
@@ -883,7 +882,7 @@ function wireEvents() {
     }
   });
 
-  // Score Hero tap in Tier 2 — toggle bloom (3-state: compact → petals → V2 → compact)
+  // Score Hero tap in Tier 2 — toggle vibe bars (2-state: compact ↔ expanded)
   document.addEventListener('click', (e) => {
     if (e.target.closest('[data-action]')) return;
     const hero = e.target.closest('.score-hero');
@@ -892,7 +891,7 @@ function wireEvents() {
     if (!data) return;
     const newState = toggleBloom(
       data.scores || {},
-      data.scoring_v2 || null,
+      null,
       animationTimers
     );
     // Update callout arrow
@@ -901,8 +900,7 @@ function wireEvents() {
     if ($calloutArrow) {
       $calloutArrow.textContent = newState === 'compact' ? '\u2193' : '\u2191';
     }
-    const msgs = { bloomed: 'Showing vibe profile', breakdown: 'Showing score breakdown', compact: 'Collapsed vibe profile' };
-    announce(msgs[newState] || '');
+    announce(newState === 'expanded' ? 'Showing vibe profile' : 'Collapsed vibe profile');
   });
 }
 

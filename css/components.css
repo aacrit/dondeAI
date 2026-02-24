@@ -767,6 +767,74 @@
   color: var(--fg3);
 }
 
+/* ── Match Pill Brand (multi-voice wordmark, consistent with header logo) ── */
+.match-pill__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  line-height: 1;
+}
+
+.match-pill__wordmark {
+  display: inline-flex;
+  align-items: baseline;
+  line-height: 1;
+  font-size: var(--text-xs);
+}
+
+.match-pill__wm-d {
+  font-family: var(--font-emotional);
+  font-weight: 700;
+  font-size: 1.15em;
+  color: var(--ac);
+  letter-spacing: -0.03em;
+}
+
+.match-pill__wm-ond {
+  font-family: var(--font-emotional);
+  font-weight: 400;
+  font-size: 1em;
+  color: var(--fg);
+  letter-spacing: -0.02em;
+}
+
+.match-pill__wm-e {
+  font-family: var(--font-emotional);
+  font-weight: 700;
+  font-style: italic;
+  font-size: 1.05em;
+  color: var(--ac);
+  letter-spacing: -0.01em;
+}
+
+.match-pill__tm {
+  font-family: var(--font-data);
+  font-size: 0.6rem;
+  color: var(--fg3);
+  letter-spacing: 0.04em;
+  margin-left: 1px;
+}
+
+.match-pill__tm sup {
+  font-size: 0.6em;
+  vertical-align: super;
+}
+
+/* Score-tier coloring for brand in pill */
+.match-pill[data-tier="high"] .match-pill__wm-d,
+.match-pill[data-tier="high"] .match-pill__wm-e {
+  color: var(--green);
+}
+
+.match-pill[data-tier="low"] .match-pill__wm-d,
+.match-pill[data-tier="low"] .match-pill__wm-e {
+  color: var(--fg2);
+}
+
+.match-pill[data-tier="low"] .match-pill__wm-ond {
+  color: var(--fg3);
+}
+
 /* ── Quick Tags (cuisine + price snap-decision helpers) ── */
 .quick-tags {
   display: flex;
@@ -1339,9 +1407,9 @@
 /* Meta line below gauge */
 .score-hero__meta {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: var(--space-sm);
+  gap: var(--space-xs);
   width: 100%;
 }
 
@@ -1361,10 +1429,34 @@
 }
 
 .score-hero__brand-donde {
-  font-family: var(--font-emotional);
+  display: inline-flex;
+  align-items: baseline;
+  line-height: 1;
   font-size: var(--text-sm);
+}
+
+.score-hero__wm-d {
+  font-family: var(--font-emotional);
   font-weight: 700;
+  font-size: 1.15em;
+  color: var(--ac);
+  letter-spacing: -0.03em;
+}
+
+.score-hero__wm-ond {
+  font-family: var(--font-emotional);
+  font-weight: 400;
+  font-size: 1em;
   color: var(--fg);
+  letter-spacing: -0.02em;
+}
+
+.score-hero__wm-e {
+  font-family: var(--font-emotional);
+  font-weight: 700;
+  font-style: italic;
+  font-size: 1.05em;
+  color: var(--ac);
   letter-spacing: -0.01em;
 }
 
@@ -1425,196 +1517,25 @@
 
 /* Callout now stands alone (brand moved above gauge) */
 
-/* ---- Bloom State (Petal Radar inside Score Hero) ---- */
-.score-hero__bloom {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 400ms var(--ease-out);
-  z-index: 1;
-}
-
-.score-hero--bloomed .score-hero__bloom {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-.score-hero__bloom-svg {
+/* ---- Vibe Bars inside Score Hero (compact reveal) ---- */
+.score-hero__vibe-bars {
   width: 100%;
-  height: 100%;
-  overflow: visible;
-}
-
-/* During bloom: dim the arc tracks */
-.score-hero--bloomed .score-hero__arc-bg {
-  opacity: 0.15;
-  transition: opacity 400ms var(--ease-out);
-}
-
-.score-hero--bloomed .score-hero__arc-fill {
-  opacity: 0.3;
-  transition: opacity 400ms var(--ease-out);
-}
-
-/* During bloom: shrink center text to make room for petals */
-.score-hero--bloomed .score-hero__center {
-  transform: translateX(-50%) scale(0.7);
-  opacity: 0.6;
-  transition: transform 400ms var(--spring), opacity 300ms var(--ease-out);
-}
-
-/* During bloom: hide brand label */
-.score-hero--bloomed .score-hero__brand {
-  opacity: 0;
-  transition: opacity 200ms var(--ease-out);
-}
-
-/* Bloom gauge expansion — becomes square for full petal radar */
-.score-hero--bloomed .score-hero__gauge {
-  width: min(90vw, 360px);
-  aspect-ratio: 1 / 1;
-}
-
-/* Bloom petals — accent color at subtle opacity (Ink Rule) */
-.bloom__petal {
-  fill: var(--ac);
-  fill-opacity: 0.08;
-  stroke: var(--ac);
-  stroke-opacity: 0.25;
-  stroke-width: 1;
-  cursor: pointer;
-  transition: fill-opacity 200ms var(--ease-out);
-}
-
-.bloom__petal:hover,
-.bloom__petal--active {
-  fill-opacity: 0.2;
-}
-
-/* Guide rings */
-.bloom__guide {
-  fill: none;
-  stroke: var(--border);
-  stroke-width: 0.5;
-  opacity: 0.3;
-}
-
-.bloom__axis {
-  stroke: var(--border);
-  stroke-width: 0.5;
-  opacity: 0.2;
-}
-
-/* Icons at petal tips */
-.bloom__icon-fo {
-  overflow: visible;
-}
-
-.bloom__icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--fg3);
-}
-
-.bloom__label {
-  fill: var(--fg3);
-  font-family: var(--font-data);
-  font-size: 8px;
-  text-anchor: middle;
-  letter-spacing: 0.04em;
-}
-
-/* Bloom summary below gauge */
-.score-hero__bloom-summary {
-  font-family: var(--font-structural);
-  font-size: var(--text-xs);
-  color: var(--fg2);
-  text-align: center;
-  opacity: 0;
-  transition: opacity 300ms var(--ease-out);
-}
-
-.score-hero--bloomed .score-hero__bloom-summary {
-  opacity: 1;
-}
-
-/* ---- Bloom + Breakdown State (V2 bars below petals) ---- */
-.score-hero--breakdown .score-hero__bloom {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-.score-hero--breakdown .score-hero__arc-bg { opacity: 0.15; }
-.score-hero--breakdown .score-hero__arc-fill { opacity: 0.3; }
-.score-hero--breakdown .score-hero__center {
-  transform: translateX(-50%) scale(0.7);
-  opacity: 0.6;
-}
-.score-hero--breakdown .score-hero__brand { opacity: 0; }
-.score-hero--breakdown .score-hero__gauge {
-  width: min(90vw, 360px);
-  aspect-ratio: 1 / 1;
-}
-
-/* V2 breakdown strip below bloom */
-.bloom-breakdown {
-  width: 100%;
-  max-width: 360px;
-  margin: var(--space-xs) auto 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2xs);
-  opacity: 0;
-  transform: translateY(-8px);
-  transition: opacity 300ms var(--ease-out), transform 300ms var(--ease-out);
-}
-
-.score-hero--breakdown .bloom-breakdown {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.bloom-v2-row {
-  display: grid;
-  grid-template-columns: 60px 1fr 36px;
-  align-items: center;
-  gap: var(--space-xs);
-  min-height: 24px;
-}
-
-.bloom-v2-row__label {
-  font-family: var(--font-data);
-  font-size: var(--text-xs);
-  color: var(--fg3);
-  letter-spacing: 0.04em;
-}
-
-.bloom-v2-row__track {
-  height: 3px;
-  background: var(--border);
-  border-radius: 2px;
+  max-width: 300px;
+  margin: 0 auto;
+  max-height: 0;
   overflow: hidden;
+  opacity: 0;
+  transition: max-height 400ms cubic-bezier(0.2, 1, 0.4, 1),
+              opacity 300ms var(--ease-out);
 }
 
-.bloom-v2-row__fill {
-  height: 100%;
-  background: var(--ac);
-  border-radius: 2px;
-  opacity: 0.5;
-  transition: width 500ms cubic-bezier(0.2, 1, 0.4, 1);
+.score-hero--vibe-expanded .score-hero__vibe-bars {
+  max-height: 300px;
+  opacity: 1;
 }
 
-.bloom-v2-row__score {
-  font-family: var(--font-data);
-  font-size: var(--text-xs);
-  color: var(--fg2);
-  font-weight: 700;
-  text-align: right;
+.score-hero__vibe-bars .vibe-bars__list {
+  padding-top: var(--space-sm);
 }
 
 /* ---- Vibe Bars (horizontal dimension bars) ---- */
@@ -1874,72 +1795,6 @@
   color: var(--fg2);
   line-height: 1.45;
   font-style: italic;
-}
-
-/* ---- Score Breakdown (V2 — optional detail rows) ---- */
-.score-breakdown {
-  display: none;
-  flex-direction: column;
-  gap: var(--space-xs);
-  width: 100%;
-  max-width: 400px;
-  margin: 0 auto;
-  padding: var(--space-sm) var(--space-md);
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  opacity: 0;
-  transform: translateY(-8px);
-  transition: opacity 300ms var(--ease-out),
-              transform 300ms var(--spring);
-}
-
-.score-breakdown--visible {
-  display: flex;
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.v2-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-}
-
-.v2-row__label {
-  width: 64px;
-  flex-shrink: 0;
-  font-family: var(--font-data);
-  font-size: var(--text-xs);
-  color: var(--fg3);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  text-align: right;
-}
-
-.v2-row__track {
-  flex: 1;
-  height: 4px;
-  background: var(--border);
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.v2-row__fill {
-  height: 100%;
-  background: var(--ac);
-  opacity: 0.6;
-  border-radius: 2px;
-  transition: width 600ms cubic-bezier(0.2, 1, 0.4, 1);
-}
-
-.v2-row__score {
-  width: 56px;
-  flex-shrink: 0;
-  font-family: var(--font-data);
-  font-size: var(--text-xs);
-  color: var(--fg2);
-  font-weight: 600;
 }
 
 /* ---- Tile Badge (legacy — preserved for compatibility) ---- */
