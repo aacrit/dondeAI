@@ -84,7 +84,7 @@ export function animateScoreRing(rawScore) {
 }
 
 /* ---- Petal Radar Chart (Ink Blossom — 6-axis vibe profile) ---- */
-import { svgIcon, buildVibeSummary, getVibeDetail, getScoreThresholdColor } from './utils.js';
+import { svgIcon, buildVibeSummary, getVibeDetail, getScoreThresholdColor, getVibeColor } from './utils.js';
 
 const RADAR_DIMS = [
   { key: 'date_friendly_score',    label: 'Date',     icon: 'heart' },
@@ -407,14 +407,21 @@ export function renderVibeBars(scores, timers = []) {
     row.className = 'vibe-row' + (dominant && slot.key === dominant.key ? ' vibe-row--dominant' : '');
     row.setAttribute('role', 'listitem');
 
+    const pct = Math.min(slot.val / 10, 1) * 100;
+    const color = getVibeColor(slot.val);
+
     row.innerHTML = `
       <span class="vibe-row__icon">${svgIcon(slot.icon, 14)}</span>
       <span class="vibe-row__label type-data--sm">${slot.label}</span>
-      <span class="vibe-row__score type-data--sm">${humanizeVibeScore(slot.val)}</span>`;
+      <span class="vibe-row__bar" role="meter" aria-valuenow="${slot.val.toFixed(1)}" aria-valuemin="0" aria-valuemax="10" aria-label="${slot.label} score">
+        <span class="vibe-row__bar-fill" data-width="${pct}" style="background:${color}"></span>
+      </span>
+      <span class="vibe-row__score type-data--sm">${slot.val.toFixed(1)}</span>`;
 
     $list.appendChild(row);
 
-    // Staggered fade-in
+    // Staggered fade-in + bar fill animation
+    const fill = row.querySelector('.vibe-row__bar-fill');
     if (!REDUCED.matches) {
       row.style.opacity = '0';
       row.style.transform = 'translateY(4px)';
@@ -422,7 +429,14 @@ export function renderVibeBars(scores, timers = []) {
       timers.push(setTimeout(() => {
         row.style.opacity = '1';
         row.style.transform = 'translateY(0)';
+        if (fill) {
+          requestAnimationFrame(() => {
+            fill.style.width = fill.dataset.width + '%';
+          });
+        }
       }, 400 + i * 60));
+    } else if (fill) {
+      fill.style.width = fill.dataset.width + '%';
     }
   });
 }
