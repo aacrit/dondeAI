@@ -735,28 +735,28 @@
 }
 
 .match-mini__arc {
-  width: 48px;
-  height: 28px;
+  width: 62px;
+  height: 36px;
   overflow: visible;
 }
 
 .match-mini__arc-bg {
   fill: none;
   stroke: var(--border);
-  stroke-width: 2.5;
+  stroke-width: 3;
   stroke-linecap: round;
 }
 
 .match-mini__arc-fill {
   fill: none;
   stroke: var(--rag-red);
-  stroke-width: 2.5;
+  stroke-width: 3;
   stroke-linecap: round;
   transform-origin: center bottom;
 }
 
 .match-mini__score {
-  font-size: clamp(1.25rem, 4vw, 1.5rem);
+  font-size: clamp(1.5rem, 5vw, 2rem);
   font-weight: 700;
   color: var(--fg);
   line-height: 1;
@@ -780,7 +780,7 @@
   display: inline-flex;
   align-items: baseline;
   line-height: 1;
-  font-size: 0.65rem;
+  font-size: 0.7rem;
 }
 
 .match-mini__wm-d {
@@ -974,11 +974,12 @@
   margin-top: var(--space-2xs);
 }
 .badge-popout__sentiment .sentiment-inline__track {
+  display: flex;
   width: 100%;
   height: 6px;
   border-radius: 3px;
   overflow: hidden;
-  background: var(--border);
+  gap: 1px;
 }
 .badge-popout__sentiment-legend {
   display: flex;
@@ -1023,7 +1024,15 @@
   background: var(--bg2);
 }
 
-/* ── Utility Pills (below action buttons) ── */
+/* ── Quick Actions (Reserve, Share, Website, Phone — subtle row in tier 1) ── */
+.quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs);
+  align-items: center;
+}
+
+/* ── Utility Pills (shared style for subtle action items) ── */
 .utility-pills {
   display: flex;
   flex-wrap: wrap;
@@ -1490,6 +1499,15 @@
   background: var(--bg3);
 }
 
+.google-attr {
+  font-family: 'Roboto', var(--font-structural);
+  font-size: 0.625rem;
+  color: var(--fg3);
+  opacity: 0.6;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 /* ---- Score Hero (Semicircular arc gauge — Tier 2 expanded view) ---- */
 .score-hero {
   position: relative;
@@ -1874,32 +1892,22 @@
 }
 
 .sentiment-inline__track {
+  display: flex;
   flex: 1;
   height: 4px;
   border-radius: 2px;
   overflow: hidden;
-  background: var(--border);
-  min-width: 40px;
+  gap: 1px;
 }
 
-.sentiment-inline__fill {
-  display: block;
+.sentiment-inline__seg {
   height: 100%;
-  border-radius: 2px;
-  width: 0%;
-  transition: width var(--dur-normal) var(--ease-out);
+  transition: flex var(--dur-normal) var(--ease-out);
 }
 
-.sentiment-inline__value {
-  font-family: var(--font-data);
-  font-size: var(--text-xs);
-  color: var(--fg2);
-  letter-spacing: 0.02em;
-  white-space: nowrap;
-  min-width: 28px;
-  text-align: right;
-  flex-shrink: 0;
-}
+.sentiment-inline__seg--pos { background: var(--rag-green); opacity: 0.7; }
+.sentiment-inline__seg--neu { background: var(--fg3); opacity: 0.3; }
+.sentiment-inline__seg--neg { background: var(--rag-red); opacity: 0.7; }
 
 .sentiment-inline__tooltip {
   position: absolute;
