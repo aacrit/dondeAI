@@ -13,7 +13,7 @@ import { initShare, shareResult, closeShareSheet, handleShareChannel } from './s
 import { initOffline, isOnline } from './offline.js';
 import { initAccessibility, announce } from './accessibility.js';
 import { fetchRecommendation } from './api.js';
-import { animateScoreRing, renderPetalRadar, renderSentimentBar, renderScoreBloom, renderScoreHero, renderVibeBars, renderSentimentInline, toggleBloom, resetBloomState, handlePetalTap, handleBloomRingTap, toggleScoreBreakdown, getBloomState, animateBadge, startParticles, stopParticles, chaosToOrderReveal, initLogoAnimation, startSearchPulse, stopSearchPulse, resolveLogoToFound, cleanupLoadingLogo } from './animations.js';
+import { animateScoreRing, renderPetalRadar, renderSentimentBar, renderScoreBloom, renderScoreHero, renderVibeBars, toggleBloom, resetBloomState, handlePetalTap, handleBloomRingTap, toggleScoreBreakdown, getBloomState, animateBadge, startParticles, stopParticles, chaosToOrderReveal, initLogoAnimation, startSearchPulse, stopSearchPulse, resolveLogoToFound, cleanupLoadingLogo } from './animations.js';
 import {
   getGreeting, getTimePeriod, getCuisineFromResult, svgIcon,
   getScoreTier, getScoreColor, getScoreThresholdColor, buildGoogleStars, buildMapsUrl, relativeTime, matchCuisine, matchCulture
@@ -1893,11 +1893,13 @@ function renderResult(data) {
       const ratingLine = document.createElement('div');
       ratingLine.className = 'badge-popout__body';
       const ratingNum = `<strong>${parseFloat(r.google_rating).toFixed(1)}</strong>`;
+      const googleUrl = r.google_place_id
+        ? `https://www.google.com/maps/place/?q=place_id:${r.google_place_id}`
+        : null;
       if (r.google_review_count) {
         const countText = `${Number(r.google_review_count).toLocaleString()} reviews`;
-        if (r.google_place_id) {
-          const url = `https://www.google.com/maps/place/?q=place_id:${r.google_place_id}`;
-          ratingLine.innerHTML = `${ratingNum} · <a class="badge-popout__link" href="${url}" target="_blank" rel="noopener noreferrer">${countText}</a>`;
+        if (googleUrl) {
+          ratingLine.innerHTML = `${ratingNum} · <a class="badge-popout__link" href="${googleUrl}" target="_blank" rel="noopener noreferrer">${countText}</a>`;
         } else {
           ratingLine.innerHTML = `${ratingNum} · ${countText}`;
         }
@@ -1906,10 +1908,22 @@ function renderResult(data) {
       }
       popout.appendChild(ratingLine);
 
+      // "Powered by Google" attribution
+      const attr = document.createElement('span');
+      attr.className = 'badge-popout__google-attr';
+      attr.setAttribute('translate', 'no');
+      attr.textContent = 'Powered by Google';
+      popout.appendChild(attr);
+
       const sentimentData = computeSentiment(r);
       if (sentimentData) {
         const sentWrap = document.createElement('div');
         sentWrap.className = 'badge-popout__sentiment';
+        // "Sentiment" label
+        const sentLabel = document.createElement('span');
+        sentLabel.className = 'badge-popout__sentiment-label';
+        sentLabel.textContent = 'Sentiment';
+        sentWrap.appendChild(sentLabel);
         // RGB track bar
         const track = document.createElement('div');
         track.className = 'sentiment-inline__track';
@@ -1927,6 +1941,17 @@ function renderResult(data) {
           `<span class="badge-popout__sentiment-item"><span class="badge-popout__sentiment-dot badge-popout__sentiment-dot--neg"></span>${sentimentData.neg}% negative</span>`;
         sentWrap.appendChild(legend);
         popout.appendChild(sentWrap);
+      }
+
+      // "View Reviews" link
+      if (googleUrl) {
+        const viewLink = document.createElement('a');
+        viewLink.className = 'badge-popout__view-link';
+        viewLink.href = googleUrl;
+        viewLink.target = '_blank';
+        viewLink.rel = 'noopener noreferrer';
+        viewLink.textContent = 'View Reviews';
+        popout.appendChild(viewLink);
       }
 
       tag.appendChild(popout);
@@ -2083,75 +2108,6 @@ function prepareTier2(data, cuisine) {
       $awards.style.display = '';
     } else {
       $awards.style.display = 'none';
-    }
-  }
-
-  // Google Rating
-  const $googleInline = document.getElementById('google-rating-inline');
-  const $googleStars = document.getElementById('google-stars');
-  const $googleNum = document.getElementById('google-rating-num');
-  const $googleCount = document.getElementById('google-count');
-  if (r.google_rating && $googleInline) {
-    if ($googleStars) $googleStars.innerHTML = buildGoogleStars(r.google_rating);
-    if ($googleNum) $googleNum.textContent = parseFloat(r.google_rating).toFixed(1);
-    if ($googleCount) $googleCount.textContent = r.google_review_count
-      ? `(${Number(r.google_review_count).toLocaleString()} reviews)` : '';
-    if (r.google_place_id) {
-      $googleInline.style.cursor = 'pointer';
-      $googleInline.setAttribute('role', 'link');
-      $googleInline.setAttribute('tabindex', '0');
-      $googleInline.setAttribute('aria-label',
-        `Google Rating ${parseFloat(r.google_rating).toFixed(1)} - View on Google Maps`);
-      const url = `https://www.google.com/maps/place/?q=place_id:${r.google_place_id}`;
-      $googleInline.onclick = () => window.open(url, '_blank', 'noopener,noreferrer');
-      $googleInline.onkeydown = (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault(); window.open(url, '_blank', 'noopener,noreferrer');
-        }
-      };
-    }
-    $googleInline.style.display = '';
-    $googleInline.style.opacity = '1';
-  } else if ($googleInline) {
-    $googleInline.style.display = 'none';
-  }
-
-  // Sentiment inline bar
-  const $sentInline = document.getElementById('sentiment-inline');
-  if ($sentInline) {
-    let posVal = null, neuVal = null, negVal = null;
-    if (r.sentiment_positive != null && r.sentiment_negative != null && r.sentiment_neutral != null) {
-      posVal = r.sentiment_positive; neuVal = r.sentiment_neutral; negVal = r.sentiment_negative;
-    } else if (r.sentiment_breakdown) {
-      const parts = r.sentiment_breakdown.toLowerCase();
-      const posMatch = parts.match(/(\d+)%?\s*positive/);
-      const neuMatch = parts.match(/(\d+)%?\s*neutral/);
-      const negMatch = parts.match(/(\d+)%?\s*negative/);
-      if (posMatch || neuMatch || negMatch) {
-        posVal = parseInt(posMatch?.[1] || '33', 10);
-        neuVal = parseInt(neuMatch?.[1] || '34', 10);
-        negVal = parseInt(negMatch?.[1] || '33', 10);
-      }
-    } else if (r.sentiment_score != null) {
-      const score = parseFloat(r.sentiment_score);
-      if (!isNaN(score)) {
-        posVal = Math.round((score / 10) * 100);
-        negVal = Math.round((1 - score / 10) * 30);
-        neuVal = 100 - posVal - negVal;
-      }
-    }
-    if (posVal != null) {
-      $sentInline.style.display = '';
-      renderSentimentInline(posVal, neuVal, negVal, []);
-      const $tipPos = document.getElementById('sentiment-tip-pos');
-      const $tipNeu = document.getElementById('sentiment-tip-neu');
-      const $tipNeg = document.getElementById('sentiment-tip-neg');
-      if ($tipPos) $tipPos.textContent = `${posVal}% Positive`;
-      if ($tipNeu) $tipNeu.textContent = `${neuVal}% Neutral`;
-      if ($tipNeg) $tipNeg.textContent = `${negVal}% Negative`;
-      $sentInline.onclick = () => $sentInline.classList.toggle('sentiment-inline--active');
-    } else {
-      $sentInline.style.display = 'none';
     }
   }
 
