@@ -2969,15 +2969,7 @@ function renderQuickStats(data) {
     garden_dining: 'patio', fireplace: 'fire',
     chef_interaction: 'user',
   };
-  if (dc.wow_factors?.length) {
-    dc.wow_factors.filter(w => w !== 'unique_decor').slice(0, 3).forEach(w => {
-      candidates.push({
-        icon: WOW_ICONS[w] || 'starFull',
-        text: WOW_LABELS[w] || humanizeSnake(w),
-        priority: dw.discovery * 0.80,
-      });
-    });
-  }
+  // (wow factors rendered as subtle accent line below — not in candidate pool)
 
   // -- Practical stats --
   if (dc.check_average_per_person) {
@@ -3055,6 +3047,19 @@ function renderQuickStats(data) {
     span.innerHTML = `${svgIcon(item.icon, 12)}<span>${item.text}</span>`;
     $stats.appendChild(span);
   });
+
+  // Subtle wow-factor accent line (below main stats)
+  const wows = (dc.wow_factors || [])
+    .filter(w => w !== 'unique_decor')
+    .slice(0, 2)
+    .map(w => WOW_LABELS[w] || humanizeSnake(w));
+  if (wows.length) {
+    const accent = document.createElement('div');
+    accent.className = 'quick-stats__accent';
+    accent.textContent = wows.join(' \u00b7 ');
+    $stats.appendChild(accent);
+  }
+
   $stats.style.display = '';
 }
 
