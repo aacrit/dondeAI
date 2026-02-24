@@ -799,7 +799,6 @@
 
 /* ── Interactive Quick Tags (badge popouts) ── */
 .quick-tag--interactive {
-  position: relative;
   cursor: pointer;
   transition: background var(--dur-fast) var(--ease-out);
 }
@@ -811,13 +810,9 @@
   border-color: var(--fg3);
 }
 
-/* ── Badge Popout — glass morphism panel ── */
+/* ── Badge Popout — glass morphism panel (fixed to viewport to escape overflow:hidden) ── */
 .badge-popout {
-  position: absolute;
-  top: calc(100% + 8px);
-  left: 50%;
-  transform: translateX(-50%) scale(0.95);
-  transform-origin: top center;
+  position: fixed;
   display: none;
   flex-direction: column;
   gap: var(--space-xs);
@@ -827,35 +822,23 @@
   -webkit-backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  z-index: var(--z-above);
+  z-index: var(--z-modal);
   opacity: 0;
+  transform: scale(0.95);
+  transform-origin: top center;
   transition: opacity var(--dur-fast) var(--ease-out),
               transform var(--dur-fast) var(--spring);
   min-width: 200px;
   max-width: 280px;
   white-space: normal;
   pointer-events: none;
+  box-shadow: 0 8px 32px hsl(0 0% 0% / 0.12);
 }
 .badge-popout--open {
   display: flex;
   opacity: 1;
-  transform: translateX(-50%) scale(1);
+  transform: scale(1);
   pointer-events: auto;
-}
-.badge-popout--align-left {
-  left: 0;
-  transform: translateX(0) scale(0.95);
-}
-.badge-popout--align-left.badge-popout--open {
-  transform: translateX(0) scale(1);
-}
-.badge-popout--align-right {
-  left: auto;
-  right: 0;
-  transform: translateX(0) scale(0.95);
-}
-.badge-popout--align-right.badge-popout--open {
-  transform: translateX(0) scale(1);
 }
 .badge-popout__title {
   font-family: var(--font-data);
@@ -886,6 +869,36 @@
 .badge-popout__link:hover {
   color: var(--fg);
 }
+/* Mini pill badges inside popouts */
+.badge-popout__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px var(--space-xs);
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-data);
+  font-size: var(--text-xs);
+  color: var(--fg2);
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.badge-popout__pill--today {
+  background: var(--ac-soft);
+  border-color: var(--ac);
+  color: var(--fg);
+  font-weight: 600;
+}
+.badge-popout__pill--dish {
+  white-space: normal;
+  background: var(--bg2);
+}
+.badge-popout__pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs);
+}
 .badge-popout__stars-row {
   display: flex;
   gap: 2px;
@@ -902,8 +915,12 @@
   padding-top: var(--space-2xs);
 }
 .badge-popout__sentiment .sentiment-inline__track {
+  display: flex;
+  width: 100%;
   height: 4px;
   border-radius: 2px;
+  overflow: hidden;
+  gap: 1px;
 }
 .badge-popout__sentiment-labels {
   display: flex;

@@ -1836,18 +1836,16 @@ function renderResult(data) {
         title.className = 'badge-popout__title';
         title.textContent = 'What to Order';
         popout.appendChild(title);
+        const pillsWrap = document.createElement('div');
+        pillsWrap.className = 'badge-popout__pills';
         dishes.slice(0, 4).forEach(d => {
-          const item = document.createElement('div');
-          item.className = 'badge-popout__body';
-          item.innerHTML = `<strong>${d.dish}</strong>`;
-          if (d.description) {
-            const desc = document.createElement('span');
-            desc.className = 'badge-popout__item';
-            desc.textContent = ` — ${d.description}`;
-            item.appendChild(desc);
-          }
-          popout.appendChild(item);
+          const pill = document.createElement('span');
+          pill.className = 'badge-popout__pill badge-popout__pill--dish';
+          pill.textContent = d.dish;
+          if (d.description) pill.title = d.description;
+          pillsWrap.appendChild(pill);
         });
+        popout.appendChild(pillsWrap);
         tag.appendChild(popout);
       }
       $quickTags.appendChild(tag);
@@ -1900,7 +1898,7 @@ function renderResult(data) {
         sentWrap.appendChild(track);
         const labels = document.createElement('div');
         labels.className = 'badge-popout__sentiment-labels';
-        labels.innerHTML = `<span class="badge-popout__item">${sentimentData.pos}% pos</span><span class="badge-popout__item">${sentimentData.neu}% neu</span><span class="badge-popout__item">${sentimentData.neg}% neg</span>`;
+        labels.innerHTML = `<span class="badge-popout__pill">${sentimentData.pos}% pos</span><span class="badge-popout__pill">${sentimentData.neu}% neu</span><span class="badge-popout__pill">${sentimentData.neg}% neg</span>`;
         sentWrap.appendChild(labels);
         popout.appendChild(sentWrap);
       }
@@ -2374,25 +2372,40 @@ function openBadgePopout(badgeEl) {
   popout.classList.add('badge-popout--open');
   _activePopout = { badge: badgeEl, popout };
   _popoutTimer = setTimeout(() => closeBadgePopout(), 5000);
-  requestAnimationFrame(() => clampPopoutEdge(popout));
+  // Position fixed popout below the badge
+  requestAnimationFrame(() => positionPopout(badgeEl, popout));
 }
 
 function closeBadgePopout() {
   if (_popoutTimer) { clearTimeout(_popoutTimer); _popoutTimer = null; }
   if (!_activePopout) return;
   _activePopout.badge.setAttribute('aria-expanded', 'false');
-  _activePopout.popout.classList.remove('badge-popout--open', 'badge-popout--align-left', 'badge-popout--align-right');
+  _activePopout.popout.classList.remove('badge-popout--open');
+  _activePopout.popout.style.top = '';
+  _activePopout.popout.style.left = '';
   _activePopout = null;
 }
 
-function clampPopoutEdge(popout) {
-  const rect = popout.getBoundingClientRect();
-  popout.classList.remove('badge-popout--align-left', 'badge-popout--align-right');
-  if (rect.left < 8) {
-    popout.classList.add('badge-popout--align-left');
-  } else if (rect.right > window.innerWidth - 8) {
-    popout.classList.add('badge-popout--align-right');
+function positionPopout(badgeEl, popout) {
+  const badgeRect = badgeEl.getBoundingClientRect();
+  const gap = 8;
+  // Center popout below badge
+  let top = badgeRect.bottom + gap;
+  let left = badgeRect.left + badgeRect.width / 2 - popout.offsetWidth / 2;
+  // Clamp to viewport edges
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  if (left < 8) left = 8;
+  if (left + popout.offsetWidth > vw - 8) left = vw - 8 - popout.offsetWidth;
+  // If popout would overflow bottom, show above badge instead
+  if (top + popout.offsetHeight > vh - 8) {
+    top = badgeRect.top - gap - popout.offsetHeight;
+    popout.style.transformOrigin = 'bottom center';
+  } else {
+    popout.style.transformOrigin = 'top center';
   }
+  popout.style.top = `${Math.max(8, top)}px`;
+  popout.style.left = `${Math.max(8, left)}px`;
 }
 
 /* ---- Sentiment Computation Helper ---- */
@@ -2751,12 +2764,19 @@ function renderOpenNowTag(data) {
     title.className = 'badge-popout__title';
     title.textContent = 'Hours';
     popout.appendChild(title);
+    const today = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+    const pillsWrap = document.createElement('div');
+    pillsWrap.className = 'badge-popout__pills';
     oh.weekday_text.forEach(line => {
-      const p = document.createElement('span');
-      p.className = 'badge-popout__item';
-      p.textContent = line;
-      popout.appendChild(p);
+      const pill = document.createElement('span');
+      pill.className = 'badge-popout__pill';
+      if (line.toLowerCase().startsWith(today)) {
+        pill.classList.add('badge-popout__pill--today');
+      }
+      pill.textContent = line;
+      pillsWrap.appendChild(pill);
     });
+    popout.appendChild(pillsWrap);
     tag.appendChild(popout);
   }
 
