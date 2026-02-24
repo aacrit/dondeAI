@@ -1955,13 +1955,33 @@ function renderResult(data) {
     shareTag.setAttribute('data-action', 'share');
     shareTag.innerHTML = `${svgIcon('shareNetwork', 12)} Share`;
     $quickTags.appendChild(shareTag);
+
+    // Website badge (action link style, like Reserve)
+    if (r.website) {
+      let hostname = 'Website';
+      try { hostname = new URL(r.website).hostname.replace('www.', ''); } catch { /* keep fallback */ }
+      const webTag = document.createElement('a');
+      webTag.className = 'quick-tag quick-tag--action type-data--sm';
+      webTag.href = r.website;
+      webTag.target = '_blank';
+      webTag.rel = 'noopener noreferrer';
+      webTag.innerHTML = `${svgIcon('globe', 12)} ${hostname}`;
+      $quickTags.appendChild(webTag);
+    }
+
+    // Phone badge (action link style, like Reserve)
+    if (r.phone) {
+      const phoneTag = document.createElement('a');
+      phoneTag.className = 'quick-tag quick-tag--action type-data--sm';
+      phoneTag.href = `tel:${r.phone}`;
+      phoneTag.innerHTML = `${svgIcon('phone', 12)} ${r.phone}`;
+      $quickTags.appendChild(phoneTag);
+    }
   }
 
   // F2: Open Now / Closed badge in quick tags
   renderOpenNowTag(data);
 
-  // Utility pills (website, phone, parking, price) below action buttons
-  renderUtilityPills(data);
 
   // F4: Set bookmark button state
   if (r.id) updateBookmarkBtn(r.id);
@@ -2461,43 +2481,6 @@ function computeSentiment(r) {
   return pos != null ? { pos, neu, neg } : null;
 }
 
-/* ---- Render Utility Pills (website, phone, parking, price below actions) ---- */
-function renderUtilityPills(data) {
-  const r = data.restaurant;
-  const $pills = document.getElementById('utility-pills');
-  if (!$pills) return;
-  $pills.innerHTML = '';
-  const items = [];
-  if (r.website) {
-    let hostname = 'Website';
-    try { hostname = new URL(r.website).hostname.replace('www.', ''); } catch { /* keep fallback */ }
-    items.push({ icon: 'globe', label: hostname, href: r.website });
-  }
-  if (r.phone) {
-    items.push({ icon: 'phone', label: r.phone, href: `tel:${r.phone}` });
-  }
-  const parkingPts = r.parking_availability
-    ? parseParkingTypes(r.parking_availability).slice(0, 2).join(' / ') : null;
-  if (parkingPts) {
-    items.push({ icon: 'car', label: parkingPts });
-  }
-  if (r.price_level) {
-    items.push({ icon: 'tag', label: r.price_level });
-  }
-  if (items.length === 0) { $pills.style.display = 'none'; return; }
-  items.forEach(item => {
-    const pill = item.href ? document.createElement('a') : document.createElement('span');
-    pill.className = 'utility-pill type-data--sm';
-    if (item.href) {
-      pill.href = item.href;
-      pill.target = item.href.startsWith('tel:') ? '_self' : '_blank';
-      pill.rel = 'noopener noreferrer';
-    }
-    pill.innerHTML = `${svgIcon(item.icon, 11)} ${item.label}`;
-    $pills.appendChild(pill);
-  });
-  $pills.style.display = '';
-}
 
 /* ---- Humanize snake_case strings to Title Case ---- */
 function humanizeSnake(str) {
