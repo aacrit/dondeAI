@@ -632,6 +632,12 @@ function wireEvents() {
         btn.appendChild(ripple);
         ripple.addEventListener('animationend', () => ripple.remove(), { once: true });
         updateFilterSummary();
+        // Auto-collapse only when all filter categories have been selected
+        clearTimeout(autoAdvanceTimer);
+        const dst = getState();
+        if (dst.occasion !== 'Any' && dst.neighborhood !== 'Anywhere' && dst.priceLevel !== 'Any' && dst.dietaryRestrictions.length > 0) {
+          autoAdvanceTimer = setTimeout(() => collapseFilters(), 600);
+        }
         break;
       }
 
@@ -1424,7 +1430,7 @@ function selectFilter(field, btn) {
   // Auto-collapse only when all filter categories have been selected
   clearTimeout(autoAdvanceTimer);
   const st = getState();
-  if (st.occasion !== 'Any' && st.neighborhood !== 'Anywhere' && st.priceLevel !== 'Any') {
+  if (st.occasion !== 'Any' && st.neighborhood !== 'Anywhere' && st.priceLevel !== 'Any' && st.dietaryRestrictions.length > 0) {
     autoAdvanceTimer = setTimeout(() => collapseFilters(), 600);
   }
 }
