@@ -3362,13 +3362,10 @@ window.renderShareCanvas = renderShareCanvas;
 /* ---- Color Mode Popover ---- */
 
 const POPOVER_CULTURES = [
-  { id: 'neutral',       name: 'Studio',    region: 'Universal',          mood: 'The blank canvas',                                 tagline: 'The blank page before the masterpiece',     hue: 'hsl(0 0% 22%)',    swatches: ['hsl(0 0% 22%)', 'hsl(0 0% 98%)', 'hsl(0 0% 10%)'] },
+  { id: 'neutral',       name: 'Studio',    region: 'Universal',          mood: 'Warm terracotta \u00b7 Earthy warmth \u00b7 The canvas',      tagline: 'The blank page before the masterpiece',     hue: 'hsl(18 45% 42%)',  swatches: ['hsl(18 45% 42%)', 'hsl(18 8% 97%)', 'hsl(18 12% 12%)'] },
   { id: 'indian',        name: 'Desi',      region: 'Warm Earth',         mood: 'Ornate warmth \u00b7 Saffron tones \u00b7 Ink depth',         tagline: 'Warmth woven into every detail',            hue: 'hsl(28 88% 50%)',  swatches: ['hsl(28 88% 50%)', 'hsl(350 70% 50%)', 'hsl(22 90% 48%)'] },
   { id: 'middleeastern', name: 'Bazaar',    region: 'Hammered Gold',      mood: 'Brass patina \u00b7 Arabesque geometry \u00b7 Gold leaf',     tagline: 'Where every gathering is golden',           hue: 'hsl(48 72% 46%)',  swatches: ['hsl(48 72% 46%)', 'hsl(0 60% 50%)', 'hsl(35 85% 50%)'] },
-  { id: 'nepalese',      name: 'Himalayan', region: 'Mountain Stone',     mood: 'Stone calm \u00b7 Prayer flags \u00b7 High altitude',         tagline: 'Where prayer flags meet the sky',           hue: 'hsl(178 50% 38%)', swatches: ['hsl(178 50% 38%)', 'hsl(350 60% 50%)', 'hsl(45 70% 55%)'] },
   { id: 'japanese',      name: 'Zen',       region: 'Ink Wash',           mood: 'Wabi-sabi \u00b7 Indigo restraint \u00b7 Quiet depth',        tagline: 'Less is more, silence is loud',             hue: 'hsl(220 35% 45%)', swatches: ['hsl(220 35% 45%)', 'hsl(45 12% 97%)', 'hsl(220 18% 15%)'] },
-  { id: 'eastasian',     name: 'Silk',      region: 'Imperial Silk',      mood: 'Lacquer finish \u00b7 Plum tones \u00b7 Silk drape',          tagline: 'Ten thousand textures, one thread',         hue: 'hsl(285 35% 45%)', swatches: ['hsl(285 35% 45%)', 'hsl(40 12% 96%)', 'hsl(345 60% 52%)'] },
-  { id: 'african',       name: 'Kente',     region: 'Bold Weave',         mood: 'Bold geometry \u00b7 Emerald rhythm \u00b7 Woven energy',     tagline: 'Bold threads woven in rhythm',              hue: 'hsl(155 65% 35%)', swatches: ['hsl(155 65% 35%)', 'hsl(40 85% 50%)', 'hsl(0 65% 45%)'] },
   { id: 'southamerican', name: 'Sabor',     region: 'Tropical Fire',      mood: 'Vivid warmth \u00b7 Tropical palette \u00b7 Festival energy', tagline: 'Energy runs through everything',            hue: 'hsl(350 80% 52%)', swatches: ['hsl(350 80% 52%)', 'hsl(170 55% 38%)', 'hsl(45 90% 55%)'] },
 ];
 
