@@ -283,7 +283,10 @@ export function renderScoreHero(dondeMatch, scores, scoringV2, sentiment, timers
       // Instant — no animation
       $arcFill.style.strokeDashoffset = String(target);
       $arcFill.style.stroke = getScoreThresholdColor(pct);
-      if ($number) $number.textContent = pct + '%';
+      if ($number) {
+        $number.textContent = pct + '%';
+        $number.style.color = getScoreThresholdColor(pct);
+      }
     } else {
       // JS-driven frame-by-frame animation: arc fill + color + number synced
       $arcFill.style.strokeDashoffset = String(arcLength);
@@ -303,10 +306,16 @@ export function renderScoreHero(dondeMatch, scores, scoringV2, sentiment, timers
           $arcFill.style.strokeDashoffset = String(currentOffset);
           $arcFill.style.stroke = getScoreThresholdColor(currentPct);
 
-          if ($number) $number.textContent = currentPct + '%';
+          if ($number) {
+            $number.textContent = currentPct + '%';
+            $number.style.color = getScoreThresholdColor(currentPct);
+          }
 
           if (progress < 1) requestAnimationFrame(tick);
-          else if ($number) $number.textContent = pct + '%';
+          else if ($number) {
+            $number.textContent = pct + '%';
+            $number.style.color = getScoreThresholdColor(pct);
+          }
         }
         requestAnimationFrame(tick);
       }, 300));
@@ -315,14 +324,13 @@ export function renderScoreHero(dondeMatch, scores, scoringV2, sentiment, timers
 
   // Verdict label
   if ($verdict) {
-    const tier = pct >= 90 ? { verdict: 'Outstanding', tier: 'high' }
-      : pct >= 86 ? { verdict: 'Excellent', tier: 'high' }
-      : pct >= 75 ? { verdict: 'Solid Pick', tier: 'mid' }
-      : pct >= 60 ? { verdict: 'Worth a Try', tier: 'mid' }
+    const tier = pct >= 93 ? { verdict: 'Perfect Match', tier: 'high' }
+      : pct >= 86 ? { verdict: 'Great Match', tier: 'high' }
+      : pct >= 75 ? { verdict: 'Good Match', tier: 'mid' }
+      : pct >= 60 ? { verdict: 'Worth Exploring', tier: 'mid' }
       : { verdict: 'Adventurous', tier: 'low' };
     $verdict.textContent = tier.verdict;
     $verdict.setAttribute('data-tier', tier.tier);
-    $verdict.style.color = getScoreThresholdColor(pct);
     if (!REDUCED.matches) {
       $verdict.style.opacity = '0';
       timers.push(setTimeout(() => {

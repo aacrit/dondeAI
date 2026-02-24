@@ -734,33 +734,25 @@
 }
 
 /* Score-tier coloring — green ≥86, amber 75-85, rose <75 */
+/* Only the score number + border are colored; verdict/logo/wordmark stay neutral */
 .match-pill[data-tier="high"] {
-  border-color: var(--green);
+  border-color: var(--score-green);
 }
-
-.match-pill[data-tier="high"] .match-pill__score,
-.match-pill[data-tier="high"] .match-pill__verdict,
-.match-pill[data-tier="high"] .match-pill__logo {
-  color: var(--green);
+.match-pill[data-tier="high"] .match-pill__score {
+  color: var(--score-green);
 }
 
 .match-pill[data-tier="mid"] {
   border-color: var(--amber);
 }
-
-.match-pill[data-tier="mid"] .match-pill__score,
-.match-pill[data-tier="mid"] .match-pill__verdict,
-.match-pill[data-tier="mid"] .match-pill__logo {
+.match-pill[data-tier="mid"] .match-pill__score {
   color: var(--amber);
 }
 
 .match-pill[data-tier="low"] {
   border-color: var(--rose);
 }
-
-.match-pill[data-tier="low"] .match-pill__score,
-.match-pill[data-tier="low"] .match-pill__verdict,
-.match-pill[data-tier="low"] .match-pill__logo {
+.match-pill[data-tier="low"] .match-pill__score {
   color: var(--rose);
 }
 
@@ -817,25 +809,7 @@
   vertical-align: super;
 }
 
-/* Score-tier coloring for brand in pill */
-.match-pill[data-tier="high"] .match-pill__wm-d,
-.match-pill[data-tier="high"] .match-pill__wm-e {
-  color: var(--green);
-}
-
-.match-pill[data-tier="mid"] .match-pill__wm-d,
-.match-pill[data-tier="mid"] .match-pill__wm-e {
-  color: var(--amber);
-}
-
-.match-pill[data-tier="low"] .match-pill__wm-d,
-.match-pill[data-tier="low"] .match-pill__wm-e {
-  color: var(--rose);
-}
-
-.match-pill[data-tier="low"] .match-pill__wm-ond {
-  color: var(--fg3);
-}
+/* Brand wordmark stays in its default accent/fg colors regardless of tier */
 
 /* ── Quick Tags (cuisine + price snap-decision helpers) ── */
 .quick-tags {

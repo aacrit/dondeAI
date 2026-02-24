@@ -1760,16 +1760,20 @@ function renderResult(data) {
         const eased = 1 - Math.pow(1 - progress, 3);
         const current = Math.round(eased * dondeScore);
         $matchScore.textContent = current;
-        // Progressive border color based on current animated value
-        if ($matchPill) $matchPill.style.borderColor = getScoreThresholdColor(current);
+        // Progressive border + score number color based on current animated value
+        const thresholdColor = getScoreThresholdColor(current);
+        if ($matchPill) $matchPill.style.borderColor = thresholdColor;
+        $matchScore.style.color = thresholdColor;
         if (progress < 1) requestAnimationFrame(animate);
       };
       requestAnimationFrame(animate);
     }, 200));
   } else if ($matchScore) {
     $matchScore.textContent = dondeScore;
-    // Set final border color immediately for reduced motion
-    if ($matchPill) $matchPill.style.borderColor = getScoreThresholdColor(dondeScore);
+    // Set final border + score color immediately for reduced motion
+    const finalColor = getScoreThresholdColor(dondeScore);
+    if ($matchPill) $matchPill.style.borderColor = finalColor;
+    $matchScore.style.color = finalColor;
   }
 
   // Restaurant name

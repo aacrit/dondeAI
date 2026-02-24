@@ -600,7 +600,7 @@ export function getScoreTier(score) {
 
 export function getScoreColor(score) {
   const pct = Math.round(parseFloat(score) || 80);
-  if (pct >= 86) return 'var(--green)';
+  if (pct >= 86) return 'var(--score-green)';
   if (pct >= 75) return 'var(--amber)';
   return 'var(--rose)';
 }
@@ -612,7 +612,7 @@ export function getScoreColor(score) {
  * @returns {string} CSS variable string
  */
 export function getScoreThresholdColor(score) {
-  if (score >= 86) return 'var(--green)';
+  if (score >= 86) return 'var(--score-green)';
   if (score >= 75) return 'var(--amber)';
   return 'var(--rose)';
 }
