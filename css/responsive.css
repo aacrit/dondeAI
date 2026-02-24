@@ -19,7 +19,7 @@
   }
 
   .match-mini__score {
-    font-size: 1.125rem;
+    font-size: 1.35rem;
   }
 }
 
@@ -81,7 +81,7 @@
 
   /* Match mini: larger on tablet */
   .match-mini__score {
-    font-size: 1.5rem;
+    font-size: 1.75rem;
   }
 
   /* Keep score-tile styles for the tile-expand modal */
@@ -142,7 +142,7 @@
 
   /* Match mini: desktop prominence */
   .match-mini__score {
-    font-size: 1.625rem;
+    font-size: 2rem;
   }
 }
 

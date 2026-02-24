@@ -1908,31 +1908,16 @@ function renderResult(data) {
 
       const sentimentData = computeSentiment(r);
       if (sentimentData) {
-        const total = sentimentData.pos + sentimentData.neu + sentimentData.neg;
-        const posPct = total > 0 ? Math.round((sentimentData.pos / total) * 100) : 0;
-        const ragColor = getScoreThresholdColor(posPct);
-
         const sentWrap = document.createElement('div');
         sentWrap.className = 'badge-popout__sentiment';
-        // RAG progress bar with value
-        const trackRow = document.createElement('div');
-        trackRow.style.display = 'flex';
-        trackRow.style.alignItems = 'center';
-        trackRow.style.gap = 'var(--space-xs)';
+        // RGB track bar
         const track = document.createElement('div');
         track.className = 'sentiment-inline__track';
-        track.setAttribute('role', 'meter');
-        track.setAttribute('aria-valuenow', String(posPct));
-        track.setAttribute('aria-valuemin', '0');
-        track.setAttribute('aria-valuemax', '100');
-        track.innerHTML = `<span class="sentiment-inline__fill" style="width:${posPct}%;background:${ragColor}"></span>`;
-        trackRow.appendChild(track);
-        const valueSpan = document.createElement('span');
-        valueSpan.className = 'sentiment-inline__value type-data--sm';
-        valueSpan.textContent = posPct + '%';
-        valueSpan.style.color = ragColor;
-        trackRow.appendChild(valueSpan);
-        sentWrap.appendChild(trackRow);
+        track.innerHTML =
+          `<span class="sentiment-inline__seg sentiment-inline__seg--pos" style="flex:${sentimentData.pos}"></span>` +
+          `<span class="sentiment-inline__seg sentiment-inline__seg--neu" style="flex:${sentimentData.neu}"></span>` +
+          `<span class="sentiment-inline__seg sentiment-inline__seg--neg" style="flex:${sentimentData.neg}"></span>`;
+        sentWrap.appendChild(track);
         // Colored-dot legend
         const legend = document.createElement('div');
         legend.className = 'badge-popout__sentiment-legend';
@@ -1948,55 +1933,13 @@ function renderResult(data) {
       $quickTags.appendChild(tag);
     }
 
-    // Reserve badge (subtle action style)
-    const reserveUrl = r.google_place_id
-      ? `https://www.google.com/maps/place/?q=place_id:${r.google_place_id}`
-      : r.website;
-    if (reserveUrl) {
-      const tag = document.createElement('a');
-      tag.className = 'quick-tag quick-tag--action type-data--sm';
-      tag.href = reserveUrl;
-      tag.target = '_blank';
-      tag.rel = 'noopener noreferrer';
-      tag.innerHTML = `${svgIcon('calendar', 12)} Reserve`;
-      $quickTags.appendChild(tag);
-    }
-
-    // Share badge (subtle action style)
-    const shareTag = document.createElement('span');
-    shareTag.className = 'quick-tag quick-tag--action type-data--sm';
-    shareTag.setAttribute('role', 'button');
-    shareTag.setAttribute('tabindex', '0');
-    shareTag.setAttribute('data-action', 'share');
-    shareTag.innerHTML = `${svgIcon('shareNetwork', 12)} Share`;
-    $quickTags.appendChild(shareTag);
-
-    // Website badge (action link style, like Reserve)
-    if (r.website) {
-      let hostname = 'Website';
-      try { hostname = new URL(r.website).hostname.replace('www.', ''); } catch { /* keep fallback */ }
-      const webTag = document.createElement('a');
-      webTag.className = 'quick-tag quick-tag--action type-data--sm';
-      webTag.href = r.website;
-      webTag.target = '_blank';
-      webTag.rel = 'noopener noreferrer';
-      webTag.innerHTML = `${svgIcon('globe', 12)} ${hostname}`;
-      $quickTags.appendChild(webTag);
-    }
-
-    // Phone badge (action link style, like Reserve)
-    if (r.phone) {
-      const phoneTag = document.createElement('a');
-      phoneTag.className = 'quick-tag quick-tag--action type-data--sm';
-      phoneTag.href = `tel:${r.phone}`;
-      phoneTag.innerHTML = `${svgIcon('phone', 12)} ${r.phone}`;
-      $quickTags.appendChild(phoneTag);
-    }
   }
 
   // F2: Open Now / Closed badge in quick tags
   renderOpenNowTag(data);
 
+  // Quick actions row: Reserve, Share, Website, Phone (subtle utility pills)
+  renderQuickActions(data);
 
   // F4: Set bookmark button state
   if (r.id) updateBookmarkBtn(r.id);
@@ -2510,6 +2453,55 @@ function computeSentiment(r) {
   return pos != null ? { pos, neu, neg } : null;
 }
 
+/* ---- Render Quick Actions (Reserve, Share, Website, Phone — subtle row in tier 1) ---- */
+function renderQuickActions(data) {
+  const r = data.restaurant;
+  const $actions = document.getElementById('quick-actions');
+  if (!$actions) return;
+  $actions.innerHTML = '';
+  const items = [];
+
+  // Reserve
+  const reserveUrl = r.google_place_id
+    ? `https://www.google.com/maps/place/?q=place_id:${r.google_place_id}`
+    : r.website;
+  if (reserveUrl) {
+    items.push({ icon: 'calendar', label: 'Reserve', href: reserveUrl });
+  }
+
+  // Share
+  items.push({ icon: 'shareNetwork', label: 'Share', action: 'share' });
+
+  // Website
+  if (r.website) {
+    let hostname = 'Website';
+    try { hostname = new URL(r.website).hostname.replace('www.', ''); } catch { /* keep fallback */ }
+    items.push({ icon: 'globe', label: hostname, href: r.website });
+  }
+
+  // Phone
+  if (r.phone) {
+    items.push({ icon: 'phone', label: r.phone, href: `tel:${r.phone}` });
+  }
+
+  items.forEach(item => {
+    const pill = item.href ? document.createElement('a') : document.createElement('span');
+    pill.className = 'utility-pill type-data--sm';
+    if (item.href) {
+      pill.href = item.href;
+      pill.target = item.href.startsWith('tel:') ? '_self' : '_blank';
+      pill.rel = 'noopener noreferrer';
+    }
+    if (item.action) {
+      pill.setAttribute('role', 'button');
+      pill.setAttribute('tabindex', '0');
+      pill.setAttribute('data-action', item.action);
+    }
+    pill.innerHTML = `${svgIcon(item.icon, 11)} ${item.label}`;
+    $actions.appendChild(pill);
+  });
+  $actions.style.display = items.length > 0 ? '' : 'none';
+}
 
 /* ---- Humanize snake_case strings to Title Case ---- */
 function humanizeSnake(str) {
