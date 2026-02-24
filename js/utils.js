@@ -137,13 +137,16 @@ export function matchCuisine(text) {
 
 /* ---- Cuisine → Culture Theme Mapping ---- */
 const CUISINE_CULTURE_MAP = [
-  { keywords: ['taco', 'burrito', 'enchilada', 'quesadilla', 'empanada', 'ceviche', 'arepa', 'churro', 'tamale', 'mole', 'salsa verde', 'guac', 'mexican', 'peruvian', 'colombian', 'argentinian', 'brazilian', 'latin'], culture: 'southamerican' },
-  { keywords: ['sushi', 'ramen', 'udon', 'soba', 'izakaya', 'tempura', 'onigiri', 'matcha', 'miso', 'sake', 'teriyaki', 'katsu', 'wagyu', 'japanese', 'omakase', 'yakitori'], culture: 'japanese' },
-  { keywords: ['curry', 'tandoori', 'biryani', 'masala', 'naan', 'tikka', 'samosa', 'chaat', 'dosa', 'paneer', 'dal', 'chapati', 'lassi', 'chai', 'indian', 'punjabi', 'south indian'], culture: 'indian' },
-  { keywords: ['dim sum', 'dumpling', 'wok', 'szechuan', 'cantonese', 'bao', 'congee', 'pho', 'pad thai', 'banh mi', 'bibimbap', 'kimchi', 'bulgogi', 'tofu', 'spring roll', 'wonton', 'taro', 'mochi', 'boba', 'chinese', 'thai', 'vietnamese', 'korean', 'taiwanese'], culture: 'eastasian' },
-  { keywords: ['shawarma', 'falafel', 'hummus', 'kebab', 'pita', 'tahini', 'baba', 'tabbouleh', 'kibbeh', 'labneh', 'manakeesh', 'fattoush', 'mediterranean', 'greek', 'turkish', 'lebanese', 'persian'], culture: 'middleeastern' },
-  { keywords: ['injera', 'jollof', 'fufu', 'suya', 'berbere', 'tagine', 'couscous', 'plantain', 'egusi', 'ethiopian', 'african', 'nigerian', 'ghanaian', 'senegalese', 'soul food'], culture: 'african' },
-  { keywords: ['momo', 'dal bhat', 'thukpa', 'sel roti', 'gundruk', 'yak', 'nepalese', 'tibetan', 'nepali'], culture: 'nepalese' },
+  // Studio — Western, European, American, Global
+  { keywords: ['italian', 'pasta', 'pizza', 'risotto', 'trattoria', 'french', 'bistro', 'brasserie', 'croissant', 'patisserie', 'american', 'diner', 'burger', 'wings', 'steak', 'steakhouse', 'ribeye', 'seafood', 'fish', 'lobster', 'crab', 'oyster', 'brunch', 'breakfast', 'pancake', 'waffle', 'german', 'british', 'spanish', 'european', 'gastropub', 'farm to table'], culture: 'neutral' },
+  // Sabor — Latin American + Caribbean + West African Diaspora
+  { keywords: ['taco', 'burrito', 'enchilada', 'quesadilla', 'empanada', 'ceviche', 'arepa', 'churro', 'tamale', 'mole', 'salsa verde', 'guac', 'mexican', 'peruvian', 'colombian', 'argentinian', 'brazilian', 'latin', 'caribbean', 'jamaican', 'puerto rican', 'cuban', 'jerk', 'oxtail', 'jollof', 'fufu', 'suya', 'plantain', 'egusi', 'nigerian', 'ghanaian', 'senegalese', 'soul food'], culture: 'southamerican' },
+  // Zen — Pan-Asian (Japanese + East/SE Asian)
+  { keywords: ['sushi', 'ramen', 'udon', 'soba', 'izakaya', 'tempura', 'onigiri', 'matcha', 'miso', 'sake', 'teriyaki', 'katsu', 'wagyu', 'japanese', 'omakase', 'yakitori', 'dim sum', 'dumpling', 'wok', 'szechuan', 'cantonese', 'bao', 'congee', 'pho', 'pad thai', 'banh mi', 'bibimbap', 'kimchi', 'bulgogi', 'tofu', 'spring roll', 'wonton', 'taro', 'mochi', 'boba', 'chinese', 'thai', 'vietnamese', 'korean', 'taiwanese', 'filipino', 'malaysian', 'hot pot', 'laksa'], culture: 'japanese' },
+  // Desi — South Asian (Indian + Nepalese + Pakistani)
+  { keywords: ['curry', 'tandoori', 'biryani', 'masala', 'naan', 'tikka', 'samosa', 'chaat', 'dosa', 'paneer', 'dal', 'chapati', 'lassi', 'chai', 'indian', 'punjabi', 'south indian', 'momo', 'dal bhat', 'thukpa', 'sel roti', 'gundruk', 'yak', 'nepalese', 'tibetan', 'nepali', 'pakistani', 'sri lankan', 'bangladeshi'], culture: 'indian' },
+  // Bazaar — Middle Eastern + Mediterranean + North/East African
+  { keywords: ['shawarma', 'falafel', 'hummus', 'kebab', 'pita', 'tahini', 'baba', 'tabbouleh', 'kibbeh', 'labneh', 'manakeesh', 'fattoush', 'mediterranean', 'greek', 'turkish', 'lebanese', 'persian', 'injera', 'berbere', 'tagine', 'couscous', 'ethiopian', 'moroccan', 'egyptian', 'tunisian', 'afghan'], culture: 'middleeastern' },
 ];
 
 /** Match input text to a cultural theme. Returns culture ID or null. */
@@ -293,58 +296,6 @@ const GREETINGS = {
       'Night cravings, met with warmth.',
     ],
   },
-  nepalese: {
-    morning: [
-      'Good morning — what are you seeking?',
-      'The mountains wake. What stirs your appetite?',
-      'Morning warmth. What do you need?',
-      'A new dawn, a new flavor.',
-      'Start the climb. Fuel up first.',
-      'Morning peace, morning hunger.',
-      'The teahouse is open. What calls?',
-      'Fresh air, fresh cravings.',
-    ],
-    lunch: [
-      'Midday — what nourishes you?',
-      'Dal bhat power — what sounds good?',
-      'The afternoon sun calls for sustenance.',
-      'Lunch on the trail. What fuels you?',
-      'Simple and hearty. What do you seek?',
-      'Midday warmth for the soul.',
-      'The lunch bell rings.',
-      'Eat well, walk far.',
-    ],
-    afternoon: [
-      'Afternoon chai — what pairs with it?',
-      'The valley grows quiet. What are you craving?',
-      'Between peaks, a moment to eat.',
-      'Afternoon rest, afternoon flavors.',
-      'A warm cup and...?',
-      'The afternoon trail snack.',
-      'Peaceful afternoon cravings.',
-      'Something warm for the soul.',
-    ],
-    dinner: [
-      'Evening approaches — what are you seeking?',
-      'The sun sets. The appetite rises.',
-      'Dinner around the fire.',
-      'Evening warmth and hearty food.',
-      'The stars appear. What do you crave?',
-      'Dinner should warm the soul.',
-      'Night descends. Eat well.',
-      'An evening feast awaits.',
-    ],
-    latenight: [
-      'Late night warmth? We\'ve got you.',
-      'The mountain night is cold. The food is warm.',
-      'Midnight momos? Say the word.',
-      'Still up? Something warm awaits.',
-      'The lodge is still open.',
-      'Late night comfort in a bowl.',
-      'When sleep escapes, food arrives.',
-      'Night hunger. Mountain comfort.',
-    ],
-  },
   japanese: {
     morning: [
       'Ohayou. What sounds good?',
@@ -395,58 +346,6 @@ const GREETINGS = {
       'Late night contemplation and noodles.',
       'Still awake? A perfect time to eat.',
       'When the city sleeps, the kitchen glows.',
-    ],
-  },
-  african: {
-    morning: [
-      'Good morning — what\'s calling you?',
-      'Rise and grind. What\'s on the menu?',
-      'Morning energy. Feed it right.',
-      'Start the day with something that hits.',
-      'Breakfast mode: activated.',
-      'New day, new flavor.',
-      'Morning hunger don\'t play.',
-      'First meal of the day. Make it count.',
-    ],
-    lunch: [
-      'Lunchtime — what\'s calling you?',
-      'Feed the hustle. What sounds good?',
-      'Midday vibes. What are we eating?',
-      'The lunch hour is yours.',
-      'Fuel up. The day isn\'t done.',
-      'Lunch should slap. Always.',
-      'Break bread. Break monotony.',
-      'Midday, full flavor.',
-    ],
-    afternoon: [
-      'Afternoon vibes — snack time?',
-      'The afternoon calls for flavor.',
-      'Between meals but still hungry.',
-      'Something to hold you down.',
-      'Afternoon cravings hit different.',
-      'A little something-something?',
-      'The in-between hunger.',
-      'Afternoon fuel required.',
-    ],
-    dinner: [
-      'Evening time — what\'s the move?',
-      'Dinner plans? Let\'s manifest.',
-      'The night calls for a spread.',
-      'Feed the vibe. What\'s your craving?',
-      'Tonight is for good food and good energy.',
-      'Dinner should be an experience.',
-      'What are we feeling tonight?',
-      'The evening table is set.',
-    ],
-    latenight: [
-      'Late night — what\'s the vibe?',
-      'After hours. The real ones eat.',
-      'Midnight cravings? Say less.',
-      'The night is young. Your appetite isn\'t.',
-      'Late night bites hit different.',
-      'Can\'t stop, won\'t stop eating.',
-      'After dark, the flavor comes alive.',
-      'Night owl appetites, satisfied.',
     ],
   },
   southamerican: {
@@ -518,16 +417,6 @@ const DAY_GREETINGS = {
     5: ['Friday evening. Izakaya time?', 'The week ends. The appetite begins.'],
     6: ['Saturday. A day for omakase.', 'Weekend pace. Choose well.'],
     0: ['Sunday rest. Sunday nourishment.', 'A quiet Sunday meal.'],
-  },
-  african: {
-    5: ['It\'s Friday — time to eat for real.', 'TGIF. What\'s the move?'],
-    6: ['Saturday spread incoming.', 'Weekend vibes. Full plates.'],
-    0: ['Sunday soul food energy.', 'Sunday supper hits different.'],
-  },
-  nepalese: {
-    5: ['Friday evening. Momo time.', 'The week descends. Feast awaits.'],
-    6: ['Saturday. The trail leads to food.', 'Weekend warmth and hearty food.'],
-    0: ['Sunday rest. Sunday dal bhat.', 'A peaceful Sunday meal.'],
   },
   southamerican: {
     5: ['Viernes — hora de comer bien!', 'TGIF. Dale, que comemos?'],

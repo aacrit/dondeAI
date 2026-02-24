@@ -26,9 +26,9 @@
   --border:      hsl(45 15% 84%);
   --shadow:      hsl(340 15% 20% / 0.08);
   --shadow-lg:   hsl(340 15% 20% / 0.14);
-  --radius:      18px;
-  --radius-sm:   12px;
-  --radius-lg:   28px;
+  --radius:      14px;
+  --radius-sm:   8px;
+  --radius-lg:   22px;
   --radius-pill: 100px;
   --blob-1:      hsl(350 75% 52% / 0.1);
   --blob-2:      hsl(170 50% 45% / 0.07);
@@ -76,9 +76,9 @@
   --border:      hsl(340 8% 20%);
   --shadow:      transparent;
   --shadow-lg:   transparent;
-  --radius:      18px;
-  --radius-sm:   12px;
-  --radius-lg:   28px;
+  --radius:      14px;
+  --radius-sm:   8px;
+  --radius-lg:   22px;
   --radius-pill: 100px;
   --blob-1:      hsl(350 70% 52% / 0.12);
   --blob-2:      hsl(170 45% 45% / 0.08);

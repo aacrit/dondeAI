@@ -6,16 +6,13 @@
 import { getState, setState, subscribe } from './state.js';
 import { saveTheme, saveColorMode } from './persistence.js';
 
-export const CULTURES = ['neutral', 'indian', 'middleeastern', 'nepalese', 'japanese', 'eastasian', 'african', 'southamerican'];
+export const CULTURES = ['neutral', 'indian', 'middleeastern', 'japanese', 'southamerican'];
 
 export const CULTURE_DISPLAY_NAMES = {
   neutral: 'Studio',
   indian: 'Desi',
   middleeastern: 'Bazaar',
-  nepalese: 'Himalayan',
   japanese: 'Zen',
-  eastasian: 'Silk',
-  african: 'Kente',
   southamerican: 'Sabor',
 };
 
@@ -45,9 +42,9 @@ const THEME_LABELS = {
       'late night bites', 'craft beer', 'vegan options', 'romantic dinner', 'cheap eats',
     ],
     chipPool: {
-      cuisine: ['ramen spot', 'taco run', 'sushi counter', 'pasta night', 'burger joint', 'pho for days', 'dim sum', 'pizza slice', 'mediterranean bowl', 'korean bbq'],
+      cuisine: ['ramen spot', 'taco run', 'sushi counter', 'pasta night', 'burger joint', 'pho for days', 'dim sum', 'pizza slice', 'mediterranean bowl', 'korean bbq', 'french bistro', 'steak dinner', 'brunch spot', 'seafood feast'],
       vibe: ['cozy date spot', 'hidden gem', 'rooftop views', 'live music', 'outdoor patio', 'moody speakeasy', 'chill vibes', 'lively crowd', 'intimate dinner', 'neighborhood gem'],
-      style: ['craft cocktails', 'natural wine bar', 'farm to table', 'omakase counter', 'prix fixe tasting', 'byob spot', 'tasting menu', 'comfort food', 'street food style', 'chef-driven'],
+      style: ['craft cocktails', 'natural wine bar', 'farm to table', 'omakase counter', 'prix fixe tasting', 'byob spot', 'tasting menu', 'comfort food', 'street food style', 'chef-driven', 'gastropub', 'trattoria vibes'],
       time: {
         morning: ['brunch spot', 'great coffee', 'fresh pastries', 'avocado toast', 'breakfast tacos'],
         lunch: ['quick bite', 'power lunch', 'healthy bowl', 'soup and sandwich', 'working lunch'],
@@ -133,16 +130,16 @@ const THEME_LABELS = {
       'street-style chaat and lassi...',
       'a thali that tells a story...',
     ],
-    smartChips: ['butter chicken spot', 'street food vibes', 'biryani feast', 'chai and conversation', 'thali for two'],
+    smartChips: ['butter chicken spot', 'street food vibes', 'biryani feast', 'chai and conversation', 'thali for two', 'momo spot'],
     suggestions: [
       'butter chicken spot', 'street food vibes', 'biryani feast', 'chai and conversation', 'thali for two',
       'rich naan and curry', 'fragrant biryani', 'chaat and lassi', 'tandoori night', 'masala dosa',
       'paneer tikka', 'samosa cravings', 'mango lassi', 'kebab platter', 'dal makhani',
     ],
     chipPool: {
-      cuisine: ['butter chicken fix', 'biryani feast', 'dosa morning', 'chaat crawl', 'tandoori night', 'thali spread', 'paneer perfection', 'kebab platter', 'dal makhani', 'pani puri stop'],
+      cuisine: ['butter chicken fix', 'biryani feast', 'dosa morning', 'chaat crawl', 'tandoori night', 'thali spread', 'paneer perfection', 'kebab platter', 'dal makhani', 'pani puri stop', 'momo house', 'thukpa warming', 'dal bhat done right'],
       vibe: ['spice market energy', 'chai and conversation', 'family-style sharing', 'warm and fragrant', 'bustling and vibrant', 'homestyle cooking', 'weekend feast', 'street food adventure', 'cozy and aromatic', 'celebratory spread'],
-      style: ['modern Indian fusion', 'traditional thali', 'south Indian breakfast', 'Indo-Chinese', 'royal Mughlai', 'regional specialties', 'vegetarian paradise', 'fresh naan counter', 'mithai and sweets', 'mango lassi vibes'],
+      style: ['modern Indian fusion', 'traditional thali', 'south Indian breakfast', 'Indo-Chinese', 'royal Mughlai', 'regional specialties', 'vegetarian paradise', 'fresh naan counter', 'mithai and sweets', 'mango lassi vibes', 'Himalayan kitchen', 'Newari feast'],
       time: {
         morning: ['dosa and sambar', 'masala chai', 'poha breakfast', 'idli morning', 'paratha plate'],
         lunch: ['quick thali', 'rice and curry', 'business biryani', 'street food lunch', 'light dal'],
@@ -168,6 +165,9 @@ const THEME_LABELS = {
         { text: 'chole bhature', icon: 'plate', category: 'Cuisine' },
         { text: 'idli sambar', icon: 'plate', category: 'Cuisine' },
         { text: 'pani puri', icon: 'plate', category: 'Cuisine' },
+        { text: 'momo steamed or fried', icon: 'dumpling', category: 'Cuisine' },
+        { text: 'thukpa noodle soup', icon: 'noodles', category: 'Cuisine' },
+        { text: 'dal bhat set', icon: 'plate', category: 'Cuisine' },
       ],
       vibes: [
         { text: 'warm and fragrant evening', icon: 'moon', category: 'Vibe' },
@@ -195,77 +195,6 @@ const THEME_LABELS = {
       ],
     },
   },
-  nepalese: {
-    vibe: 'What feeling today?',
-    hood: 'Which area?',
-    blurb: 'The Journey',
-    prompt: 'What are you seeking?',
-    placeholder: 'warming momos and thukpa...',
-    cta: 'Seek',
-    again: 'Seek Again',
-    share: 'Share',
-    profile: 'The Details',
-    insiderTip: 'Local Wisdom',
-    loadingPhrases: ['Searching', 'Seeking', 'Climbing', 'Journeying'],
-    placeholders: [
-      'warming momos and thukpa...',
-      'dal bhat with mountain views...',
-      'a quiet spot for yak tea...',
-      'hearty Newari feast...',
-    ],
-    smartChips: ['momo house', 'mountain comfort food', 'quiet tea spot', 'dal bhat done right', 'hearty Newari meal'],
-    suggestions: [
-      'momo house', 'mountain comfort food', 'quiet tea spot', 'dal bhat done right', 'hearty Newari meal',
-      'warming thukpa', 'yak butter tea', 'Sherpa stew', 'sel roti', 'Newari feast',
-      'chow mein spot', 'achar and momos', 'choila platter', 'gundruk soup', 'simple dal bhat',
-    ],
-    chipPool: {
-      cuisine: ['momo house', 'dal bhat done right', 'thukpa warming', 'choila platter', 'sel roti', 'Newari feast', 'yak butter tea', 'gundruk soup', 'Sherpa stew', 'chow mein spot'],
-      vibe: ['mountain comfort', 'quiet tea spot', 'hearty and warming', 'simple and honest', 'trekker fuel', 'peaceful dining', 'community kitchen', 'highland flavors', 'cozy retreat', 'shared table'],
-      style: ['Newari specialties', 'Tibetan kitchen', 'Himalayan fusion', 'street momo stand', 'traditional feast', 'teahouse vibes', 'seasonal mountain food', 'fermented flavors', 'hand-pulled noodles', 'butter tea ritual'],
-      time: {
-        morning: ['morning tea', 'tibetan bread', 'sel roti breakfast', 'chiya and biscuit', 'simple dal bhat'],
-        lunch: ['momo lunch', 'dal bhat power', 'thukpa bowl', 'set lunch', 'noodle soup'],
-        afternoon: ['chai break', 'momo snack', 'tea and samosa', 'afternoon rest', 'milk tea'],
-        dinner: ['Newari feast night', 'momo dinner', 'dal bhat evening', 'hearty stew', 'choila spread'],
-        latenight: ['late momo run', 'warm thukpa', 'midnight noodles', 'tea and comfort', 'night dal bhat'],
-      },
-    },
-    suggestionCorpus: {
-      cuisines: [
-        { text: 'momo steamed or fried', icon: 'dumpling', category: 'Cuisine' },
-        { text: 'dal bhat set', icon: 'plate', category: 'Cuisine' },
-        { text: 'thukpa noodle soup', icon: 'noodles', category: 'Cuisine' },
-        { text: 'choila spiced meat', icon: 'meat', category: 'Cuisine' },
-        { text: 'sel roti sweet bread', icon: 'croissant', category: 'Cuisine' },
-        { text: 'Newari feast', icon: 'plate', category: 'Cuisine' },
-        { text: 'gundruk soup', icon: 'plate', category: 'Cuisine' },
-        { text: 'Sherpa stew', icon: 'plate', category: 'Cuisine' },
-        { text: 'chow mein', icon: 'noodles', category: 'Cuisine' },
-        { text: 'yak butter tea', icon: 'coffee', category: 'Cuisine' },
-      ],
-      vibes: [
-        { text: 'mountain comfort food', icon: 'home', category: 'Vibe' },
-        { text: 'quiet tea spot', icon: 'coffee', category: 'Vibe' },
-        { text: 'hearty and warming', icon: 'moon', category: 'Vibe' },
-        { text: 'peaceful highland dining', icon: 'diamond', category: 'Vibe' },
-        { text: 'trekker fuel stop', icon: 'plate', category: 'Vibe' },
-        { text: 'community kitchen', icon: 'usersThree', category: 'Vibe' },
-        { text: 'cozy teahouse retreat', icon: 'moon', category: 'Vibe' },
-        { text: 'simple honest food', icon: 'home', category: 'Vibe' },
-      ],
-      combos: [
-        { text: 'momos and butter tea afternoon', icon: 'dumpling', category: 'Combo' },
-        { text: 'dal bhat and achar', icon: 'plate', category: 'Combo' },
-        { text: 'thukpa and momos warming', icon: 'noodles', category: 'Combo' },
-        { text: 'choila and sel roti feast', icon: 'meat', category: 'Combo' },
-        { text: 'chiya and biscuit morning', icon: 'coffee', category: 'Combo' },
-        { text: 'Newari feast with the crew', icon: 'plate', category: 'Combo' },
-        { text: 'noodle soup and dumplings', icon: 'noodles', category: 'Combo' },
-        { text: 'mountain stew and bread', icon: 'plate', category: 'Combo' },
-      ],
-    },
-  },
   japanese: {
     vibe: 'What type?',
     hood: 'Where?',
@@ -284,16 +213,16 @@ const THEME_LABELS = {
       'izakaya vibes with cold beer...',
       'fresh sashimi at the counter...',
     ],
-    smartChips: ['late night ramen', 'omakase experience', 'izakaya vibes', 'handmade soba', 'sake pairing'],
+    smartChips: ['late night ramen', 'omakase experience', 'izakaya vibes', 'handmade soba', 'sake pairing', 'dim sum brunch', 'late night pho', 'Korean BBQ'],
     suggestions: [
       'late night ramen', 'omakase experience', 'izakaya vibes', 'handmade soba', 'sake pairing',
       'fresh sashimi', 'tonkotsu broth', 'matcha dessert', 'udon spot', 'tempura bar',
       'gyoza and beer', 'sushi counter', 'wagyu treat', 'yakitori alley', 'quiet tea room',
     ],
     chipPool: {
-      cuisine: ['omakase counter', 'late night ramen', 'handmade soba', 'izakaya night', 'sushi bar', 'tonkotsu broth', 'gyoza and beer', 'udon shop', 'tempura bar', 'wagyu experience'],
-      vibe: ['quiet contemplation', 'counter seating', 'minimalist beauty', 'seasonal menu', 'sake pairing', 'wabi-sabi charm', 'precision and craft', 'zen atmosphere', 'tucked-away spot', 'tea ceremony calm'],
-      style: ['kaiseki tasting', 'robata grill', 'donburi bowl', 'matcha everything', 'tsukemen dip', 'yakitori alley', 'shochu selection', 'bento artistry', 'Japanese curry', 'mochi dessert'],
+      cuisine: ['omakase counter', 'late night ramen', 'handmade soba', 'izakaya night', 'sushi bar', 'tonkotsu broth', 'gyoza and beer', 'udon shop', 'tempura bar', 'wagyu experience', 'dim sum spread', 'pho bowl', 'pad thai', 'Korean BBQ', 'banh mi spot', 'hot pot night'],
+      vibe: ['quiet contemplation', 'counter seating', 'minimalist beauty', 'seasonal menu', 'sake pairing', 'wabi-sabi charm', 'precision and craft', 'zen atmosphere', 'tucked-away spot', 'tea ceremony calm', 'bustling Chinatown', 'night market energy', 'communal hot pot'],
+      style: ['kaiseki tasting', 'robata grill', 'donburi bowl', 'matcha everything', 'tsukemen dip', 'yakitori alley', 'shochu selection', 'bento artistry', 'Japanese curry', 'mochi dessert', 'Cantonese classics', 'Sichuan heat', 'Thai street food', 'Vietnamese pho house', 'Korean BBQ grill'],
       time: {
         morning: ['Japanese breakfast', 'matcha latte', 'onigiri stop', 'tamagoyaki set', 'morning miso'],
         lunch: ['bento box', 'ramen bowl', 'quick udon', 'sushi lunch set', 'donburi break'],
@@ -319,6 +248,15 @@ const THEME_LABELS = {
         { text: 'matcha dessert', icon: 'coffee', category: 'Cuisine' },
         { text: 'tsukemen dipping noodles', icon: 'noodles', category: 'Cuisine' },
         { text: 'karaage fried chicken', icon: 'plate', category: 'Cuisine' },
+        { text: 'xiao long bao', icon: 'dumpling', category: 'Cuisine' },
+        { text: 'pho bo', icon: 'noodles', category: 'Cuisine' },
+        { text: 'pad thai', icon: 'noodles', category: 'Cuisine' },
+        { text: 'dim sum spread', icon: 'dumpling', category: 'Cuisine' },
+        { text: 'Korean BBQ', icon: 'meat', category: 'Cuisine' },
+        { text: 'banh mi', icon: 'plate', category: 'Cuisine' },
+        { text: 'hot pot', icon: 'plate', category: 'Cuisine' },
+        { text: 'Peking duck', icon: 'meat', category: 'Cuisine' },
+        { text: 'mapo tofu', icon: 'curry', category: 'Cuisine' },
       ],
       vibes: [
         { text: 'quiet counter seating', icon: 'user', category: 'Vibe' },
@@ -346,86 +284,6 @@ const THEME_LABELS = {
       ],
     },
   },
-  african: {
-    vibe: "What's the energy?",
-    hood: 'Where we headed?',
-    blurb: 'The Vibe Check',
-    prompt: "What's calling you?",
-    placeholder: 'soulful jollof and grilled suya...',
-    cta: 'Manifest',
-    again: 'Run It Back',
-    share: 'Share',
-    profile: 'The Rundown',
-    insiderTip: 'The Real Tea',
-    loadingPhrases: ['Searching', 'Vibing', 'Manifesting', 'On the hunt'],
-    placeholders: [
-      'soulful jollof and grilled suya...',
-      'fufu and egusi with the crew...',
-      'a spot with live music and plates...',
-      'comfort food that hits different...',
-    ],
-    smartChips: ['jollof that hits', 'suya and drinks', 'soul food spot', 'live music and plates', 'comfort that slaps'],
-    suggestions: [
-      'jollof that hits', 'suya and drinks', 'soul food spot', 'live music and plates', 'comfort that slaps',
-      'fufu and egusi', 'plantain everything', 'oxtail stew', 'pepper soup', 'pounded yam',
-      'fried chicken spot', 'waakye plate', 'injera spread', 'afrobeats and food', 'late night bites',
-    ],
-    chipPool: {
-      cuisine: ['jollof that hits', 'suya and drinks', 'oxtail stew', 'injera spread', 'pepper soup', 'fufu and egusi', 'plantain everything', 'jerk chicken', 'waakye plate', 'pounded yam'],
-      vibe: ['live music and plates', 'soul food energy', 'community table', 'afrobeats and food', 'comfort that slaps', 'vibrant and loud', 'family gathering', 'celebration energy', 'cookout vibes', 'good music good food'],
-      style: ['modern African fusion', 'West African kitchen', 'soul food classic', 'Caribbean twist', 'Ethiopian spread', 'Nigerian homestyle', 'Senegalese flavors', 'Ghanaian street food', 'Southern comfort', 'diaspora kitchen'],
-      time: {
-        morning: ['ackee and saltfish', 'plantain breakfast', 'beignets and coffee', 'grits and greens', 'morning porridge'],
-        lunch: ['jollof rice plate', 'quick suya wrap', 'lunch combo', 'rice and stew', 'afro-fusion bowl'],
-        afternoon: ['chin chin snack', 'meat pie stop', 'puff puff break', 'ginger drink', 'palm wine chill'],
-        dinner: ['suya night out', 'full spread', 'oxtail dinner', 'pepper soup evening', 'asun and vibes'],
-        latenight: ['late night jollof', 'after-party eats', 'midnight suya', 'comfort food run', 'late plantain fix'],
-      },
-    },
-    suggestionCorpus: {
-      cuisines: [
-        { text: 'jollof rice', icon: 'plate', category: 'Cuisine' },
-        { text: 'suya skewers', icon: 'meat', category: 'Cuisine' },
-        { text: 'oxtail stew', icon: 'meat', category: 'Cuisine' },
-        { text: 'fufu and egusi', icon: 'plate', category: 'Cuisine' },
-        { text: 'pepper soup', icon: 'plate', category: 'Cuisine' },
-        { text: 'fried plantain', icon: 'plate', category: 'Cuisine' },
-        { text: 'jerk chicken', icon: 'meat', category: 'Cuisine' },
-        { text: 'injera and wot', icon: 'plate', category: 'Cuisine' },
-        { text: 'pounded yam', icon: 'plate', category: 'Cuisine' },
-        { text: 'fried chicken', icon: 'plate', category: 'Cuisine' },
-        { text: 'waakye plate', icon: 'plate', category: 'Cuisine' },
-        { text: 'asun peppered goat', icon: 'meat', category: 'Cuisine' },
-        { text: 'egusi soup', icon: 'plate', category: 'Cuisine' },
-        { text: 'grits and greens', icon: 'plate', category: 'Cuisine' },
-        { text: 'beignets', icon: 'croissant', category: 'Cuisine' },
-      ],
-      vibes: [
-        { text: 'soul food comfort', icon: 'home', category: 'Vibe' },
-        { text: 'live music and plates', icon: 'music', category: 'Vibe' },
-        { text: 'community table gathering', icon: 'usersThree', category: 'Vibe' },
-        { text: 'afrobeats and dinner', icon: 'music', category: 'Vibe' },
-        { text: 'vibrant celebration energy', icon: 'starFull', category: 'Vibe' },
-        { text: 'cookout vibes outdoor', icon: 'patio', category: 'Vibe' },
-        { text: 'comfort that hits different', icon: 'heart', category: 'Vibe' },
-        { text: 'modern African fusion', icon: 'diamond', category: 'Vibe' },
-        { text: 'diaspora kitchen hidden gem', icon: 'diamond', category: 'Vibe' },
-        { text: 'late night soul food', icon: 'moon', category: 'Vibe' },
-      ],
-      combos: [
-        { text: 'jollof and plantain feast', icon: 'plate', category: 'Combo' },
-        { text: 'suya and drinks night out', icon: 'meat', category: 'Combo' },
-        { text: 'oxtail and rice and peas', icon: 'meat', category: 'Combo' },
-        { text: 'fufu and egusi with the crew', icon: 'plate', category: 'Combo' },
-        { text: 'pepper soup and pounded yam', icon: 'plate', category: 'Combo' },
-        { text: 'fried chicken and greens', icon: 'plate', category: 'Combo' },
-        { text: 'injera spread family style', icon: 'plate', category: 'Combo' },
-        { text: 'afrobeats and good plates', icon: 'music', category: 'Combo' },
-        { text: 'plantain breakfast and coffee', icon: 'plate', category: 'Combo' },
-        { text: 'meat pie and ginger drink', icon: 'meat', category: 'Combo' },
-      ],
-    },
-  },
   southamerican: {
     vibe: 'Que onda?',
     hood: 'Que barrio?',
@@ -444,16 +302,16 @@ const THEME_LABELS = {
       'tacos al pastor con salsa verde...',
       'un asado legendario para compartir...',
     ],
-    smartChips: ['ceviche spot', 'asado for the crew', 'empanadas y mate', 'taco al pastor', 'pisco sour night'],
+    smartChips: ['ceviche spot', 'asado for the crew', 'empanadas y mate', 'taco al pastor', 'pisco sour night', 'jollof that hits', 'soul food spot'],
     suggestions: [
       'ceviche spot', 'asado for the crew', 'empanadas y mate', 'taco al pastor', 'pisco sour night',
       'ceviche fresco', 'arepas con queso', 'mole that slaps', 'churros y chocolate', 'tamales caseros',
       'pupusas spot', 'elote and esquites', 'birria tacos', 'horchata spot', 'guacamole fresco',
     ],
     chipPool: {
-      cuisine: ['ceviche spot', 'taco al pastor', 'empanadas y mate', 'asado for the crew', 'birria tacos', 'arepas con queso', 'mole that slaps', 'tamales caseros', 'pupusas spot', 'elote and esquites'],
-      vibe: ['pisco sour night', 'fiesta energy', 'familia gathering', 'salsa and flavors', 'vibrant patio', 'warm hospitality', 'street food crawl', 'mercado vibes', 'weekend asado', 'barrio favorite'],
-      style: ['Peruvian Nikkei', 'Mexican cantina', 'Argentine parrilla', 'Colombian homestyle', 'Brazilian churrasco', 'Cuban sandwich spot', 'Oaxacan mole house', 'cevicheria fresh', 'churros y chocolate', 'horchata y tacos'],
+      cuisine: ['ceviche spot', 'taco al pastor', 'empanadas y mate', 'asado for the crew', 'birria tacos', 'arepas con queso', 'mole that slaps', 'tamales caseros', 'pupusas spot', 'elote and esquites', 'jollof rice', 'suya and drinks', 'plantain everything', 'jerk chicken', 'soul food spot'],
+      vibe: ['pisco sour night', 'fiesta energy', 'familia gathering', 'salsa and flavors', 'vibrant patio', 'warm hospitality', 'street food crawl', 'mercado vibes', 'weekend asado', 'barrio favorite', 'cookout vibes', 'afrobeats and food'],
+      style: ['Peruvian Nikkei', 'Mexican cantina', 'Argentine parrilla', 'Colombian homestyle', 'Brazilian churrasco', 'Cuban sandwich spot', 'Oaxacan mole house', 'cevicheria fresh', 'churros y chocolate', 'horchata y tacos', 'West African kitchen', 'Caribbean twist', 'soul food classic', 'diaspora kitchen'],
       time: {
         morning: ['huevos rancheros', 'chilaquiles', 'cafe de olla', 'pan dulce', 'arepa breakfast'],
         lunch: ['taco lunch run', 'quick empanada', 'burrito bowl', 'ceviche fresco', 'torta time'],
@@ -479,6 +337,11 @@ const THEME_LABELS = {
         { text: 'Cuban sandwich', icon: 'plate', category: 'Cuisine' },
         { text: 'huevos rancheros', icon: 'brunch', category: 'Cuisine' },
         { text: 'chilaquiles', icon: 'plate', category: 'Cuisine' },
+        { text: 'jollof rice', icon: 'plate', category: 'Cuisine' },
+        { text: 'suya skewers', icon: 'meat', category: 'Cuisine' },
+        { text: 'jerk chicken', icon: 'meat', category: 'Cuisine' },
+        { text: 'oxtail stew', icon: 'meat', category: 'Cuisine' },
+        { text: 'fried plantain', icon: 'plate', category: 'Cuisine' },
       ],
       vibes: [
         { text: 'fiesta energy night', icon: 'music', category: 'Vibe' },
@@ -524,16 +387,16 @@ const THEME_LABELS = {
       'a full mezze spread for the table...',
       'kebab platter with saffron rice...',
     ],
-    smartChips: ['shawarma spot', 'mezze spread', 'fresh falafel', 'kebab platter', 'baklava and tea'],
+    smartChips: ['shawarma spot', 'mezze spread', 'fresh falafel', 'kebab platter', 'baklava and tea', 'injera and wot'],
     suggestions: [
       'shawarma spot', 'mezze spread', 'fresh falafel', 'kebab platter', 'baklava and tea',
       'hummus and pita', 'lamb kofta', 'Persian rice', 'Turkish breakfast', 'manakeesh',
       'fattoush salad', 'kibbeh', 'shakshuka', 'labneh dip', 'kunafa dessert',
     ],
     chipPool: {
-      cuisine: ['shawarma spot', 'mezze spread', 'falafel wrap', 'kebab platter', 'hummus and pita', 'lamb kofta', 'Persian rice', 'manakeesh', 'kibbeh plate', 'fattoush bowl'],
+      cuisine: ['shawarma spot', 'mezze spread', 'falafel wrap', 'kebab platter', 'hummus and pita', 'lamb kofta', 'Persian rice', 'manakeesh', 'kibbeh plate', 'fattoush bowl', 'injera spread', 'tagine night', 'couscous bowl'],
       vibe: ['communal table', 'tea and conversation', 'spice market warmth', 'family gathering', 'rooftop hookah', 'bustling bazaar', 'warm hospitality', 'cozy lantern-lit', 'celebration feast', 'leisurely dinner'],
-      style: ['Lebanese kitchen', 'Turkish grill', 'Persian feast', 'Israeli street food', 'Moroccan tagine', 'Egyptian koshari', 'Syrian specialties', 'Greek taverna', 'Afghan kabob', 'Mediterranean fresh'],
+      style: ['Lebanese kitchen', 'Turkish grill', 'Persian feast', 'Israeli street food', 'Moroccan tagine', 'Egyptian koshari', 'Syrian specialties', 'Greek taverna', 'Afghan kabob', 'Mediterranean fresh', 'Ethiopian spread', 'North African spices'],
       time: {
         morning: ['Turkish breakfast', 'shakshuka morning', 'labneh and bread', 'foul medames', 'manakeesh fresh'],
         lunch: ['quick shawarma', 'falafel wrap', 'hummus plate', 'fattoush lunch', 'kebab roll'],
@@ -559,6 +422,9 @@ const THEME_LABELS = {
         { text: 'fattoush salad', icon: 'salad', category: 'Cuisine' },
         { text: 'labneh and pita', icon: 'plate', category: 'Cuisine' },
         { text: 'koshari bowl', icon: 'plate', category: 'Cuisine' },
+        { text: 'injera and wot', icon: 'plate', category: 'Cuisine' },
+        { text: 'Ethiopian berbere stew', icon: 'curry', category: 'Cuisine' },
+        { text: 'Moroccan tagine', icon: 'curry', category: 'Cuisine' },
       ],
       vibes: [
         { text: 'communal feast spread', icon: 'usersThree', category: 'Vibe' },
@@ -586,96 +452,25 @@ const THEME_LABELS = {
       ],
     },
   },
-  eastasian: {
-    vibe: "What's the mood?",
-    hood: 'Where to?',
-    blurb: 'The Story',
-    prompt: 'What sounds good?',
-    placeholder: 'xiao long bao and jasmine tea...',
-    cta: 'Find It',
-    again: 'Try Again',
-    share: 'Share',
-    profile: 'About This Spot',
-    insiderTip: 'Hidden Gem',
-    loadingPhrases: ['Searching', 'Exploring', 'Discovering', 'Finding'],
-    placeholders: [
-      'xiao long bao and jasmine tea...',
-      'crispy Peking duck for the table...',
-      'a bowl of pho that heals the soul...',
-      'pad thai from the best wok in town...',
-    ],
-    smartChips: ['dim sum brunch', 'late night pho', 'Sichuan heat', 'wok-fried noodles', 'boba and bites'],
-    suggestions: [
-      'dim sum brunch', 'late night pho', 'Sichuan heat', 'wok-fried noodles', 'boba and bites',
-      'xiao long bao', 'Peking duck', 'pad thai', 'banh mi spot', 'Korean BBQ',
-      'hot pot night', 'spring rolls', 'congee morning', 'laksa bowl', 'mango sticky rice',
-    ],
-    chipPool: {
-      cuisine: ['dim sum spread', 'pho bowl', 'pad thai', 'xiao long bao', 'Peking duck', 'Korean BBQ', 'banh mi spot', 'wonton noodles', 'Sichuan mapo tofu', 'spring rolls'],
-      vibe: ['family-style sharing', 'bustling Chinatown', 'quiet noodle shop', 'night market energy', 'tea ceremony calm', 'wok fire and smoke', 'communal hot pot', 'street food crawl', 'elegant banquet', 'cozy dumpling house'],
-      style: ['Cantonese classics', 'Sichuan heat', 'Thai street food', 'Vietnamese pho house', 'Korean BBQ grill', 'Filipino homestyle', 'Chinese-American fusion', 'hand-pulled noodles', 'dim sum cart', 'hot pot feast'],
-      time: {
-        morning: ['congee and youtiao', 'dim sum brunch', 'banh mi breakfast', 'boba and pastry', 'rice porridge'],
-        lunch: ['quick pho', 'noodle soup', 'banh mi lunch', 'rice plate combo', 'dumpling set'],
-        afternoon: ['boba tea stop', 'mango sticky rice', 'egg tart treat', 'milk tea break', 'spring roll snack'],
-        dinner: ['hot pot night', 'Peking duck feast', 'Korean BBQ', 'pad thai dinner', 'banquet spread'],
-        latenight: ['late night pho', 'midnight dumplings', 'after-hours noodles', 'wonton soup', 'late congee'],
-      },
-    },
-    suggestionCorpus: {
-      cuisines: [
-        { text: 'xiao long bao', icon: 'dumpling', category: 'Cuisine' },
-        { text: 'Peking duck', icon: 'meat', category: 'Cuisine' },
-        { text: 'pho bo', icon: 'noodles', category: 'Cuisine' },
-        { text: 'pad thai', icon: 'noodles', category: 'Cuisine' },
-        { text: 'dim sum spread', icon: 'dumpling', category: 'Cuisine' },
-        { text: 'Korean BBQ', icon: 'meat', category: 'Cuisine' },
-        { text: 'mapo tofu', icon: 'curry', category: 'Cuisine' },
-        { text: 'banh mi', icon: 'plate', category: 'Cuisine' },
-        { text: 'wonton noodles', icon: 'noodles', category: 'Cuisine' },
-        { text: 'hot pot', icon: 'plate', category: 'Cuisine' },
-        { text: 'spring rolls', icon: 'plate', category: 'Cuisine' },
-        { text: 'laksa', icon: 'noodles', category: 'Cuisine' },
-        { text: 'congee', icon: 'plate', category: 'Cuisine' },
-        { text: 'char siu pork', icon: 'meat', category: 'Cuisine' },
-        { text: 'mango sticky rice', icon: 'plate', category: 'Cuisine' },
-      ],
-      vibes: [
-        { text: 'family-style banquet', icon: 'usersThree', category: 'Vibe' },
-        { text: 'bustling Chinatown spot', icon: 'diamond', category: 'Vibe' },
-        { text: 'quiet noodle shop', icon: 'user', category: 'Vibe' },
-        { text: 'night market energy', icon: 'moon', category: 'Vibe' },
-        { text: 'communal hot pot', icon: 'usersThree', category: 'Vibe' },
-        { text: 'wok fire and smoke', icon: 'meat', category: 'Vibe' },
-        { text: 'tea garden calm', icon: 'coffee', category: 'Vibe' },
-        { text: 'street food adventure', icon: 'diamond', category: 'Vibe' },
-        { text: 'elegant dim sum brunch', icon: 'starFull', category: 'Vibe' },
-        { text: 'late night noodle run', icon: 'moon', category: 'Vibe' },
-      ],
-      combos: [
-        { text: 'dim sum and jasmine tea', icon: 'dumpling', category: 'Combo' },
-        { text: 'pho and spring rolls', icon: 'noodles', category: 'Combo' },
-        { text: 'Peking duck and pancakes', icon: 'meat', category: 'Combo' },
-        { text: 'pad thai and Thai iced tea', icon: 'noodles', category: 'Combo' },
-        { text: 'Korean BBQ and soju', icon: 'meat', category: 'Combo' },
-        { text: 'hot pot feast with friends', icon: 'plate', category: 'Combo' },
-        { text: 'banh mi and Vietnamese coffee', icon: 'plate', category: 'Combo' },
-        { text: 'dumplings and cold beer', icon: 'dumpling', category: 'Combo' },
-        { text: 'congee and youtiao morning', icon: 'plate', category: 'Combo' },
-        { text: 'boba and egg tarts', icon: 'coffee', category: 'Combo' },
-      ],
-    },
-  },
 };
 
 export function getLabels(culture) {
   return THEME_LABELS[culture] || THEME_LABELS.neutral;
 }
 
+// Migrate users who had a removed theme persisted
+const THEME_MIGRATION = { nepalese: 'indian', eastasian: 'japanese', african: 'neutral' };
+
 export function initTheme() {
   const { theme } = getState();
   let culture = theme.culture;
   let mode = theme.mode;
+
+  // Migrate removed themes to closest match
+  if (THEME_MIGRATION[culture]) {
+    culture = THEME_MIGRATION[culture];
+    setState({ theme: { culture, mode } });
+  }
 
   // If no persisted theme, respect system dark/light — always start in Studio (neutral)
   const darkQuery = matchMedia('(prefers-color-scheme: dark)');

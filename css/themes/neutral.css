@@ -1,18 +1,19 @@
 /* ============================================
-   Neutral Theme — Clean, minimal, universal
+   Studio Theme — Warm terracotta, earthy, universal
+   Hero brand identity for DondeAI
    ============================================ */
 
 /* ---- Light Mode ---- */
 [data-theme="neutral"][data-mode="light"] {
-  --bg:          hsl(0 0% 98%);
-  --bg2:         hsl(0 0% 100%);
-  --bg3:         hsl(0 0% 96%);
-  --fg:          hsl(0 0% 10%);
-  --fg2:         hsl(0 0% 40%);
-  --fg3:         hsl(0 0% 45%);
-  --ac:          hsl(25 6% 22%);
-  --ac2:         hsl(25 6% 15%);
-  --ac-soft:     hsl(25 6% 22% / 0.10);
+  --bg:          hsl(18 8% 97%);
+  --bg2:         hsl(18 6% 100%);
+  --bg3:         hsl(18 6% 95%);
+  --fg:          hsl(18 12% 12%);
+  --fg2:         hsl(18 6% 40%);
+  --fg3:         hsl(18 4% 45%);
+  --ac:          hsl(18 45% 42%);
+  --ac2:         hsl(18 45% 34%);
+  --ac-soft:     hsl(18 45% 42% / 0.12);
   --green:       hsl(152 60% 40%);
   --green-soft:  hsl(152 60% 40% / 0.12);
 
@@ -20,39 +21,39 @@
   --rose-soft:   hsl(350 70% 55% / 0.12);
   --amber:       hsl(38 90% 50%);
   --amber-soft:  hsl(38 90% 50% / 0.12);
-  --glass:       hsl(0 0% 100% / 0.72);
+  --glass:       hsl(18 6% 100% / 0.72);
   --glass-blur:  20px;
-  --border:      hsl(0 0% 88%);
-  --shadow:      hsl(0 0% 0% / 0.06);
-  --shadow-lg:   hsl(0 0% 0% / 0.1);
+  --border:      hsl(18 8% 87%);
+  --shadow:      hsl(18 10% 10% / 0.06);
+  --shadow-lg:   hsl(18 10% 10% / 0.1);
   --radius:      12px;
   --radius-sm:   8px;
   --radius-lg:   20px;
   --radius-pill: 100px;
-  --blob-1:      hsl(0 0% 50% / 0.06);
-  --blob-2:      hsl(0 0% 40% / 0.04);
-  --blob-3:      hsl(0 0% 60% / 0.04);
+  --blob-1:      hsl(18 35% 50% / 0.06);
+  --blob-2:      hsl(18 20% 45% / 0.04);
+  --blob-3:      hsl(18 15% 55% / 0.04);
   --grain-opacity: 0.03;
   --textile-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72' fill='none' stroke='%23000000' stroke-linecap='round'%3E%3Cpath d='M12 8Q14 12 18 16' stroke-width='0.9' opacity='0.14'/%3E%3Cpath d='M18 8Q15 13 12 16' stroke-width='0.8' opacity='0.12'/%3E%3Cpath d='M52 14l3 1M57 16l3 0.5M62 17l2 0' stroke-width='0.7' opacity='0.10'/%3E%3Ccircle cx='35' cy='9' r='0.9' fill='%23000000' stroke='none' opacity='0.13'/%3E%3Cpath d='M8 42Q10 40 11 43' stroke-width='0.6' opacity='0.09'/%3E%3Cpath d='M14 45Q15 43 17 46' stroke-width='0.7' opacity='0.11'/%3E%3Cpath d='M48 38Q51 42 54 46' stroke-width='1.0' opacity='0.16'/%3E%3Cpath d='M54 37Q50 43 47 47' stroke-width='0.9' opacity='0.14'/%3E%3Cpath d='M22 58l4 0.5' stroke-width='0.8' opacity='0.12'/%3E%3Cpath d='M28 60l3-0.3' stroke-width='0.6' opacity='0.10'/%3E%3Ccircle cx='60' cy='55' r='0.7' fill='%23000000' stroke='none' opacity='0.11'/%3E%3Cpath d='M65 30l4 4M69 30l-4 4' stroke-width='0.5' opacity='0.08'/%3E%3C/svg%3E");
   --textile-opacity: 0.35;
-  --glass-header: hsl(0 0% 100% / 0.65);
-  --glass-toast:  hsl(0 0% 100% / 0.85);
-  --glass-info:   hsl(0 0% 100% / 0.5);
-  --glass-tip:    hsl(0 0% 96% / 0.6);
+  --glass-header: hsl(18 6% 100% / 0.65);
+  --glass-toast:  hsl(18 6% 100% / 0.85);
+  --glass-info:   hsl(18 4% 98% / 0.5);
+  --glass-tip:    hsl(18 6% 96% / 0.6);
   --glass-score:  var(--glass);
 }
 
 /* ---- Dark Mode ---- */
 [data-theme="neutral"][data-mode="dark"] {
-  --bg:          hsl(0 0% 7%);
-  --bg2:         hsl(0 0% 11%);
-  --bg3:         hsl(0 0% 14%);
-  --fg:          hsl(0 0% 92%);
-  --fg2:         hsl(0 0% 65%);
-  --fg3:         hsl(0 0% 53%);
-  --ac:          hsl(25 4% 82%);
-  --ac2:         hsl(25 4% 90%);
-  --ac-soft:     hsl(25 4% 82% / 0.12);
+  --bg:          hsl(18 6% 7%);
+  --bg2:         hsl(18 5% 11%);
+  --bg3:         hsl(18 4% 14%);
+  --fg:          hsl(18 6% 92%);
+  --fg2:         hsl(18 4% 65%);
+  --fg3:         hsl(18 3% 53%);
+  --ac:          hsl(18 38% 68%);
+  --ac2:         hsl(18 38% 78%);
+  --ac-soft:     hsl(18 38% 68% / 0.14);
   --green:       hsl(152 55% 55%);
   --green-soft:  hsl(152 55% 55% / 0.15);
 
@@ -60,29 +61,29 @@
   --rose-soft:   hsl(350 65% 62% / 0.15);
   --amber:       hsl(38 85% 60%);
   --amber-soft:  hsl(38 85% 60% / 0.15);
-  --glass:       hsl(0 0% 11% / 0.78);
+  --glass:       hsl(18 5% 11% / 0.78);
   --glass-blur:  24px;
-  --border:      hsl(0 0% 22%);
+  --border:      hsl(18 5% 22%);
   --shadow:      transparent;
   --shadow-lg:   transparent;
   --radius:      12px;
   --radius-sm:   8px;
   --radius-lg:   20px;
   --radius-pill: 100px;
-  --blob-1:      hsl(0 0% 50% / 0.08);
-  --blob-2:      hsl(0 0% 40% / 0.06);
-  --blob-3:      hsl(0 0% 60% / 0.05);
+  --blob-1:      hsl(18 30% 50% / 0.08);
+  --blob-2:      hsl(18 18% 42% / 0.06);
+  --blob-3:      hsl(18 12% 55% / 0.05);
   --grain-opacity: 0.04;
   --textile-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72' fill='none' stroke='%23ffffff' stroke-linecap='round'%3E%3Cpath d='M12 8Q14 12 18 16' stroke-width='0.9' opacity='0.16'/%3E%3Cpath d='M18 8Q15 13 12 16' stroke-width='0.8' opacity='0.14'/%3E%3Cpath d='M52 14l3 1M57 16l3 0.5M62 17l2 0' stroke-width='0.7' opacity='0.12'/%3E%3Ccircle cx='35' cy='9' r='0.9' fill='%23ffffff' stroke='none' opacity='0.15'/%3E%3Cpath d='M8 42Q10 40 11 43' stroke-width='0.6' opacity='0.11'/%3E%3Cpath d='M14 45Q15 43 17 46' stroke-width='0.7' opacity='0.13'/%3E%3Cpath d='M48 38Q51 42 54 46' stroke-width='1.0' opacity='0.18'/%3E%3Cpath d='M54 37Q50 43 47 47' stroke-width='0.9' opacity='0.16'/%3E%3Cpath d='M22 58l4 0.5' stroke-width='0.8' opacity='0.14'/%3E%3Cpath d='M28 60l3-0.3' stroke-width='0.6' opacity='0.12'/%3E%3Ccircle cx='60' cy='55' r='0.7' fill='%23ffffff' stroke='none' opacity='0.13'/%3E%3Cpath d='M65 30l4 4M69 30l-4 4' stroke-width='0.5' opacity='0.10'/%3E%3C/svg%3E");
   --textile-opacity: 0.41;
-  --glass-header: hsl(0 0% 11% / 0.7);
-  --glass-toast:  hsl(0 0% 14% / 0.88);
-  --glass-info:   hsl(0 0% 14% / 0.55);
-  --glass-tip:    hsl(0 0% 14% / 0.6);
+  --glass-header: hsl(18 5% 11% / 0.7);
+  --glass-toast:  hsl(18 4% 14% / 0.88);
+  --glass-info:   hsl(18 4% 14% / 0.55);
+  --glass-tip:    hsl(18 4% 14% / 0.6);
   --glass-score:  var(--glass);
 }
 
-/* Studio restraint: neutral blob presence */
+/* Studio warmth: terracotta-tinted subtle blobs */
 [data-theme="neutral"] .ambient__blob {
   filter: blur(90px) saturate(0.6);
 }
