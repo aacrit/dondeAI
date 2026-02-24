@@ -1768,7 +1768,7 @@ function renderResult(data) {
   const $matchScore = document.getElementById('match-pill-score');
   const $matchVerdict = document.getElementById('match-pill-verdict');
   if ($matchScore) $matchScore.textContent = '0'; // Will animate up
-  const tier = getScoreTier(dondeScore);
+  const tier = getScoreTier(dondeScore, { mismatch: !!data.cuisine_mismatch?.requested });
   const $matchPill = document.getElementById('match-pill');
   if ($matchPill) $matchPill.setAttribute('data-tier', tier.tier);
   if ($matchVerdict) {
@@ -1947,6 +1947,20 @@ function renderResult(data) {
   // F11: Set feedback button state
   if (r.id) renderFeedbackState(r.id);
 
+  // Cuisine mismatch notice
+  const $mismatch = document.getElementById('cuisine-mismatch-notice');
+  if ($mismatch) {
+    if (data.cuisine_mismatch?.requested) {
+      const mismatchText = $mismatch.querySelector('.cuisine-mismatch-notice__text');
+      if (mismatchText) {
+        mismatchText.textContent = `We don\u2019t have ${data.cuisine_mismatch.requested} spots in our collection yet. Here\u2019s our best pick instead.`;
+      }
+      $mismatch.style.display = '';
+    } else {
+      $mismatch.style.display = 'none';
+    }
+  }
+
   // DondeAI Recommendation blurb — the editorial voice in Tier 1
   const $rec = document.getElementById('result-recommendation');
   const $blurb = document.getElementById('donde-blurb');
@@ -2036,12 +2050,8 @@ function prepareTier2(data, cuisine) {
 
   const $extrasTip = document.getElementById('story-extras-tip');
   const $tipText = document.getElementById('insider-tip-text');
-  const bestSeat = data.deep_context?.best_seat_in_house;
   if ($extrasTip && $tipText) {
     let tipContent = data.insider_tip || '';
-    if (bestSeat) {
-      tipContent = tipContent ? `${tipContent} · Best seat: ${bestSeat}` : `Best seat: ${bestSeat}`;
-    }
     // Strip em-dashes — replace with commas for cleaner reading
     tipContent = tipContent.replace(/\u2014/g, ', ').replace(/ , /g, ', ');
     if (tipContent) { $tipText.textContent = tipContent; $extrasTip.style.display = ''; }
@@ -2570,7 +2580,7 @@ function openTileExpand(tileEl) {
   if (!data) return;
 
   if (tileEl.id === 'score-tile-donde') {
-    const tier = getScoreTier(data.donde_match);
+    const tier = getScoreTier(data.donde_match, { mismatch: !!data.cuisine_mismatch?.requested });
     const pct = Math.round(parseFloat(data.donde_match) || 80);
     const circumference = 2 * Math.PI * 45;
     const offset = circumference - (pct / 100) * circumference;

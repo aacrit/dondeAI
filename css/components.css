@@ -1056,11 +1056,20 @@
 }
 .utility-pill:hover {
   color: var(--fg2);
+
+/* ── Cuisine Mismatch Notice ── */
+.cuisine-mismatch-notice {
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  background: color-mix(in oklch, var(--amber) 12%, transparent);
+  border-left: 3px solid var(--amber);
+  margin-bottom: var(--space-sm);
 }
-.utility-pill svg {
-  width: 11px;
-  height: 11px;
-  opacity: 0.6;
+.cuisine-mismatch-notice__text {
+  color: var(--fg-secondary);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  margin: 0;
 }
 
 /* ── DondeAI Blurb — The editorial recommendation voice ── */
