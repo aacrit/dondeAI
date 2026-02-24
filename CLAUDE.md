@@ -1,437 +1,262 @@
-# DondeAI — Handwritten Sliding Cockpit UI
+# DondeAI
 
-## Project Identity
+AI restaurant recommendations for Chicago. "Ink & Momentum" design — Arc Browser x Apple Notes x Notion.
+Vanilla HTML/CSS/JS. Zero frameworks, zero build steps.
 
-**What:** AI-powered restaurant recommendation engine for Chicago (expandable).
-**How it feels:** Writing a wish on paper and watching it come to life — Arc Browser x Apple Notes x Notion.
-**Design language:** "Ink & Momentum" — confident pen strokes, spring-physics choreography, handwritten texture over precision engineering.
-**Logo:** Question Pin mark (fork tines merge into question-mark curve, pin dot at base). "Donde" in Playfair Display roman bold + "AI" superscript in JetBrains Mono. Breathing dot animation. SVG stroke draw-in during loading.
-**Stack:** Vanilla HTML + CSS + JavaScript. Zero frameworks. Zero build steps. Files served as-is.
+## Skill
 
----
+**`/frontenddesign`** — design system enforcement (`.claude/skills/frontenddesign/SKILL.md`). Auto-activates on UI/animation/layout tasks.
 
-## Available Skills
-
-### `/frontenddesign`
-Elite motion designer + front-end engineer skill. Use when designing, building, reviewing, or refining any UI component, animation, theme, layout, or interaction pattern. Located at `.claude/skills/frontenddesign/SKILL.md`.
-
-Invoke with `/frontenddesign` or it auto-activates on design/UI/animation/layout tasks. Enforces the "Ink & Momentum" design system, Ink Rule color discipline, three-voice typography, spring motion grammar, 12-variant theme compatibility, WCAG AA accessibility, and mobile-first responsive patterns.
-
----
-
-## Architecture & File Structure
+## Files
 
 ```
-dondeAI/
-├── .claude/
-│   └── skills/
-│       └── frontenddesign/
-│           └── SKILL.md        # /frontenddesign skill — design system enforcement
-├── index.html                  # Single entry point — entire SPA lives here
-├── css/
-│   ├── reset.css               # Minimal reset (box-sizing, margin, safe-area)
-│   ├── tokens.css              # All CSS custom properties (colors, spacing, type, motion)
-│   ├── themes/
-│   │   ├── neutral.css         # Studio — default theme (light + dark variables)
-│   │   ├── indian.css          # Desi — South Asian cultural theme
-│   │   ├── middleeastern.css   # Bazaar — Middle Eastern/Mediterranean cultural theme
-│   │   ├── nepalese.css        # Himalayan — Nepalese/Tibetan cultural theme
-│   │   ├── japanese.css        # Zen — Japanese cultural theme
-│   │   ├── eastasian.css       # Silk — East/Southeast Asian cultural theme
-│   │   ├── african.css         # Kente — African/Black American cultural theme
-│   │   └── southamerican.css   # Sabor — South American/Latin cultural theme
-│   ├── layout.css              # Viewport canvas, 2-view slide mechanics
-│   ├── typography.css          # Three-voice type system (emotional, structural, data)
-│   ├── components.css          # All component styles (chips, cards, buttons, inputs)
-│   ├── animations.css          # Keyframes, spring curves, particle system, score ring
-│   └── responsive.css          # Breakpoints (320px → 2560px), safe areas, keyboard adapt
-├── js/
-│   ├── app.js                  # Main orchestrator — init, event delegation, result rendering
-│   ├── state.js                # Central state store (pub/sub, plain object)
-│   ├── router.js               # 2-view navigation (Canvas ↔ Result via translateX)
-│   ├── api.js                  # Backend integration (fetch wrapper, error handling)
-│   ├── theme.js                # Theme engine (culture + light/dark, labels, radial wash)
-│   ├── audio.js                # Web Audio API chime synthesis per culture, sound toggle
-│   ├── voice.js                # Web Speech Recognition integration
-│   ├── animations.js           # Spring physics, particle system, score ring, logo draw-in
-│   ├── share.js                # Share sheet + canvas card rendering (8 channels)
-│   ├── persistence.js          # localStorage wrapper (theme, sound, history — 3 keys)
-│   ├── accessibility.js        # Focus management, screen reader announcements, skip nav
-│   ├── offline.js              # Connectivity detection, banner management
-│   └── utils.js                # SVG icon registry, cuisine mapper, time-of-day, helpers
-├── Frontendarch.md             # Frontend architecture reference
-├── UI_UX_Requirements.md       # Canonical business requirements (immutable reference)
-├── CLAUDE.md                   # This file — project context & implementation guide
-└── README.md                   # Project overview
+index.html                   # SPA entry point
+css/reset.css                # box-sizing, margin, safe-area, focus-visible
+css/tokens.css               # CSS custom properties (colors, spacing, type, motion, z-index, glass)
+css/typography.css            # 3-voice type system
+css/layout.css               # 2-view slide, ambient layer, loading overlay
+css/components.css            # All components (chips, cards, buttons, tiers, glyph bar)
+css/animations.css            # 40+ keyframes
+css/responsive.css            # 320px–2560px breakpoints, hover queries, keyboard adapt
+css/themes/{neutral,indian,middleeastern,nepalese,japanese,eastasian,african,southamerican}.css
+js/app.js                    # Orchestrator — init, event delegation, 3-tier result rendering
+js/state.js                  # Pub/sub state store
+js/router.js                 # Canvas↔Result via translateX
+js/api.js                    # Supabase Edge Function (15s timeout, auth headers)
+js/theme.js                  # 8 cultures × 2 modes, auto-theme on typing, radial wash
+js/audio.js                  # Web Audio chimes per culture, blob pulse sync
+js/voice.js                  # Web Speech Recognition
+js/animations.js             # Score ring, petal radar, score hero arc, bloom cycle, particles, logo
+js/share.js                  # 8-channel share sheet + canvas card
+js/persistence.js            # localStorage (theme, sound, colorMode, history, bookmarks, userId, feedback)
+js/accessibility.js          # Focus, announcements, keyboard shortcuts
+js/offline.js                # Connectivity detection
+js/utils.js                  # 50+ SVG icons, cuisine/culture mapper, 320 greetings, helpers
+Frontendarch.md              # Architecture reference
+UI_UX_Requirements.md        # Business requirements (immutable)
+nicehave_sso.md              # Future: SSO auth roadmap (not implemented)
 ```
 
----
+## Design Principles (Non-Negotiable)
 
-## Core Design Principles (Non-Negotiable)
+1. **Canvas + Result** — 2 views only. No multi-step wizard.
+2. **Ink Rule** — `--ac` only on: score ring, restaurant name, active CTAs, selected pills, logo dot, caret, petal radar (8%/25%). Everything else grayscale. Google stars always amber `hsl(45 93% 47%)`.
+3. **3 Type Voices** — Emotional (Playfair Display): headings/prompts. Structural (Inter): buttons/labels. Data (JetBrains Mono): scores/badges.
+4. **Motion Grammar** — Spring `cubic-bezier(.34,1.56,.64,1)`: user-initiated. Ease `cubic-bezier(.4,0,.2,1)`: system reveals. `prefers-reduced-motion`: all 0ms.
+5. **Cultural Personality** — Themes change palette + textures + terminology + audio + border/shadow depth.
+6. **Screen Is Canvas** — Full viewport, no scrollbars during input.
 
-1. **Canvas + Result** — Two views only. Canvas holds ALL input (craving, collapsible filters). Result holds ALL output. No multi-step wizard.
-2. **The Ink Rule** — Accent color (`--ac`) is earned, not given. Only the Score Ring, Restaurant Name, active CTAs, and selected filter pills use accent color. Everything else is grayscale (foreground/background tokens). Badges, tiles, and metadata are always neutral.
-3. **Three Voices of Type:**
-   - **Emotional** (Playfair Display serif) — prompts, greetings, headings. Confident penmanship.
-   - **Structural** (Inter sans) — buttons, labels, navigation. Authoritative, clean.
-   - **Data** (JetBrains Mono) — scores, tags, badges, metadata. Annotated measurements.
-4. **Motion Has Grammar:**
-   - **Spring** `cubic-bezier(0.34, 1.56, 0.64, 1)` — user-initiated transitions (step slide, selection commit)
-   - **Gentle ease** `cubic-bezier(0.4, 0, 0.2, 1)` — system-initiated reveals (data fade-in, tag stagger)
-   - **Instant fallback** when `prefers-reduced-motion: reduce` is set
-5. **Cultural Personality** — Themes change palette, textures, terminology, audio chimes, AND border/shadow depth. Not just a color swap.
-6. **The Screen Is the Canvas** — Full viewport, no scrollbars during input. Minimal chrome. Content IS the interface.
-
----
-
-## Actual User Flow (2-View Model)
+## User Flow
 
 ```
-[View 0: Canvas]
-  ├── Greeting (time-of-day aware)
-  ├── Craving text input + voice button + smart chips
-  ├── Collapsible filter drawer (toggle):
-  │   ├── Occasion (9 pill-style radio buttons)
-  │   ├── Neighborhood (15 pills)
-  │   ├── Budget (5 pills)
-  │   └── Randomize link
-  ├── CTA submit button (disabled until craving entered)
-  ├── Hint text
-  └── Taste Memory (last 3 searches, if any)
-
-    ↓ submit triggers 3-act loading transition
-
-[Loading Overlay]  (covers both views)
-  Act 1: Defocus — blur input behind overlay
-  Act 2: Search  — particle drift + logo SVG draw-in + sonar pulse
-  Act 3: Reveal  — logo resolves "found" → result card crossfades in
-
-[View 1: Result]
-  ├── Block 1: Identity (name + click-to-reveal one-liner + navigation tile)
-  ├── Block 2: Story (recommendation paragraph + read more + insider tip)
-  ├── Block 3: Scores
-  │   ├── Score Row (DondeAI Match ring + Petal Radar — side by side)
-  │   ├── Sentiment Bar ("Review Sentiment" label + RAG color bar + tooltip)
-  │   └── Google Rating (inline stars + count)
-  ├── Block 4: Profile
-  │   ├── Glyph Bar (icon-only collapsed view — value-based symbols)
-  │   └── Detail Badges Grid (expandable — facts + atmosphere merged)
-  └── Block 5: Actions (quick links + Try Another / Start Over CTAs)
+[Canvas] Greeting → Craving input + voice + suggestions + smart chips + Surprise Me
+         → Filter drawer (Occasion 9 pills, Neighborhood 15, Budget 5, Dietary 4 toggles, Randomize)
+         → CTA (disabled until craving) → Taste Memory (last 3) → Saved Spots
+    ↓ submit
+[Loading] Act 1: blur canvas → Act 2: particles + logo draw-in + sonar → Act 3: reveal
+    ↓
+[Result]  3-tier progressive disclosure:
+  Tier 1 (Glance):  Match pill + name (ink reveal) + one-liner + blurb (7-line clamp) + feedback + CTAs
+  Tier 2 (Lean In): Score hero arc + bloom cycle + photos + hours + sentiment + Google stars + nav tile + quick links + glyph bar
+  Tier 3 (Deep):    V2 score breakdown bars + detail badges grid
 ```
 
-**Navigation:** Swipe-right on result returns to canvas. Back button visible only on result. Logo tap = full reset.
+Navigation: swipe-right → canvas. Back button on result only. Logo tap = full reset.
 
----
-
-## Backend Integration Contract (IMMUTABLE)
+## API Contract
 
 ```
 POST https://vwbzkgsxmgwcvmvuxnbe.supabase.co/functions/v1/recommend
-Content-Type: application/json
+Authorization: Bearer <supabase-anon-key>
+apikey: <supabase-anon-key>
+Timeout: 15s (AbortController)
 ```
 
-### Request — 4 required fields + 1 optional:
-
+**Request:**
 ```json
 {
-  "special_request": "string",     // from craving input (required, non-empty)
-  "occasion": "string",            // from vibe filter (default: "Any")
-  "neighborhood": "string",        // from hood filter (default: "Anywhere")
-  "price_level": "string",         // from budget filter (default: "Any")
-  "exclude": ["uuid", ...]         // optional — previously seen restaurant IDs to skip
+  "special_request": "string (required)",
+  "occasion": "string (default: Any)",
+  "neighborhood": "string (default: Anywhere)",
+  "price_level": "string (default: Any)",
+  "exclude": ["uuid"],
+  "dietary_restrictions": ["string"],
+  "user_id": "uuid",
+  "feedback": {},
+  "time_of_day": "breakfast|lunch|dinner|late_night"
 }
 ```
+`exclude` sent on "Try Another" (accumulated UUIDs). Fresh submit resets. `time_of_day` auto-sent from client clock.
 
-The `exclude` field is sent on "Try Another" — the frontend accumulates `restaurant.id` UUIDs from prior results and passes them so the backend filters out repeats. Fresh "Submit" resets the exclude list.
-
-### Response shape:
-
+**Response:**
 ```json
 {
   "success": true,
   "restaurant": {
-    "id": "uuid string",
-    "name": "string",
-    "best_for_oneliner": "string",
-    "address": "string",
-    "phone": "string | null",
-    "website": "string | null",
-    "price_level": "string",
-    "noise_level": "string | null",
-    "cuisine_type": "string | null",
-    "google_rating": "string (numeric) | null",
-    "google_review_count": "string | null",
-    "google_place_id": "string | null",
-    "parking_availability": "string | null",
-    "lighting_ambiance": "string | null",
-    "dress_code": "string | null",
-    "outdoor_seating": "boolean | null",
-    "live_music": "boolean | null",
-    "pet_friendly": "boolean | null",
-    "sentiment_breakdown": "string | null",
-    "sentiment_score": "string (numeric 0-1) | null"
+    "id": "uuid", "name": "str", "best_for_oneliner": "str", "address": "str",
+    "phone": "str|null", "website": "str|null", "price_level": "str",
+    "noise_level": "str|null", "cuisine_type": "str|null",
+    "google_rating": "numeric str|null", "google_review_count": "str|null",
+    "google_place_id": "str|null", "parking_availability": "str|null",
+    "lighting_ambiance": "str|null", "dress_code": "str|null",
+    "outdoor_seating": "bool|null", "live_music": "bool|null", "pet_friendly": "bool|null",
+    "sentiment_breakdown": "str|null", "sentiment_score": "numeric 0-1|null",
+    "photo_urls": ["str"]|null, "opening_hours": "str|null"
   },
-  "recommendation": "string",
-  "insider_tip": "string | null",
-  "donde_score": "string (numeric 0-10)",
+  "recommendation": "str",
+  "insider_tip": "str|null",
+  "donde_match": "numeric 0-100",
   "scores": {
-    "date_friendly_score": "string | null",
-    "group_friendly_score": "string | null",
-    "family_friendly_score": "string | null",
-    "business_lunch_score": "string | null",
-    "solo_dining_score": "string | null",
-    "hole_in_wall_factor": "string | null",
-    "romantic_rating": "string | null"
+    "date_friendly_score": "str|null", "group_friendly_score": "str|null",
+    "family_friendly_score": "str|null", "business_lunch_score": "str|null",
+    "solo_dining_score": "str|null", "hole_in_wall_factor": "str|null",
+    "romantic_rating": "str|null"
   },
-  "tags": ["string"] | null
+  "scoring_v2": {
+    "occasion_fit": "0-100|null", "craving_match": "0-100|null",
+    "vibe_alignment": "0-100|null", "practical_fit": "0-100|null",
+    "discovery_value": "0-100|null"
+  }|null,
+  "tags": ["str"]|null
 }
 ```
 
-### Error handling:
+**Errors:** HTTP non-200 → toast + return to canvas | `success:false` → show `recommendation` as error | network → "Couldn't reach the engine." | timeout → "Request timed out." | offline → block submit | empty craving → shake + toast
 
-| Condition | Action |
-|---|---|
-| HTTP error (non-200) | Show toast error, return to canvas, re-enable submit |
-| `success: false` | Show `recommendation` field value as toast error |
-| Network failure | Show "Couldn't reach the engine." toast |
-| Offline (pre-check) | Block submission with offline banner |
-| Empty craving | Shake input, show toast, refocus |
+## Themes (8 × 2 = 16 variants)
 
----
-
-## The Ink Rule (Color Discipline)
-
-Accent color (`--ac`) is scarce and intentional. This creates visual hierarchy through restraint.
-
-**Earns accent color:**
-- Score Ring fill stroke
-- Restaurant name (result heading)
-- Active CTA buttons (primary)
-- Selected filter pills (`aria-checked="true"`)
-- Logo pin dot
-- Cursor caret
-- Petal radar petals (very subtle: 8% fill, 25% stroke opacity — tints with cultural theme color)
-
-**Always neutral (grayscale):**
-- All detail badges (cuisine, price, parking, noise, ambiance, dress)
-- Score tile backgrounds
-- Google stars (amber, `hsl(45 93% 47%)`, NOT accent)
-- Atmosphere tags (patio, music, pets)
-- Navigation tile
-- Quick links (website, call, share)
-- Insider tip callout
-
----
-
-## Theme System (8 Cultures x 2 Modes = 16 Variants)
-
-### Cultures (display names used in UI):
-
-| ID | Display Name | Accent Hue | Personality |
+| ID | Name | Hue | Character |
 |---|---|---|---|
-| `neutral` | Studio | achromatic | Clean, minimal, universally accessible default |
-| `indian` | Desi | 28° marigold | Deep saffron warmth, ornate patterns — "from the homeland" |
-| `middleeastern` | Bazaar | 48° spice gold | Hammered brass, arabesque — "where every meal is a gathering" |
-| `nepalese` | Himalayan | 178° turquoise | Sacred stone, prayer flags, mountain earth — spiritual heights |
-| `japanese` | Zen | 220° indigo | Ink wash, aizome, wabi-sabi restraint — minimalist philosophy |
-| `eastasian` | Silk | 285° plum | Imperial lacquer, orchid — "ten thousand flavors, one table" |
-| `african` | Kente | 155° emerald | Bold geometry, Pan-African green, Afrofuturist energy |
-| `southamerican` | Sabor | 350° chili red | Tropical vivid palette, fiesta energy — "flavor runs through everything" |
+| `neutral` | Studio | achromatic | Clean minimal default |
+| `indian` | Desi | 28° marigold | Saffron warmth, ornate |
+| `middleeastern` | Bazaar | 48° gold | Hammered brass, arabesque |
+| `nepalese` | Himalayan | 178° turquoise | Prayer flags, mountain earth |
+| `japanese` | Zen | 220° indigo | Ink wash, wabi-sabi |
+| `eastasian` | Silk | 285° plum | Imperial lacquer, orchid |
+| `african` | Kente | 155° emerald | Bold geometry, Afrofuturist |
+| `southamerican` | Sabor | 350° chili | Tropical vivid, fiesta |
 
-### Theme label keys (override per culture in `THEME_LABELS`):
+**Theme tokens per file:** `--bg/bg2/bg3`, `--fg/fg2/fg3`, `--ac/ac2/ac-soft`, `--green/rose/amber` (+soft), `--glass*`, `--border`, `--shadow/shadow-lg`, `--radius*`, `--blob-1/2/3`, `--grain-opacity`, `--textile-pattern/opacity`
 
-| Key | Controls |
-|---|---|
-| `vibe` | Occasion filter heading |
-| `hood` | Neighborhood filter heading |
-| `blurb` | Recommendation section title |
-| `prompt` | Craving input label |
-| `placeholder` | Craving input placeholder text |
-| `cta` | Submit button label |
-| `again` | Try again button label |
-| `share` | Share button label |
+**Switching:** `data-theme` + `data-mode` on `<html>`. Radial wash transition (160ms). `data-color="auto|off"` controls auto-theme-on-typing. System `prefers-color-scheme` respected.
 
-### Theme switching:
+**Auto-theme:** When `colorMode="auto"`, typing cuisine keywords triggers visual-only theme preview via `matchCulture()` ("sushi"→Zen, "tacos"→Sabor). Manual selection disables auto.
 
-- Radial clip-path wash transition from cycle button origin
-- `data-theme` and `data-mode` attributes on `<html>`
-- Culture and light/dark persist independently in localStorage
-- Cycle button in header rotates through cultures; theme picker modal for full gallery
-- System `prefers-color-scheme` respected when no user preference saved
+**Label keys per culture:** `vibe`, `hood`, `blurb`, `prompt`, `placeholder`, `cta`, `again`, `share`, `profile`, `insiderTip`, `loadingPhrases`, `placeholders`, `smartChips`, `suggestions`, `chipPool`, `suggestionCorpus`
 
----
+## Scores
 
-## Result Card — 5-Block Architecture
+**Match (0-100):** 90+ "Outstanding" (--ac/--green) | 85-89 "Excellent" (--ac) | 75-84 "Solid Pick" (--fg2) | 60-74 "Worth a Try" (--fg2) | 0-59 "Adventurous" (--fg3)
 
-| Block | Section | Contents |
-|---|---|---|
-| **Identity** | "What? Where?" | Restaurant name (click toggles one-liner), navigation tile (address -> maps) |
-| **Story** | "Why this spot?" | AI recommendation (collapsible, 7-line clamp), insider tip callout |
-| **Scores** | Evaluative metrics | Score row (DondeAI Match™ ring + DondeAI Vibe™ petal radar side-by-side), Sentiment bar, Google Rating |
-| **Profile** | "About This Spot" | Glyph bar (icon-only collapsed, tooltips on tap) + expandable detail badges grid |
-| **Actions** | "Now what?" | Quick links (website, call, share), Try Another + Start Over CTAs |
+**Vibe Petal Radar (6 axes, render if ≥3):** `date_friendly_score`→heart, `group_friendly_score`→usersThree, `family_friendly_score`→home, `business_lunch_score`→briefcase, `solo_dining_score`→user, `hole_in_wall_factor`→diamond. Accent at 8% fill / 25% stroke.
 
-### Progressive reveal timing:
-- Blocks stagger in: 0ms, 120ms, 240ms, 360ms, 480ms
-- Score ring animates at 800ms, Sentiment bar grows at 800ms, Google rating at 900ms
-- Petal radar petals spring-scale at 400ms + 80ms stagger
-- Glyph bar icons spring-pop at 500ms + 50ms stagger
-- Reveal class auto-removes at 1200ms
+**Bloom cycle (Score Hero tap):** compact → petal radar → V2 bars → compact. V2 dims: `occasion_fit`, `craving_match`, `vibe_alignment`, `practical_fit`, `discovery_value`.
 
----
+**Sentiment bar:** 4px RAG bar (green/gray/rose 50% opacity). Defaults 33/33/34. Tooltip shows %.
 
-## Score Visualization
+**Glyph bar:** 32px icons, spring-pop stagger. Price=monospace "$"s, noise=speaker icons, ambiance=sun/moon, cuisine=dynamic, parking=car, dress=shirt, atmosphere=patio/music/pet.
 
-### DondeAI Match™ (0-10):
-
-| Range | Tier | Verdict Label |
-|---|---|---|
-| 9-10 | High | "Outstanding" |
-| 8 | High | "Excellent" |
-| 6-7 | Mid | "Solid Pick" |
-| 4-5 | Mid | "Worth a Try" |
-| 0-3 | Low | "Adventurous" |
-
-Score ring uses `--ac` for fill stroke. Ring is 112px on mobile, 120px on tablet+, 160px in expanded modal. Verdict label uses tier-appropriate colors: accent for high (85%+), `--fg2` for mid (75-84%), `--fg3` for low (<75%).
-
-### DondeAI Vibe™ Petal Radar ("Ink Blossom"):
-
-6 teardrop-shaped petals radiating from center. Each petal length maps to the dimension score. Render only if >=3 dimensions present. Uses subtle accent color (`--ac` at 8% fill / 25% stroke). Shows "Top: Label X.X" below chart for the dominant vibe.
-
-| Backend Key | Short Label | Icon |
-|---|---|---|
-| `date_friendly_score` | Date | heart |
-| `group_friendly_score` | Group | usersThree |
-| `family_friendly_score` | Family | home |
-| `business_lunch_score` | Business | briefcase |
-| `solo_dining_score` | Solo | user |
-| `hole_in_wall_factor` | Gem | diamond |
-
-### Sentiment Bar:
-
-Horizontal 4px bar between score row and Google rating. Always visible (defaults to 33/33/34 when no sentiment data). Uses dimmed RAG colors (green/gray/rose at 50% opacity). Labeled "Review Sentiment" above the track. Tooltip on hover/tap shows percentages.
-
-### Glyph Bar (Collapsed Profile View):
-
-32px icon squares with spring-pop stagger entrance. Tap toggles tooltip (label + value). Value-based symbols:
-- **Price:** Shows "$"/"$$"/"$$$"/"$$$$" as bold monospace text (not tag icon)
-- **Noise:** Maps to `speakerNone` (quiet), `speakerWave` (moderate), `speakerHigh` (loud)
-- **Ambiance:** Maps to `moon` (dim/cozy/warm) or `sun` (bright/modern)
-- **Others:** Cuisine (dynamic), parking (`car`), dress (`shirt`), atmosphere (`patio`/`music`/`pet`)
-
----
-
-## SVG Icon System
-
-Icons are inline SVG paths stored in `ICON_SVG` registry in `utils.js`. Phosphor-compatible 256x256 viewBox. Rendered via `svgIcon(name, size)` helper. Categories:
-
-- **Cuisine:** sushi, taco, pasta, curry, noodles, dumpling, meat, croissant, seafood, burger, coffee, cocktail, salad, brunch, plate
-- **Atmosphere:** patio, music, pet
-- **Facts:** tag, car, speakerWave, speakerNone, speakerHigh, sun, moon, shirt
-- **DondeAI Vibe™:** heart, usersThree, home, briefcase, user, diamond
-- **Stars:** starFull, starHalf, starEmpty
-- **Actions:** globe, phone, shareNetwork, pin, refresh, home, chevronRight
-
----
-
-## State Management
-
-Single source of truth in `state.js`. Plain object + pub/sub.
+## State (`state.js`)
 
 ```js
-{
-  step: 0,                    // 0 = canvas, 1 = result
-  craving: "",
-  occasion: "Any",
-  neighborhood: "Anywhere",
-  priceLevel: "Any",
-  result: null,               // full API response object
-  loading: false,
-  error: null,
-  excludeIds: [],             // restaurant UUIDs to exclude on "Try Another"
-  theme: { culture: "neutral", mode: "light" },
-  soundEnabled: false,
-  history: []                 // last 3 searches (FIFO)
-}
+{ step: 0, craving: "", occasion: "Any", neighborhood: "Anywhere", priceLevel: "Any",
+  dietaryRestrictions: [], result: null, loading: false, error: null, excludeIds: [],
+  theme: { culture: "neutral", mode: "light" }, colorMode: "auto",
+  soundEnabled: false, history: [], pendingFeedback: null }
 ```
+API: `getState()`, `setState(patch)`, `subscribe(fn)` → `(state, prev)`, `resetState()`
 
----
+## Persistence (localStorage)
+
+| Key | Data |
+|---|---|
+| `dondeai-theme` | `{culture, mode}` |
+| `dondeai-sound` | bool |
+| `dondeai-colormode` | `"auto"/"off"` |
+| `dondeai-history` | Last 3 searches `{label, payload, cuisineIcon, timestamp}` |
+| `dondeai-bookmarks` | Max 20 `{id, name, cuisine_type, neighborhood_name, price_level, google_place_id, timestamp}` |
+| `dondeai-user-id` | UUID via `crypto.randomUUID()` |
+| `dondeai-feedback` | Max 100 entries keyed by restaurantId |
+
+## Icons (`utils.js` → `ICON_SVG`, 256×256 viewBox, `svgIcon(name, size)`)
+
+- **Cuisine:** sushi, taco, pasta, curry, noodles, dumpling, meat, croissant, seafood, burger, coffee, cocktail, salad, brunch, mediterranean, stew, ceviche, plate
+- **Atmosphere:** patio, music, pet
+- **Facts:** tag, car, speakerWave, speakerNone, speakerHigh, sun, moon, shirt
+- **Vibe:** heart, usersThree, home, briefcase, user, diamond
+- **Stars:** starFull, starHalf, starEmpty
+- **Actions:** globe, phone, shareNetwork, pin, refresh, home, chevronRight
+- **Utilities:** wine, calendar, clock, bolt, chat, train, camera, chair
+
+## Audio (Web Audio API, opt-in)
+
+| Culture | Freq (Hz) | Wave | Decay |
+|---|---|---|---|
+| neutral | 523,659,784 | sine | 0.4 |
+| indian | 440,554,659 | triangle | 0.5 |
+| middleeastern | 370,466,554 | triangle | 0.55 |
+| nepalese | 392,494,587 | sine | 0.6 |
+| japanese | 523,784,1047 | sine | 0.3 |
+| eastasian | 523,659,880 | sine | 0.35 |
+| african | 349,440,523 | square | 0.35 |
+| southamerican | 392,523,659 | triangle | 0.45 |
+
+Chime pulses `.ambient__blob` elements (600ms scale).
+
+## Greetings
+
+320 phrases: 8 cultures × 5 periods × 8 per slot. Friday/Saturday/Sunday overrides per culture. Periods: morning (5-10), lunch (11-13), afternoon (14-16), dinner (17-20), latenight (21-4).
+
+## Keyboard Shortcuts
+
+`/` focus craving | `T` toggle color mode | `F` toggle filters (canvas) | `R` try again (result) | `Escape` close modal | Arrows navigate pills | Enter/Space select pill
 
 ## Coding Standards
 
-### HTML:
-- Semantic elements (`<main>`, `<section>`, `<button>`)
-- All interactive elements focusable with accessible names
-- `lang="en"` on `<html>`
+**HTML:** Semantic (`<main>`, `<section>`, `<button>`). All interactives focusable + named. `lang="en"`. Data attrs: `data-theme`, `data-mode`, `data-color`, `data-sound` on `<html>`.
 
-### CSS:
-- All values through CSS custom properties (tokens in `tokens.css`)
-- Theme via `data-theme` + `data-mode` on `<html>`
-- Mobile-first `min-width` breakpoints
-- `clamp()` for fluid typography/spacing
-- No `!important` unless overriding third-party
-- BEM-like naming: `.step`, `.step__title`, `.step--active`
+**CSS:** All values via custom properties. Mobile-first `min-width`. `clamp()` fluid type/spacing. No `!important`. BEM-like: `.step__title`, `.step--active`.
 
-### JavaScript:
-- ES modules (`type="module"`)
-- Plain objects + functions (no classes for state)
-- Event delegation on `document`
-- `requestAnimationFrame` for animations
-- DOM queries cached at module scope
-- No global variables — module scope only
+**JS:** ES modules. Plain objects + functions. Event delegation on `document` via `data-action`. `requestAnimationFrame`. Cached DOM queries. Module scope only. `AbortController` for fetches.
 
-### Motion:
-- Spring: `var(--spring)` = `cubic-bezier(0.34, 1.56, 0.64, 1)`
-- Ease: `var(--ease-out)` = `cubic-bezier(0.4, 0, 0.2, 1)`
-- Duration tokens: `--dur-step` (450ms), `--dur-score` (1200ms), etc.
-- All durations -> 0ms via `prefers-reduced-motion` media query in `tokens.css`
+**Motion tokens:** `--dur-instant`(0) `--dur-fast`(150) `--dur-normal`(300) `--dur-step`(450) `--dur-slow`(600) `--dur-advance`(600) `--dur-score`(1200). All → 0ms under reduced-motion.
 
----
+**Z-index:** `--z-base`(1) `--z-above`(10) `--z-nav`(100) `--z-modal`(200) `--z-overlay`(300) `--z-toast`(400) `--z-particle`(500)
 
-## Client-Side Persistence (localStorage)
+**Progressive reveal:** Blocks stagger 0/120/240/360/480ms. Match count-up 300ms→1200ms. Score ring 800ms. Sentiment 800ms. Google 900ms. Petals 400ms+80ms stagger. Glyphs 500ms+50ms stagger. Reveal removes at 1200ms.
 
-| Key | Data | Retention |
-|---|---|---|
-| `dondeai-theme` | `{ culture: "neutral", mode: "light" }` | Permanent |
-| `dondeai-sound` | `true / false` | Permanent |
-| `dondeai-history` | Last 3 searches with label, payload, cuisineIcon, timestamp | Permanent |
+## Responsive
 
----
-
-## Accessibility (WCAG 2.1 AA)
-
-- Skip navigation link
-- `<main>` landmark
-- Screen reader announcements on view transitions (`aria-live="polite"`)
-- `radiogroup` + `radio` roles on filter pills with `aria-checked`
-- Errors announced with `aria-live="assertive"`
-- Focus moves to primary element on view change
-- All animations disabled when `prefers-reduced-motion: reduce`
-- Full keyboard operability (Tab, Enter, Escape)
-- Color contrast AA across all 12 theme variants
-
----
-
-## Responsive Targets
-
-| Breakpoint | Target |
+| BP | Target |
 |---|---|
-| 320px | Minimum supported |
-| 375px | Primary design target (mobile-first) |
-| 768px | Tablet |
-| 1024px | Desktop |
-| 2560px | Maximum supported |
+| 320px | Min supported |
+| 375px | Primary (mobile-first) |
+| 500px max-h | Virtual keyboard (hide wordmark, chips, memory) |
+| 768px | Tablet (3-col grid, 64px header) |
+| 1024px | Desktop (`--content-max:960px`) |
+| 2560px | Max (`--content-max:1100px`) |
 
----
+`@media (hover:hover)` for mouse. `@media (hover:none)` hides cursor-glow.
 
-## Occasion Options
+## A11y (WCAG 2.1 AA)
 
-`Date Night`, `Group Hangout`, `Family Dinner`, `Business Lunch`, `Solo Dining`, `Special Occasion`, `Treat Myself`, `Adventure`, `Chill Hangout`
+Skip nav, `<main>` landmark, `aria-live="polite"` announcements via `#step-announce`, `radiogroup`+`radio` with `aria-checked`, `switch`+`aria-pressed` for toggles, `aria-live="assertive"` errors, focus management on view change, `:focus-visible` accent outline, reduced-motion 0ms, full keyboard, AA contrast across 16 variants.
 
-## Neighborhood Options
+## Ambient Layer
 
-`Anywhere`, `Pilsen`, `Wicker Park`, `Logan Square`, `Lincoln Park`, `West Loop`, `Bucktown`, `Hyde Park`, `Chinatown`, `Little Italy`, `Andersonville`, `River North`, `Old Town`, `Lakeview`, `Fulton Market`
+3 blobs (`blobDrift` 20-30s infinite, culture colors) + textile SVG overlay (culture-specific pattern) + grain SVG filter + cursor glow (radial gradient, disabled on touch/reduced-motion). Dark: `screen` blend; light: `multiply`.
 
-## Budget Options
+## Share (8 channels)
 
-`Any` (default), `$` (Budget), `$$` (Mid), `$$$` (Upscale), `$$$$` (Splurge)
+clipboard (canvas image/PNG), whatsapp, sms, x, email, telegram, facebook, imessage (→sms fallback). Text: name + oneliner + recommendation + tip + address + website.
+
+## Filter Options
+
+**Occasion:** Date Night, Group Hangout, Family Dinner, Business Lunch, Solo Dining, Special Occasion, Treat Myself, Adventure, Chill Hangout
+**Neighborhood:** Anywhere, Pilsen, Wicker Park, Logan Square, Lincoln Park, West Loop, Bucktown, Hyde Park, Chinatown, Little Italy, Andersonville, River North, Old Town, Lakeview, Fulton Market
+**Budget:** Any, $ (Budget), $$ (Mid), $$$ (Upscale), $$$$ (Splurge)
+**Dietary:** Vegan, Vegetarian, Gluten-Free, Halal (multi-select toggles)
+
+## Future (not implemented)
+
+SSO auth (Google/Apple/Instagram/TikTok) → user accounts, unlimited history, favorites. See `nicehave_sso.md`.
