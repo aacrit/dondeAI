@@ -3780,3 +3780,213 @@
   }
 }
 
+/* ============================================
+   SSO: Auth Components
+   ============================================ */
+
+/* Auth avatar button in header */
+.header__btn--auth {
+  position: relative;
+}
+
+.auth-icon--avatar {
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.auth-icon--avatar[style*="display:none"] + .auth-icon--anon,
+.auth-icon--anon {
+  display: block;
+}
+
+/* When avatar is visible, hide anon icon */
+.header__btn--auth.is-authenticated .auth-icon--anon {
+  display: none;
+}
+.header__btn--auth.is-authenticated .auth-icon--avatar {
+  display: block !important;
+}
+
+/* Auth Bottom Sheet — mirrors .share-sheet pattern */
+.auth-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--dur-normal) var(--ease-out);
+}
+
+.auth-sheet--open {
+  pointer-events: auto;
+  opacity: 1;
+}
+
+.auth-sheet__backdrop {
+  position: absolute;
+  inset: 0;
+  background: hsl(0 0% 0% / 0.4);
+}
+
+.auth-sheet__panel {
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+  background: var(--glass);
+  backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  padding: var(--space-lg);
+  transform: translateY(100%);
+  transition: transform var(--dur-step) var(--spring);
+}
+
+.auth-sheet--open .auth-sheet__panel {
+  transform: translateY(0);
+}
+
+/* Provider buttons */
+.auth-providers {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.auth-provider-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--fg);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--spring);
+}
+
+.auth-provider-btn:hover:not(:disabled) {
+  background: var(--bg3);
+}
+
+.auth-provider-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.auth-provider-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.auth-provider-btn__icon {
+  flex-shrink: 0;
+}
+
+.auth-provider-btn__label {
+  flex: 1;
+  text-align: left;
+}
+
+.auth-provider-btn__badge {
+  color: var(--fg3);
+  font-size: 0.7rem;
+}
+
+/* User Menu Dropdown — mirrors .color-popover pattern */
+.user-menu {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--dur-normal) var(--ease-out);
+}
+
+.user-menu--open {
+  pointer-events: auto;
+  opacity: 1;
+}
+
+.user-menu__backdrop {
+  position: absolute;
+  inset: 0;
+}
+
+.user-menu__panel {
+  position: absolute;
+  top: 48px;
+  right: var(--space-md);
+  width: 240px;
+  background: var(--glass);
+  backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  transform: translateY(-8px);
+  opacity: 0;
+  transition: transform var(--dur-normal) var(--spring), opacity var(--dur-normal) var(--ease-out);
+}
+
+.user-menu--open .user-menu__panel {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.user-menu__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: var(--space-sm);
+}
+
+.user-menu__avatar {
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.user-menu__info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.user-menu__name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-menu__email {
+  color: var(--fg3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-menu__btn {
+  display: block;
+  width: 100%;
+  padding: var(--space-xs) var(--space-sm);
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--fg2);
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out);
+}
+
+.user-menu__btn:hover {
+  background: var(--bg2);
+  color: var(--fg);
+}
+

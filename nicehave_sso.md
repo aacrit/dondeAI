@@ -1,71 +1,59 @@
-# SSO Integration — Nice-to-Have (Future Reference)
+# SSO Integration — Implementation Status
+
+> **Status**: Phase 1a implemented (Google SSO). Apple pending developer enrollment.
+
+## Architecture Decision: Supabase Auth Native
+
+Uses Supabase Auth exclusively — handles OAuth flows, JWT sessions, and provider management at zero additional cost (50k MAU free tier). No third-party auth service needed.
 
 ## Providers & Cost
 
-| Provider | Cost | Requirements |
+| Provider | Cost | Status |
 |---|---|---|
-| **Google** | Free | Google Cloud Console project + OAuth 2.0 credentials |
-| **Apple** | Free (auth API), $99/yr (Apple Developer Program required) | Services ID registration |
-| **Instagram** | Free, needs Meta app review (days-weeks) | Facebook/Meta Developer account, `instagram_basic` permission |
-| **TikTok** | Free, hardest approval | TikTok Developer Portal, Login Kit, opaque review process |
+| **Google** | Free (Supabase Auth) | **Implemented** — Phase 1a |
+| **Apple** | Free + $99/yr dev program | **Pending** — awaiting Apple Developer enrollment |
+| **Facebook/Instagram** | Free + Meta review | Phase 2 — demand-driven |
 
-**Recommended order:** Google + Apple first (covers ~90% of users), Instagram later, TikTok lowest priority.
+## What's Implemented
 
-## UI Changes
+### Database (6 migrations in `dondeBackend/supabase/migrations/`)
+- `user_profiles` — extends `auth.users` with display_name, avatar, preferences, migration tracking
+- `user_searches` — unlimited server-side search history (replaces 3-item localStorage cap)
+- `user_favorites` — unlimited server-side bookmarks (replaces 20-item localStorage cap)
+- `user_queries.auth_user_id` — links anonymous query logs to authenticated accounts
+- Auto-create profile trigger on `auth.users` INSERT
+- `link_anonymous_queries` RPC for data migration
 
-- **Header:** Add user avatar button (right of existing toggles). Logged out = "Sign In" pill. Logged in = circular avatar with dropdown (name, My Searches, Favorites, Sign Out).
-- **Auth flow:** Bottom sheet modal (matches existing share sheet / theme picker pattern). 4 branded SSO buttons stacked. Dismisses on success, avatar appears. No page reload.
-- **New features when logged in:** Save button on result cards, unlimited "My Searches" on Step 0 (replaces 3-item anonymous history), Favorites gallery in dropdown.
+All tables have RLS policies restricting access to own data.
 
-## Backend Changes Required
+### Frontend
+- `js/auth.js` — Supabase client, OAuth flows, session management, data migration
+- `js/state.js` — Added `user` and `isAuthenticated` (persist across search resets)
+- `js/api.js` — Sends user JWT when authenticated, falls back to anon key
+- `js/persistence.js` — Server sync functions for bookmarks and history
+- `js/app.js` — Auth events wired, bookmark dual-write, auth UI updates
+- `index.html` — Auth button in header, auth bottom sheet, user menu dropdown
+- `css/components.css` — Auth sheet, avatar, user menu, provider button styles
 
-### New endpoints:
-```
-POST /auth/{google,apple,instagram}/callback  — Exchange OAuth code for session
-POST /auth/logout
-GET  /auth/me                                 — Current user profile
-GET  /user/searches                           — Saved search history (paginated)
-POST /user/searches                           — Save search + result
-GET  /user/favorites
-POST /user/favorites
-DELETE /user/favorites/:id
-```
+### Backend
+- Edge Function detects user JWTs and extracts `authUserId`
+- Auto-saves searches to `user_searches` for authenticated users
+- Enhanced feedback queries (50 entries for auth users vs 20 for anonymous)
+- `_shared/supabase.ts` — Added `createServiceClient()` for JWT verification
 
-### Database tables needed:
-- **Users:** id, email, name, avatar_url, provider, created_at
-- **Searches:** id, user_id, craving, occasion, neighborhood, price_level, result_json, created_at
-- **Favorites:** id, user_id, restaurant_name, result_json, created_at
+### Data Migration Flow
+On first sign-in: localStorage bookmarks, history, and anonymous query logs are migrated to the server. On subsequent sign-ins (including new devices): server data is loaded into localStorage for offline access.
 
-**Storage options:** Supabase (free tier: 50k MAU, Postgres, built-in auth), Firebase (free: 10k auth/month), or Postgres behind n8n.
+## Remaining Setup (Manual)
 
-### Existing endpoint change:
-Add optional `Authorization: Bearer <token>` header to `POST /donde-recommend`. If present, auto-save search+result to user history.
+1. **Supabase Dashboard**: Enable Google provider, add OAuth credentials
+2. **Google Cloud Console**: Create OAuth 2.0 credentials, set redirect URL
+3. **Apple** (when enrolled): Enable Apple provider in Supabase Dashboard
+4. **Environment**: Add `SUPAB_SERVICE_ROLE_KEY` to Edge Function secrets
 
-**Session management:** HTTP-only cookies (XSS-safe, works with `fetch` via `credentials: 'include'`).
-
-## Frontend Code Changes
-
-| File | Changes |
-|---|---|
-| `js/state.js` | Add `user: null`, `isAuthenticated: false` |
-| `js/persistence.js` | Add `dondeai-user` key (or rely on cookies) |
-| `js/api.js` | Add `credentials: 'include'`, auth endpoint wrappers |
-| New: `js/auth.js` | OAuth flow, callback handling, session management |
-| `index.html` | Auth bottom sheet markup, header avatar, save buttons |
-| `css/components.css` | Auth sheet, avatar, save button styles |
-| `js/app.js` | Wire auth events, conditionally render save/favorites UI |
-
-## Data Tracking Payload
-
-```json
-{
-  "user_id": "...",
-  "input": { "craving": "...", "occasion": "...", "neighborhood": "...", "price_level": "..." },
-  "result": { /* full API response */ },
-  "timestamp": "ISO-8601",
-  "theme": "japanese",
-  "source": "web"
-}
-```
-
-Enables analytics: popular searches, neighborhood trends, price tier distribution, search-to-save conversion.
+## Phase 2 (Future)
+- Facebook provider (if analytics show demand)
+- Soft sign-in prompts at natural friction points
+- "Download My Data" export
+- Manual account linking
+- Search history browsing in user menu
