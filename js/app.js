@@ -1892,14 +1892,22 @@ function renderResult(data) {
       if (sentimentData) {
         const sentWrap = document.createElement('div');
         sentWrap.className = 'badge-popout__sentiment';
+        // RGB track bar
         const track = document.createElement('div');
         track.className = 'sentiment-inline__track';
-        track.innerHTML = `<span class="sentiment-inline__seg sentiment-inline__seg--pos" style="flex:${sentimentData.pos}"></span><span class="sentiment-inline__seg sentiment-inline__seg--neu" style="flex:${sentimentData.neu}"></span><span class="sentiment-inline__seg sentiment-inline__seg--neg" style="flex:${sentimentData.neg}"></span>`;
+        track.innerHTML =
+          `<span class="sentiment-inline__seg sentiment-inline__seg--pos" style="flex:${sentimentData.pos}"></span>` +
+          `<span class="sentiment-inline__seg sentiment-inline__seg--neu" style="flex:${sentimentData.neu}"></span>` +
+          `<span class="sentiment-inline__seg sentiment-inline__seg--neg" style="flex:${sentimentData.neg}"></span>`;
         sentWrap.appendChild(track);
-        const labels = document.createElement('div');
-        labels.className = 'badge-popout__sentiment-labels';
-        labels.innerHTML = `<span class="badge-popout__pill">${sentimentData.pos}% pos</span><span class="badge-popout__pill">${sentimentData.neu}% neu</span><span class="badge-popout__pill">${sentimentData.neg}% neg</span>`;
-        sentWrap.appendChild(labels);
+        // Colored-dot legend
+        const legend = document.createElement('div');
+        legend.className = 'badge-popout__sentiment-legend';
+        legend.innerHTML =
+          `<span class="badge-popout__sentiment-item"><span class="badge-popout__sentiment-dot badge-popout__sentiment-dot--pos"></span>${sentimentData.pos}% positive</span>` +
+          `<span class="badge-popout__sentiment-item"><span class="badge-popout__sentiment-dot badge-popout__sentiment-dot--neu"></span>${sentimentData.neu}% neutral</span>` +
+          `<span class="badge-popout__sentiment-item"><span class="badge-popout__sentiment-dot badge-popout__sentiment-dot--neg"></span>${sentimentData.neg}% negative</span>`;
+        sentWrap.appendChild(legend);
         popout.appendChild(sentWrap);
       }
 
