@@ -2151,7 +2151,7 @@ function prepareTier2(data, cuisine) {
       links.push(createResultLink('a', 'globe', hostname, r.website));
     }
     if (r.phone) {
-      links.push(createResultLink('a', 'phone', r.phone, `tel:${r.phone}`));
+      links.push(createResultLink('a', 'phone', 'Call', `tel:${r.phone}`));
     }
     const shareLink = createResultLink('button', 'shareNetwork', 'Share');
     shareLink.setAttribute('data-action', 'share');
@@ -2434,7 +2434,7 @@ function renderQuickActions(data) {
 
   // Phone
   if (r.phone) {
-    items.push({ icon: 'phone', label: r.phone, href: `tel:${r.phone}` });
+    items.push({ icon: 'phone', label: 'Call', href: `tel:${r.phone}` });
   }
 
   items.forEach(item => {
