@@ -2058,12 +2058,8 @@ function prepareTier2(data, cuisine) {
 
   const $extrasTip = document.getElementById('story-extras-tip');
   const $tipText = document.getElementById('insider-tip-text');
-  const bestSeat = data.deep_context?.best_seat_in_house;
   if ($extrasTip && $tipText) {
     let tipContent = data.insider_tip || '';
-    if (bestSeat) {
-      tipContent = tipContent ? `${tipContent} · Best seat: ${bestSeat}` : `Best seat: ${bestSeat}`;
-    }
     // Strip em-dashes — replace with commas for cleaner reading
     tipContent = tipContent.replace(/\u2014/g, ', ').replace(/ , /g, ', ');
     if (tipContent) { $tipText.textContent = tipContent; $extrasTip.style.display = ''; }
