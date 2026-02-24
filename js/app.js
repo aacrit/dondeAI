@@ -2916,7 +2916,7 @@ function renderDeepContextExtras(data) {
   if (!dc) return;
 
   // Quick Stats ribbon — compact deep-context data strip (includes wow factors)
-  renderQuickStats(dc);
+  renderQuickStats(data);
 
   // Origin Story — presented as a micro-fable
   const $origin = document.getElementById('origin-story');
@@ -2935,15 +2935,22 @@ function renderDeepContextExtras(data) {
   }
 }
 
-/* ---- Quick Stats: Compact deep-context data ribbon (includes wow factors) ---- */
-function renderQuickStats(dc) {
+/* ---- Quick Stats: Impact-ranked deep-context ribbon ---- */
+function renderQuickStats(data) {
   const $stats = document.getElementById('quick-stats');
   if (!$stats) return;
   $stats.innerHTML = '';
 
-  const items = [];
+  const dc = data.deep_context;
+  if (!dc) { $stats.style.display = 'none'; return; }
 
-  // Wow factors — prepend as icon+text items
+  // Dimension weights from scoring — drives which stats surface first
+  const dw = data.scoring_v2?.weights_used ||
+    { occasion: 0.25, craving: 0.25, vibe: 0.20, practical: 0.15, discovery: 0.15 };
+
+  const candidates = [];
+
+  // -- Wow factors (discovery dimension) --
   const WOW_LABELS = {
     open_kitchen: 'Open Kitchen', rooftop_skyline_view: 'Rooftop Views',
     tableside_preparation: 'Tableside Prep', secret_entrance: 'Secret Entrance',
@@ -2964,47 +2971,72 @@ function renderQuickStats(dc) {
   };
   if (dc.wow_factors?.length) {
     dc.wow_factors.filter(w => w !== 'unique_decor').slice(0, 3).forEach(w => {
-      items.push({ icon: WOW_ICONS[w] || 'starFull', text: WOW_LABELS[w] || humanizeSnake(w) });
+      candidates.push({
+        icon: WOW_ICONS[w] || 'starFull',
+        text: WOW_LABELS[w] || humanizeSnake(w),
+        priority: dw.discovery * 0.80,
+      });
     });
   }
 
-  // Practical stats
-  if (dc.typical_wait_minutes) {
-    items.push({ icon: 'clock', text: `~${dc.typical_wait_minutes} min wait` });
-  }
+  // -- Practical stats --
   if (dc.check_average_per_person) {
-    items.push({ icon: 'tag', text: `~$${dc.check_average_per_person}/pp` });
+    const notable = dc.check_average_per_person >= 60 ? 1.2 : 1.0;
+    candidates.push({ icon: 'tag', text: `~$${dc.check_average_per_person}/pp`,
+      priority: dw.practical * 0.90 * notable });
   }
   if (dc.reservation_difficulty && dc.reservation_difficulty !== 'none') {
     const resMap = { easy: 'Walk-ins OK', moderate: 'Reservations rec.', hard: 'Hard to book' };
-    items.push({ icon: 'calendar', text: resMap[dc.reservation_difficulty] || humanizeSnake(dc.reservation_difficulty) });
+    const notable = dc.reservation_difficulty === 'hard' ? 1.5 : 1.0;
+    candidates.push({ icon: 'calendar', text: resMap[dc.reservation_difficulty] || humanizeSnake(dc.reservation_difficulty),
+      priority: dw.practical * 0.85 * notable });
   }
+  if (dc.typical_wait_minutes) {
+    const notable = dc.typical_wait_minutes >= 20 ? 1.3 : 1.0;
+    candidates.push({ icon: 'clock', text: `~${dc.typical_wait_minutes} min wait`,
+      priority: dw.practical * 0.70 * notable });
+  }
+  if (dc.group_size_sweet_spot) {
+    const range = dc.group_size_sweet_spot.replace(/[\[\]()]/g, '').replace(',', '-');
+    candidates.push({ icon: 'usersThree', text: `Best for ${range}`,
+      priority: dw.practical * 0.50 });
+  }
+  if (dc.transit_accessibility) {
+    candidates.push({ icon: 'train', text: dc.transit_accessibility,
+      priority: dw.practical * 0.35 });
+  }
+
+  // -- Vibe stats --
   if (dc.energy_level != null) {
     const e = dc.energy_level;
-    items.push({ icon: 'bolt', text: e >= 8 ? 'High energy' : e >= 5 ? 'Moderate energy' : 'Chill vibe' });
-  }
-  if (dc.conversation_friendliness != null) {
-    const c = dc.conversation_friendliness;
-    items.push({ icon: 'chat', text: c >= 7 ? 'Great for convo' : c >= 4 ? 'Moderate noise' : 'Loud' });
-  }
-  if (dc.spice_level && dc.spice_level !== 'none') {
-    items.push({ icon: 'fire', text: humanizeSnake(dc.spice_level) });
+    const notable = (e >= 8 || e <= 2) ? 1.3 : 1.0;
+    candidates.push({ icon: 'bolt', text: e >= 8 ? 'High energy' : e >= 5 ? 'Moderate energy' : 'Chill vibe',
+      priority: dw.vibe * 0.65 * notable });
   }
   if (dc.cultural_authenticity != null) {
     const a = dc.cultural_authenticity;
-    items.push({ icon: 'globe', text: a >= 8 ? 'Very authentic' : a >= 5 ? 'Authentic' : 'Fusion' });
-  }
-  if (dc.transit_accessibility) {
-    items.push({ icon: 'train', text: dc.transit_accessibility });
-  }
-  if (dc.group_size_sweet_spot) {
-    // Parse "[2,6)" range format to "2-6"
-    const range = dc.group_size_sweet_spot.replace(/[\[\]()]/g, '').replace(',', '-');
-    items.push({ icon: 'usersThree', text: `Best for ${range}` });
+    const notable = a >= 8 ? 1.2 : 1.0;
+    candidates.push({ icon: 'globe', text: a >= 8 ? 'Very authentic' : a >= 5 ? 'Authentic' : 'Fusion',
+      priority: dw.vibe * 0.55 * notable });
   }
 
-  // Cap at 6 for compactness
-  const shown = items.slice(0, 6);
+  // -- Occasion stats --
+  if (dc.conversation_friendliness != null) {
+    const c = dc.conversation_friendliness;
+    const notable = c <= 3 ? 1.4 : 1.0;
+    candidates.push({ icon: 'chat', text: c >= 7 ? 'Great for convo' : c >= 4 ? 'Moderate noise' : 'Loud',
+      priority: dw.occasion * 0.70 * notable });
+  }
+
+  // -- Craving stats --
+  if (dc.spice_level && dc.spice_level !== 'none') {
+    candidates.push({ icon: 'fire', text: humanizeSnake(dc.spice_level),
+      priority: dw.craving * 0.55 });
+  }
+
+  // Rank by priority, take top 6
+  candidates.sort((a, b) => b.priority - a.priority);
+  const shown = candidates.slice(0, 6);
   if (shown.length === 0) {
     $stats.style.display = 'none';
     return;
