@@ -1353,9 +1353,12 @@ function selectFilter(field, btn) {
   updateFilterSummary();
   boostCta();
 
-  // F17: Auto-collapse filter drawer after selection (Momentum principle)
+  // Auto-collapse only when all filter categories have been selected
   clearTimeout(autoAdvanceTimer);
-  autoAdvanceTimer = setTimeout(() => collapseFilters(), 600);
+  const st = getState();
+  if (st.occasion !== 'Any' && st.neighborhood !== 'Anywhere' && st.priceLevel !== 'Any') {
+    autoAdvanceTimer = setTimeout(() => collapseFilters(), 600);
+  }
 }
 
 let autoAdvanceTimer = null;
