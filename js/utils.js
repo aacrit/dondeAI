@@ -592,15 +592,17 @@ const MATCH_WORDS = {
 };
 const MATCH_THRESHOLDS = [93, 86, 75, 60];
 
-export function getScoreTier(score) {
+export function getScoreTier(score, { mismatch = false } = {}) {
   const pct = Math.round(parseFloat(score) || 80);
   const clamped = Math.max(0, Math.min(100, pct));
   const matched = MATCH_THRESHOLDS.find(t => clamped >= t) ?? 60;
-  const verdict = MATCH_WORDS[matched];
+  let verdict = MATCH_WORDS[matched];
   let tier, cssClass;
   if (clamped >= 86) { tier = 'high'; cssClass = 'score-verdict--high'; }
   else if (clamped >= 75) { tier = 'mid'; cssClass = 'score-verdict--mid'; }
   else { tier = 'low'; cssClass = 'score-verdict--low'; }
+  // Cuisine mismatch: override verdict to be transparent about the gap
+  if (mismatch && tier === 'low') verdict = 'Best Alternative';
   return { tier, verdict, cssClass, integer: clamped };
 }
 
