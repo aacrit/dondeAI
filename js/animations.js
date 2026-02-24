@@ -84,7 +84,7 @@ export function animateScoreRing(rawScore) {
 }
 
 /* ---- Petal Radar Chart (Ink Blossom — 6-axis vibe profile) ---- */
-import { svgIcon, buildVibeSummary, getVibeDetail } from './utils.js';
+import { svgIcon, buildVibeSummary, getVibeDetail, getScoreThresholdColor } from './utils.js';
 
 const RADAR_DIMS = [
   { key: 'date_friendly_score',    label: 'Date',     icon: 'heart' },
@@ -276,49 +276,59 @@ export function renderScoreHero(dondeMatch, scores, scoringV2, sentiment, timers
   const target = arcLength - (pct / 100) * arcLength;
 
   if ($arcFill) {
+    $arcFill.style.transition = 'none';
     $arcFill.style.strokeDasharray = String(arcLength);
 
     if (REDUCED.matches) {
+      // Instant — no animation
       $arcFill.style.strokeDashoffset = String(target);
+      $arcFill.style.stroke = getScoreThresholdColor(pct);
       if ($number) $number.textContent = pct + '%';
     } else {
+      // JS-driven frame-by-frame animation: arc fill + color + number synced
       $arcFill.style.strokeDashoffset = String(arcLength);
-      timers.push(setTimeout(() => {
-        $arcFill.style.strokeDashoffset = String(target);
-      }, 300));
+      $arcFill.style.stroke = getScoreThresholdColor(0);
 
-      // Count-up number
-      if ($number) {
-        const duration = 1200;
-        const start = performance.now();
+      const duration = 1800;
+      timers.push(setTimeout(() => {
+        const startTime = performance.now();
         function tick(now) {
-          const elapsed = now - start;
+          const elapsed = now - startTime;
           const progress = Math.min(elapsed / duration, 1);
           const eased = 1 - Math.pow(1 - progress, 3);
-          $number.textContent = Math.round(pct * eased) + '%';
+
+          const currentPct = Math.round(pct * eased);
+          const currentOffset = arcLength - (currentPct / 100) * arcLength;
+
+          $arcFill.style.strokeDashoffset = String(currentOffset);
+          $arcFill.style.stroke = getScoreThresholdColor(currentPct);
+
+          if ($number) $number.textContent = currentPct + '%';
+
           if (progress < 1) requestAnimationFrame(tick);
-          else $number.textContent = pct + '%';
+          else if ($number) $number.textContent = pct + '%';
         }
-        timers.push(setTimeout(() => requestAnimationFrame(tick), 300));
-      }
+        requestAnimationFrame(tick);
+      }, 300));
     }
   }
 
   // Verdict label
   if ($verdict) {
     const tier = pct >= 90 ? { verdict: 'Outstanding', tier: 'high' }
-      : pct >= 85 ? { verdict: 'Excellent', tier: 'high' }
+      : pct >= 86 ? { verdict: 'Excellent', tier: 'high' }
       : pct >= 75 ? { verdict: 'Solid Pick', tier: 'mid' }
       : pct >= 60 ? { verdict: 'Worth a Try', tier: 'mid' }
       : { verdict: 'Adventurous', tier: 'low' };
     $verdict.textContent = tier.verdict;
     $verdict.setAttribute('data-tier', tier.tier);
+    $verdict.style.color = getScoreThresholdColor(pct);
     if (!REDUCED.matches) {
       $verdict.style.opacity = '0';
       timers.push(setTimeout(() => {
         $verdict.style.transition = 'opacity 400ms ease-out';
         $verdict.style.opacity = '1';
-      }, 800));
+      }, 1200));
     }
   }
 

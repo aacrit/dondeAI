@@ -16,7 +16,7 @@ import { fetchRecommendation } from './api.js';
 import { animateScoreRing, renderPetalRadar, renderSentimentBar, renderScoreBloom, renderScoreHero, renderVibeBars, renderSentimentInline, toggleBloom, resetBloomState, handlePetalTap, handleBloomRingTap, toggleScoreBreakdown, getBloomState, animateBadge, startParticles, stopParticles, chaosToOrderReveal, initLogoAnimation, startSearchPulse, stopSearchPulse, resolveLogoToFound, cleanupLoadingLogo } from './animations.js';
 import {
   getGreeting, getTimePeriod, getCuisineFromResult, svgIcon,
-  getScoreTier, getScoreColor, buildGoogleStars, buildMapsUrl, relativeTime, matchCuisine, matchCulture
+  getScoreTier, getScoreColor, getScoreThresholdColor, buildGoogleStars, buildMapsUrl, relativeTime, matchCuisine, matchCulture
 } from './utils.js';
 
 /* ---- Cached DOM Elements ---- */
@@ -1748,23 +1748,28 @@ function renderResult(data) {
     $matchVerdict.setAttribute('data-tier', tier.tier);
   }
 
-  // Animate score count-up
+  // Animate score count-up with progressive border color coding
   const REDUCED_MQ = matchMedia('(prefers-reduced-motion: reduce)');
   if ($matchScore && !REDUCED_MQ.matches) {
     animationTimers.push(setTimeout(() => {
-      const duration = 800;
+      const duration = 1400;
       const start = performance.now();
       const animate = (now) => {
         const elapsed = now - start;
         const progress = Math.min(elapsed / duration, 1);
         const eased = 1 - Math.pow(1 - progress, 3);
-        $matchScore.textContent = Math.round(eased * dondeScore);
+        const current = Math.round(eased * dondeScore);
+        $matchScore.textContent = current;
+        // Progressive border color based on current animated value
+        if ($matchPill) $matchPill.style.borderColor = getScoreThresholdColor(current);
         if (progress < 1) requestAnimationFrame(animate);
       };
       requestAnimationFrame(animate);
     }, 200));
   } else if ($matchScore) {
     $matchScore.textContent = dondeScore;
+    // Set final border color immediately for reduced motion
+    if ($matchPill) $matchPill.style.borderColor = getScoreThresholdColor(dondeScore);
   }
 
   // Restaurant name
