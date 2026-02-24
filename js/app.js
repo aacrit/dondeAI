@@ -1353,9 +1353,12 @@ function selectFilter(field, btn) {
   updateFilterSummary();
   boostCta();
 
-  // F17: Auto-collapse filter drawer after selection (Momentum principle)
+  // Auto-collapse only when all filter categories have been selected
   clearTimeout(autoAdvanceTimer);
-  autoAdvanceTimer = setTimeout(() => collapseFilters(), 600);
+  const st = getState();
+  if (st.occasion !== 'Any' && st.neighborhood !== 'Anywhere' && st.priceLevel !== 'Any') {
+    autoAdvanceTimer = setTimeout(() => collapseFilters(), 600);
+  }
 }
 
 let autoAdvanceTimer = null;
@@ -2148,7 +2151,7 @@ function prepareTier2(data, cuisine) {
       links.push(createResultLink('a', 'globe', hostname, r.website));
     }
     if (r.phone) {
-      links.push(createResultLink('a', 'phone', r.phone, `tel:${r.phone}`));
+      links.push(createResultLink('a', 'phone', 'Call', `tel:${r.phone}`));
     }
     const shareLink = createResultLink('button', 'shareNetwork', 'Share');
     shareLink.setAttribute('data-action', 'share');
@@ -2431,7 +2434,7 @@ function renderQuickActions(data) {
 
   // Phone
   if (r.phone) {
-    items.push({ icon: 'phone', label: r.phone, href: `tel:${r.phone}` });
+    items.push({ icon: 'phone', label: 'Call', href: `tel:${r.phone}` });
   }
 
   items.forEach(item => {
