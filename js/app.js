@@ -2064,6 +2064,8 @@ function prepareTier2(data, cuisine) {
     if (bestSeat) {
       tipContent = tipContent ? `${tipContent} · Best seat: ${bestSeat}` : `Best seat: ${bestSeat}`;
     }
+    // Strip em-dashes — replace with commas for cleaner reading
+    tipContent = tipContent.replace(/\u2014/g, ', ').replace(/ , /g, ', ');
     if (tipContent) { $tipText.textContent = tipContent; $extrasTip.style.display = ''; }
     else { $extrasTip.style.display = 'none'; }
   }
@@ -2913,21 +2915,11 @@ function renderDeepContextExtras(data) {
   const dc = data.deep_context;
   if (!dc) return;
 
-  // Unique Selling Point
-  const $usp = document.getElementById('usp-callout');
-  const $uspText = document.getElementById('usp-callout-text');
-  if ($usp && $uspText && dc.unique_selling_point) {
-    $uspText.textContent = dc.unique_selling_point;
-    $usp.style.display = '';
-  } else if ($usp) {
-    $usp.style.display = 'none';
-  }
-
   // Wow Factors
   const $wow = document.getElementById('wow-factors');
   if ($wow && dc.wow_factors?.length) {
     $wow.innerHTML = '';
-    dc.wow_factors.slice(0, 4).forEach(w => {
+    dc.wow_factors.filter(w => w !== 'unique_decor').slice(0, 4).forEach(w => {
       const pill = document.createElement('span');
       pill.className = 'wow-pill type-data--sm';
       pill.textContent = w;
@@ -2938,15 +2930,89 @@ function renderDeepContextExtras(data) {
     $wow.style.display = 'none';
   }
 
-  // Origin Story
+  // Quick Stats ribbon — compact deep-context data strip
+  renderQuickStats(dc);
+
+  // Origin Story — presented as a micro-fable
   const $origin = document.getElementById('origin-story');
   const $originText = document.getElementById('origin-story-text');
   if ($origin && $originText && dc.origin_story) {
-    $originText.textContent = dc.origin_story;
+    let fable = dc.origin_story;
+    // Add fable opener if the story doesn't already begin with one
+    const fableOpeners = /^(once|long ago|there once|in the beginning|it began|years ago|back when|a long)/i;
+    if (!fableOpeners.test(fable.trim())) {
+      fable = 'Once, ' + fable.charAt(0).toLowerCase() + fable.slice(1);
+    }
+    $originText.textContent = fable;
     $origin.style.display = '';
   } else if ($origin) {
     $origin.style.display = 'none';
   }
+}
+
+/* ---- Quick Stats: Compact deep-context data ribbon ---- */
+function renderQuickStats(dc) {
+  const $stats = document.getElementById('quick-stats');
+  if (!$stats) return;
+  $stats.innerHTML = '';
+
+  const items = [];
+
+  if (dc.typical_wait_minutes) {
+    items.push({ icon: 'clock', text: `~${dc.typical_wait_minutes} min wait` });
+  }
+  if (dc.check_average_per_person) {
+    items.push({ icon: 'tag', text: `~$${dc.check_average_per_person}/pp` });
+  }
+  if (dc.reservation_difficulty && dc.reservation_difficulty !== 'none') {
+    const resMap = { easy: 'Walk-ins OK', moderate: 'Reservations rec.', hard: 'Hard to book' };
+    items.push({ icon: 'calendar', text: resMap[dc.reservation_difficulty] || humanizeSnake(dc.reservation_difficulty) });
+  }
+  if (dc.energy_level != null) {
+    const e = dc.energy_level;
+    items.push({ icon: 'bolt', text: e >= 8 ? 'High energy' : e >= 5 ? 'Moderate energy' : 'Chill vibe' });
+  }
+  if (dc.conversation_friendliness != null) {
+    const c = dc.conversation_friendliness;
+    items.push({ icon: 'chat', text: c >= 7 ? 'Great for convo' : c >= 4 ? 'Moderate noise' : 'Loud' });
+  }
+  if (dc.spice_level && dc.spice_level !== 'none') {
+    items.push({ icon: 'fire', text: humanizeSnake(dc.spice_level) });
+  }
+  if (dc.cultural_authenticity != null) {
+    const a = dc.cultural_authenticity;
+    items.push({ icon: 'globe', text: a >= 8 ? 'Very authentic' : a >= 5 ? 'Authentic' : 'Fusion' });
+  }
+  if (dc.transit_accessibility) {
+    items.push({ icon: 'train', text: dc.transit_accessibility });
+  }
+  if (dc.group_size_sweet_spot) {
+    // Parse "[2,6)" range format to "2-6"
+    const range = dc.group_size_sweet_spot.replace(/[\[\]()]/g, '').replace(',', '-');
+    items.push({ icon: 'usersThree', text: `Best for ${range}` });
+  }
+
+  // Cap at 5 for compactness
+  const shown = items.slice(0, 5);
+  if (shown.length === 0) {
+    $stats.style.display = 'none';
+    return;
+  }
+
+  shown.forEach((item, i) => {
+    if (i > 0) {
+      const dot = document.createElement('span');
+      dot.className = 'quick-stat__dot';
+      dot.textContent = '\u00b7';
+      dot.setAttribute('aria-hidden', 'true');
+      $stats.appendChild(dot);
+    }
+    const span = document.createElement('span');
+    span.className = 'quick-stat';
+    span.innerHTML = `${svgIcon(item.icon, 12)}<span>${item.text}</span>`;
+    $stats.appendChild(span);
+  });
+  $stats.style.display = '';
 }
 
 /* ---- 1D: Add Deep Context Badges to Tier 3 ---- */
