@@ -1056,6 +1056,7 @@
 }
 .utility-pill:hover {
   color: var(--fg2);
+}
 
 /* ── Cuisine Mismatch Notice ── */
 .cuisine-mismatch-notice {
