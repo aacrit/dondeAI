@@ -753,6 +753,13 @@ function wireEvents() {
         toggleSound();
         break;
 
+      case 'toggle-badge-popout': {
+        const isOpen = btn.getAttribute('aria-expanded') === 'true';
+        if (isOpen) closeBadgePopout();
+        else openBadgePopout(btn);
+        break;
+      }
+
       case 'share':
         shareResult();
         break;
@@ -816,33 +823,32 @@ function wireEvents() {
 
       case 'expand-tier-2': {
         const $tier2 = document.getElementById('tier-leanin');
-        const $tier3 = document.getElementById('tier-deep');
         const isExpanded = btn.getAttribute('aria-expanded') === 'true';
         btn.setAttribute('aria-expanded', String(!isExpanded));
         if ($tier2) {
           $tier2.classList.toggle('tier--expanded');
           $tier2.setAttribute('aria-hidden', String(isExpanded));
         }
-        if ($tier3) {
-          $tier3.classList.toggle('tier--expanded');
-          $tier3.setAttribute('aria-hidden', String(isExpanded));
-        }
         const $btnText = btn.querySelector('.tell-more-btn__text');
         if ($btnText) $btnText.textContent = isExpanded ? 'Show More' : 'Show Less';
-        // Show bottom actions when expanded
-        const $bottomTryAgain = document.getElementById('bottom-try-again');
-        const $bottomStartOver = document.getElementById('bottom-start-over');
-        if ($bottomTryAgain) $bottomTryAgain.style.display = isExpanded ? 'none' : '';
-        if ($bottomStartOver) $bottomStartOver.style.display = isExpanded ? 'none' : '';
-        // Trigger tier 2 + tier 3 animations on first expand
         if (!isExpanded) {
           renderTier2Animations();
-          renderTier3Animations();
           const $hero = document.getElementById('score-hero');
           if ($hero) $hero.focus({ preventScroll: true });
-          announce('Showing all details');
+          announce('Showing more details');
         } else {
-          // Collapsing — reset bloom state
+          // Collapsing — also collapse tier 3 if open
+          const $tier3 = document.getElementById('tier-deep');
+          const $detailsBtn = document.getElementById('details-trigger-btn');
+          if ($tier3?.classList.contains('tier--expanded')) {
+            $tier3.classList.remove('tier--expanded');
+            $tier3.setAttribute('aria-hidden', 'true');
+          }
+          if ($detailsBtn) {
+            $detailsBtn.setAttribute('aria-expanded', 'false');
+            const t = $detailsBtn.querySelector('.details-trigger-btn__text');
+            if (t) t.textContent = 'All Details';
+          }
           resetBloomState();
         }
         break;
@@ -908,6 +914,28 @@ function wireEvents() {
     }
     const msgs = { bloomed: 'Showing vibe profile', breakdown: 'Showing score breakdown', compact: 'Collapsed vibe profile' };
     announce(msgs[newState] || '');
+  });
+
+  // Badge popout: click-outside to close
+  document.addEventListener('click', (e) => {
+    if (_activePopout && !_activePopout.badge.contains(e.target)) {
+      closeBadgePopout();
+    }
+  });
+
+  // Badge popout: keyboard support (Enter/Space to toggle, Escape to close)
+  document.addEventListener('keydown', (e) => {
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.dataset?.action === 'toggle-badge-popout') {
+      e.preventDefault();
+      const isOpen = e.target.getAttribute('aria-expanded') === 'true';
+      if (isOpen) closeBadgePopout();
+      else openBadgePopout(e.target);
+    }
+    if (e.key === 'Escape' && _activePopout) {
+      const badge = _activePopout.badge;
+      closeBadgePopout();
+      badge.focus();
+    }
   });
 }
 
@@ -1709,11 +1737,6 @@ function renderResult(data) {
   if ($tier3) { $tier3.classList.remove('tier--expanded'); $tier3.setAttribute('aria-hidden', 'true'); }
   if ($tellMore) { $tellMore.setAttribute('aria-expanded', 'false'); const t = $tellMore.querySelector('.tell-more-btn__text'); if (t) t.textContent = 'Show More'; }
   if ($detailsTrigger) { $detailsTrigger.setAttribute('aria-expanded', 'false'); const t = $detailsTrigger.querySelector('.details-trigger-btn__text'); if (t) t.textContent = 'All Details'; }
-  // Hide bottom actions until tier 2 expands
-  const $bottomTryAgain = document.getElementById('bottom-try-again');
-  const $bottomStartOver = document.getElementById('bottom-start-over');
-  if ($bottomTryAgain) $bottomTryAgain.style.display = 'none';
-  if ($bottomStartOver) $bottomStartOver.style.display = 'none';
 
   // Cuisine detection (for accent color + auto-theme)
   const cuisine = getCuisineFromResult(data);
@@ -1782,35 +1805,139 @@ function renderResult(data) {
   const $oneliner = document.getElementById('result-oneliner');
   if ($oneliner) $oneliner.textContent = r.best_for_oneliner || '';
 
-  // Quick tags: cuisine + price (only render what's available)
+  // Quick tags: interactive badges with popouts
   const $quickTags = document.getElementById('quick-tags');
   if ($quickTags) {
     $quickTags.innerHTML = '';
+
+    // Cuisine tag — interactive with "What to Order" popout
     const cuisineLabel = data.deep_context?.cuisine_subcategory || r.cuisine_type;
     if (cuisineLabel) {
       const tag = document.createElement('span');
-      tag.className = 'quick-tag type-data--sm';
+      tag.className = 'quick-tag quick-tag--interactive type-data--sm';
+      tag.setAttribute('role', 'button');
+      tag.setAttribute('tabindex', '0');
+      tag.setAttribute('aria-expanded', 'false');
+      tag.setAttribute('aria-haspopup', 'true');
+      tag.setAttribute('data-action', 'toggle-badge-popout');
       tag.innerHTML = `${svgIcon(cuisine.icon || 'plate', 12)} ${shortenBadgeValue(cuisineLabel)}`;
+      const dishes = data.deep_context?.signature_dishes;
+      if (dishes?.length) {
+        const popout = document.createElement('div');
+        popout.className = 'badge-popout';
+        popout.setAttribute('role', 'tooltip');
+        const title = document.createElement('span');
+        title.className = 'badge-popout__title';
+        title.textContent = 'What to Order';
+        popout.appendChild(title);
+        const pillsWrap = document.createElement('div');
+        pillsWrap.className = 'badge-popout__pills';
+        dishes.slice(0, 4).forEach(d => {
+          const pill = document.createElement('span');
+          pill.className = 'badge-popout__pill badge-popout__pill--dish';
+          pill.textContent = d.dish;
+          if (d.description) pill.title = d.description;
+          pillsWrap.appendChild(pill);
+        });
+        popout.appendChild(pillsWrap);
+        tag.appendChild(popout);
+      }
       $quickTags.appendChild(tag);
     }
-    if (r.price_level) {
-      const tag = document.createElement('span');
-      tag.className = 'quick-tag type-data--sm';
-      tag.textContent = r.price_level;
-      $quickTags.appendChild(tag);
-    }
-    // Google rating as quick tag if available
+
+    // Google Rating tag — interactive with review details + sentiment popout
     if (r.google_rating) {
       const tag = document.createElement('span');
-      tag.className = 'quick-tag type-data--sm';
+      tag.className = 'quick-tag quick-tag--interactive type-data--sm';
+      tag.setAttribute('role', 'button');
+      tag.setAttribute('tabindex', '0');
+      tag.setAttribute('aria-expanded', 'false');
+      tag.setAttribute('aria-haspopup', 'true');
+      tag.setAttribute('data-action', 'toggle-badge-popout');
       tag.innerHTML = `${svgIcon('starFull', 12)} ${parseFloat(r.google_rating).toFixed(1)}`;
       tag.style.color = 'hsl(45 93% 47%)';
+
+      const popout = document.createElement('div');
+      popout.className = 'badge-popout';
+      popout.setAttribute('role', 'tooltip');
+
+      const starsRow = document.createElement('div');
+      starsRow.className = 'badge-popout__stars-row';
+      starsRow.innerHTML = buildGoogleStars(r.google_rating);
+      popout.appendChild(starsRow);
+
+      const ratingLine = document.createElement('div');
+      ratingLine.className = 'badge-popout__body';
+      const ratingNum = `<strong>${parseFloat(r.google_rating).toFixed(1)}</strong>`;
+      if (r.google_review_count) {
+        const countText = `${Number(r.google_review_count).toLocaleString()} reviews`;
+        if (r.google_place_id) {
+          const url = `https://www.google.com/maps/place/?q=place_id:${r.google_place_id}`;
+          ratingLine.innerHTML = `${ratingNum} · <a class="badge-popout__link" href="${url}" target="_blank" rel="noopener noreferrer">${countText}</a>`;
+        } else {
+          ratingLine.innerHTML = `${ratingNum} · ${countText}`;
+        }
+      } else {
+        ratingLine.innerHTML = ratingNum;
+      }
+      popout.appendChild(ratingLine);
+
+      const sentimentData = computeSentiment(r);
+      if (sentimentData) {
+        const sentWrap = document.createElement('div');
+        sentWrap.className = 'badge-popout__sentiment';
+        // RGB track bar
+        const track = document.createElement('div');
+        track.className = 'sentiment-inline__track';
+        track.innerHTML =
+          `<span class="sentiment-inline__seg sentiment-inline__seg--pos" style="flex:${sentimentData.pos}"></span>` +
+          `<span class="sentiment-inline__seg sentiment-inline__seg--neu" style="flex:${sentimentData.neu}"></span>` +
+          `<span class="sentiment-inline__seg sentiment-inline__seg--neg" style="flex:${sentimentData.neg}"></span>`;
+        sentWrap.appendChild(track);
+        // Colored-dot legend
+        const legend = document.createElement('div');
+        legend.className = 'badge-popout__sentiment-legend';
+        legend.innerHTML =
+          `<span class="badge-popout__sentiment-item"><span class="badge-popout__sentiment-dot badge-popout__sentiment-dot--pos"></span>${sentimentData.pos}% positive</span>` +
+          `<span class="badge-popout__sentiment-item"><span class="badge-popout__sentiment-dot badge-popout__sentiment-dot--neu"></span>${sentimentData.neu}% neutral</span>` +
+          `<span class="badge-popout__sentiment-item"><span class="badge-popout__sentiment-dot badge-popout__sentiment-dot--neg"></span>${sentimentData.neg}% negative</span>`;
+        sentWrap.appendChild(legend);
+        popout.appendChild(sentWrap);
+      }
+
+      tag.appendChild(popout);
       $quickTags.appendChild(tag);
     }
+
+    // Reserve badge (subtle action style)
+    const reserveUrl = r.google_place_id
+      ? `https://www.google.com/maps/place/?q=place_id:${r.google_place_id}`
+      : r.website;
+    if (reserveUrl) {
+      const tag = document.createElement('a');
+      tag.className = 'quick-tag quick-tag--action type-data--sm';
+      tag.href = reserveUrl;
+      tag.target = '_blank';
+      tag.rel = 'noopener noreferrer';
+      tag.innerHTML = `${svgIcon('calendar', 12)} Reserve`;
+      $quickTags.appendChild(tag);
+    }
+
+    // Share badge (subtle action style)
+    const shareTag = document.createElement('span');
+    shareTag.className = 'quick-tag quick-tag--action type-data--sm';
+    shareTag.setAttribute('role', 'button');
+    shareTag.setAttribute('tabindex', '0');
+    shareTag.setAttribute('data-action', 'share');
+    shareTag.innerHTML = `${svgIcon('shareNetwork', 12)} Share`;
+    $quickTags.appendChild(shareTag);
   }
 
   // F2: Open Now / Closed badge in quick tags
   renderOpenNowTag(data);
+
+  // Utility pills (website, phone, parking, price) below action buttons
+  renderUtilityPills(data);
 
   // F4: Set bookmark button state
   if (r.id) updateBookmarkBtn(r.id);
@@ -1851,12 +1978,6 @@ function renderResult(data) {
   // TIER 3: DEEP DIVE — Prepare content (hidden until expanded)
   // ═══════════════════════════════════════════════════════
   prepareTier3(data, cuisine);
-
-  // Inject icon into bottom Start Over button
-  const $startOverIcon = document.getElementById('start-over-icon');
-  const $bottomTryAgainIcon = document.getElementById('bottom-try-again-icon');
-  if ($startOverIcon) $startOverIcon.innerHTML = svgIcon('home', 18);
-  if ($bottomTryAgainIcon) $bottomTryAgainIcon.innerHTML = svgIcon('refresh', 18);
 
   // Apply progressive reveal (Tier 1 only — Tier 2/3 animate on expand)
   if ($resultCard) {
@@ -2235,6 +2356,127 @@ function shortenBadgeValue(value) {
   return value.split(/[,/;]/).at(0).trim();
 }
 
+/* ---- Badge Popout Manager ---- */
+let _activePopout = null;
+let _popoutTimer = null;
+
+function openBadgePopout(badgeEl) {
+  closeBadgePopout();
+  const popout = badgeEl.querySelector('.badge-popout');
+  if (!popout) return;
+  badgeEl.setAttribute('aria-expanded', 'true');
+  // Reparent to body so backdrop-filter on ancestors can't trap fixed positioning
+  document.body.appendChild(popout);
+  popout.classList.add('badge-popout--open');
+  _activePopout = { badge: badgeEl, popout };
+  _popoutTimer = setTimeout(() => closeBadgePopout(), 5000);
+  requestAnimationFrame(() => positionPopout(badgeEl, popout));
+}
+
+function closeBadgePopout() {
+  if (_popoutTimer) { clearTimeout(_popoutTimer); _popoutTimer = null; }
+  if (!_activePopout) return;
+  const { badge, popout } = _activePopout;
+  badge.setAttribute('aria-expanded', 'false');
+  popout.classList.remove('badge-popout--open');
+  popout.style.top = '';
+  popout.style.left = '';
+  popout.style.transformOrigin = '';
+  // Return popout to its badge so querySelector still finds it next time
+  badge.appendChild(popout);
+  _activePopout = null;
+}
+
+function positionPopout(badgeEl, popout) {
+  const br = badgeEl.getBoundingClientRect();
+  const pw = popout.offsetWidth;
+  const ph = popout.offsetHeight;
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const gap = 6;
+
+  // Horizontal: left-align with badge, then clamp
+  let left = br.left;
+  if (left + pw > vw - 8) left = vw - 8 - pw;
+  if (left < 8) left = 8;
+
+  // Vertical: prefer below, flip above if no room
+  let top = br.bottom + gap;
+  let origin = 'top left';
+  if (top + ph > vh - 8) {
+    top = br.top - gap - ph;
+    origin = 'bottom left';
+  }
+
+  popout.style.top = `${Math.round(top)}px`;
+  popout.style.left = `${Math.round(left)}px`;
+  popout.style.transformOrigin = origin;
+}
+
+/* ---- Sentiment Computation Helper ---- */
+function computeSentiment(r) {
+  let pos = null, neu = null, neg = null;
+  if (r.sentiment_positive != null && r.sentiment_negative != null && r.sentiment_neutral != null) {
+    pos = r.sentiment_positive; neu = r.sentiment_neutral; neg = r.sentiment_negative;
+  } else if (r.sentiment_breakdown) {
+    const parts = r.sentiment_breakdown.toLowerCase();
+    const posMatch = parts.match(/(\d+)%?\s*positive/);
+    const neuMatch = parts.match(/(\d+)%?\s*neutral/);
+    const negMatch = parts.match(/(\d+)%?\s*negative/);
+    if (posMatch || neuMatch || negMatch) {
+      pos = parseInt(posMatch?.[1] || '33', 10);
+      neu = parseInt(neuMatch?.[1] || '34', 10);
+      neg = parseInt(negMatch?.[1] || '33', 10);
+    }
+  } else if (r.sentiment_score != null) {
+    const score = parseFloat(r.sentiment_score);
+    if (!isNaN(score)) {
+      pos = Math.round((score / 10) * 100);
+      neg = Math.round((1 - score / 10) * 30);
+      neu = 100 - pos - neg;
+    }
+  }
+  return pos != null ? { pos, neu, neg } : null;
+}
+
+/* ---- Render Utility Pills (website, phone, parking, price below actions) ---- */
+function renderUtilityPills(data) {
+  const r = data.restaurant;
+  const $pills = document.getElementById('utility-pills');
+  if (!$pills) return;
+  $pills.innerHTML = '';
+  const items = [];
+  if (r.website) {
+    let hostname = 'Website';
+    try { hostname = new URL(r.website).hostname.replace('www.', ''); } catch { /* keep fallback */ }
+    items.push({ icon: 'globe', label: hostname, href: r.website });
+  }
+  if (r.phone) {
+    items.push({ icon: 'phone', label: r.phone, href: `tel:${r.phone}` });
+  }
+  const parkingPts = r.parking_availability
+    ? parseParkingTypes(r.parking_availability).slice(0, 2).join(' / ') : null;
+  if (parkingPts) {
+    items.push({ icon: 'car', label: parkingPts });
+  }
+  if (r.price_level) {
+    items.push({ icon: 'tag', label: r.price_level });
+  }
+  if (items.length === 0) { $pills.style.display = 'none'; return; }
+  items.forEach(item => {
+    const pill = item.href ? document.createElement('a') : document.createElement('span');
+    pill.className = 'utility-pill type-data--sm';
+    if (item.href) {
+      pill.href = item.href;
+      pill.target = item.href.startsWith('tel:') ? '_self' : '_blank';
+      pill.rel = 'noopener noreferrer';
+    }
+    pill.innerHTML = `${svgIcon(item.icon, 11)} ${item.label}`;
+    $pills.appendChild(pill);
+  });
+  $pills.style.display = '';
+}
+
 /* ---- Humanize snake_case strings to Title Case ---- */
 function humanizeSnake(str) {
   if (!str || typeof str !== 'string') return '';
@@ -2503,22 +2745,47 @@ function renderBusinessHours(data) {
   $hours.style.display = '';
 }
 
-/* ---- F2: Open Now badge in quick tags ---- */
+/* ---- F2: Open Now badge in quick tags (interactive with hours popout) ---- */
 function renderOpenNowTag(data) {
   const $quickTags = document.getElementById('quick-tags');
   if (!$quickTags) return;
   const oh = data.restaurant?.opening_hours;
-  if (oh?.open_now === true) {
-    const tag = document.createElement('span');
-    tag.className = 'quick-tag quick-tag--open type-data--sm';
-    tag.textContent = 'Open';
-    $quickTags.insertBefore(tag, $quickTags.firstChild);
-  } else if (oh?.open_now === false) {
-    const tag = document.createElement('span');
-    tag.className = 'quick-tag quick-tag--closed type-data--sm';
-    tag.textContent = 'Closed';
-    $quickTags.insertBefore(tag, $quickTags.firstChild);
+  if (oh?.open_now == null) return;
+
+  const tag = document.createElement('span');
+  tag.className = `quick-tag ${oh.open_now ? 'quick-tag--open' : 'quick-tag--closed'} quick-tag--interactive type-data--sm`;
+  tag.setAttribute('role', 'button');
+  tag.setAttribute('tabindex', '0');
+  tag.setAttribute('aria-expanded', 'false');
+  tag.setAttribute('aria-haspopup', 'true');
+  tag.setAttribute('data-action', 'toggle-badge-popout');
+  tag.textContent = oh.open_now ? 'Open' : 'Closed';
+
+  if (oh.weekday_text?.length) {
+    const popout = document.createElement('div');
+    popout.className = 'badge-popout';
+    popout.setAttribute('role', 'tooltip');
+    const title = document.createElement('span');
+    title.className = 'badge-popout__title';
+    title.textContent = 'Hours';
+    popout.appendChild(title);
+    const today = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+    const pillsWrap = document.createElement('div');
+    pillsWrap.className = 'badge-popout__pills';
+    oh.weekday_text.forEach(line => {
+      const pill = document.createElement('span');
+      pill.className = 'badge-popout__pill';
+      if (line.toLowerCase().startsWith(today)) {
+        pill.classList.add('badge-popout__pill--today');
+      }
+      pill.textContent = line;
+      pillsWrap.appendChild(pill);
+    });
+    popout.appendChild(pillsWrap);
+    tag.appendChild(popout);
   }
+
+  $quickTags.insertBefore(tag, $quickTags.firstChild);
 }
 
 /* ---- F3: Enhanced Map Navigation Tile ---- */
