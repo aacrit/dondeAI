@@ -2369,43 +2369,52 @@ function openBadgePopout(badgeEl) {
   const popout = badgeEl.querySelector('.badge-popout');
   if (!popout) return;
   badgeEl.setAttribute('aria-expanded', 'true');
+  // Reparent to body so backdrop-filter on ancestors can't trap fixed positioning
+  document.body.appendChild(popout);
   popout.classList.add('badge-popout--open');
   _activePopout = { badge: badgeEl, popout };
   _popoutTimer = setTimeout(() => closeBadgePopout(), 5000);
-  // Position fixed popout below the badge
   requestAnimationFrame(() => positionPopout(badgeEl, popout));
 }
 
 function closeBadgePopout() {
   if (_popoutTimer) { clearTimeout(_popoutTimer); _popoutTimer = null; }
   if (!_activePopout) return;
-  _activePopout.badge.setAttribute('aria-expanded', 'false');
-  _activePopout.popout.classList.remove('badge-popout--open');
-  _activePopout.popout.style.top = '';
-  _activePopout.popout.style.left = '';
+  const { badge, popout } = _activePopout;
+  badge.setAttribute('aria-expanded', 'false');
+  popout.classList.remove('badge-popout--open');
+  popout.style.top = '';
+  popout.style.left = '';
+  popout.style.transformOrigin = '';
+  // Return popout to its badge so querySelector still finds it next time
+  badge.appendChild(popout);
   _activePopout = null;
 }
 
 function positionPopout(badgeEl, popout) {
-  const badgeRect = badgeEl.getBoundingClientRect();
-  const gap = 8;
-  // Center popout below badge
-  let top = badgeRect.bottom + gap;
-  let left = badgeRect.left + badgeRect.width / 2 - popout.offsetWidth / 2;
-  // Clamp to viewport edges
+  const br = badgeEl.getBoundingClientRect();
+  const pw = popout.offsetWidth;
+  const ph = popout.offsetHeight;
   const vw = window.innerWidth;
   const vh = window.innerHeight;
+  const gap = 6;
+
+  // Horizontal: left-align with badge, then clamp
+  let left = br.left;
+  if (left + pw > vw - 8) left = vw - 8 - pw;
   if (left < 8) left = 8;
-  if (left + popout.offsetWidth > vw - 8) left = vw - 8 - popout.offsetWidth;
-  // If popout would overflow bottom, show above badge instead
-  if (top + popout.offsetHeight > vh - 8) {
-    top = badgeRect.top - gap - popout.offsetHeight;
-    popout.style.transformOrigin = 'bottom center';
-  } else {
-    popout.style.transformOrigin = 'top center';
+
+  // Vertical: prefer below, flip above if no room
+  let top = br.bottom + gap;
+  let origin = 'top left';
+  if (top + ph > vh - 8) {
+    top = br.top - gap - ph;
+    origin = 'bottom left';
   }
-  popout.style.top = `${Math.max(8, top)}px`;
-  popout.style.left = `${Math.max(8, left)}px`;
+
+  popout.style.top = `${Math.round(top)}px`;
+  popout.style.left = `${Math.round(left)}px`;
+  popout.style.transformOrigin = origin;
 }
 
 /* ---- Sentiment Computation Helper ---- */
