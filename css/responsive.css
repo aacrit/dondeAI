@@ -68,6 +68,11 @@
     padding: var(--space-xl);
   }
 
+  /* Photo strip: sync negative margins with card padding for edge bleed */
+  .result-photos {
+    margin: calc(-1 * var(--space-xl)) calc(-1 * var(--space-xl)) var(--space-sm);
+  }
+
   /* Score Hero: tablet sizing */
   .score-hero__gauge {
     width: min(65vw, 340px);
@@ -144,12 +149,41 @@
   .match-mini__score {
     font-size: 2rem;
   }
+
+  /* --- Desktop Result Card Layout --- */
+
+  /* Photos: larger thumbnails for desktop viewport */
+  .result-photos__img {
+    max-width: 400px;
+    height: 240px;
+  }
+
+  /* Prose readability: cap line length to ~65 characters */
+  .donde-blurb__text {
+    max-width: 640px;
+  }
+
+  .origin-story__text {
+    max-width: 640px;
+  }
+
+  /* Profile facts: 4-column grid on desktop */
+  .profile-facts {
+    max-width: 600px;
+    grid-template-columns: repeat(4, 1fr);
+  }
 }
 
 /* ---- 2560px: Large displays ---- */
 @media (min-width: 2560px) {
   :root {
     --content-max: 1100px;
+  }
+
+  /* UHD: slightly larger photos */
+  .result-photos__img {
+    max-width: 480px;
+    height: 280px;
   }
 }
 
