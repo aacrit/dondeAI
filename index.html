@@ -428,12 +428,15 @@
                   </div>
                 </div>
 
-                <!-- The Story: Origin + Insider Tip combined -->
+                <!-- The Story: Origin + Insider Tip (dynamic label) -->
                 <div class="restaurant-story" id="restaurant-story" style="display: none;">
-                  <span class="restaurant-story__label type-data--sm">The Story</span>
+                  <span class="restaurant-story__label type-data--sm" id="story-label">The Story</span>
                   <div class="restaurant-story__content">
                     <p class="restaurant-story__origin type-emotional" id="story-origin-text"></p>
-                    <p class="restaurant-story__tip type-structural" id="story-tip-text"></p>
+                    <div class="restaurant-story__tip-wrap" id="story-tip-wrap" style="display: none;">
+                      <span class="restaurant-story__tip-label type-data--xs">Insider Tip</span>
+                      <p class="restaurant-story__tip type-structural" id="story-tip-text"></p>
+                    </div>
                   </div>
                 </div>
 
@@ -443,8 +446,6 @@
                 <!-- Quick Stats ribbon (compact deep-context data, includes wow factors) -->
                 <div class="quick-stats" id="quick-stats" style="display: none;"></div>
 
-                <!-- Detail Badges Grid (facts + atmosphere + deep context) -->
-                <div class="profile-facts" id="profile-facts"></div>
               </div>
 
               <!-- ══════ CARD FOOTER — Decluttered: 2 primary actions ══════ -->

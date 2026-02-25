@@ -123,6 +123,15 @@ function normalizeScoringKeys(scoring) {
     }
     normalized.factor_details = nd;
   }
+  if (normalized.weights_used) {
+    const nw = { ...normalized.weights_used };
+    for (const [v3, v4] of Object.entries(V3_TO_V4)) {
+      if (nw[v3] != null && nw[v4] == null) {
+        nw[v4] = nw[v3];
+      }
+    }
+    normalized.weights_used = nw;
+  }
   return normalized;
 }
 
@@ -484,24 +493,18 @@ export function renderFactorBars(scoringData, timers = []) {
 
     const pct = Math.min(slot.val / 10, 1) * 100;
     const color = getFactorColor(slot.val);
-    // V4: Dynamic weight — shows as subtle "wt 25%" after score
-    const weightChip = slot.weight != null
-      ? `<span class="factor-row__weight type-data--xs">wt ${slot.weight}%</span>`
-      : '';
-    // V4: Confidence badge
-    const confBadge = slot.confidence
-      ? `<span class="factor-row__confidence factor-row__confidence--${slot.confidence}" title="${slot.confidence} confidence"></span>`
+    const weightSuffix = slot.weight != null
+      ? `<span class="factor-row__weight type-data--xs">${slot.weight}%</span>`
       : '';
 
     row.innerHTML = `
-      <span class="factor-row__icon">${svgIcon(slot.icon, 14)}</span>
+      <span class="factor-row__icon" style="color:${color}">${svgIcon(slot.icon, 16)}</span>
       <span class="factor-row__label type-structural">${slot.label}</span>
-      ${weightChip}
       <span class="factor-row__bar">
         <span class="factor-row__bar-fill" data-width="${pct}" style="background:${color}"></span>
       </span>
       <span class="factor-row__score type-data--sm">${slot.val.toFixed(1)}</span>
-      ${confBadge}`;
+      ${weightSuffix}`;
 
     // Drill-down panel (hidden by default)
     const detail = document.createElement('div');
@@ -566,7 +569,7 @@ function buildFactorDetail(factorKey, scoringV3) {
   const weights = scoringV3.weights_used || {};
   const details = scoringV3.factor_details?.[factorKey] || null;
 
-  const weightPct = weights[factorKey.replace('_match', '').replace('_fit', '')] || 0;
+  const weightPct = weights[factorKey] || 0;
   const weightLabel = Math.round(weightPct * 100);
 
   let items = '';

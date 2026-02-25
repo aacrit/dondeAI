@@ -1837,13 +1837,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--fg3);
   flex-shrink: 0;
+  width: 20px;
+  transition: color 0.3s ease;
 }
 
 .factor-row__icon svg {
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
 }
 
 .factor-row__label {
@@ -1883,57 +1884,22 @@
   text-align: right;
 }
 
-/* V4: Dynamic weight indicator — subtle inline after score */
+/* V4: Weight — barely-there suffix after score */
 .factor-row__weight {
   font-family: var(--font-data);
   font-size: var(--text-2xs, 10px);
-  color: var(--fg3);
-  background: none;
-  padding: 0;
-  letter-spacing: 0.02em;
-  white-space: nowrap;
-  flex-shrink: 0;
-  min-width: 28px;
-  text-align: right;
-  opacity: 0.6;
-}
-
-/* V4: Confidence badge */
-.factor-row__confidence {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  margin-left: 4px;
-}
-.factor-row__confidence--high {
-  background: var(--rag-green);
-}
-.factor-row__confidence--medium {
-  background: var(--rag-amber);
-}
-.factor-row__confidence--low {
-  background: var(--fg4);
-  opacity: 0.5;
-}
-
-/* V4: Weight chip in tile-expand */
-.tile-expand__dim-weight {
-  font-family: var(--font-data);
-  font-size: 9px;
   color: var(--fg4);
-  background: var(--bg2);
-  padding: 1px 4px;
-  border-radius: 3px;
-  letter-spacing: 0.02em;
-  white-space: nowrap;
+  opacity: 0.5;
+  min-width: 24px;
+  text-align: right;
   flex-shrink: 0;
-  margin-left: 4px;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
 }
 
-/* Dominant factor styling */
+/* Dominant factor styling — icon gets accent glow */
 .factor-row--dominant .factor-row__icon {
-  color: var(--ac);
+  filter: drop-shadow(0 0 3px var(--ac));
 }
 
 .factor-row--dominant .factor-row__label {
@@ -2101,100 +2067,6 @@
 .sentiment-inline__seg--neg { background: var(--rag-red); opacity: 0.7; }
 
 
-/* ---- Tile Badge (legacy — preserved for compatibility) ---- */
-
-/* ---- Details Badges (used inside .profile-facts) ---- */
-/* All badges are neutral — color lives only in the score ring */
-.details-badge {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2xs);
-  padding: var(--space-xs);
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  text-align: center;
-  min-width: 0;
-  min-height: 72px;
-}
-
-.details-badge__icon {
-  display: flex;
-  align-items: center;
-  color: var(--fg3);
-}
-
-.details-badge__icon svg {
-  width: 16px;
-  height: 16px;
-}
-
-.details-badge__label {
-  font-size: var(--text-xs);
-  color: var(--fg3);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.details-badge__value {
-  font-size: var(--text-sm);
-  font-weight: 600;
-  color: var(--fg);
-  line-height: 1.3;
-  text-align: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
-}
-
-/* Cuisine badge — smaller text, single-line with ellipsis */
-.details-badge--cuisine .details-badge__value {
-  font-size: var(--text-xs);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  line-height: 1.4;
-}
-
-/* Badge semantic color classes removed — all badges use neutral styling.
-   Color is reserved for the score ring only ("Ink Rule"). */
-
-
-
-/* Profile: Facts (badge grid — Cuisine, Price, Parking, Noise) */
-.profile-facts {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-xs);
-  width: 100%;
-  max-width: 420px;
-  margin: 0 auto;
-}
-
-/* Atmosphere badge variant (subtle accent wash) */
-.details-badge--atmo {
-  background: var(--ac-soft);
-  border-color: transparent;
-}
-
-.details-badge--atmo .details-badge__icon {
-  color: var(--fg2);
-}
-
-/* Dimmed state for missing/unavailable data badges */
-.details-badge--na {
-  opacity: 0.35;
-}
-
-.details-badge--na .details-badge__value {
-  font-weight: 400;
-  color: var(--fg3);
-}
-
-
 /* ---- Story Extras (Dishes + Insider Tip — merged row) ---- */
 .story-extras {
   display: flex;
@@ -2299,17 +2171,38 @@
   margin-left: 1px;
 }
 
-.restaurant-story__tip {
+.restaurant-story__tip-wrap {
   margin-top: var(--space-xs);
   padding-top: var(--space-xs);
   border-top: 1px solid var(--border);
+}
+
+.restaurant-story__tip-label {
+  display: inline-block;
+  font-family: var(--font-data);
+  font-size: var(--text-2xs, 10px);
+  color: var(--ac);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: var(--space-3xs);
+  opacity: 0.8;
+}
+
+.restaurant-story__tip {
   font-size: var(--text-sm);
   color: var(--fg);
   line-height: 1.5;
+  margin: 0;
 }
 
-.restaurant-story__origin:empty { display: none; }
-.restaurant-story__origin:empty + .restaurant-story__tip { border-top: none; margin-top: 0; padding-top: 0; }
+/* When origin is hidden, tip-wrap needs no separator */
+.restaurant-story__origin[style*="display: none"] + .restaurant-story__tip-wrap,
+.restaurant-story__origin:empty + .restaurant-story__tip-wrap {
+  border-top: none;
+  margin-top: 0;
+  padding-top: 0;
+}
+
 .restaurant-story__tip:empty { display: none; }
 
 @media (max-width: 767px) {

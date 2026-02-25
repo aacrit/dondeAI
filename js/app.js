@@ -973,10 +973,10 @@ function wireEvents() {
         if ($btnText) $btnText.textContent = isExpanded ? 'Show More' : 'Show Less';
         if (!isExpanded) {
           renderTier2Animations();
-          // Scroll to expanded tier content
-          if ($tier2) {
-            setTimeout(() => $tier2.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
-          }
+          // Scroll to Score Hero (same behavior as Match Mini tap)
+          setTimeout(() => {
+            document.getElementById('score-hero')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }, 200);
           announce('Showing more details');
         } else {
           // Collapsing
@@ -2161,10 +2161,12 @@ function prepareTier2(data, cuisine) {
 
   // Recommendation is now rendered in Tier 1 (Glance) via donde-blurb
 
-  // The Story: Combined Insider Tip + Origin Story
+  // The Story: Origin Story + Insider Tip (dynamic label)
   const $story = document.getElementById('restaurant-story');
   const $storyOrigin = document.getElementById('story-origin-text');
   const $storyTip = document.getElementById('story-tip-text');
+  const $storyLabel = document.getElementById('story-label');
+  const $tipWrap = document.getElementById('story-tip-wrap');
   if ($story) {
     const dc = data.deep_context || {};
     let tipContent = data.insider_tip || '';
@@ -2178,12 +2180,31 @@ function prepareTier2(data, cuisine) {
       }
     }
 
-    const hasContent = tipContent || originContent;
+    const hasOrigin = !!originContent;
+    const hasTip = !!tipContent;
+    const hasContent = hasOrigin || hasTip;
     $story.style.display = hasContent ? '' : 'none';
 
-    if ($storyOrigin) $storyOrigin.textContent = originContent;
+    // Dynamic section label: "The Story" when origin exists, "Insider Tip" when tip-only
+    if ($storyLabel) {
+      $storyLabel.textContent = hasOrigin ? 'The Story' : 'Insider Tip';
+    }
 
-    if ($storyTip && tipContent) {
+    // Origin paragraph
+    if ($storyOrigin) {
+      $storyOrigin.textContent = originContent;
+      $storyOrigin.style.display = hasOrigin ? '' : 'none';
+    }
+
+    // Insider Tip wrap (with sub-label when both origin + tip exist)
+    if ($tipWrap) {
+      $tipWrap.style.display = hasTip ? '' : 'none';
+      const $tipLabel = $tipWrap.querySelector('.restaurant-story__tip-label');
+      // Show "Insider Tip" sub-label only when origin is also present
+      if ($tipLabel) $tipLabel.style.display = hasOrigin ? '' : 'none';
+    }
+
+    if ($storyTip && hasTip) {
       // Typewriter reveal for insider tips — "friend whispering a secret" feel
       if (!$storyTip._hasRevealed) {
         $storyTip._hasRevealed = true;
@@ -2226,70 +2247,8 @@ function prepareTier2(data, cuisine) {
   // 1D: Deep context extras (USP, wow factors)
   renderDeepContextExtras(data);
 
-  // Detail badges grid (merged from former Tier 3 into Tier 2)
-  renderProfileBadges(data, cuisine);
 }
 
-/* ---- Profile Badges Grid (merged from former Tier 3) ---- */
-function renderProfileBadges(data, cuisine) {
-  const r = data.restaurant;
-  const $profileFacts = document.getElementById('profile-facts');
-  const parkingPts = r.parking_availability
-    ? parseParkingTypes(r.parking_availability).slice(0, 2).join(' / ') : null;
-  const CANONICAL_BADGES = [
-    { icon: cuisine.icon || 'plate', label: 'Cuisine',
-      value: (data.deep_context?.cuisine_subcategory || r.cuisine_type)
-        ? shortenBadgeValue(data.deep_context?.cuisine_subcategory || r.cuisine_type) : null,
-      raw: r.cuisine_type || '', isCuisine: true, isAtmo: false },
-    { icon: 'tag', label: 'Price', value: r.price_level || null, raw: r.price_level || '', isAtmo: false },
-    { icon: 'car', label: 'Parking', value: parkingPts, raw: r.parking_availability || '', isAtmo: false },
-    { icon: getNoiseIcon(r.noise_level), label: 'Noise',
-      value: r.noise_level ? shortenBadgeValue(r.noise_level) : null, raw: r.noise_level || '', isAtmo: false },
-    { icon: getAmbianceIcon(r.lighting_ambiance), label: 'Ambiance',
-      value: r.lighting_ambiance ? normalizeAmbiance(r.lighting_ambiance) : null,
-      raw: data.deep_context?.decor_style || r.lighting_ambiance || '', isAtmo: false },
-    { icon: 'shirt', label: 'Dress', value: r.dress_code ? shortenBadgeValue(r.dress_code) : null,
-      raw: r.dress_code || '', isAtmo: false },
-    { icon: 'patio', label: 'Patio',
-      value: r.outdoor_seating === true ? 'Yes' : (r.outdoor_seating === false ? 'No' : null),
-      raw: r.outdoor_seating != null ? (r.outdoor_seating ? 'Outdoor seating' : 'No patio') : '', isAtmo: true },
-    { icon: 'music', label: 'Live Music',
-      value: data.deep_context?.music_vibe || (r.live_music === true ? 'Yes' : (r.live_music === false ? 'No' : null)),
-      raw: data.deep_context?.music_vibe || (r.live_music != null ? (r.live_music ? 'Live music venue' : 'No live music') : ''), isAtmo: true },
-    { icon: 'pet', label: 'Pet Friendly',
-      value: r.pet_friendly === true ? 'Yes' : (r.pet_friendly === false ? 'No' : null),
-      raw: r.pet_friendly != null ? (r.pet_friendly ? 'Pet-friendly' : 'Not pet-friendly') : '', isAtmo: true },
-  ];
-
-  const byobPolicy = data.deep_context?.byob_policy;
-  if (byobPolicy && byobPolicy !== 'none') {
-    const byobMap = { full_byob: 'BYOB', wine_only: 'Wine Only' };
-    CANONICAL_BADGES.push({ icon: 'wine', label: 'BYOB', value: byobMap[byobPolicy] || humanizeSnake(byobPolicy), raw: humanizeSnake(byobPolicy), isAtmo: false });
-  }
-
-  if ($profileFacts) {
-    $profileFacts.innerHTML = '';
-    CANONICAL_BADGES.map(b => ({ ...b, isNA: b.value == null, value: b.value != null ? b.value : '\u2014' }))
-      .forEach(b => {
-        const div = document.createElement('div');
-        const cls = ['details-badge'];
-        if (b.isCuisine) cls.push('details-badge--cuisine');
-        if (b.isAtmo) cls.push('details-badge--atmo');
-        if (b.isNA) cls.push('details-badge--na');
-        div.className = cls.join(' ');
-        div.innerHTML = `
-          <span class="details-badge__icon">${svgIcon(b.icon, 16)}</span>
-          <span class="details-badge__label type-data--sm">${b.label}</span>
-          <span class="details-badge__value type-structural">${b.value}</span>`;
-        if (b.raw && b.raw !== b.value) div.setAttribute('title', b.raw);
-        $profileFacts.appendChild(div);
-      });
-    $profileFacts.style.display = '';
-  }
-
-  // 1D: Add deep context badges (reservation difficulty, wait time, etc.)
-  addDeepContextBadges(data);
-}
 
 
 /* ---- Tier 2 animation trigger (called on first expand) ---- */
@@ -2311,19 +2270,6 @@ function renderTier2Animations() {
   );
 }
 
-
-/* ---- Parking Type Parser ---- */
-function parseParkingTypes(parkingStr) {
-  if (!parkingStr) return [];
-  const lower = parkingStr.toLowerCase();
-  const types = [];
-  if (lower.includes('street')) types.push('Street');
-  if (lower.includes('lot') || lower.includes('garage')) types.push('Lot');
-  if (lower.includes('valet')) types.push('Valet');
-  if (lower.includes('metered')) types.push('Metered');
-  if (types.length === 0) types.push(parkingStr.split(/\s+/).slice(0, 2).join(' '));
-  return types;
-}
 
 /* ---- Badge Value Shortener (first segment, no word cap) ---- */
 function shortenBadgeValue(value) {
@@ -2481,66 +2427,6 @@ function formatSpiceLevel(raw) {
     hot: 'Spicy', high: 'Spicy', very_hot: 'Very Spicy', extra_hot: 'Very Spicy',
   };
   return map[raw.toLowerCase()] || humanizeSnake(raw);
-}
-
-/* ---- Service Style → Clean Label ---- */
-function formatServiceStyle(raw) {
-  if (!raw) return '';
-  const map = {
-    counter_service: 'Counter', full_service: 'Full Service', table_service: 'Full Service',
-    buffet: 'Buffet', fast_casual: 'Fast Casual', fine_dining: 'Fine Dining',
-    self_service: 'Self-Serve', family_style: 'Family Style',
-  };
-  return map[raw.toLowerCase()] || humanizeSnake(raw);
-}
-
-/* ---- Meal Pacing → Clean Label ---- */
-function formatMealPacing(raw) {
-  if (!raw) return '';
-  const map = {
-    fast_paced: 'Quick', fast: 'Quick', moderate: 'Relaxed',
-    leisurely: 'Leisurely', slow: 'Leisurely', relaxed: 'Relaxed',
-  };
-  return map[raw.toLowerCase()] || humanizeSnake(raw);
-}
-
-/* ---- Noise Level → Speaker Icon Mapper ---- */
-function getNoiseIcon(noiseStr) {
-  if (!noiseStr) return 'speakerWave';
-  const lower = noiseStr.toLowerCase();
-  if (lower.includes('quiet') || lower.includes('soft') || lower.includes('hushed'))
-    return 'speakerNone';
-  if (lower.includes('loud') || lower.includes('boisterous') || lower.includes('lively'))
-    return 'speakerHigh';
-  return 'speakerWave';
-}
-
-/* ---- Ambiance → Icon Mapper ---- */
-function getAmbianceIcon(ambianceStr) {
-  if (!ambianceStr) return 'sun';
-  const lower = ambianceStr.toLowerCase();
-  if (lower.includes('dim') || lower.includes('cozy') || lower.includes('warm') ||
-      lower.includes('intimate') || lower.includes('candlelit'))
-    return 'moon';
-  return 'sun';
-}
-
-/* ---- Ambiance → Concise Label Normalizer ---- */
-function normalizeAmbiance(ambianceStr) {
-  if (!ambianceStr) return '';
-  const lower = ambianceStr.toLowerCase();
-  if (lower.includes('candlelit')) return 'Candlelit';
-  if (lower.includes('dim') && lower.includes('warm')) return 'Dim & Warm';
-  if (lower.includes('dim') && lower.includes('intimate')) return 'Intimate';
-  if (lower.includes('dim')) return 'Dim';
-  if (lower.includes('cozy')) return 'Cozy';
-  if (lower.includes('warm') && lower.includes('intimate')) return 'Warm';
-  if (lower.includes('bright') && lower.includes('modern')) return 'Bright';
-  if (lower.includes('bright')) return 'Bright';
-  if (lower.includes('modern')) return 'Modern';
-  if (lower.includes('rustic')) return 'Rustic';
-  if (lower.includes('elegant')) return 'Elegant';
-  return shortenBadgeValue(ambianceStr);
 }
 
 // Humanize a vibe score (0-10) to a user-friendly label
@@ -3129,105 +3015,6 @@ function renderQuickStats(data) {
   $stats.style.display = '';
 }
 
-/* ---- 1D: Add Deep Context Badges to Tier 3 ---- */
-function addDeepContextBadges(data) {
-  const $profileFacts = document.getElementById('profile-facts');
-  if (!$profileFacts) return;
-  const dc = data.deep_context;
-  if (!dc) return;
-
-  const extraBadges = [];
-
-  // Reservation difficulty
-  if (dc.reservation_difficulty && dc.reservation_difficulty !== 'none') {
-    extraBadges.push({ icon: 'calendar', label: 'Reservations', value: humanizeSnake(dc.reservation_difficulty) });
-  }
-
-  // Wait time
-  if (dc.typical_wait_minutes) {
-    extraBadges.push({ icon: 'clock', label: 'Typical Wait', value: `~${dc.typical_wait_minutes} min` });
-  }
-
-  // Check average
-  if (dc.check_average_per_person) {
-    extraBadges.push({ icon: 'tag', label: 'Avg Check', value: `~$${dc.check_average_per_person}/pp` });
-  }
-
-  // Energy level (0-10 → label)
-  if (dc.energy_level != null) {
-    const e = dc.energy_level;
-    const label = e >= 8 ? 'High Energy' : e >= 5 ? 'Moderate' : 'Chill';
-    extraBadges.push({ icon: 'bolt', label: 'Energy', value: label });
-  }
-
-  // Conversation friendliness (0-10)
-  if (dc.conversation_friendliness != null) {
-    const c = dc.conversation_friendliness;
-    const label = c >= 7 ? 'Great for Convo' : c >= 4 ? 'Moderate' : 'Loud';
-    extraBadges.push({ icon: 'chat', label: 'Talk-Friendly', value: label });
-  }
-
-  // Cultural authenticity (0-10)
-  if (dc.cultural_authenticity != null) {
-    const a = dc.cultural_authenticity;
-    const label = a >= 8 ? 'Very Authentic' : a >= 5 ? 'Authentic' : 'Fusion';
-    extraBadges.push({ icon: 'globe', label: 'Authenticity', value: label });
-  }
-
-  // Transit accessibility
-  if (dc.transit_accessibility) {
-    extraBadges.push({ icon: 'train', label: 'Transit', value: dc.transit_accessibility });
-  }
-
-  // Instagram worthiness (0-10, only show if >= 7)
-  if (dc.instagram_worthiness != null && dc.instagram_worthiness >= 7) {
-    extraBadges.push({ icon: 'camera', label: 'Insta-Worthy', value: `${dc.instagram_worthiness}/10` });
-  }
-
-  // Crowd profile (as text)
-  if (dc.crowd_profile?.length) {
-    extraBadges.push({ icon: 'usersThree', label: 'Crowd', value: dc.crowd_profile.slice(0, 2).join(', ') });
-  }
-
-  // Seating options
-  if (dc.seating_options?.length) {
-    extraBadges.push({ icon: 'chair', label: 'Seating', value: dc.seating_options.slice(0, 3).join(', ') });
-  }
-
-  // Spice level (text: "Mild", "Medium", "Hot", etc.)
-  if (dc.spice_level) {
-    extraBadges.push({ icon: 'fire', label: 'Spice', value: formatSpiceLevel(dc.spice_level) });
-  }
-
-  // Kid friendliness (0-10 → label)
-  if (dc.kid_friendliness != null) {
-    const k = dc.kid_friendliness;
-    const label = k >= 7 ? 'Kid Friendly' : k >= 4 ? 'Okay for Kids' : 'Adults Preferred';
-    extraBadges.push({ icon: 'baby', label: 'Kids', value: label });
-  }
-
-  // Service style (text: "Counter", "Table Service", "Buffet", etc.)
-  if (dc.service_style) {
-    extraBadges.push({ icon: 'forkKnife', label: 'Service', value: formatServiceStyle(dc.service_style) });
-  }
-
-  // Meal pacing (text: "Fast-paced", "Relaxed", "Leisurely", etc.)
-  if (dc.meal_pacing) {
-    extraBadges.push({ icon: 'timer', label: 'Pacing', value: formatMealPacing(dc.meal_pacing) });
-  }
-
-  // Render extra badges
-  extraBadges.forEach(b => {
-    if (!b.value) return;
-    const div = document.createElement('div');
-    div.className = 'details-badge';
-    div.innerHTML = `
-      <span class="details-badge__icon">${svgIcon(b.icon, 16)}</span>
-      <span class="details-badge__label type-data--sm">${b.label}</span>
-      <span class="details-badge__value type-structural">${b.value}</span>`;
-    $profileFacts.appendChild(div);
-  });
-}
 
 
 /* ---- Culture-Aware Toast Strings ---- */
