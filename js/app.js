@@ -3030,17 +3030,11 @@ function renderDeepContextExtras(data) {
   // Quick Stats ribbon — compact deep-context data strip (includes wow factors)
   renderQuickStats(data);
 
-  // Origin Story — presented as a micro-fable
+  // Origin Story
   const $origin = document.getElementById('origin-story');
   const $originText = document.getElementById('origin-story-text');
   if ($origin && $originText && dc.origin_story) {
-    let fable = dc.origin_story;
-    // Add fable opener if the story doesn't already begin with one
-    const fableOpeners = /^(once|long ago|there once|in the beginning|it began|years ago|back when|a long)/i;
-    if (!fableOpeners.test(fable.trim())) {
-      fable = 'Once, ' + fable.charAt(0).toLowerCase() + fable.slice(1);
-    }
-    $originText.textContent = fable;
+    $originText.textContent = dc.origin_story;
     $origin.style.display = '';
   } else if ($origin) {
     $origin.style.display = 'none';
