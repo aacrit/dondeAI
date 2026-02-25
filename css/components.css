@@ -770,36 +770,14 @@
   line-height: 1;
 }
 
-.match-mini__wordmark {
-  display: inline-flex;
-  align-items: baseline;
-  line-height: 1;
-  font-size: 0.7rem;
-}
-
-.match-mini__wm-d {
+/* Simplified brand text — single weight replaces 3 letter-split spans */
+.match-mini__brand-text {
   font-family: var(--font-emotional);
   font-weight: 700;
-  font-size: 1.15em;
-  color: var(--ac);
-  letter-spacing: -0.03em;
-}
-
-.match-mini__wm-ond {
-  font-family: var(--font-emotional);
-  font-weight: 400;
-  font-size: 1em;
+  font-size: 0.7rem;
   color: var(--fg);
   letter-spacing: -0.02em;
-}
-
-.match-mini__wm-e {
-  font-family: var(--font-emotional);
-  font-weight: 700;
-  font-style: italic;
-  font-size: 1.05em;
-  color: var(--ac);
-  letter-spacing: -0.01em;
+  line-height: 1;
 }
 
 .match-mini__tm {
@@ -1260,12 +1238,10 @@
   text-decoration-color: var(--ac);
 }
 
+/* One-liner hidden — AI blurb replaces it in result card.
+   Element retained for share canvas rendering. */
 .result-oneliner {
-  font-size: var(--text-sm);
-  color: var(--fg2);
-  max-height: 3em;
-  opacity: 1;
-  overflow: hidden;
+  display: none;
 }
 
 /* ---- Unique Selling Point ---- */
@@ -1598,36 +1574,14 @@
   align-self: center;
 }
 
+/* Simplified — single weight replaces 3 letter-split spans */
 .score-hero__brand-donde {
-  display: inline-flex;
-  align-items: baseline;
-  line-height: 1;
-  font-size: var(--text-sm);
-}
-
-.score-hero__wm-d {
   font-family: var(--font-emotional);
   font-weight: 700;
-  font-size: 1.15em;
-  color: var(--ac);
-  letter-spacing: -0.03em;
-}
-
-.score-hero__wm-ond {
-  font-family: var(--font-emotional);
-  font-weight: 400;
-  font-size: 1em;
+  font-size: var(--text-sm);
   color: var(--fg);
   letter-spacing: -0.02em;
-}
-
-.score-hero__wm-e {
-  font-family: var(--font-emotional);
-  font-weight: 700;
-  font-style: italic;
-  font-size: 1.05em;
-  color: var(--ac);
-  letter-spacing: -0.01em;
+  line-height: 1;
 }
 
 .score-hero__brand-match {

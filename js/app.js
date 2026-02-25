@@ -1979,8 +1979,8 @@ function renderResult(data) {
   if ($name) $name.textContent = r.name || '';
 
   // One-liner subtitle
-  const $oneliner = document.getElementById('result-oneliner');
-  if ($oneliner) $oneliner.textContent = r.best_for_oneliner || '';
+  // One-liner removed from result card (AI blurb replaces it).
+  // best_for_oneliner is still used in share canvas rendering.
 
   // Quick tags: interactive badges with popouts
   const $quickTags = document.getElementById('quick-tags');
@@ -2068,34 +2068,7 @@ function renderResult(data) {
       attr.textContent = 'Powered by Google';
       popout.appendChild(attr);
 
-      const sentimentData = computeSentiment(r);
-      if (sentimentData) {
-        const sentWrap = document.createElement('div');
-        sentWrap.className = 'badge-popout__sentiment';
-        // "Sentiment" label
-        const sentLabel = document.createElement('span');
-        sentLabel.className = 'badge-popout__sentiment-label';
-        sentLabel.textContent = 'Sentiment';
-        sentWrap.appendChild(sentLabel);
-        // RGB track bar
-        const track = document.createElement('div');
-        track.className = 'sentiment-inline__track';
-        track.innerHTML =
-          `<span class="sentiment-inline__seg sentiment-inline__seg--pos" style="flex:${sentimentData.pos}"></span>` +
-          `<span class="sentiment-inline__seg sentiment-inline__seg--neu" style="flex:${sentimentData.neu}"></span>` +
-          `<span class="sentiment-inline__seg sentiment-inline__seg--neg" style="flex:${sentimentData.neg}"></span>`;
-        sentWrap.appendChild(track);
-        // Colored-dot legend
-        const legend = document.createElement('div');
-        legend.className = 'badge-popout__sentiment-legend';
-        legend.innerHTML =
-          `<span class="badge-popout__sentiment-item"><span class="badge-popout__sentiment-dot badge-popout__sentiment-dot--pos"></span>${sentimentData.pos}% positive</span>` +
-          `<span class="badge-popout__sentiment-item"><span class="badge-popout__sentiment-dot badge-popout__sentiment-dot--neu"></span>${sentimentData.neu}% neutral</span>` +
-          `<span class="badge-popout__sentiment-item"><span class="badge-popout__sentiment-dot badge-popout__sentiment-dot--neg"></span>${sentimentData.neg}% negative</span>`;
-        sentWrap.appendChild(legend);
-        popout.appendChild(sentWrap);
-      }
-
+      // Sentiment details moved to Tier 2 — popout stays clean: stars + count + link
       tag.appendChild(popout);
       $quickTags.appendChild(tag);
     }
