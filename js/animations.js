@@ -84,7 +84,7 @@ export function animateScoreRing(rawScore) {
 }
 
 /* ---- Petal Radar Chart (Ink Blossom — 6-axis vibe profile) ---- */
-import { svgIcon, buildVibeSummary, getVibeDetail, getScoreThresholdColor, getVibeColor } from './utils.js';
+import { svgIcon, buildVibeSummary, getScoreThresholdColor, getFactorColor } from './utils.js';
 
 const RADAR_DIMS = [
   { key: 'date_friendly_score',    label: 'Date',     icon: 'heart' },
@@ -93,6 +93,15 @@ const RADAR_DIMS = [
   { key: 'business_lunch_score',   label: 'Business', icon: 'briefcase' },
   { key: 'solo_dining_score',      label: 'Solo',     icon: 'user' },
   { key: 'hole_in_wall_factor',    label: 'Gem',      icon: 'diamond' },
+];
+
+/** V3 Factor dimensions */
+const FACTOR_DIMS = [
+  { key: 'food_match',    label: 'Food Match',   icon: 'plate' },
+  { key: 'setting_fit',   label: 'Setting Fit',  icon: 'diamond' },
+  { key: 'atmosphere',    label: 'Atmosphere',    icon: 'music' },
+  { key: 'reputation',    label: 'Reputation',    icon: 'starFull' },
+  { key: 'convenience',   label: 'Convenience',  icon: 'clock' },
 ];
 
 function svgEl(tag) {
@@ -322,13 +331,14 @@ export function renderScoreHero(dondeMatch, scores, scoringV2, sentiment, timers
     }
   }
 
-  // Verdict label
+  // Verdict label (V3: updated tiers for 0-99 range)
   if ($verdict) {
-    const tier = pct >= 93 ? { verdict: 'Perfect Match', tier: 'high' }
-      : pct >= 86 ? { verdict: 'Great Match', tier: 'high' }
-      : pct >= 75 ? { verdict: 'Good Match', tier: 'mid' }
-      : pct >= 60 ? { verdict: 'Worth Exploring', tier: 'mid' }
-      : { verdict: 'Adventurous', tier: 'low' };
+    const tier = pct >= 90 ? { verdict: 'Outstanding', tier: 'high' }
+      : pct >= 80 ? { verdict: 'Great Match', tier: 'high' }
+      : pct >= 70 ? { verdict: 'Good Pick', tier: 'mid' }
+      : pct >= 55 ? { verdict: 'Worth a Try', tier: 'mid' }
+      : pct >= 40 ? { verdict: 'It\u2019s a Stretch', tier: 'low' }
+      : { verdict: 'Weak Match', tier: 'low' };
     $verdict.textContent = tier.verdict;
     $verdict.setAttribute('data-tier', tier.tier);
     if (!REDUCED.matches) {
@@ -342,21 +352,40 @@ export function renderScoreHero(dondeMatch, scores, scoringV2, sentiment, timers
 
   // (Sentiment arc removed — sentiment now lives in reviews-row inline bar)
 
-  // ---- "Best for" Callout ----
-  const available = RADAR_DIMS.filter(d => {
-    const v = scores[d.key];
-    return v != null && v !== '' && !isNaN(parseFloat(v));
-  });
-
-  const slots = RADAR_DIMS.map(dim => {
-    const found = available.find(a => a.key === dim.key);
-    const val = found ? Math.min(parseFloat(scores[dim.key]) || 0, 10) : 0;
-    return { ...dim, val, hasData: !!found };
-  });
-
+  // ---- V3: "Strongest" Callout (replaces "Best for") ----
   const $callout = document.getElementById('score-hero-callout');
   const $calloutValue = document.getElementById('score-hero-callout-value');
-  if ($callout && $calloutValue && available.length >= 1) {
+
+  if ($callout && $calloutValue && scoringV2) {
+    // V3: Find the strongest factor from scoring_v3 data
+    const sv3 = scoringV2; // Passed as scoringV2 param but may contain V3 data
+    const factorEntries = FACTOR_DIMS.filter(d => sv3[d.key] != null);
+    if (factorEntries.length > 0) {
+      const best = factorEntries.reduce((a, b) =>
+        (sv3[a.key] || 0) > (sv3[b.key] || 0) ? a : b
+      );
+      const bestScore = (sv3[best.key] || 0).toFixed(1);
+      $calloutValue.textContent = `${best.label} (${bestScore})`;
+      $callout.style.display = '';
+      if (!REDUCED.matches) {
+        timers.push(setTimeout(() => {
+          $callout.classList.add('score-hero__callout--visible');
+        }, 900));
+      } else {
+        $callout.classList.add('score-hero__callout--visible');
+      }
+    }
+  } else if ($callout && $calloutValue) {
+    // Fallback: use old vibe scores if V3 not available
+    const available = RADAR_DIMS.filter(d => {
+      const v = scores[d.key];
+      return v != null && v !== '' && !isNaN(parseFloat(v));
+    });
+    const slots = RADAR_DIMS.map(dim => {
+      const found = available.find(a => a.key === dim.key);
+      const val = found ? Math.min(parseFloat(scores[dim.key]) || 0, 10) : 0;
+      return { ...dim, val, hasData: !!found };
+    });
     const best = slots.filter(s => s.hasData).sort((a, b) => b.val - a.val)[0];
     if (best) {
       $calloutValue.textContent = best.label;
@@ -371,64 +400,119 @@ export function renderScoreHero(dondeMatch, scores, scoringV2, sentiment, timers
     }
   }
 
+  // V3: Auto-expand factor bars when score < 80
+  if (scoringV2 && pct < 80) {
+    timers.push(setTimeout(() => {
+      autoExpandFactors(scoringV2, timers);
+    }, 1400));
+  }
+
   // Build aria-label
-  const ariaDesc = slots.filter(s => s.hasData)
-    .map(s => `${s.label} ${humanizeVibeScore(s.val)}`).join(', ');
-  $hero.setAttribute('aria-label', `DondeAI Match ${pct}%. Vibe: ${ariaDesc}`);
+  if (scoringV2) {
+    const ariaDesc = FACTOR_DIMS
+      .filter(d => scoringV2[d.key] != null)
+      .map(d => `${d.label} ${(scoringV2[d.key] || 0).toFixed(1)} out of 10`)
+      .join(', ');
+    $hero.setAttribute('aria-label', `DondeAI Match ${pct}%. Factors: ${ariaDesc}`);
+  } else {
+    $hero.setAttribute('aria-label', `DondeAI Match ${pct}%`);
+  }
 }
 
-/* ---- Vibe Bars (horizontal dimension bars) ---- */
+/* ---- V3 Factor Bars (horizontal dimension bars — replaces vibe bars) ---- */
 
-export function renderVibeBars(scores, timers = []) {
-  const $container = document.getElementById('vibe-bars');
-  const $list = document.getElementById('vibe-bars-list');
+export function renderFactorBars(scoringV3, timers = []) {
+  const $container = document.getElementById('factor-bars');
+  const $list = document.getElementById('factor-bars-list');
   if (!$container || !$list) return;
 
-  const available = RADAR_DIMS.filter(d => {
-    const v = scores[d.key];
-    return v != null && v !== '' && !isNaN(parseFloat(v));
-  });
-
-  if (available.length < 2) return;
+  if (!scoringV3) return;
 
   $list.innerHTML = '';
 
-  const slots = RADAR_DIMS.map(dim => {
-    const found = available.find(a => a.key === dim.key);
-    const val = found ? Math.min(parseFloat(scores[dim.key]) || 0, 10) : 0;
-    return { ...dim, val, hasData: !!found };
-  }).filter(s => s.hasData);
+  const slots = FACTOR_DIMS
+    .map(dim => ({
+      ...dim,
+      val: scoringV3[dim.key] != null ? Math.min(parseFloat(scoringV3[dim.key]) || 0, 10) : null,
+    }))
+    .filter(s => s.val !== null);
 
-  // Find dominant dimension
-  const dominant = slots.reduce((best, s) => s.val > (best?.val || 0) ? s : best, null);
+  if (slots.length < 2) return;
+
+  // Find strongest factor
+  const strongest = slots.reduce((best, s) => (s.val || 0) > (best?.val || 0) ? s : best, null);
+  // Find weakest factor (for low-score glow)
+  const weakest = slots.reduce((w, s) => (s.val || 10) < (w?.val || 10) ? s : w, null);
 
   slots.forEach((slot, i) => {
-    const row = document.createElement('div');
-    row.className = 'vibe-row' + (dominant && slot.key === dominant.key ? ' vibe-row--dominant' : '');
-    row.setAttribute('role', 'listitem');
+    const row = document.createElement('button');
+    row.className = 'factor-row' + (strongest && slot.key === strongest.key ? ' factor-row--dominant' : '');
+    if (weakest && slot.key === weakest.key && slot.val < 5) {
+      row.className += ' factor-row--weak';
+    }
+    row.setAttribute('role', 'meter');
+    row.setAttribute('aria-valuenow', slot.val.toFixed(1));
+    row.setAttribute('aria-valuemin', '0');
+    row.setAttribute('aria-valuemax', '10');
+    row.setAttribute('aria-label', `${slot.label}, ${slot.val.toFixed(1)} out of 10. Tap to see details.`);
+    row.setAttribute('aria-expanded', 'false');
+    row.setAttribute('data-factor', slot.key);
 
     const pct = Math.min(slot.val / 10, 1) * 100;
-    const color = getVibeColor(slot.val);
+    const color = getFactorColor(slot.val);
 
     row.innerHTML = `
-      <span class="vibe-row__icon">${svgIcon(slot.icon, 14)}</span>
-      <span class="vibe-row__label type-data--sm">${slot.label}</span>
-      <span class="vibe-row__bar" role="meter" aria-valuenow="${slot.val.toFixed(1)}" aria-valuemin="0" aria-valuemax="10" aria-label="${slot.label} score">
-        <span class="vibe-row__bar-fill" data-width="${pct}" style="background:${color}"></span>
+      <span class="factor-row__icon">${svgIcon(slot.icon, 14)}</span>
+      <span class="factor-row__label type-structural">${slot.label}</span>
+      <span class="factor-row__bar">
+        <span class="factor-row__bar-fill" data-width="${pct}" style="background:${color}"></span>
       </span>
-      <span class="vibe-row__score type-data--sm">${slot.val.toFixed(1)}</span>`;
+      <span class="factor-row__score type-data--sm">${slot.val.toFixed(1)}</span>`;
 
-    $list.appendChild(row);
+    // Drill-down panel (hidden by default)
+    const detail = document.createElement('div');
+    detail.className = 'factor-detail';
+    detail.id = `factor-detail-${slot.key}`;
+    detail.setAttribute('aria-hidden', 'true');
+    detail.innerHTML = ''; // Populated on tap
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'factor-row-wrapper';
+    wrapper.setAttribute('role', 'listitem');
+    wrapper.appendChild(row);
+    wrapper.appendChild(detail);
+
+    $list.appendChild(wrapper);
+
+    // Tap handler: accordion drill-down
+    row.addEventListener('click', () => {
+      const isOpen = row.getAttribute('aria-expanded') === 'true';
+      // Close all panels first (accordion)
+      $list.querySelectorAll('.factor-row').forEach(r => r.setAttribute('aria-expanded', 'false'));
+      $list.querySelectorAll('.factor-detail').forEach(d => {
+        d.setAttribute('aria-hidden', 'true');
+        d.style.maxHeight = '0';
+      });
+      if (!isOpen) {
+        row.setAttribute('aria-expanded', 'true');
+        detail.setAttribute('aria-hidden', 'false');
+        // Populate detail if empty
+        if (!detail.innerHTML.trim()) {
+          detail.innerHTML = buildFactorDetail(slot.key, scoringV3);
+        }
+        detail.style.maxHeight = detail.scrollHeight + 'px';
+      }
+    });
 
     // Staggered fade-in + bar fill animation
-    const fill = row.querySelector('.vibe-row__bar-fill');
+    const fill = row.querySelector('.factor-row__bar-fill');
     if (!REDUCED.matches) {
-      row.style.opacity = '0';
-      row.style.transform = 'translateY(4px)';
-      row.style.transition = 'opacity 300ms ease-out, transform 300ms ease-out';
+      wrapper.style.opacity = '0';
+      wrapper.style.transform = 'translateY(4px)';
+      wrapper.style.transition = 'opacity 300ms ease-out, transform 300ms ease-out';
       timers.push(setTimeout(() => {
-        row.style.opacity = '1';
-        row.style.transform = 'translateY(0)';
+        wrapper.style.opacity = '1';
+        wrapper.style.transform = 'translateY(0)';
         if (fill) {
           requestAnimationFrame(() => {
             fill.style.width = fill.dataset.width + '%';
@@ -441,55 +525,97 @@ export function renderVibeBars(scores, timers = []) {
   });
 }
 
-/* ---- Score Breakdown (V2 — optional detail rows) ---- */
+/** Build drill-down HTML for a factor */
+function buildFactorDetail(factorKey, scoringV3) {
+  const score = scoringV3[factorKey] || 0;
+  const weights = scoringV3.weights_used || {};
 
-export function toggleScoreBreakdown() {
-  // V2 breakdown removed — no-op for backward compatibility
+  const weightPct = weights[factorKey.replace('_match', '').replace('_fit', '')] || 0;
+  const weightLabel = Math.round(weightPct * 100);
+
+  let items = '';
+  items += `<div class="factor-detail__item">
+    <span class="factor-detail__signal type-structural">Score</span>
+    <span class="factor-detail__verdict type-data--sm">${score.toFixed(1)} / 10</span>
+  </div>`;
+  items += `<div class="factor-detail__item">
+    <span class="factor-detail__signal type-structural">Weight</span>
+    <span class="factor-detail__verdict type-data--sm">${weightLabel}%</span>
+  </div>`;
+
+  return `<div class="factor-detail__items">${items}</div>`;
 }
 
-/* ---- Vibe Profile: Compact bars inside Score Hero ---- */
+// Keep legacy export for backward compat
+export function renderVibeBars(scores, timers = []) {
+  // V3: no-op, replaced by renderFactorBars
+}
+
+export function toggleScoreBreakdown() {
+  // V2 breakdown removed
+}
+
+/* ---- V3 Factor Profile: Compact bars inside Score Hero ---- */
 
 let _vibeState = 'compact'; // 'compact' | 'expanded'
-let _vibeBarsRendered = false;
+let _factorBarsRendered = false;
 
 export function getBloomState() { return _vibeState; }
 
 export function resetBloomState() {
   _vibeState = 'compact';
-  _vibeBarsRendered = false;
+  _factorBarsRendered = false;
   const $hero = document.getElementById('score-hero');
   if ($hero) {
-    $hero.classList.remove('score-hero--vibe-expanded');
+    $hero.classList.remove('score-hero--factors-expanded');
   }
-  const $list = document.getElementById('vibe-bars-list');
+  const $list = document.getElementById('factor-bars-list');
   if ($list) $list.innerHTML = '';
-  const $vibeBars = document.getElementById('vibe-bars');
-  if ($vibeBars) $vibeBars.setAttribute('aria-hidden', 'true');
+  const $factorBars = document.getElementById('factor-bars');
+  if ($factorBars) $factorBars.setAttribute('aria-hidden', 'true');
+}
+
+/** Auto-expand factor bars when score < 80 */
+function autoExpandFactors(scoringV3, timers = []) {
+  const $hero = document.getElementById('score-hero');
+  if (!$hero || _vibeState === 'expanded') return;
+
+  $hero.classList.add('score-hero--factors-expanded');
+  if (!_factorBarsRendered) {
+    renderFactorBars(scoringV3, timers);
+    _factorBarsRendered = true;
+  }
+  const $factorBars = document.getElementById('factor-bars');
+  if ($factorBars) $factorBars.setAttribute('aria-hidden', 'false');
+  _vibeState = 'expanded';
 }
 
 /**
- * 2-state toggle: compact ↔ vibe-bars-expanded
+ * 2-state toggle: compact ↔ factors-expanded
  */
 export function toggleBloom(scores, scoringV2, timers = []) {
   const $hero = document.getElementById('score-hero');
   if (!$hero) return _vibeState;
 
+  // V3: Use scoring_v3 data (passed as scoringV2 param for backward compat)
+  const scoringV3 = scoringV2;
+
   if (_vibeState === 'compact') {
-    // → expanded: show compact vibe bars
-    $hero.classList.add('score-hero--vibe-expanded');
-    if (!_vibeBarsRendered) {
-      renderVibeBars(scores || {}, timers);
-      _vibeBarsRendered = true;
+    // → expanded: show factor bars
+    $hero.classList.add('score-hero--factors-expanded');
+    if (!_factorBarsRendered) {
+      renderFactorBars(scoringV3 || {}, timers);
+      _factorBarsRendered = true;
     }
-    const $vibeBars = document.getElementById('vibe-bars');
-    if ($vibeBars) $vibeBars.setAttribute('aria-hidden', 'false');
+    const $factorBars = document.getElementById('factor-bars');
+    if ($factorBars) $factorBars.setAttribute('aria-hidden', 'false');
     _vibeState = 'expanded';
     return 'expanded';
   } else {
-    // → compact: collapse vibe bars
-    $hero.classList.remove('score-hero--vibe-expanded');
-    const $vibeBars = document.getElementById('vibe-bars');
-    if ($vibeBars) $vibeBars.setAttribute('aria-hidden', 'true');
+    // → compact: collapse factor bars
+    $hero.classList.remove('score-hero--factors-expanded');
+    const $factorBars = document.getElementById('factor-bars');
+    if ($factorBars) $factorBars.setAttribute('aria-hidden', 'true');
     _vibeState = 'compact';
     return 'compact';
   }

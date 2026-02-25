@@ -14,7 +14,7 @@ import { initOffline, isOnline } from './offline.js';
 import { initAccessibility, announce } from './accessibility.js';
 import { fetchRecommendation, sendFeedback } from './api.js';
 import { initAuth, signIn as signInWith, signOut as authSignOut, isAuthenticated as isAuthAuthenticated, getUser as getAuthUser, addFavoriteToServer, removeFavoriteFromServer } from './auth.js';
-import { animateScoreRing, renderPetalRadar, renderSentimentBar, renderScoreBloom, renderScoreHero, renderVibeBars, toggleBloom, resetBloomState, handlePetalTap, handleBloomRingTap, toggleScoreBreakdown, getBloomState, animateBadge, startParticles, stopParticles, chaosToOrderReveal, initLogoAnimation, startSearchPulse, stopSearchPulse, resolveLogoToFound, cleanupLoadingLogo, fireCelebration } from './animations.js';
+import { animateScoreRing, renderPetalRadar, renderSentimentBar, renderScoreBloom, renderScoreHero, renderFactorBars, toggleBloom, resetBloomState, handlePetalTap, handleBloomRingTap, toggleScoreBreakdown, getBloomState, animateBadge, startParticles, stopParticles, chaosToOrderReveal, initLogoAnimation, startSearchPulse, stopSearchPulse, resolveLogoToFound, cleanupLoadingLogo, fireCelebration } from './animations.js';
 import {
   getGreeting, getTimePeriod, getCuisineFromResult, svgIcon,
   getScoreTier, getScoreColor, getScoreThresholdColor, buildGoogleStars, buildMapsUrl, relativeTime, matchCuisine, matchCulture
@@ -985,13 +985,14 @@ function wireEvents() {
         break;
       }
 
+      case 'toggle-factors':
       case 'show-vibe-profile': {
-        // Toggle vibe bars (2-state: compact ↔ expanded)
+        // Toggle factor bars (2-state: compact <-> expanded)
         const data = _pendingResultData;
         if (!data) break;
         const newState = toggleBloom(
           data.scores || {},
-          null,
+          data.scoring_v3 || data.scoring_v2 || null,
           animationTimers
         );
         // Update callout arrow direction
@@ -1000,7 +1001,7 @@ function wireEvents() {
         if ($calloutArrow) {
           $calloutArrow.textContent = newState === 'compact' ? '\u2193' : '\u2191';
         }
-        announce(newState === 'expanded' ? 'Showing vibe profile' : 'Collapsed vibe profile');
+        announce(newState === 'expanded' ? 'Showing score factors' : 'Collapsed score factors');
         break;
       }
 
@@ -1024,7 +1025,7 @@ function wireEvents() {
     }
   });
 
-  // Score Hero tap in Tier 2 — toggle vibe bars (2-state: compact ↔ expanded)
+  // Score Hero tap in Tier 2 — toggle factor bars (2-state: compact <-> expanded)
   document.addEventListener('click', (e) => {
     if (e.target.closest('[data-action]')) return;
     const hero = e.target.closest('.score-hero');
@@ -1033,7 +1034,7 @@ function wireEvents() {
     if (!data) return;
     const newState = toggleBloom(
       data.scores || {},
-      null,
+      data.scoring_v3 || data.scoring_v2 || null,
       animationTimers
     );
     // Update callout arrow
@@ -2206,10 +2207,11 @@ function prepareTier2(data, cuisine) {
   const r = data.restaurant;
 
   // Score Hero arc — populate but don't animate yet
+  // V3: Pass scoring_v3 (preferred) or scoring_v2 as fallback
   renderScoreHero(
     data.donde_match,
     data.scores || {},
-    data.scoring_v2 || null,
+    data.scoring_v3 || data.scoring_v2 || null,
     null, // No sentiment in arc anymore
     [] // No timers — animations triggered on expand
   );
@@ -2354,11 +2356,11 @@ function renderTier2Animations() {
   const data = _pendingResultData;
   if (!data) return;
 
-  // Animate score hero arc
+  // Animate score hero arc (V3: pass scoring_v3 preferred)
   renderScoreHero(
     data.donde_match,
     data.scores || {},
-    data.scoring_v2 || null,
+    data.scoring_v3 || data.scoring_v2 || null,
     null,
     animationTimers
   );
@@ -2637,46 +2639,80 @@ function openTileExpand(tileEl) {
       </div>
       <span class="score-verdict type-structural--bold ${tier.cssClass}" style="font-size: var(--text-lg);">${tier.verdict}</span>`;
 
-    // Scoring V2 breakdown — "Why This Match"
-    const sv2 = data.scoring_v2;
-    if (sv2) {
-      const v2Dims = [
-        { key: 'occasion_fit',    label: 'Occasion' },
-        { key: 'craving_match',   label: 'Craving' },
-        { key: 'vibe_alignment',  label: 'Vibe' },
-        { key: 'practical_fit',   label: 'Practical' },
-        { key: 'discovery_value', label: 'Discovery' },
+    // V3: Factor breakdown — "Why This Match"
+    const sv3 = data.scoring_v3;
+    if (sv3) {
+      const v3Dims = [
+        { key: 'food_match',    label: 'Food Match',   icon: 'plate' },
+        { key: 'setting_fit',   label: 'Setting Fit',  icon: 'diamond' },
+        { key: 'atmosphere',    label: 'Atmosphere',    icon: 'music' },
+        { key: 'reputation',    label: 'Reputation',    icon: 'starFull' },
+        { key: 'convenience',   label: 'Convenience',  icon: 'clock' },
       ];
-      const v2Available = v2Dims.filter(d => sv2[d.key] != null);
-      if (v2Available.length > 0) {
-        const v2Html = v2Available.map(d => {
-          const val = Math.min(Math.max(sv2[d.key] || 0, 0), 100);
+      const v3Available = v3Dims.filter(d => sv3[d.key] != null);
+      if (v3Available.length > 0) {
+        const v3Html = v3Available.map(d => {
+          const val = Math.min(Math.max(sv3[d.key] || 0, 0), 10);
+          const pctVal = (val / 10) * 100;
+          const color = val >= 8 ? 'var(--ac)' : val >= 5 ? 'var(--fg3)' : 'var(--rag-amber)';
           return `
             <div class="tile-expand__dim">
+              <span class="tile-expand__dim-icon">${svgIcon(d.icon, 14)}</span>
               <span class="tile-expand__dim-label type-data--sm">${d.label}</span>
               <div class="tile-expand__dim-bar">
-                <div class="tile-expand__dim-fill" style="width: ${val}%"></div>
+                <div class="tile-expand__dim-fill" style="width: ${pctVal}%; background: ${color}"></div>
               </div>
-              <span class="tile-expand__dim-value type-data--sm">${humanizeV2(val)}</span>
+              <span class="tile-expand__dim-value type-data--sm">${val.toFixed(1)}</span>
             </div>`;
         }).join('');
 
-        // Find highest weighted dimension for summary line
+        // Find highest weighted factor for summary line
         let summaryHtml = '';
-        if (sv2.weights_used) {
-          const dimLabels = { occasion: 'Occasion', occasion_fit: 'Occasion', craving: 'Craving', craving_match: 'Craving', vibe: 'Vibe', vibe_alignment: 'Vibe', practical: 'Practical', practical_fit: 'Practical', discovery: 'Discovery', discovery_value: 'Discovery' };
-          const topDim = Object.entries(sv2.weights_used).sort((a, b) => b[1] - a[1])[0];
-          if (topDim && dimLabels[topDim[0]]) {
-            summaryHtml = `<p class="tile-expand__summary type-data--sm">Weighted for ${dimLabels[topDim[0]]}</p>`;
+        if (sv3.weights_used) {
+          const factorLabels = { food: 'Food', setting: 'Setting', atmosphere: 'Atmosphere', reputation: 'Reputation', convenience: 'Convenience' };
+          const topFactor = Object.entries(sv3.weights_used).sort((a, b) => b[1] - a[1])[0];
+          if (topFactor && factorLabels[topFactor[0]]) {
+            summaryHtml = `<p class="tile-expand__summary type-data--sm">Weighted for ${factorLabels[topFactor[0]]}</p>`;
           }
         }
 
         $content.innerHTML += `
           <div class="tile-expand__v2">
             <span class="tile-expand__v2-label type-data--sm">Why This Match</span>
-            <div class="tile-expand__dims">${v2Html}</div>
+            <div class="tile-expand__dims">${v3Html}</div>
             ${summaryHtml}
           </div>`;
+      }
+    } else {
+      // Fallback: V2 breakdown if V3 not available
+      const sv2 = data.scoring_v2;
+      if (sv2) {
+        const v2Dims = [
+          { key: 'occasion_fit',    label: 'Occasion' },
+          { key: 'craving_match',   label: 'Craving' },
+          { key: 'vibe_alignment',  label: 'Vibe' },
+          { key: 'practical_fit',   label: 'Practical' },
+          { key: 'discovery_value', label: 'Discovery' },
+        ];
+        const v2Available = v2Dims.filter(d => sv2[d.key] != null);
+        if (v2Available.length > 0) {
+          const v2Html = v2Available.map(d => {
+            const val = Math.min(Math.max(sv2[d.key] || 0, 0), 100);
+            return `
+              <div class="tile-expand__dim">
+                <span class="tile-expand__dim-label type-data--sm">${d.label}</span>
+                <div class="tile-expand__dim-bar">
+                  <div class="tile-expand__dim-fill" style="width: ${val}%"></div>
+                </div>
+                <span class="tile-expand__dim-value type-data--sm">${humanizeV2(val)}</span>
+              </div>`;
+          }).join('');
+          $content.innerHTML += `
+            <div class="tile-expand__v2">
+              <span class="tile-expand__v2-label type-data--sm">Why This Match</span>
+              <div class="tile-expand__dims">${v2Html}</div>
+            </div>`;
+        }
       }
     }
   } else if (tileEl.id === 'score-tile-radar') {
