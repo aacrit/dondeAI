@@ -692,6 +692,11 @@
   border-top: 1px solid var(--border);
 }
 
+/* Spacing between Tier 2 sections */
+.tier--leanin > * + * {
+  margin-top: var(--space-md);
+}
+
 /* ── Glance Hero — badge left, name+oneliner right ── */
 .glance-hero {
   display: flex;
@@ -795,34 +800,11 @@
 
 /* Brand wordmark stays in its default accent/fg colors regardless of tier */
 
-/* ── Match Mini Factors (expanded inline under badge) ── */
-.match-mini__factors {
-  width: 100%;
-  overflow: hidden;
-  max-height: 0;
-  opacity: 0;
-  transition: max-height 400ms var(--ease-out),
-              opacity 300ms var(--ease-out),
-              padding 300ms var(--ease-out);
-  padding: 0;
-}
-
-.match-mini__factors:not([hidden]) {
-  max-height: 500px;
-  opacity: 1;
-  padding: var(--space-sm) 0;
-}
-
-/* Expand hint on Match Mini */
+/* Tap hint on Match Mini — tapping opens Tier 2 Score Hero */
 .match-mini::after {
   content: '▾';
   font-size: 0.5rem;
   color: var(--fg3);
-  transition: transform 200ms var(--ease-out);
-}
-
-.match-mini[aria-expanded="true"]::after {
-  transform: rotate(180deg);
 }
 
 /* ── Quick Tags (cuisine + price snap-decision helpers) ── */
@@ -1099,6 +1081,7 @@
   position: relative;
   display: block;
   padding: 0;
+  padding-bottom: var(--space-xs);
   background: none;
   border: none;
   border-radius: 0;
@@ -1206,7 +1189,6 @@
   color: var(--bg);
   border-color: var(--ac);
   font-weight: 600;
-  flex: 1;
 }
 
 .tell-more-btn--primary:hover {
@@ -1245,6 +1227,10 @@
 
 .details-trigger-btn {
   display: none;
+}
+
+.tier--expanded .details-trigger-btn {
+  display: inline-flex;
 }
 
 /* ── Semantic Block Wrappers ── */
@@ -2287,6 +2273,76 @@
   }
 }
 
+/* ---- Restaurant Story (merged Insider Tip + Origin) ---- */
+.restaurant-story {
+  padding: var(--space-sm) var(--space-md);
+  background: var(--glass-tip);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--ac);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.restaurant-story__label {
+  display: block;
+  color: var(--ac);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: var(--space-xs);
+}
+
+.restaurant-story__content {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.restaurant-story__origin {
+  color: var(--fg2);
+  font-family: var(--font-emotional);
+  font-style: italic;
+  line-height: 1.7;
+  font-size: clamp(0.9375rem, 2.2vw, 1.0625rem);
+}
+
+.restaurant-story__origin::before {
+  content: '\201C';
+  font-size: 1.5em;
+  line-height: 0;
+  vertical-align: -0.15em;
+  color: var(--ac);
+  opacity: 0.5;
+  margin-right: 2px;
+}
+
+.restaurant-story__origin::after {
+  content: '\201D';
+  font-size: 1.5em;
+  line-height: 0;
+  vertical-align: -0.15em;
+  color: var(--ac);
+  opacity: 0.5;
+  margin-left: 1px;
+}
+
+.restaurant-story__tip {
+  margin-top: var(--space-xs);
+  padding-top: var(--space-xs);
+  border-top: 1px solid var(--border);
+  font-size: var(--text-sm);
+  color: var(--fg);
+  line-height: 1.5;
+}
+
+.restaurant-story__origin:empty { display: none; }
+.restaurant-story__origin:empty + .restaurant-story__tip { border-top: none; margin-top: 0; padding-top: 0; }
+.restaurant-story__tip:empty { display: none; }
+
+@media (max-width: 767px) {
+  .restaurant-story {
+    padding: var(--space-xs) var(--space-sm);
+  }
+}
+
 /* ---- Tile Expand: Radar dimension list ---- */
 .tile-expand__title {
   color: var(--fg3);
@@ -2382,25 +2438,31 @@
   border-top: 1px solid var(--border);
 }
 
-/* Secondary row: feedback + start over, visually quieter */
+/* Secondary row: feedback + start over */
 .card-footer__secondary {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-md);
+  gap: var(--space-sm);
   width: 100%;
-  opacity: 0.7;
-  transition: opacity 200ms var(--ease-out);
 }
 
-.card-footer__secondary:hover {
-  opacity: 1;
-}
-
-/* Smaller ghost button for Start Over in secondary row */
-.cta-btn--sm {
-  padding: var(--space-2xs) var(--space-sm);
+/* Text-link style for Start Over — minimal, unobtrusive */
+.cta-btn--link {
+  background: none;
+  border: none;
+  color: var(--fg3);
+  font-family: var(--font-structural);
   font-size: var(--text-xs);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  padding: var(--space-2xs) var(--space-xs);
+  transition: color var(--dur-fast) var(--ease-out);
+}
+
+.cta-btn--link:hover {
+  color: var(--fg);
 }
 
 /* ---- Color Mode Toggle Icon Visibility ---- */
@@ -4245,16 +4307,6 @@
 /* ============================================
    Round 2: "Why This Spot" Explainer
    ============================================ */
-.donde-blurb__why {
-  color: var(--fg3);
-  font-style: italic;
-  font-size: var(--text-xs);
-  margin-top: var(--space-xs);
-  padding-left: var(--space-sm);
-  border-left: 2px solid var(--ac);
-  opacity: 0.8;
-}
-
 /* ============================================
    Round 2: Coach Marks (onboarding)
    ============================================ */

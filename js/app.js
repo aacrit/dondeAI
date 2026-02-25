@@ -1036,17 +1036,15 @@ function wireEvents() {
     }
   });
 
-  // Score Hero removed — factor bars now inline under Match Mini in Tier 1
-
-  // Match-mini click → toggle inline factor breakdown
+  // Match Mini tap → expand Tier 2 and scroll to Score Hero
   document.getElementById('match-pill')?.addEventListener('click', () => {
-    const $factors = document.getElementById('match-mini-factors');
-    const $pill = document.getElementById('match-pill');
-    if (!$factors || !$pill) return;
-    const isExpanded = !$factors.hidden;
-    $factors.hidden = isExpanded;
-    $pill.setAttribute('aria-expanded', String(!isExpanded));
-    $factors.setAttribute('aria-hidden', String(isExpanded));
+    const $tellMore = document.getElementById('tell-more-btn');
+    if ($tellMore && $tellMore.getAttribute('aria-expanded') !== 'true') {
+      $tellMore.click();
+    }
+    setTimeout(() => {
+      document.getElementById('score-hero')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 200);
     haptic(HAPTICS.tick);
   });
 
@@ -1891,6 +1889,10 @@ function renderResult(data) {
   _tier2Animated = false;
   _tier3Animated = false;
 
+  // Reset typewriter flags on story elements
+  const $storyTipEl = document.getElementById('story-tip-text');
+  if ($storyTipEl) $storyTipEl._hasRevealed = false;
+
   // Reset bloom state (petal radar overlay)
   resetBloomState();
 
@@ -2125,17 +2127,7 @@ function renderResult(data) {
     if ($blurb) $blurb.style.display = recText ? '' : 'none';
   }
 
-  // "Why This Spot" — match explainability
-  const $why = document.getElementById('result-why');
-  if ($why) {
-    const whyText = buildWhyExplainer(data, getState().craving);
-    if (whyText) {
-      $why.textContent = whyText;
-      $why.style.display = '';
-    } else {
-      $why.style.display = 'none';
-    }
-  }
+  // "Why This Spot" removed — user feedback: not accurate, no value
 
   // F3: Enhanced map navigation tile
   renderMapPreview(data);
@@ -2193,47 +2185,53 @@ let _pendingCuisine = null;
 function prepareTier2(data, cuisine) {
   const r = data.restaurant;
 
-  // Score Hero removed — factor bars now rendered inline under Match Mini in Tier 1.
-  // Populate factor bars in the new #match-mini-factors container.
-  const v3 = data.scoring_v3 || data.scoring_v2;
-  if (v3 && v3.factors) {
-    renderFactorBars(v3.factors, document.getElementById('factor-bars-list'), []);
-  }
+  // Score Hero arc — populate but don't animate yet (animations triggered on expand)
+  renderScoreHero(
+    data.donde_match,
+    data.scores || {},
+    data.scoring_v3 || data.scoring_v2 || null,
+    null,
+    []
+  );
 
   // Recommendation is now rendered in Tier 1 (Glance) via donde-blurb
 
-  // Story Extras: Insider Tip
-  const $storyExtras = document.getElementById('story-extras');
-  const $extrasTip = document.getElementById('story-extras-tip');
-  const $tipText = document.getElementById('insider-tip-text');
-  if ($extrasTip && $tipText) {
+  // The Story: Combined Insider Tip + Origin Story
+  const $story = document.getElementById('restaurant-story');
+  const $storyOrigin = document.getElementById('story-origin-text');
+  const $storyTip = document.getElementById('story-tip-text');
+  if ($story) {
+    const dc = data.deep_context || {};
     let tipContent = data.insider_tip || '';
-    // Strip em-dashes — replace with commas for cleaner reading
     tipContent = tipContent.replace(/\u2014/g, ', ').replace(/ , /g, ', ');
-    if (tipContent) {
-      $extrasTip.style.display = '';
+
+    let originContent = dc.origin_story || '';
+    if (originContent) {
+      const fableOpeners = /^(once|long ago|there once|in the beginning|it began|years ago|back when|a long)/i;
+      if (!fableOpeners.test(originContent.trim())) {
+        originContent = 'Once, ' + originContent.charAt(0).toLowerCase() + originContent.slice(1);
+      }
+    }
+
+    const hasContent = tipContent || originContent;
+    $story.style.display = hasContent ? '' : 'none';
+
+    if ($storyOrigin) $storyOrigin.textContent = originContent;
+
+    if ($storyTip && tipContent) {
       // Typewriter reveal for insider tips — "friend whispering a secret" feel
-      if (!$tipText._hasRevealed) {
-        $tipText._hasRevealed = true;
-        $tipText.textContent = '';
-        $tipText.classList.add('story-extras__text--typing');
+      if (!$storyTip._hasRevealed) {
+        $storyTip._hasRevealed = true;
+        $storyTip.textContent = '';
         animationTimers.push(setTimeout(() => {
-          typewriterReveal($tipText, tipContent, 45);
-          // Remove typing cursor when done
-          const tipLen = tipContent.length;
-          animationTimers.push(setTimeout(() => {
-            $tipText.classList.remove('story-extras__text--typing');
-          }, tipLen * 50 + 400));
+          typewriterReveal($storyTip, tipContent, 45);
         }, 500));
       } else {
-        $tipText.textContent = tipContent;
+        $storyTip.textContent = tipContent;
       }
-    } else { $extrasTip.style.display = 'none'; }
-  }
-
-  if ($storyExtras) {
-    const hasTip = $extrasTip && $extrasTip.style.display !== 'none';
-    $storyExtras.style.display = hasTip ? '' : 'none';
+    } else if ($storyTip) {
+      $storyTip.textContent = '';
+    }
   }
 
   // Awards badges
@@ -2340,8 +2338,14 @@ function renderTier2Animations() {
   const data = _pendingResultData;
   if (!data) return;
 
-  // Score Hero removed — factor bars are now in Tier 1 under Match Mini.
-  // Tier 2 animations: just insider tip typewriter (already triggered above)
+  // Animate Score Hero arc (re-render with animation timers)
+  renderScoreHero(
+    data.donde_match,
+    data.scores || {},
+    data.scoring_v3 || data.scoring_v2 || null,
+    null,
+    animationTimers
+  );
 }
 
 /* ---- Tier 3 animation trigger (called on first expand) ---- */
@@ -3006,21 +3010,7 @@ function renderDeepContextExtras(data) {
   // Quick Stats ribbon — compact deep-context data strip (includes wow factors)
   renderQuickStats(data);
 
-  // Origin Story — presented as a micro-fable
-  const $origin = document.getElementById('origin-story');
-  const $originText = document.getElementById('origin-story-text');
-  if ($origin && $originText && dc.origin_story) {
-    let fable = dc.origin_story;
-    // Add fable opener if the story doesn't already begin with one
-    const fableOpeners = /^(once|long ago|there once|in the beginning|it began|years ago|back when|a long)/i;
-    if (!fableOpeners.test(fable.trim())) {
-      fable = 'Once, ' + fable.charAt(0).toLowerCase() + fable.slice(1);
-    }
-    $originText.textContent = fable;
-    $origin.style.display = '';
-  } else if ($origin) {
-    $origin.style.display = 'none';
-  }
+  // Origin Story now rendered in The Story block (Tier 2, prepareTier2)
 }
 
 /* ---- Quick Stats: Impact-ranked deep-context ribbon ---- */
