@@ -472,23 +472,25 @@ const QUICK_PICKS = {
   ],
 };
 
-/* ---- Match System (Percentage-based, 60-99%) ---- */
+/* ---- Match System V3 (0-99 range, honest scoring) ---- */
 const MATCH_WORDS = {
-  93: 'Perfect Match',
-  86: 'Great Match',
-  75: 'Good Match',
-  60: 'Worth Exploring',
+  90: 'Outstanding',
+  80: 'Great Match',
+  70: 'Good Pick',
+  55: 'Worth a Try',
+  40: 'It\'s a Stretch',
+  0: 'Weak Match',
 };
-const MATCH_THRESHOLDS = [93, 86, 75, 60];
+const MATCH_THRESHOLDS = [90, 80, 70, 55, 40, 0];
 
 export function getScoreTier(score, { mismatch = false } = {}) {
-  const pct = Math.round(parseFloat(score) || 80);
-  const clamped = Math.max(0, Math.min(100, pct));
-  const matched = MATCH_THRESHOLDS.find(t => clamped >= t) ?? 60;
+  const pct = Math.round(parseFloat(score) || 0);
+  const clamped = Math.max(0, Math.min(99, pct));
+  const matched = MATCH_THRESHOLDS.find(t => clamped >= t) ?? 0;
   let verdict = MATCH_WORDS[matched];
   let tier, cssClass;
-  if (clamped >= 86) { tier = 'high'; cssClass = 'score-verdict--high'; }
-  else if (clamped >= 75) { tier = 'mid'; cssClass = 'score-verdict--mid'; }
+  if (clamped >= 80) { tier = 'high'; cssClass = 'score-verdict--high'; }
+  else if (clamped >= 55) { tier = 'mid'; cssClass = 'score-verdict--mid'; }
   else { tier = 'low'; cssClass = 'score-verdict--low'; }
   // Cuisine mismatch: override verdict to be transparent about the gap
   if (mismatch && tier === 'low') verdict = 'Best Alternative';
@@ -496,9 +498,9 @@ export function getScoreTier(score, { mismatch = false } = {}) {
 }
 
 export function getScoreColor(score) {
-  const pct = Math.round(parseFloat(score) || 80);
-  if (pct >= 86) return 'var(--rag-green)';
-  if (pct >= 75) return 'var(--rag-amber)';
+  const pct = Math.round(parseFloat(score) || 0);
+  if (pct >= 80) return 'var(--rag-green)';
+  if (pct >= 55) return 'var(--rag-amber)';
   return 'var(--rag-red)';
 }
 
@@ -509,8 +511,8 @@ export function getScoreColor(score) {
  * @returns {string} CSS variable string
  */
 export function getScoreThresholdColor(score) {
-  if (score >= 86) return 'var(--rag-green)';
-  if (score >= 75) return 'var(--rag-amber)';
+  if (score >= 80) return 'var(--rag-green)';
+  if (score >= 55) return 'var(--rag-amber)';
   return 'var(--rag-red)';
 }
 
@@ -524,6 +526,18 @@ export function getVibeColor(score) {
   if (score >= 8.6) return 'var(--rag-green)';
   if (score >= 7.5) return 'var(--rag-amber)';
   return 'var(--rag-red)';
+}
+
+/**
+ * Returns the CSS color variable for a V3 factor score (0–10 scale).
+ * Accent >= 8, muted gray >= 5, warning amber < 5
+ * @param {number} score — factor score (0–10)
+ * @returns {string} CSS variable string
+ */
+export function getFactorColor(score) {
+  if (score >= 8) return 'var(--ac)';
+  if (score >= 5) return 'var(--fg3)';
+  return 'var(--rag-amber)';
 }
 
 export function buildGoogleStars(rating) {

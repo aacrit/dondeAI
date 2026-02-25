@@ -1827,6 +1827,193 @@
   font-weight: 600;
 }
 
+/* ---- V3 Factor Bars inside Score Hero ---- */
+.score-hero__factors {
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 400ms cubic-bezier(0.2, 1, 0.4, 1),
+              opacity 300ms var(--ease-out);
+}
+
+.score-hero--factors-expanded .score-hero__factors {
+  max-height: 500px;
+  opacity: 1;
+}
+
+.factor-bars__list {
+  padding-top: var(--space-sm);
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+}
+
+.factor-row-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Individual factor row — tappable button */
+.factor-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  min-height: 28px;
+  padding: var(--space-2xs) 0;
+  border: none;
+  background: none;
+  width: 100%;
+  cursor: pointer;
+  text-align: left;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.factor-row:focus-visible {
+  outline: 2px solid var(--ac);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.factor-row__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fg3);
+  flex-shrink: 0;
+}
+
+.factor-row__icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.factor-row__label {
+  font-family: var(--font-structural);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--fg2);
+  line-height: 1;
+  white-space: nowrap;
+  min-width: 76px;
+}
+
+.factor-row__bar {
+  flex: 1;
+  height: 4px;
+  background: color-mix(in srgb, var(--bg3) 40%, transparent);
+  border-radius: 2px;
+  overflow: hidden;
+  min-width: 40px;
+}
+
+.factor-row__bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  width: 0%;
+  transition: width 400ms cubic-bezier(.34, 1.56, .64, 1);
+}
+
+.factor-row__score {
+  font-family: var(--font-data);
+  font-size: var(--text-xs);
+  color: var(--fg3);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  min-width: 28px;
+  text-align: right;
+}
+
+/* Dominant factor styling */
+.factor-row--dominant .factor-row__icon {
+  color: var(--ac);
+}
+
+.factor-row--dominant .factor-row__label {
+  color: var(--fg);
+}
+
+.factor-row--dominant .factor-row__bar {
+  height: 6px;
+  border-radius: 3px;
+}
+
+.factor-row--dominant .factor-row__bar-fill {
+  border-radius: 3px;
+}
+
+.factor-row--dominant .factor-row__score {
+  color: var(--fg);
+  font-weight: 600;
+}
+
+/* Weak factor styling (amber glow for score < 5) */
+.factor-row--weak .factor-row__bar {
+  box-shadow: 0 0 6px color-mix(in srgb, var(--rag-amber) 30%, transparent);
+}
+
+/* Drill-down detail panel */
+.factor-detail {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 300ms ease;
+  background: var(--bg2);
+  border-radius: 6px;
+  margin: 0 0 var(--space-2xs) 28px;
+}
+
+.factor-detail[aria-hidden="false"] {
+  padding: var(--space-xs);
+}
+
+.factor-detail__items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+}
+
+.factor-detail__item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.factor-detail__signal {
+  font-family: var(--font-structural);
+  font-size: var(--text-xs);
+  color: var(--fg2);
+}
+
+.factor-detail__verdict {
+  font-family: var(--font-data);
+  font-size: var(--text-xs);
+  color: var(--fg3);
+}
+
+.factor-detail__verdict--match {
+  color: var(--rag-green);
+}
+
+.factor-detail__verdict--miss {
+  color: var(--rag-amber);
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .factor-row__bar-fill {
+    transition-duration: 0ms;
+  }
+  .score-hero__factors {
+    transition-duration: 0ms;
+  }
+  .factor-detail {
+    transition-duration: 0ms;
+  }
+}
+
 /* ---- Sentiment Inline Track (used inside badge-popout) ---- */
 .sentiment-inline__track {
   display: flex;
