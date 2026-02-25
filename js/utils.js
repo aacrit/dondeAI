@@ -530,12 +530,14 @@ export function getVibeColor(score) {
 
 /**
  * Returns the CSS color variable for a V3 factor score (0–10 scale).
- * Accent >= 8, muted gray >= 5, warning amber < 5
+ * V3.3 (DV2/HB3): Accent >= 7 (was 8), muted gray >= 5, warning amber < 5
+ * Typical good factors cluster 5.5-7.5; accent at 8 almost never fired,
+ * making "Why This Match" bars monotonously gray.
  * @param {number} score — factor score (0–10)
  * @returns {string} CSS variable string
  */
 export function getFactorColor(score) {
-  if (score >= 8) return 'var(--ac)';
+  if (score >= 7) return 'var(--ac)';
   if (score >= 5) return 'var(--fg3)';
   return 'var(--rag-amber)';
 }
