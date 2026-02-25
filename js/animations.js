@@ -105,6 +105,27 @@ const FACTOR_DIMS = [
   { key: 'convenience',   label: 'Convenience',  icon: 'clock' },
 ];
 
+/** Normalize V3 scoring keys to V4 format so FACTOR_DIMS always matches */
+function normalizeScoringKeys(scoring) {
+  if (!scoring) return scoring;
+  if (scoring.food_quality != null) return scoring; // Already V4
+  const V3_TO_V4 = { food_match: 'food_quality', atmosphere: 'vibe', setting_fit: 'service' };
+  const normalized = { ...scoring };
+  for (const [v3, v4] of Object.entries(V3_TO_V4)) {
+    if (normalized[v3] != null && normalized[v4] == null) {
+      normalized[v4] = normalized[v3];
+    }
+  }
+  if (normalized.factor_details) {
+    const nd = { ...normalized.factor_details };
+    for (const [v3, v4] of Object.entries(V3_TO_V4)) {
+      if (nd[v3] && !nd[v4]) nd[v4] = nd[v3];
+    }
+    normalized.factor_details = nd;
+  }
+  return normalized;
+}
+
 function svgEl(tag) {
   return document.createElementNS('http://www.w3.org/2000/svg', tag);
 }
@@ -353,8 +374,8 @@ export function renderScoreHero(dondeMatch, scores, scoringV2, sentiment, timers
   const $calloutValue = document.getElementById('score-hero-callout-value');
 
   if ($callout && $calloutValue && scoringV2) {
-    // V3: Find the strongest factor from scoring_v3 data
-    const sv3 = scoringV2; // Passed as scoringV2 param but may contain V3 data
+    // Normalize V3 keys so FACTOR_DIMS always matches
+    const sv3 = normalizeScoringKeys(scoringV2);
     const factorEntries = FACTOR_DIMS.filter(d => sv3[d.key] != null);
     if (factorEntries.length > 0) {
       const best = factorEntries.reduce((a, b) =>
@@ -422,8 +443,8 @@ export function renderFactorBars(scoringData, timers = []) {
   const $list = document.getElementById('factor-bars-list');
   if (!$container || !$list) return;
 
-  // V4: Accept either scoring_v4 or scoring_v3 format
-  const scoringV4 = scoringData;
+  // V4: Accept either scoring_v4 or scoring_v3 format — normalize V3 keys
+  const scoringV4 = normalizeScoringKeys(scoringData);
   if (!scoringV4) return;
 
   $list.innerHTML = '';
@@ -463,9 +484,9 @@ export function renderFactorBars(scoringData, timers = []) {
 
     const pct = Math.min(slot.val / 10, 1) * 100;
     const color = getFactorColor(slot.val);
-    // V4: Dynamic weight chip
+    // V4: Dynamic weight — shows as subtle "wt 25%" after score
     const weightChip = slot.weight != null
-      ? `<span class="factor-row__weight type-data--xs">${slot.weight}%</span>`
+      ? `<span class="factor-row__weight type-data--xs">wt ${slot.weight}%</span>`
       : '';
     // V4: Confidence badge
     const confBadge = slot.confidence
@@ -511,7 +532,7 @@ export function renderFactorBars(scoringData, timers = []) {
         detail.setAttribute('aria-hidden', 'false');
         // Populate detail if empty
         if (!detail.innerHTML.trim()) {
-          detail.innerHTML = buildFactorDetail(slot.key, scoringV3);
+          detail.innerHTML = buildFactorDetail(slot.key, scoringV4);
         }
         detail.style.maxHeight = detail.scrollHeight + 'px';
       }

@@ -979,18 +979,7 @@ function wireEvents() {
           }
           announce('Showing more details');
         } else {
-          // Collapsing — also collapse tier 3 if open
-          const $tier3 = document.getElementById('tier-deep');
-          const $detailsBtn = document.getElementById('details-trigger-btn');
-          if ($tier3?.classList.contains('tier--expanded')) {
-            $tier3.classList.remove('tier--expanded');
-            $tier3.setAttribute('aria-hidden', 'true');
-          }
-          if ($detailsBtn) {
-            $detailsBtn.setAttribute('aria-expanded', 'false');
-            const t = $detailsBtn.querySelector('.details-trigger-btn__text');
-            if (t) t.textContent = 'All Details';
-          }
+          // Collapsing
           resetBloomState();
         }
         break;
@@ -1016,35 +1005,22 @@ function wireEvents() {
         break;
       }
 
-      case 'expand-tier-3': {
-        const $tier3 = document.getElementById('tier-deep');
-        const isExp = btn.getAttribute('aria-expanded') === 'true';
-        btn.setAttribute('aria-expanded', String(!isExp));
-        if ($tier3) {
-          $tier3.classList.toggle('tier--expanded');
-          $tier3.setAttribute('aria-hidden', String(isExp));
-        }
-        const $txt = btn.querySelector('.details-trigger-btn__text');
-        if ($txt) $txt.textContent = isExp ? 'All Details' : 'Collapse';
-        // Trigger tier 3 animations on first expand
-        if (!isExp) {
-          renderTier3Animations();
-          announce('Showing all restaurant details');
-        }
-        break;
-      }
+      // Tier 3 removed — badges now live in Tier 2
     }
   });
 
-  // Match Mini tap → expand Tier 2 and scroll to Score Hero
+  // Match Mini tap → toggle Tier 2 and scroll to Score Hero
   document.getElementById('match-pill')?.addEventListener('click', () => {
     const $tellMore = document.getElementById('tell-more-btn');
-    if ($tellMore && $tellMore.getAttribute('aria-expanded') !== 'true') {
-      $tellMore.click();
+    if ($tellMore) {
+      $tellMore.click(); // Always toggle — expand-tier-2 handler manages state
     }
-    setTimeout(() => {
-      document.getElementById('score-hero')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 200);
+    // Only scroll to Score Hero when expanding (after the click has toggled state)
+    if ($tellMore && $tellMore.getAttribute('aria-expanded') === 'true') {
+      setTimeout(() => {
+        document.getElementById('score-hero')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 200);
+    }
     haptic(HAPTICS.tick);
   });
 
@@ -1887,8 +1863,6 @@ function renderResult(data) {
 
   // Reset tier animation flags for fresh render
   _tier2Animated = false;
-  _tier3Animated = false;
-
   // Reset typewriter flags on story elements
   const $storyTipEl = document.getElementById('story-tip-text');
   if ($storyTipEl) $storyTipEl._hasRevealed = false;
@@ -1898,13 +1872,9 @@ function renderResult(data) {
 
   // Reset tier expansion state — always start at Tier 1 (Glance)
   const $tier2 = document.getElementById('tier-leanin');
-  const $tier3 = document.getElementById('tier-deep');
   const $tellMore = document.getElementById('tell-more-btn');
-  const $detailsTrigger = document.getElementById('details-trigger-btn');
   if ($tier2) { $tier2.classList.remove('tier--expanded'); $tier2.setAttribute('aria-hidden', 'true'); }
-  if ($tier3) { $tier3.classList.remove('tier--expanded'); $tier3.setAttribute('aria-hidden', 'true'); }
   if ($tellMore) { $tellMore.setAttribute('aria-expanded', 'false'); const t = $tellMore.querySelector('.tell-more-btn__text'); if (t) t.textContent = 'Show More'; }
-  if ($detailsTrigger) { $detailsTrigger.setAttribute('aria-expanded', 'false'); const t = $detailsTrigger.querySelector('.details-trigger-btn__text'); if (t) t.textContent = 'All Details'; }
 
   // Cuisine detection (for accent color + auto-theme)
   const cuisine = getCuisineFromResult(data);
@@ -2152,12 +2122,7 @@ function renderResult(data) {
   // Pre-populate Tier 2 content (DOM ready, just hidden)
   prepareTier2(data, cuisine);
 
-  // ═══════════════════════════════════════════════════════
-  // TIER 3: DEEP DIVE — Prepare content (hidden until expanded)
-  // ═══════════════════════════════════════════════════════
-  prepareTier3(data, cuisine);
-
-  // Apply progressive reveal (Tier 1 only — Tier 2/3 animate on expand)
+  // Apply progressive reveal (Tier 1 only — Tier 2 animates on expand)
   if ($resultCard) {
     $resultCard.classList.remove('card-enter', 'result-card--revealing');
     void $resultCard.offsetWidth;
@@ -2258,18 +2223,16 @@ function prepareTier2(data, cuisine) {
 
 
 
-  // 1D: Deep context extras (USP, wow factors, origin story)
+  // 1D: Deep context extras (USP, wow factors)
   renderDeepContextExtras(data);
+
+  // Detail badges grid (merged from former Tier 3 into Tier 2)
+  renderProfileBadges(data, cuisine);
 }
 
-/* ---- Prepare Tier 3 DOM content ---- */
-function prepareTier3(data, cuisine) {
+/* ---- Profile Badges Grid (merged from former Tier 3) ---- */
+function renderProfileBadges(data, cuisine) {
   const r = data.restaurant;
-
-  // Vibe profile now lives in the bloom overlay on score hero — no separate bars needed
-  // V2 Breakdown is triggered by tap on score hero in Tier 2 — no pre-render needed
-
-  // Detail badges grid (full facts + atmosphere)
   const $profileFacts = document.getElementById('profile-facts');
   const parkingPts = r.parking_availability
     ? parseParkingTypes(r.parking_availability).slice(0, 2).join(' / ') : null;
@@ -2348,13 +2311,6 @@ function renderTier2Animations() {
   );
 }
 
-/* ---- Tier 3 animation trigger (called on first expand) ---- */
-let _tier3Animated = false;
-function renderTier3Animations() {
-  if (_tier3Animated) return;
-  _tier3Animated = true;
-  // Vibe bars removed — vibe profile now lives in score hero bloom overlay
-}
 
 /* ---- Parking Type Parser ---- */
 function parseParkingTypes(parkingStr) {
@@ -2514,6 +2470,38 @@ function humanizeSnake(str) {
   return str
     .replace(/_/g, ' ')
     .replace(/\b\w/g, c => c.toUpperCase());
+}
+
+/* ---- Spice Level → Intuitive Label ---- */
+function formatSpiceLevel(raw) {
+  if (!raw) return '';
+  const map = {
+    none: 'Not Spicy', mild: 'Mild', low: 'Mild',
+    medium: 'Medium', moderate: 'Medium',
+    hot: 'Spicy', high: 'Spicy', very_hot: 'Very Spicy', extra_hot: 'Very Spicy',
+  };
+  return map[raw.toLowerCase()] || humanizeSnake(raw);
+}
+
+/* ---- Service Style → Clean Label ---- */
+function formatServiceStyle(raw) {
+  if (!raw) return '';
+  const map = {
+    counter_service: 'Counter', full_service: 'Full Service', table_service: 'Full Service',
+    buffet: 'Buffet', fast_casual: 'Fast Casual', fine_dining: 'Fine Dining',
+    self_service: 'Self-Serve', family_style: 'Family Style',
+  };
+  return map[raw.toLowerCase()] || humanizeSnake(raw);
+}
+
+/* ---- Meal Pacing → Clean Label ---- */
+function formatMealPacing(raw) {
+  if (!raw) return '';
+  const map = {
+    fast_paced: 'Quick', fast: 'Quick', moderate: 'Relaxed',
+    leisurely: 'Leisurely', slow: 'Leisurely', relaxed: 'Relaxed',
+  };
+  return map[raw.toLowerCase()] || humanizeSnake(raw);
 }
 
 /* ---- Noise Level → Speaker Icon Mapper ---- */
@@ -3100,7 +3088,7 @@ function renderQuickStats(data) {
 
   // -- Craving stats --
   if (dc.spice_level && dc.spice_level !== 'none') {
-    candidates.push({ icon: 'fire', text: humanizeSnake(dc.spice_level),
+    candidates.push({ icon: 'fire', text: formatSpiceLevel(dc.spice_level),
       priority: dw.craving * 0.55 });
   }
 
@@ -3208,7 +3196,7 @@ function addDeepContextBadges(data) {
 
   // Spice level (text: "Mild", "Medium", "Hot", etc.)
   if (dc.spice_level) {
-    extraBadges.push({ icon: 'fire', label: 'Spice', value: humanizeSnake(dc.spice_level) });
+    extraBadges.push({ icon: 'fire', label: 'Spice', value: formatSpiceLevel(dc.spice_level) });
   }
 
   // Kid friendliness (0-10 → label)
@@ -3220,12 +3208,12 @@ function addDeepContextBadges(data) {
 
   // Service style (text: "Counter", "Table Service", "Buffet", etc.)
   if (dc.service_style) {
-    extraBadges.push({ icon: 'forkKnife', label: 'Service', value: humanizeSnake(dc.service_style) });
+    extraBadges.push({ icon: 'forkKnife', label: 'Service', value: formatServiceStyle(dc.service_style) });
   }
 
   // Meal pacing (text: "Fast-paced", "Relaxed", "Leisurely", etc.)
   if (dc.meal_pacing) {
-    extraBadges.push({ icon: 'timer', label: 'Pacing', value: humanizeSnake(dc.meal_pacing) });
+    extraBadges.push({ icon: 'timer', label: 'Pacing', value: formatMealPacing(dc.meal_pacing) });
   }
 
   // Render extra badges

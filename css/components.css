@@ -668,8 +668,7 @@
   min-width: 0;
 }
 
-.tier--leanin,
-.tier--deep {
+.tier--leanin {
   overflow: hidden;
   max-height: 0;
   opacity: 0;
@@ -682,8 +681,7 @@
               margin 400ms var(--ease-out);
 }
 
-.tier--leanin.tier--expanded,
-.tier--deep.tier--expanded {
+.tier--leanin.tier--expanded {
   max-height: 3000px;
   opacity: 1;
   pointer-events: auto;
@@ -775,14 +773,11 @@
   line-height: 1;
 }
 
-/* Simplified brand text — single weight replaces 3 letter-split spans */
-.match-mini__brand-text {
-  font-family: var(--font-emotional);
-  font-weight: 700;
-  font-size: 0.7rem;
-  color: var(--fg);
-  letter-spacing: -0.02em;
-  line-height: 1;
+/* Pin logo SVG in Match Mini — accent-colored, matches header */
+.match-mini__brand-logo {
+  color: var(--ac);
+  flex-shrink: 0;
+  display: block;
 }
 
 .match-mini__tm {
@@ -1163,9 +1158,8 @@
   align-items: center;
 }
 
-/* ── Tell Me More / Expand Buttons ── */
-.tell-more-btn,
-.details-trigger-btn {
+/* ── Tell Me More Button ── */
+.tell-more-btn {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2xs);
@@ -1197,27 +1191,23 @@
   color: var(--bg);
 }
 
-.tell-more-btn:hover,
-.details-trigger-btn:hover {
+.tell-more-btn:hover {
   color: var(--fg);
   background: var(--bg3);
   border-color: var(--fg3);
 }
 
-.tell-more-btn:focus-visible,
-.details-trigger-btn:focus-visible {
+.tell-more-btn:focus-visible {
   outline: 2px solid var(--ac);
   outline-offset: 2px;
 }
 
-.tell-more-btn__arrow,
-.details-trigger-btn__arrow {
+.tell-more-btn__arrow {
   font-size: var(--text-xs);
   transition: transform var(--dur-fast) var(--spring);
 }
 
-.tell-more-btn[aria-expanded="true"] .tell-more-btn__arrow,
-.details-trigger-btn[aria-expanded="true"] .details-trigger-btn__arrow {
+.tell-more-btn[aria-expanded="true"] .tell-more-btn__arrow {
   transform: rotate(180deg);
 }
 
@@ -1225,13 +1215,6 @@
   content: none;
 }
 
-.details-trigger-btn {
-  display: none;
-}
-
-.tier--expanded .details-trigger-btn {
-  display: inline-flex;
-}
 
 /* ── Semantic Block Wrappers ── */
 .result-story {
@@ -1600,19 +1583,9 @@
 }
 
 .score-hero__brand-logo {
-  color: var(--fg);
+  color: var(--ac);
   flex-shrink: 0;
   align-self: center;
-}
-
-/* Simplified — single weight replaces 3 letter-split spans */
-.score-hero__brand-donde {
-  font-family: var(--font-emotional);
-  font-weight: 700;
-  font-size: var(--text-sm);
-  color: var(--fg);
-  letter-spacing: -0.02em;
-  line-height: 1;
 }
 
 .score-hero__brand-match {
@@ -1910,17 +1883,19 @@
   text-align: right;
 }
 
-/* V4: Dynamic weight chip */
+/* V4: Dynamic weight indicator — subtle inline after score */
 .factor-row__weight {
   font-family: var(--font-data);
-  font-size: 9px;
-  color: var(--fg4);
-  background: var(--bg2);
-  padding: 1px 4px;
-  border-radius: 3px;
+  font-size: var(--text-2xs, 10px);
+  color: var(--fg3);
+  background: none;
+  padding: 0;
   letter-spacing: 0.02em;
   white-space: nowrap;
   flex-shrink: 0;
+  min-width: 28px;
+  text-align: right;
+  opacity: 0.6;
 }
 
 /* V4: Confidence badge */
