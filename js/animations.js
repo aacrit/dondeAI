@@ -105,6 +105,53 @@ const FACTOR_DIMS = [
   { key: 'convenience',   label: 'Convenience',  icon: 'clock' },
 ];
 
+/** Normalize V3 scoring keys to V4 format so FACTOR_DIMS always matches */
+function normalizeScoringKeys(scoring) {
+  if (!scoring) return scoring;
+  const V3_TO_V4 = { food_match: 'food_quality', atmosphere: 'vibe', setting_fit: 'service' };
+  // V3 weights_used uses short names: food, setting, atmosphere
+  const V3_WEIGHT_TO_V4 = { food: 'food_quality', atmosphere: 'vibe', setting: 'service' };
+
+  const isV4 = scoring.food_quality != null;
+  const normalized = { ...scoring };
+
+  // Normalize top-level factor keys (V3 → V4)
+  if (!isV4) {
+    for (const [v3, v4] of Object.entries(V3_TO_V4)) {
+      if (normalized[v3] != null && normalized[v4] == null) {
+        normalized[v4] = normalized[v3];
+      }
+    }
+  }
+
+  if (normalized.factor_details) {
+    const nd = { ...normalized.factor_details };
+    for (const [v3, v4] of Object.entries(V3_TO_V4)) {
+      if (nd[v3] && !nd[v4]) nd[v4] = nd[v3];
+    }
+    normalized.factor_details = nd;
+  }
+
+  // Always normalize weights_used — V3 uses short keys (food, setting, atmosphere)
+  if (normalized.weights_used) {
+    const nw = { ...normalized.weights_used };
+    for (const [v3w, v4w] of Object.entries(V3_WEIGHT_TO_V4)) {
+      if (nw[v3w] != null && nw[v4w] == null) {
+        nw[v4w] = nw[v3w];
+      }
+    }
+    // Also handle the factor-score-key format just in case
+    for (const [v3, v4] of Object.entries(V3_TO_V4)) {
+      if (nw[v3] != null && nw[v4] == null) {
+        nw[v4] = nw[v3];
+      }
+    }
+    normalized.weights_used = nw;
+  }
+
+  return normalized;
+}
+
 function svgEl(tag) {
   return document.createElementNS('http://www.w3.org/2000/svg', tag);
 }
@@ -353,8 +400,8 @@ export function renderScoreHero(dondeMatch, scores, scoringV2, sentiment, timers
   const $calloutValue = document.getElementById('score-hero-callout-value');
 
   if ($callout && $calloutValue && scoringV2) {
-    // V3: Find the strongest factor from scoring_v3 data
-    const sv3 = scoringV2; // Passed as scoringV2 param but may contain V3 data
+    // Normalize V3 keys so FACTOR_DIMS always matches
+    const sv3 = normalizeScoringKeys(scoringV2);
     const factorEntries = FACTOR_DIMS.filter(d => sv3[d.key] != null);
     if (factorEntries.length > 0) {
       const best = factorEntries.reduce((a, b) =>
@@ -422,8 +469,8 @@ export function renderFactorBars(scoringData, timers = []) {
   const $list = document.getElementById('factor-bars-list');
   if (!$container || !$list) return;
 
-  // V4: Accept either scoring_v4 or scoring_v3 format
-  const scoringV4 = scoringData;
+  // V4: Accept either scoring_v4 or scoring_v3 format — normalize V3 keys
+  const scoringV4 = normalizeScoringKeys(scoringData);
   if (!scoringV4) return;
 
   $list.innerHTML = '';
@@ -463,24 +510,18 @@ export function renderFactorBars(scoringData, timers = []) {
 
     const pct = Math.min(slot.val / 10, 1) * 100;
     const color = getFactorColor(slot.val);
-    // V4: Dynamic weight chip
-    const weightChip = slot.weight != null
+    const weightSuffix = slot.weight != null
       ? `<span class="factor-row__weight type-data--xs">${slot.weight}%</span>`
-      : '';
-    // V4: Confidence badge
-    const confBadge = slot.confidence
-      ? `<span class="factor-row__confidence factor-row__confidence--${slot.confidence}" title="${slot.confidence} confidence"></span>`
       : '';
 
     row.innerHTML = `
-      <span class="factor-row__icon">${svgIcon(slot.icon, 14)}</span>
+      <span class="factor-row__icon" style="color:${color}">${svgIcon(slot.icon, 16)}</span>
       <span class="factor-row__label type-structural">${slot.label}</span>
-      ${weightChip}
       <span class="factor-row__bar">
         <span class="factor-row__bar-fill" data-width="${pct}" style="background:${color}"></span>
       </span>
       <span class="factor-row__score type-data--sm">${slot.val.toFixed(1)}</span>
-      ${confBadge}`;
+      ${weightSuffix}`;
 
     // Drill-down panel (hidden by default)
     const detail = document.createElement('div');
@@ -511,7 +552,7 @@ export function renderFactorBars(scoringData, timers = []) {
         detail.setAttribute('aria-hidden', 'false');
         // Populate detail if empty
         if (!detail.innerHTML.trim()) {
-          detail.innerHTML = buildFactorDetail(slot.key, scoringV3);
+          detail.innerHTML = buildFactorDetail(slot.key, scoringV4);
         }
         detail.style.maxHeight = detail.scrollHeight + 'px';
       }
@@ -538,52 +579,62 @@ export function renderFactorBars(scoringData, timers = []) {
   });
 }
 
-/** Build drill-down HTML for a factor */
-/** V3.6: Rich inline explanation card with sub-component mini-bars */
-function buildFactorDetail(factorKey, scoringV3) {
-  const score = scoringV3[factorKey] || 0;
-  const weights = scoringV3.weights_used || {};
-  const details = scoringV3.factor_details?.[factorKey] || null;
+/** Build drill-down HTML for a factor — subtle icon list with signals */
+function buildFactorDetail(factorKey, scoring) {
+  const weights = scoring.weights_used || {};
+  const details = scoring.factor_details?.[factorKey] || null;
 
-  const weightPct = weights[factorKey.replace('_match', '').replace('_fit', '')] || 0;
+  const weightPct = weights[factorKey] || 0;
   const weightLabel = Math.round(weightPct * 100);
+
+  // Sub-component icons + labels
+  const SUB_META = {
+    cuisine:     { icon: 'plate',      label: 'Cuisine' },
+    flavor:      { icon: 'fire',       label: 'Flavor' },
+    dietary:     { icon: 'salad',      label: 'Dietary' },
+    menu:        { icon: 'forkKnife',  label: 'Menu' },
+    occasion:    { icon: 'heart',      label: 'Occasion' },
+    service:     { icon: 'diamond',    label: 'Service' },
+    social:      { icon: 'usersThree', label: 'Social Fit' },
+    noise:       { icon: 'speakerWave',label: 'Noise' },
+    lighting:    { icon: 'moon',       label: 'Lighting' },
+    dress:       { icon: 'shirt',      label: 'Dress Code' },
+    energy:      { icon: 'bolt',       label: 'Energy' },
+    music:       { icon: 'music',      label: 'Music' },
+    google:      { icon: 'starFull',   label: 'Google' },
+    sentiment:   { icon: 'chat',       label: 'Reviews' },
+    awards:      { icon: 'starOutline',label: 'Awards' },
+    community:   { icon: 'usersThree', label: 'Community' },
+    timing:      { icon: 'clock',      label: 'Timing' },
+    reservation: { icon: 'calendar',   label: 'Reservations' },
+    practical:   { icon: 'briefcase',  label: 'Practical' },
+  };
 
   let items = '';
 
-  // Sub-component mini-bars (if factor_details available)
   if (details && typeof details === 'object') {
-    // Human-readable labels for sub-component keys
-    const SUB_LABELS = {
-      cuisine: 'Cuisine', flavor: 'Flavor', dietary: 'Dietary', menu: 'Menu Match',
-      occasion: 'Occasion Fit', service: 'Service', social: 'Social Fit',
-      noise: 'Noise', lighting: 'Lighting', dress: 'Dress Code', energy: 'Energy', music: 'Music',
-      google: 'Google Rating', sentiment: 'Reviews', awards: 'Awards', community: 'Community',
-      timing: 'Timing', reservation: 'Reservations', practical: 'Practical',
-    };
-
     for (const [subKey, sub] of Object.entries(details)) {
       if (!sub || typeof sub !== 'object') continue;
-      const label = SUB_LABELS[subKey] || subKey;
+      const meta = SUB_META[subKey] || { icon: 'plate', label: subKey };
       const pct = sub.max > 0 ? Math.min((sub.score / sub.max) * 100, 100) : 0;
-      const barColor = pct >= 75 ? 'var(--ac)' : pct >= 40 ? 'var(--fg3)' : 'var(--rag-amber)';
-      const signalClass = pct >= 75 ? 'factor-detail__verdict--match' : pct < 40 ? 'factor-detail__verdict--miss' : '';
+      const signalClass = pct >= 75 ? 'factor-detail__signal--match'
+        : pct < 40 ? 'factor-detail__signal--miss' : '';
 
-      items += `<div class="factor-detail__sub">
-        <span class="factor-detail__sub-label type-structural">${label}</span>
-        <span class="factor-detail__sub-bar">
-          <span class="factor-detail__sub-fill" style="width: ${pct}%; background: ${barColor}"></span>
-        </span>
-        <span class="factor-detail__sub-score type-data--sm">${sub.score}/${sub.max}</span>
-        <span class="factor-detail__sub-signal type-structural ${signalClass}">${sub.signal}</span>
+      items += `<div class="factor-detail__row">
+        <span class="factor-detail__row-icon ${signalClass}">${svgIcon(meta.icon, 12)}</span>
+        <span class="factor-detail__row-label type-structural">${meta.label}</span>
+        <span class="factor-detail__row-signal type-structural ${signalClass}">${sub.signal}</span>
       </div>`;
     }
   }
 
   // Weight footer
-  items += `<div class="factor-detail__weight">
-    <span class="factor-detail__signal type-structural">Weight in your search</span>
-    <span class="factor-detail__verdict type-data--sm">${weightLabel}%</span>
-  </div>`;
+  if (weightLabel > 0) {
+    items += `<div class="factor-detail__weight">
+      <span class="factor-detail__weight-label type-structural">Weight</span>
+      <span class="factor-detail__weight-value type-data--sm">${weightLabel}%</span>
+    </div>`;
+  }
 
   return `<div class="factor-detail__items">${items}</div>`;
 }
