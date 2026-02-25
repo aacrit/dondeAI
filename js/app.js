@@ -1801,9 +1801,9 @@ async function orchestrateReveal(data) {
   // F18: Haptic feedback on reveal (mobile only, graceful degrade)
   haptic(HAPTICS.reveal);
 
-  // Score celebration for 90%+ matches (confetti, chime, enhanced haptic)
+  // V4: Score celebration for 85%+ matches (geometric mean — tighter distribution)
   const celebScore = Math.round(parseFloat(data.donde_match) || 0);
-  if (celebScore >= 90) {
+  if (celebScore >= 85) {
     // Delay slightly so the score ring animation finishes first
     animationTimers.push(setTimeout(() => {
       fireCelebration();
@@ -2640,26 +2640,40 @@ function openTileExpand(tileEl) {
       </div>
       <span class="score-verdict type-structural--bold ${tier.cssClass}" style="font-size: var(--text-lg);">${tier.verdict}</span>`;
 
-    // V3: Factor breakdown — "Why This Match"
-    const sv3 = data.scoring_v3;
-    if (sv3) {
-      const v3Dims = [
-        { key: 'food_match',    label: 'Food Match',   icon: 'plate' },
-        { key: 'setting_fit',   label: 'Setting Fit',  icon: 'diamond' },
-        { key: 'atmosphere',    label: 'Atmosphere',    icon: 'music' },
-        { key: 'reputation',    label: 'Reputation',    icon: 'starFull' },
+    // V4: Factor breakdown — "Why This Match" (geometric mean factors)
+    const sv4 = data.scoring_v4 || data.scoring_v3;
+    if (sv4) {
+      const v4Dims = [
+        { key: 'food_quality',  label: 'Food Quality', icon: 'plate' },
+        { key: 'vibe',          label: 'Vibe',         icon: 'music' },
+        { key: 'service',       label: 'Service',      icon: 'diamond' },
+        { key: 'reputation',    label: 'Reputation',   icon: 'starFull' },
         { key: 'convenience',   label: 'Convenience',  icon: 'clock' },
       ];
-      const v3Available = v3Dims.filter(d => sv3[d.key] != null);
-      if (v3Available.length > 0) {
-        const v3Html = v3Available.map(d => {
-          const val = Math.min(Math.max(sv3[d.key] || 0, 0), 10);
+      // Fallback to V3 keys if V4 not available
+      const isV4 = sv4.food_quality != null;
+      const v3FallbackDims = [
+        { key: 'food_match',    label: 'Food Quality', icon: 'plate' },
+        { key: 'atmosphere',    label: 'Vibe',         icon: 'music' },
+        { key: 'setting_fit',   label: 'Service',      icon: 'diamond' },
+        { key: 'reputation',    label: 'Reputation',   icon: 'starFull' },
+        { key: 'convenience',   label: 'Convenience',  icon: 'clock' },
+      ];
+      const dims = isV4 ? v4Dims : v3FallbackDims;
+      const weightsUsed = sv4.weights_used || {};
+      const available = dims.filter(d => sv4[d.key] != null);
+      if (available.length > 0) {
+        const dimsHtml = available.map(d => {
+          const val = Math.min(Math.max(sv4[d.key] || 0, 0), 10);
           const pctVal = (val / 10) * 100;
-          const color = getFactorColor(val);  // V3.3 (DV5/HB6): use shared function instead of inline duplicate
+          const color = getFactorColor(val);
+          const weight = weightsUsed[d.key] != null ? Math.round(weightsUsed[d.key] * 100) : null;
+          const weightChip = weight != null ? `<span class="tile-expand__dim-weight type-data--xs">${weight}%</span>` : '';
           return `
             <div class="tile-expand__dim">
               <span class="tile-expand__dim-icon">${svgIcon(d.icon, 14)}</span>
               <span class="tile-expand__dim-label type-data--sm">${d.label}</span>
+              ${weightChip}
               <div class="tile-expand__dim-bar">
                 <div class="tile-expand__dim-fill" style="width: ${pctVal}%; background: ${color}"></div>
               </div>
@@ -2667,11 +2681,14 @@ function openTileExpand(tileEl) {
             </div>`;
         }).join('');
 
-        // Find highest weighted factor for summary line
+        // V4: Show weight shift reasons if available
         let summaryHtml = '';
-        if (sv3.weights_used) {
-          const factorLabels = { food: 'Food', setting: 'Setting', atmosphere: 'Atmosphere', reputation: 'Reputation', convenience: 'Convenience' };
-          const topFactor = Object.entries(sv3.weights_used).sort((a, b) => b[1] - a[1])[0];
+        if (sv4.weight_shift_reasons && sv4.weight_shift_reasons.length > 0) {
+          const topReason = sv4.weight_shift_reasons[0].split(':')[0]; // Short label before colon
+          summaryHtml = `<p class="tile-expand__summary type-data--sm">${topReason}</p>`;
+        } else if (weightsUsed) {
+          const factorLabels = { food_quality: 'Food', vibe: 'Vibe', service: 'Service', reputation: 'Reputation', convenience: 'Convenience', food: 'Food', setting: 'Setting', atmosphere: 'Vibe' };
+          const topFactor = Object.entries(weightsUsed).sort((a, b) => b[1] - a[1])[0];
           if (topFactor && factorLabels[topFactor[0]]) {
             summaryHtml = `<p class="tile-expand__summary type-data--sm">Weighted for ${factorLabels[topFactor[0]]}</p>`;
           }
@@ -2680,7 +2697,7 @@ function openTileExpand(tileEl) {
         $content.innerHTML += `
           <div class="tile-expand__v2">
             <span class="tile-expand__v2-label type-data--sm">Why This Match</span>
-            <div class="tile-expand__dims">${v3Html}</div>
+            <div class="tile-expand__dims">${dimsHtml}</div>
             ${summaryHtml}
           </div>`;
       }

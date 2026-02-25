@@ -1927,6 +1927,52 @@
   text-align: right;
 }
 
+/* V4: Dynamic weight chip */
+.factor-row__weight {
+  font-family: var(--font-data);
+  font-size: 9px;
+  color: var(--fg4);
+  background: var(--bg2);
+  padding: 1px 4px;
+  border-radius: 3px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* V4: Confidence badge */
+.factor-row__confidence {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-left: 4px;
+}
+.factor-row__confidence--high {
+  background: var(--rag-green);
+}
+.factor-row__confidence--medium {
+  background: var(--rag-amber);
+}
+.factor-row__confidence--low {
+  background: var(--fg4);
+  opacity: 0.5;
+}
+
+/* V4: Weight chip in tile-expand */
+.tile-expand__dim-weight {
+  font-family: var(--font-data);
+  font-size: 9px;
+  color: var(--fg4);
+  background: var(--bg2);
+  padding: 1px 4px;
+  border-radius: 3px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-left: 4px;
+}
+
 /* Dominant factor styling */
 .factor-row--dominant .factor-row__icon {
   color: var(--ac);
