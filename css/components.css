@@ -795,6 +795,36 @@
 
 /* Brand wordmark stays in its default accent/fg colors regardless of tier */
 
+/* ── Match Mini Factors (expanded inline under badge) ── */
+.match-mini__factors {
+  width: 100%;
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition: max-height 400ms var(--ease-out),
+              opacity 300ms var(--ease-out),
+              padding 300ms var(--ease-out);
+  padding: 0;
+}
+
+.match-mini__factors:not([hidden]) {
+  max-height: 500px;
+  opacity: 1;
+  padding: var(--space-sm) 0;
+}
+
+/* Expand hint on Match Mini */
+.match-mini::after {
+  content: '▾';
+  font-size: 0.5rem;
+  color: var(--fg3);
+  transition: transform 200ms var(--ease-out);
+}
+
+.match-mini[aria-expanded="true"]::after {
+  transform: rotate(180deg);
+}
+
 /* ── Quick Tags (cuisine + price snap-decision helpers) ── */
 .quick-tags {
   display: flex;

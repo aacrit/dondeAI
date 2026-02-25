@@ -961,11 +961,9 @@ function wireEvents() {
         if ($btnText) $btnText.textContent = isExpanded ? 'Show More' : 'Show Less';
         if (!isExpanded) {
           renderTier2Animations();
-          const $hero = document.getElementById('score-hero');
-          if ($hero) {
-            $hero.focus({ preventScroll: true });
-            // Auto-scroll to Donde Match section so user sees the expanded content
-            setTimeout(() => $hero.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+          // Scroll to expanded tier content
+          if ($tier2) {
+            setTimeout(() => $tier2.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
           }
           announce('Showing more details');
         } else {
@@ -1026,30 +1024,18 @@ function wireEvents() {
     }
   });
 
-  // Score Hero tap in Tier 2 — toggle factor bars (2-state: compact <-> expanded)
-  document.addEventListener('click', (e) => {
-    if (e.target.closest('[data-action]')) return;
-    const hero = e.target.closest('.score-hero');
-    if (!hero) return;
-    const data = _pendingResultData;
-    if (!data) return;
-    const newState = toggleBloom(
-      data.scores || {},
-      data.scoring_v3 || data.scoring_v2 || null,
-      animationTimers
-    );
-    // Update callout arrow
-    const $calloutArrow = document.getElementById('score-hero-callout')
-      ?.querySelector('.score-hero__callout-arrow');
-    if ($calloutArrow) {
-      $calloutArrow.textContent = newState === 'compact' ? '\u2193' : '\u2191';
-    }
-    announce(newState === 'expanded' ? 'Showing vibe profile' : 'Collapsed vibe profile');
-  });
+  // Score Hero removed — factor bars now inline under Match Mini in Tier 1
 
-  // Match-mini click → expand Tier 2 (same as "Show More")
+  // Match-mini click → toggle inline factor breakdown
   document.getElementById('match-pill')?.addEventListener('click', () => {
-    document.getElementById('tell-more-btn')?.click();
+    const $factors = document.getElementById('match-mini-factors');
+    const $pill = document.getElementById('match-pill');
+    if (!$factors || !$pill) return;
+    const isExpanded = !$factors.hidden;
+    $factors.hidden = isExpanded;
+    $pill.setAttribute('aria-expanded', String(!isExpanded));
+    $factors.setAttribute('aria-hidden', String(isExpanded));
+    haptic(HAPTICS.tick);
   });
 
   // Badge popout: click-outside to close
@@ -2178,15 +2164,12 @@ let _pendingCuisine = null;
 function prepareTier2(data, cuisine) {
   const r = data.restaurant;
 
-  // Score Hero arc — populate but don't animate yet
-  // V3: Pass scoring_v3 (preferred) or scoring_v2 as fallback
-  renderScoreHero(
-    data.donde_match,
-    data.scores || {},
-    data.scoring_v3 || data.scoring_v2 || null,
-    null, // No sentiment in arc anymore
-    [] // No timers — animations triggered on expand
-  );
+  // Score Hero removed — factor bars now rendered inline under Match Mini in Tier 1.
+  // Populate factor bars in the new #match-mini-factors container.
+  const v3 = data.scoring_v3 || data.scoring_v2;
+  if (v3 && v3.factors) {
+    renderFactorBars(v3.factors, document.getElementById('factor-bars-list'), []);
+  }
 
   // Recommendation is now rendered in Tier 1 (Glance) via donde-blurb
 
@@ -2328,15 +2311,8 @@ function renderTier2Animations() {
   const data = _pendingResultData;
   if (!data) return;
 
-  // Animate score hero arc (V3: pass scoring_v3 preferred)
-  renderScoreHero(
-    data.donde_match,
-    data.scores || {},
-    data.scoring_v3 || data.scoring_v2 || null,
-    null,
-    animationTimers
-  );
-  // Recommendation is already rendered in Tier 1 — no re-render needed here
+  // Score Hero removed — factor bars are now in Tier 1 under Match Mini.
+  // Tier 2 animations: just insider tip typewriter (already triggered above)
 }
 
 /* ---- Tier 3 animation trigger (called on first expand) ---- */
