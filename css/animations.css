@@ -388,9 +388,9 @@
   animation: ctaReady 400ms var(--spring);
 }
 
-.cta-btn--alive:not(:hover):not(:active):not(:disabled) {
-  animation: ctaBreathe 3s var(--ease-out) infinite;
-}
+/* CTA breathing animation removed — infinite ambient animation
+   on the primary CTA violates "animation is seasoning, not the dish."
+   The one-shot ctaReady spring (400ms) on enable is sufficient. */
 
 /* ---- Voice Recording Pulse Ring ---- */
 @keyframes voicePulse {

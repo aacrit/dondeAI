@@ -76,12 +76,8 @@ function init() {
   initAccessibility();
   initAuth(); // SSO: non-blocking, restores session if exists
 
-  // SSO: Auto-show auth popup on first visit (unless guest-dismissed or already authenticated)
-  setTimeout(() => {
-    if (!isAuthAuthenticated() && !hasGuestDismissed()) {
-      openAuthSheet();
-    }
-  }, 800);
+  // SSO: Auth popup deferred to post-first-result engagement.
+  // See state subscriber below for trigger logic.
 
   // Set up greeting
   setupLanding();
@@ -126,17 +122,22 @@ function init() {
   // Init cursor glow (desktop only)
   initCursorGlow();
 
-  // Coach marks: trigger after SSO auth completes or guest dismisses
-  // If user is already authenticated or already dismissed guest, show immediately (no auth sheet will open)
-  if (!hasSeenOnboarding() && (isAuthAuthenticated() || hasGuestDismissed())) {
-    setTimeout(() => showCoachMarks(), 1200);
+  // Coach marks: show on first visit after 1.5s (decoupled from auth)
+  if (!hasSeenOnboarding()) {
+    setTimeout(() => showCoachMarks(), 1500);
   }
 
   // Subscribe to state changes
+  let _resultCount = 0;
   subscribe((state, prev) => {
     if (state.result !== prev.result && state.result) {
       // Result arrived — orchestrate the reveal transition (Act 3)
       orchestrateReveal(state.result);
+      // SSO: Deferred auth — show popup after second successful result
+      _resultCount++;
+      if (_resultCount >= 2 && !isAuthAuthenticated() && !hasGuestDismissed()) {
+        setTimeout(() => openAuthSheet(), 600);
+      }
     }
     if (state.loading !== prev.loading && state.loading) {
       // Only handle loading=true here; loading=false is handled by orchestrateReveal
@@ -297,14 +298,25 @@ function renderSmartChips() {
   startChipRotation();
 }
 
-/* ---- Chip Ambient Rotation (swap one chip every 5s) ---- */
+/* ---- Chip Ambient Rotation (swap one chip every 15s, pause on interaction) ---- */
+let _chipsPaused = false;
 function startChipRotation() {
   stopChipRotation();
+  // Pause rotation when user hovers/focuses the chip area
+  const $container = document.querySelector('.smart-chips');
+  if ($container) {
+    $container.addEventListener('pointerenter', () => { _chipsPaused = true; });
+    $container.addEventListener('pointerleave', () => { _chipsPaused = false; });
+  }
   chipRotationTimer = setInterval(() => {
     if ($cravingInput && $cravingInput.value.trim().length > 0) return;
     if (document.activeElement === $cravingInput) return;
+    if (_chipsPaused) return;
+    // Also pause if filter drawer is open
+    const filterToggle = document.querySelector('.filter-drawer__toggle');
+    if (filterToggle?.getAttribute('aria-expanded') === 'true') return;
     rotateOneChip();
-  }, 5000);
+  }, 15000);
 }
 
 function stopChipRotation() {
@@ -961,26 +973,13 @@ function wireEvents() {
         if ($btnText) $btnText.textContent = isExpanded ? 'Show More' : 'Show Less';
         if (!isExpanded) {
           renderTier2Animations();
-          const $hero = document.getElementById('score-hero');
-          if ($hero) {
-            $hero.focus({ preventScroll: true });
-            // Auto-scroll to Donde Match section so user sees the expanded content
-            setTimeout(() => $hero.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
-          }
+          // Scroll to Score Hero (same behavior as Match Mini tap)
+          setTimeout(() => {
+            document.getElementById('score-hero')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }, 200);
           announce('Showing more details');
         } else {
-          // Collapsing — also collapse tier 3 if open
-          const $tier3 = document.getElementById('tier-deep');
-          const $detailsBtn = document.getElementById('details-trigger-btn');
-          if ($tier3?.classList.contains('tier--expanded')) {
-            $tier3.classList.remove('tier--expanded');
-            $tier3.setAttribute('aria-hidden', 'true');
-          }
-          if ($detailsBtn) {
-            $detailsBtn.setAttribute('aria-expanded', 'false');
-            const t = $detailsBtn.querySelector('.details-trigger-btn__text');
-            if (t) t.textContent = 'All Details';
-          }
+          // Collapsing
           resetBloomState();
         }
         break;
@@ -1006,50 +1005,23 @@ function wireEvents() {
         break;
       }
 
-      case 'expand-tier-3': {
-        const $tier3 = document.getElementById('tier-deep');
-        const isExp = btn.getAttribute('aria-expanded') === 'true';
-        btn.setAttribute('aria-expanded', String(!isExp));
-        if ($tier3) {
-          $tier3.classList.toggle('tier--expanded');
-          $tier3.setAttribute('aria-hidden', String(isExp));
-        }
-        const $txt = btn.querySelector('.details-trigger-btn__text');
-        if ($txt) $txt.textContent = isExp ? 'All Details' : 'Collapse';
-        // Trigger tier 3 animations on first expand
-        if (!isExp) {
-          renderTier3Animations();
-          announce('Showing all restaurant details');
-        }
-        break;
-      }
+      // Tier 3 removed — badges now live in Tier 2
     }
   });
 
-  // Score Hero tap in Tier 2 — toggle factor bars (2-state: compact <-> expanded)
-  document.addEventListener('click', (e) => {
-    if (e.target.closest('[data-action]')) return;
-    const hero = e.target.closest('.score-hero');
-    if (!hero) return;
-    const data = _pendingResultData;
-    if (!data) return;
-    const newState = toggleBloom(
-      data.scores || {},
-      data.scoring_v3 || data.scoring_v2 || null,
-      animationTimers
-    );
-    // Update callout arrow
-    const $calloutArrow = document.getElementById('score-hero-callout')
-      ?.querySelector('.score-hero__callout-arrow');
-    if ($calloutArrow) {
-      $calloutArrow.textContent = newState === 'compact' ? '\u2193' : '\u2191';
-    }
-    announce(newState === 'expanded' ? 'Showing vibe profile' : 'Collapsed vibe profile');
-  });
-
-  // Match-mini click → expand Tier 2 (same as "Show More")
+  // Match Mini tap → toggle Tier 2 and scroll to Score Hero
   document.getElementById('match-pill')?.addEventListener('click', () => {
-    document.getElementById('tell-more-btn')?.click();
+    const $tellMore = document.getElementById('tell-more-btn');
+    if ($tellMore) {
+      $tellMore.click(); // Always toggle — expand-tier-2 handler manages state
+    }
+    // Only scroll to Score Hero when expanding (after the click has toggled state)
+    if ($tellMore && $tellMore.getAttribute('aria-expanded') === 'true') {
+      setTimeout(() => {
+        document.getElementById('score-hero')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 200);
+    }
+    haptic(HAPTICS.tick);
   });
 
   // Badge popout: click-outside to close
@@ -1261,6 +1233,7 @@ function renderSuggestions(matches, query) {
   });
 
   $suggestions.hidden = false;
+  if ($cravingInput) $cravingInput.setAttribute('aria-expanded', 'true');
 }
 
 function closeSuggestions() {
@@ -1268,7 +1241,10 @@ function closeSuggestions() {
   $suggestions.hidden = true;
   $suggestions.innerHTML = '';
   activeIndex = -1;
-  if ($cravingInput) $cravingInput.removeAttribute('aria-activedescendant');
+  if ($cravingInput) {
+    $cravingInput.removeAttribute('aria-activedescendant');
+    $cravingInput.setAttribute('aria-expanded', 'false');
+  }
 }
 
 function moveActive(delta) {
@@ -1443,17 +1419,15 @@ function updateCtaState() {
     $cta.setAttribute('aria-disabled', String(isEmpty));
 
     if (isEmpty) {
-      // Disable: kill breathing
-      $cta.classList.remove('cta-btn--ready', 'cta-btn--alive');
+      // Disable: kill ready pulse
+      $cta.classList.remove('cta-btn--ready');
       if (ctaBreathTimer) { clearTimeout(ctaBreathTimer); ctaBreathTimer = null; }
     } else if (wasDisabled && !isEmpty) {
-      // Just enabled: one-shot ready pulse → continuous breathe
-      $cta.classList.remove('cta-btn--alive');
+      // Just enabled: one-shot ready pulse (no infinite breathing)
       $cta.classList.add('cta-btn--ready');
       if (ctaBreathTimer) clearTimeout(ctaBreathTimer);
       ctaBreathTimer = setTimeout(() => {
         $cta.classList.remove('cta-btn--ready');
-        $cta.classList.add('cta-btn--alive');
       }, 400);
     }
   }
@@ -1591,7 +1565,7 @@ async function handleSubmit() {
   // Set CTA to loading state with brief confirmation glow
   const $cta = document.querySelector('.cta-btn[data-action="submit"]');
   if ($cta) {
-    $cta.classList.remove('cta-btn--ready', 'cta-btn--alive');
+    $cta.classList.remove('cta-btn--ready');
     $cta.classList.add('cta-btn--confirming');
     await new Promise(r => setTimeout(r, 200));
     $cta.classList.remove('cta-btn--confirming');
@@ -1665,6 +1639,16 @@ async function handleSubmit() {
   }
 }
 
+/* ---- Skip Loading on Tap ---- */
+function _skipLoading() {
+  const state = getState();
+  if (state.result) {
+    // Result already arrived — skip directly to reveal
+    resolveLogoToFound();
+    setTimeout(() => orchestrateReveal(state.result), 100);
+  }
+}
+
 /* ---- Loading Toggle (3-Act Focus Pull Transition) ---- */
 let searchingDotsInterval = null;
 
@@ -1685,6 +1669,8 @@ function toggleLoading(loading) {
       $loadingState.style.display = 'flex';
       $loadingState.style.opacity = '1';
       $loadingState.classList.remove('loading-state--fading');
+      // Tap-to-skip: if result arrives during animation, user can skip
+      $loadingState.addEventListener('click', _skipLoading, { once: true });
     }
     // Hide result card
     if ($resultCard) $resultCard.style.display = 'none';
@@ -1742,8 +1728,9 @@ function toggleLoading(loading) {
     // Remove defocus from input page
     if ($step0) $step0.classList.remove('step--defocused');
 
-    // Hide loading overlay
+    // Hide loading overlay and remove skip handler
     if ($loadingState) {
+      $loadingState.removeEventListener('click', _skipLoading);
       $loadingState.style.display = 'none';
       $loadingState.classList.remove('loading-state--fading');
     }
@@ -1876,20 +1863,18 @@ function renderResult(data) {
 
   // Reset tier animation flags for fresh render
   _tier2Animated = false;
-  _tier3Animated = false;
+  // Reset typewriter flags on story elements
+  const $storyTipEl = document.getElementById('story-tip-text');
+  if ($storyTipEl) $storyTipEl._hasRevealed = false;
 
   // Reset bloom state (petal radar overlay)
   resetBloomState();
 
   // Reset tier expansion state — always start at Tier 1 (Glance)
   const $tier2 = document.getElementById('tier-leanin');
-  const $tier3 = document.getElementById('tier-deep');
   const $tellMore = document.getElementById('tell-more-btn');
-  const $detailsTrigger = document.getElementById('details-trigger-btn');
   if ($tier2) { $tier2.classList.remove('tier--expanded'); $tier2.setAttribute('aria-hidden', 'true'); }
-  if ($tier3) { $tier3.classList.remove('tier--expanded'); $tier3.setAttribute('aria-hidden', 'true'); }
   if ($tellMore) { $tellMore.setAttribute('aria-expanded', 'false'); const t = $tellMore.querySelector('.tell-more-btn__text'); if (t) t.textContent = 'Show More'; }
-  if ($detailsTrigger) { $detailsTrigger.setAttribute('aria-expanded', 'false'); const t = $detailsTrigger.querySelector('.details-trigger-btn__text'); if (t) t.textContent = 'All Details'; }
 
   // Cuisine detection (for accent color + auto-theme)
   const cuisine = getCuisineFromResult(data);
@@ -1981,8 +1966,8 @@ function renderResult(data) {
   if ($name) $name.textContent = r.name || '';
 
   // One-liner subtitle
-  const $oneliner = document.getElementById('result-oneliner');
-  if ($oneliner) $oneliner.textContent = r.best_for_oneliner || '';
+  // One-liner removed from result card (AI blurb replaces it).
+  // best_for_oneliner is still used in share canvas rendering.
 
   // Quick tags: interactive badges with popouts
   const $quickTags = document.getElementById('quick-tags');
@@ -2070,34 +2055,7 @@ function renderResult(data) {
       attr.textContent = 'Powered by Google';
       popout.appendChild(attr);
 
-      const sentimentData = computeSentiment(r);
-      if (sentimentData) {
-        const sentWrap = document.createElement('div');
-        sentWrap.className = 'badge-popout__sentiment';
-        // "Sentiment" label
-        const sentLabel = document.createElement('span');
-        sentLabel.className = 'badge-popout__sentiment-label';
-        sentLabel.textContent = 'Sentiment';
-        sentWrap.appendChild(sentLabel);
-        // RGB track bar
-        const track = document.createElement('div');
-        track.className = 'sentiment-inline__track';
-        track.innerHTML =
-          `<span class="sentiment-inline__seg sentiment-inline__seg--pos" style="flex:${sentimentData.pos}"></span>` +
-          `<span class="sentiment-inline__seg sentiment-inline__seg--neu" style="flex:${sentimentData.neu}"></span>` +
-          `<span class="sentiment-inline__seg sentiment-inline__seg--neg" style="flex:${sentimentData.neg}"></span>`;
-        sentWrap.appendChild(track);
-        // Colored-dot legend
-        const legend = document.createElement('div');
-        legend.className = 'badge-popout__sentiment-legend';
-        legend.innerHTML =
-          `<span class="badge-popout__sentiment-item"><span class="badge-popout__sentiment-dot badge-popout__sentiment-dot--pos"></span>${sentimentData.pos}% positive</span>` +
-          `<span class="badge-popout__sentiment-item"><span class="badge-popout__sentiment-dot badge-popout__sentiment-dot--neu"></span>${sentimentData.neu}% neutral</span>` +
-          `<span class="badge-popout__sentiment-item"><span class="badge-popout__sentiment-dot badge-popout__sentiment-dot--neg"></span>${sentimentData.neg}% negative</span>`;
-        sentWrap.appendChild(legend);
-        popout.appendChild(sentWrap);
-      }
-
+      // Sentiment details moved to Tier 2 — popout stays clean: stars + count + link
       tag.appendChild(popout);
       $quickTags.appendChild(tag);
     }
@@ -2139,17 +2097,7 @@ function renderResult(data) {
     if ($blurb) $blurb.style.display = recText ? '' : 'none';
   }
 
-  // "Why This Spot" — match explainability
-  const $why = document.getElementById('result-why');
-  if ($why) {
-    const whyText = buildWhyExplainer(data, getState().craving);
-    if (whyText) {
-      $why.textContent = whyText;
-      $why.style.display = '';
-    } else {
-      $why.style.display = 'none';
-    }
-  }
+  // "Why This Spot" removed — user feedback: not accurate, no value
 
   // F3: Enhanced map navigation tile
   renderMapPreview(data);
@@ -2174,12 +2122,7 @@ function renderResult(data) {
   // Pre-populate Tier 2 content (DOM ready, just hidden)
   prepareTier2(data, cuisine);
 
-  // ═══════════════════════════════════════════════════════
-  // TIER 3: DEEP DIVE — Prepare content (hidden until expanded)
-  // ═══════════════════════════════════════════════════════
-  prepareTier3(data, cuisine);
-
-  // Apply progressive reveal (Tier 1 only — Tier 2/3 animate on expand)
+  // Apply progressive reveal (Tier 1 only — Tier 2 animates on expand)
   if ($resultCard) {
     $resultCard.classList.remove('card-enter', 'result-card--revealing');
     void $resultCard.offsetWidth;
@@ -2207,50 +2150,74 @@ let _pendingCuisine = null;
 function prepareTier2(data, cuisine) {
   const r = data.restaurant;
 
-  // Score Hero arc — populate but don't animate yet
-  // V3: Pass scoring_v3 (preferred) or scoring_v2 as fallback
+  // Score Hero arc — populate but don't animate yet (animations triggered on expand)
   renderScoreHero(
     data.donde_match,
     data.scores || {},
     data.scoring_v3 || data.scoring_v2 || null,
-    null, // No sentiment in arc anymore
-    [] // No timers — animations triggered on expand
+    null,
+    []
   );
 
   // Recommendation is now rendered in Tier 1 (Glance) via donde-blurb
 
-  // Story Extras: Insider Tip
-  const $storyExtras = document.getElementById('story-extras');
-  const $extrasTip = document.getElementById('story-extras-tip');
-  const $tipText = document.getElementById('insider-tip-text');
-  if ($extrasTip && $tipText) {
+  // The Story: Origin Story + Insider Tip (dynamic label)
+  const $story = document.getElementById('restaurant-story');
+  const $storyOrigin = document.getElementById('story-origin-text');
+  const $storyTip = document.getElementById('story-tip-text');
+  const $storyLabel = document.getElementById('story-label');
+  const $tipWrap = document.getElementById('story-tip-wrap');
+  if ($story) {
+    const dc = data.deep_context || {};
     let tipContent = data.insider_tip || '';
-    // Strip em-dashes — replace with commas for cleaner reading
     tipContent = tipContent.replace(/\u2014/g, ', ').replace(/ , /g, ', ');
-    if (tipContent) {
-      $extrasTip.style.display = '';
+
+    let originContent = dc.origin_story || '';
+    if (originContent) {
+      const fableOpeners = /^(once|long ago|there once|in the beginning|it began|years ago|back when|a long)/i;
+      if (!fableOpeners.test(originContent.trim())) {
+        originContent = 'Once, ' + originContent.charAt(0).toLowerCase() + originContent.slice(1);
+      }
+    }
+
+    const hasOrigin = !!originContent;
+    const hasTip = !!tipContent;
+    const hasContent = hasOrigin || hasTip;
+    $story.style.display = hasContent ? '' : 'none';
+
+    // Dynamic section label: "The Story" when origin exists, "Insider Tip" when tip-only
+    if ($storyLabel) {
+      $storyLabel.textContent = hasOrigin ? 'The Story' : 'Insider Tip';
+    }
+
+    // Origin paragraph
+    if ($storyOrigin) {
+      $storyOrigin.textContent = originContent;
+      $storyOrigin.style.display = hasOrigin ? '' : 'none';
+    }
+
+    // Insider Tip wrap (with sub-label when both origin + tip exist)
+    if ($tipWrap) {
+      $tipWrap.style.display = hasTip ? '' : 'none';
+      const $tipLabel = $tipWrap.querySelector('.restaurant-story__tip-label');
+      // Show "Insider Tip" sub-label only when origin is also present
+      if ($tipLabel) $tipLabel.style.display = hasOrigin ? '' : 'none';
+    }
+
+    if ($storyTip && hasTip) {
       // Typewriter reveal for insider tips — "friend whispering a secret" feel
-      if (!$tipText._hasRevealed) {
-        $tipText._hasRevealed = true;
-        $tipText.textContent = '';
-        $tipText.classList.add('story-extras__text--typing');
+      if (!$storyTip._hasRevealed) {
+        $storyTip._hasRevealed = true;
+        $storyTip.textContent = '';
         animationTimers.push(setTimeout(() => {
-          typewriterReveal($tipText, tipContent, 45);
-          // Remove typing cursor when done
-          const tipLen = tipContent.length;
-          animationTimers.push(setTimeout(() => {
-            $tipText.classList.remove('story-extras__text--typing');
-          }, tipLen * 50 + 400));
+          typewriterReveal($storyTip, tipContent, 45);
         }, 500));
       } else {
-        $tipText.textContent = tipContent;
+        $storyTip.textContent = tipContent;
       }
-    } else { $extrasTip.style.display = 'none'; }
-  }
-
-  if ($storyExtras) {
-    const hasTip = $extrasTip && $extrasTip.style.display !== 'none';
-    $storyExtras.style.display = hasTip ? '' : 'none';
+    } else if ($storyTip) {
+      $storyTip.textContent = '';
+    }
   }
 
   // Awards badges
@@ -2277,75 +2244,11 @@ function prepareTier2(data, cuisine) {
 
 
 
-  // 1D: Deep context extras (USP, wow factors, origin story)
+  // 1D: Deep context extras (USP, wow factors)
   renderDeepContextExtras(data);
+
 }
 
-/* ---- Prepare Tier 3 DOM content ---- */
-function prepareTier3(data, cuisine) {
-  const r = data.restaurant;
-
-  // Vibe profile now lives in the bloom overlay on score hero — no separate bars needed
-  // V2 Breakdown is triggered by tap on score hero in Tier 2 — no pre-render needed
-
-  // Detail badges grid (full facts + atmosphere)
-  const $profileFacts = document.getElementById('profile-facts');
-  const parkingPts = r.parking_availability
-    ? parseParkingTypes(r.parking_availability).slice(0, 2).join(' / ') : null;
-  const CANONICAL_BADGES = [
-    { icon: cuisine.icon || 'plate', label: 'Cuisine',
-      value: (data.deep_context?.cuisine_subcategory || r.cuisine_type)
-        ? shortenBadgeValue(data.deep_context?.cuisine_subcategory || r.cuisine_type) : null,
-      raw: r.cuisine_type || '', isCuisine: true, isAtmo: false },
-    { icon: 'tag', label: 'Price', value: r.price_level || null, raw: r.price_level || '', isAtmo: false },
-    { icon: 'car', label: 'Parking', value: parkingPts, raw: r.parking_availability || '', isAtmo: false },
-    { icon: getNoiseIcon(r.noise_level), label: 'Noise',
-      value: r.noise_level ? shortenBadgeValue(r.noise_level) : null, raw: r.noise_level || '', isAtmo: false },
-    { icon: getAmbianceIcon(r.lighting_ambiance), label: 'Ambiance',
-      value: r.lighting_ambiance ? normalizeAmbiance(r.lighting_ambiance) : null,
-      raw: data.deep_context?.decor_style || r.lighting_ambiance || '', isAtmo: false },
-    { icon: 'shirt', label: 'Dress', value: r.dress_code ? shortenBadgeValue(r.dress_code) : null,
-      raw: r.dress_code || '', isAtmo: false },
-    { icon: 'patio', label: 'Patio',
-      value: r.outdoor_seating === true ? 'Yes' : (r.outdoor_seating === false ? 'No' : null),
-      raw: r.outdoor_seating != null ? (r.outdoor_seating ? 'Outdoor seating' : 'No patio') : '', isAtmo: true },
-    { icon: 'music', label: 'Live Music',
-      value: data.deep_context?.music_vibe || (r.live_music === true ? 'Yes' : (r.live_music === false ? 'No' : null)),
-      raw: data.deep_context?.music_vibe || (r.live_music != null ? (r.live_music ? 'Live music venue' : 'No live music') : ''), isAtmo: true },
-    { icon: 'pet', label: 'Pet Friendly',
-      value: r.pet_friendly === true ? 'Yes' : (r.pet_friendly === false ? 'No' : null),
-      raw: r.pet_friendly != null ? (r.pet_friendly ? 'Pet-friendly' : 'Not pet-friendly') : '', isAtmo: true },
-  ];
-
-  const byobPolicy = data.deep_context?.byob_policy;
-  if (byobPolicy && byobPolicy !== 'none') {
-    const byobMap = { full_byob: 'BYOB', wine_only: 'Wine Only' };
-    CANONICAL_BADGES.push({ icon: 'wine', label: 'BYOB', value: byobMap[byobPolicy] || humanizeSnake(byobPolicy), raw: humanizeSnake(byobPolicy), isAtmo: false });
-  }
-
-  if ($profileFacts) {
-    $profileFacts.innerHTML = '';
-    CANONICAL_BADGES.map(b => ({ ...b, isNA: b.value == null, value: b.value != null ? b.value : '\u2014' }))
-      .forEach(b => {
-        const div = document.createElement('div');
-        const cls = ['details-badge'];
-        if (b.isCuisine) cls.push('details-badge--cuisine');
-        if (b.isAtmo) cls.push('details-badge--atmo');
-        if (b.isNA) cls.push('details-badge--na');
-        div.className = cls.join(' ');
-        div.innerHTML = `
-          <span class="details-badge__icon">${svgIcon(b.icon, 16)}</span>
-          <span class="details-badge__label type-data--sm">${b.label}</span>
-          <span class="details-badge__value type-structural">${b.value}</span>`;
-        if (b.raw && b.raw !== b.value) div.setAttribute('title', b.raw);
-        $profileFacts.appendChild(div);
-      });
-    $profileFacts.style.display = '';
-  }
-
-  // 1D: Add deep context badges (reservation difficulty, wait time, etc.)
-  addDeepContextBadges(data);
-}
 
 
 /* ---- Tier 2 animation trigger (called on first expand) ---- */
@@ -2357,7 +2260,7 @@ function renderTier2Animations() {
   const data = _pendingResultData;
   if (!data) return;
 
-  // Animate score hero arc (V3: pass scoring_v3 preferred)
+  // Animate Score Hero arc (re-render with animation timers)
   renderScoreHero(
     data.donde_match,
     data.scores || {},
@@ -2365,29 +2268,8 @@ function renderTier2Animations() {
     null,
     animationTimers
   );
-  // Recommendation is already rendered in Tier 1 — no re-render needed here
 }
 
-/* ---- Tier 3 animation trigger (called on first expand) ---- */
-let _tier3Animated = false;
-function renderTier3Animations() {
-  if (_tier3Animated) return;
-  _tier3Animated = true;
-  // Vibe bars removed — vibe profile now lives in score hero bloom overlay
-}
-
-/* ---- Parking Type Parser ---- */
-function parseParkingTypes(parkingStr) {
-  if (!parkingStr) return [];
-  const lower = parkingStr.toLowerCase();
-  const types = [];
-  if (lower.includes('street')) types.push('Street');
-  if (lower.includes('lot') || lower.includes('garage')) types.push('Lot');
-  if (lower.includes('valet')) types.push('Valet');
-  if (lower.includes('metered')) types.push('Metered');
-  if (types.length === 0) types.push(parkingStr.split(/\s+/).slice(0, 2).join(' '));
-  return types;
-}
 
 /* ---- Badge Value Shortener (first segment, no word cap) ---- */
 function shortenBadgeValue(value) {
@@ -2536,43 +2418,15 @@ function humanizeSnake(str) {
     .replace(/\b\w/g, c => c.toUpperCase());
 }
 
-/* ---- Noise Level → Speaker Icon Mapper ---- */
-function getNoiseIcon(noiseStr) {
-  if (!noiseStr) return 'speakerWave';
-  const lower = noiseStr.toLowerCase();
-  if (lower.includes('quiet') || lower.includes('soft') || lower.includes('hushed'))
-    return 'speakerNone';
-  if (lower.includes('loud') || lower.includes('boisterous') || lower.includes('lively'))
-    return 'speakerHigh';
-  return 'speakerWave';
-}
-
-/* ---- Ambiance → Icon Mapper ---- */
-function getAmbianceIcon(ambianceStr) {
-  if (!ambianceStr) return 'sun';
-  const lower = ambianceStr.toLowerCase();
-  if (lower.includes('dim') || lower.includes('cozy') || lower.includes('warm') ||
-      lower.includes('intimate') || lower.includes('candlelit'))
-    return 'moon';
-  return 'sun';
-}
-
-/* ---- Ambiance → Concise Label Normalizer ---- */
-function normalizeAmbiance(ambianceStr) {
-  if (!ambianceStr) return '';
-  const lower = ambianceStr.toLowerCase();
-  if (lower.includes('candlelit')) return 'Candlelit';
-  if (lower.includes('dim') && lower.includes('warm')) return 'Dim & Warm';
-  if (lower.includes('dim') && lower.includes('intimate')) return 'Intimate';
-  if (lower.includes('dim')) return 'Dim';
-  if (lower.includes('cozy')) return 'Cozy';
-  if (lower.includes('warm') && lower.includes('intimate')) return 'Warm';
-  if (lower.includes('bright') && lower.includes('modern')) return 'Bright';
-  if (lower.includes('bright')) return 'Bright';
-  if (lower.includes('modern')) return 'Modern';
-  if (lower.includes('rustic')) return 'Rustic';
-  if (lower.includes('elegant')) return 'Elegant';
-  return shortenBadgeValue(ambianceStr);
+/* ---- Spice Level → Intuitive Label ---- */
+function formatSpiceLevel(raw) {
+  if (!raw) return '';
+  const map = {
+    none: 'Not Spicy', mild: 'Mild', low: 'Mild',
+    medium: 'Medium', moderate: 'Medium',
+    hot: 'Spicy', high: 'Spicy', very_hot: 'Very Spicy', extra_hot: 'Very Spicy',
+  };
+  return map[raw.toLowerCase()] || humanizeSnake(raw);
 }
 
 // Humanize a vibe score (0-10) to a user-friendly label
@@ -3030,21 +2884,7 @@ function renderDeepContextExtras(data) {
   // Quick Stats ribbon — compact deep-context data strip (includes wow factors)
   renderQuickStats(data);
 
-  // Origin Story — presented as a micro-fable
-  const $origin = document.getElementById('origin-story');
-  const $originText = document.getElementById('origin-story-text');
-  if ($origin && $originText && dc.origin_story) {
-    let fable = dc.origin_story;
-    // Add fable opener if the story doesn't already begin with one
-    const fableOpeners = /^(once|long ago|there once|in the beginning|it began|years ago|back when|a long)/i;
-    if (!fableOpeners.test(fable.trim())) {
-      fable = 'Once, ' + fable.charAt(0).toLowerCase() + fable.slice(1);
-    }
-    $originText.textContent = fable;
-    $origin.style.display = '';
-  } else if ($origin) {
-    $origin.style.display = 'none';
-  }
+  // Origin Story now rendered in The Story block (Tier 2, prepareTier2)
 }
 
 /* ---- Quick Stats: Impact-ranked deep-context ribbon ---- */
@@ -3134,7 +2974,7 @@ function renderQuickStats(data) {
 
   // -- Craving stats --
   if (dc.spice_level && dc.spice_level !== 'none') {
-    candidates.push({ icon: 'fire', text: humanizeSnake(dc.spice_level),
+    candidates.push({ icon: 'fire', text: formatSpiceLevel(dc.spice_level),
       priority: dw.craving * 0.55 });
   }
 
@@ -3175,105 +3015,6 @@ function renderQuickStats(data) {
   $stats.style.display = '';
 }
 
-/* ---- 1D: Add Deep Context Badges to Tier 3 ---- */
-function addDeepContextBadges(data) {
-  const $profileFacts = document.getElementById('profile-facts');
-  if (!$profileFacts) return;
-  const dc = data.deep_context;
-  if (!dc) return;
-
-  const extraBadges = [];
-
-  // Reservation difficulty
-  if (dc.reservation_difficulty && dc.reservation_difficulty !== 'none') {
-    extraBadges.push({ icon: 'calendar', label: 'Reservations', value: humanizeSnake(dc.reservation_difficulty) });
-  }
-
-  // Wait time
-  if (dc.typical_wait_minutes) {
-    extraBadges.push({ icon: 'clock', label: 'Typical Wait', value: `~${dc.typical_wait_minutes} min` });
-  }
-
-  // Check average
-  if (dc.check_average_per_person) {
-    extraBadges.push({ icon: 'tag', label: 'Avg Check', value: `~$${dc.check_average_per_person}/pp` });
-  }
-
-  // Energy level (0-10 → label)
-  if (dc.energy_level != null) {
-    const e = dc.energy_level;
-    const label = e >= 8 ? 'High Energy' : e >= 5 ? 'Moderate' : 'Chill';
-    extraBadges.push({ icon: 'bolt', label: 'Energy', value: label });
-  }
-
-  // Conversation friendliness (0-10)
-  if (dc.conversation_friendliness != null) {
-    const c = dc.conversation_friendliness;
-    const label = c >= 7 ? 'Great for Convo' : c >= 4 ? 'Moderate' : 'Loud';
-    extraBadges.push({ icon: 'chat', label: 'Talk-Friendly', value: label });
-  }
-
-  // Cultural authenticity (0-10)
-  if (dc.cultural_authenticity != null) {
-    const a = dc.cultural_authenticity;
-    const label = a >= 8 ? 'Very Authentic' : a >= 5 ? 'Authentic' : 'Fusion';
-    extraBadges.push({ icon: 'globe', label: 'Authenticity', value: label });
-  }
-
-  // Transit accessibility
-  if (dc.transit_accessibility) {
-    extraBadges.push({ icon: 'train', label: 'Transit', value: dc.transit_accessibility });
-  }
-
-  // Instagram worthiness (0-10, only show if >= 7)
-  if (dc.instagram_worthiness != null && dc.instagram_worthiness >= 7) {
-    extraBadges.push({ icon: 'camera', label: 'Insta-Worthy', value: `${dc.instagram_worthiness}/10` });
-  }
-
-  // Crowd profile (as text)
-  if (dc.crowd_profile?.length) {
-    extraBadges.push({ icon: 'usersThree', label: 'Crowd', value: dc.crowd_profile.slice(0, 2).join(', ') });
-  }
-
-  // Seating options
-  if (dc.seating_options?.length) {
-    extraBadges.push({ icon: 'chair', label: 'Seating', value: dc.seating_options.slice(0, 3).join(', ') });
-  }
-
-  // Spice level (text: "Mild", "Medium", "Hot", etc.)
-  if (dc.spice_level) {
-    extraBadges.push({ icon: 'fire', label: 'Spice', value: humanizeSnake(dc.spice_level) });
-  }
-
-  // Kid friendliness (0-10 → label)
-  if (dc.kid_friendliness != null) {
-    const k = dc.kid_friendliness;
-    const label = k >= 7 ? 'Kid Friendly' : k >= 4 ? 'Okay for Kids' : 'Adults Preferred';
-    extraBadges.push({ icon: 'baby', label: 'Kids', value: label });
-  }
-
-  // Service style (text: "Counter", "Table Service", "Buffet", etc.)
-  if (dc.service_style) {
-    extraBadges.push({ icon: 'forkKnife', label: 'Service', value: humanizeSnake(dc.service_style) });
-  }
-
-  // Meal pacing (text: "Fast-paced", "Relaxed", "Leisurely", etc.)
-  if (dc.meal_pacing) {
-    extraBadges.push({ icon: 'timer', label: 'Pacing', value: humanizeSnake(dc.meal_pacing) });
-  }
-
-  // Render extra badges
-  extraBadges.forEach(b => {
-    if (!b.value) return;
-    const div = document.createElement('div');
-    div.className = 'details-badge';
-    div.innerHTML = `
-      <span class="details-badge__icon">${svgIcon(b.icon, 16)}</span>
-      <span class="details-badge__label type-data--sm">${b.label}</span>
-      <span class="details-badge__value type-structural">${b.value}</span>`;
-    $profileFacts.appendChild(div);
-  });
-}
 
 
 /* ---- Culture-Aware Toast Strings ---- */

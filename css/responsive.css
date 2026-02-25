@@ -32,8 +32,7 @@
 
 /* ---- Mobile: Score hero + tier tweaks ---- */
 @media (max-width: 767px) {
-  .tier--leanin.tier--expanded,
-  .tier--deep.tier--expanded {
+  .tier--leanin.tier--expanded {
     padding-top: var(--space-sm);
   }
 }

@@ -159,8 +159,11 @@
                 data-label="placeholder"
                 placeholder="cozy ramen with killer sake..."
                 autocomplete="off"
+                role="combobox"
                 aria-label="What are you craving?"
                 aria-autocomplete="list"
+                aria-expanded="false"
+                aria-haspopup="listbox"
                 aria-controls="craving-suggestions"
               ></textarea>
               <button class="craving-voice-btn" data-action="voice" aria-label="Voice input" hidden>
@@ -339,11 +342,12 @@
                        tabindex="0"
                        aria-label="DondeAI Match score — tap for details">
                     <span class="match-mini__brand" aria-hidden="true">
-                      <span class="match-mini__wordmark">
-                        <span class="match-mini__wm-d">D</span><span
-                          class="match-mini__wm-ond">ond</span><span
-                          class="match-mini__wm-e">e</span>
-                      </span>
+                      <svg class="match-mini__brand-logo" viewBox="0 0 32 44" width="12" height="16" aria-hidden="true">
+                        <path d="M10.5 1C10.5 1 10 8.5 12.5 11.5Q14 13 14.5 13.5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                        <path d="M21.5 1C21.5 1 22 8.5 19.5 11.5Q18 13 17.5 13.5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                        <path d="M16 13.5C22 11 29 14 28 21C27 27 19 29 16 31L16 34" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>
+                        <circle cx="16" cy="40" r="2.8" fill="var(--ac)"/>
+                      </svg>
                       <span class="match-mini__tm type-data--sm">Match<sup>™</sup></span>
                     </span>
                     <span class="match-mini__score-wrap">
@@ -364,6 +368,8 @@
                   </div>
                 </div>
 
+                <!-- Match Mini tap → expands Tier 2 to show Score Hero -->
+
                 <!-- Cuisine mismatch notice -->
                 <div class="cuisine-mismatch-notice" id="cuisine-mismatch-notice" style="display: none;">
                   <p class="cuisine-mismatch-notice__text type-structural"></p>
@@ -373,7 +379,6 @@
                 <div class="donde-blurb" id="donde-blurb">
                   <div class="donde-blurb__accent" aria-hidden="true"></div>
                   <p class="donde-blurb__text type-structural" id="result-recommendation"></p>
-                  <p class="donde-blurb__why type-data--sm" id="result-why" style="display: none;"></p>
                 </div>
 
                 <!-- Compact navigation tile (address → maps) -->
@@ -403,11 +408,6 @@
                                 fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>
                           <circle cx="16" cy="40" r="2.8" fill="var(--ac)"/>
                         </svg>
-                        <span class="score-hero__brand-donde">
-                          <span class="score-hero__wm-d">D</span><span
-                            class="score-hero__wm-ond">ond</span><span
-                            class="score-hero__wm-e">e</span>
-                        </span>
                         <span class="score-hero__brand-match type-data--sm">Match<sup>™</sup></span>
                       </span>
                       <span class="score-hero__number type-data" id="score-hero-number">0%</span>
@@ -428,11 +428,15 @@
                   </div>
                 </div>
 
-                <!-- Story extras: Insider Tip -->
-                <div class="story-extras" id="story-extras" style="display: none;">
-                  <div class="story-extras__item" id="story-extras-tip" style="display: none;">
-                    <span class="story-extras__label type-data--sm">Insider Tip</span>
-                    <span class="story-extras__text type-structural" id="insider-tip-text"></span>
+                <!-- The Story: Origin + Insider Tip (dynamic label) -->
+                <div class="restaurant-story" id="restaurant-story" style="display: none;">
+                  <span class="restaurant-story__label type-data--sm" id="story-label">The Story</span>
+                  <div class="restaurant-story__content">
+                    <p class="restaurant-story__origin type-emotional" id="story-origin-text"></p>
+                    <div class="restaurant-story__tip-wrap" id="story-tip-wrap" style="display: none;">
+                      <span class="restaurant-story__tip-label type-data--xs">Insider Tip</span>
+                      <p class="restaurant-story__tip type-structural" id="story-tip-text"></p>
+                    </div>
                   </div>
                 </div>
 
@@ -442,59 +446,38 @@
                 <!-- Quick Stats ribbon (compact deep-context data, includes wow factors) -->
                 <div class="quick-stats" id="quick-stats" style="display: none;"></div>
 
-                <!-- 1D: Origin Story -->
-                <div class="origin-story" id="origin-story" style="display: none;">
-                  <span class="origin-story__label type-data--sm">Once Upon a Table</span>
-                  <p class="origin-story__text type-emotional" id="origin-story-text"></p>
-                </div>
-
-                <!-- Tier 2 → Tier 3 trigger -->
-                <button class="details-trigger-btn type-data--sm" id="details-trigger-btn"
-                        data-action="expand-tier-3"
-                        aria-expanded="false" aria-controls="tier-deep">
-                  <span class="details-trigger-btn__text">All Details</span>
-                  <span class="details-trigger-btn__arrow">&#8595;</span>
-                </button>
               </div>
 
-              <!-- ══════ TIER 3: DEEP DIVE — Full details ══════ -->
-              <div class="tier tier--deep" id="tier-deep" aria-hidden="true">
-
-                <!-- Detail Badges Grid (full facts + atmosphere) -->
-                <div class="profile-facts" id="profile-facts"></div>
-              </div>
-
-              <!-- ══════ CARD FOOTER — Always visible at bottom ══════ -->
+              <!-- ══════ CARD FOOTER — Decluttered: 2 primary actions ══════ -->
               <div class="card-footer" id="card-footer">
-                <div class="feedback-row" id="feedback-row">
-                  <button class="feedback-btn feedback-btn--like" data-action="feedback" data-feedback="like" aria-label="I like this recommendation">
-                    <svg viewBox="0 0 256 256" width="18" height="18"><path fill="currentColor" d="M231.82,89.71A8,8,0,0,0,224,84H160.81l15-56.27A8,8,0,0,0,168,20a8,8,0,0,0-5.66,2.34l-88,88A8,8,0,0,0,72,116V208a8,8,0,0,0,8,8h88a8,8,0,0,0,7.16-4.42l40-80A8,8,0,0,0,215.16,131.58ZM160,208H88V120L160,48l-15,56.27a8,8,0,0,0,7.81,9.73H208Z" opacity="0.3"/><path fill="currentColor" d="M231.82,89.71A8,8,0,0,0,224,84H168V32a8,8,0,0,0-13.66-5.66l-96,96A8,8,0,0,0,56,128v80a8,8,0,0,0,8,8h96a8,8,0,0,0,7.16-4.42l40-80A8,8,0,0,0,231.82,89.71Z"/></svg>
-                  </button>
-                  <button class="feedback-btn feedback-btn--dislike" data-action="feedback" data-feedback="dislike" aria-label="Not for me">
-                    <svg viewBox="0 0 256 256" width="18" height="18" style="transform:rotate(180deg)"><path fill="currentColor" d="M231.82,89.71A8,8,0,0,0,224,84H168V32a8,8,0,0,0-13.66-5.66l-96,96A8,8,0,0,0,56,128v80a8,8,0,0,0,8,8h96a8,8,0,0,0,7.16-4.42l40-80A8,8,0,0,0,231.82,89.71Z"/></svg>
-                  </button>
-                  <button class="feedback-btn feedback-btn--bookmark" data-action="bookmark" aria-label="Save this spot" id="bookmark-btn">
-                    <svg class="bookmark-icon bookmark-icon--outline" viewBox="0 0 256 256" width="18" height="18"><path fill="currentColor" d="M178,44c-21.44,0-39.92,10.19-50,27.07C117.92,54.19,99.44,44,78,44a58.07,58.07,0,0,0-58,58c0,28.59,18,58.47,53.4,88.79a333.81,333.81,0,0,0,52.7,36.73,4,4,0,0,0,3.8,0,333.81,333.81,0,0,0,52.7-36.73C218,160.47,236,130.59,236,102A58.07,58.07,0,0,0,178,44ZM128,219.42c-14-8-100-59.35-100-117.42A50.06,50.06,0,0,1,78,52c21.11,0,38.85,11.31,46.3,29.51a4,4,0,0,0,7.4,0C139.15,63.31,156.89,52,178,52a50.06,50.06,0,0,1,50,50C228,160,142,211.46,128,219.42Z"/></svg>
-                    <svg class="bookmark-icon bookmark-icon--filled" viewBox="0 0 256 256" width="18" height="18" style="display:none"><path fill="currentColor" d="M178,44c-21.44,0-39.92,10.19-50,27.07C117.92,54.19,99.44,44,78,44a58.07,58.07,0,0,0-58,58c0,28.59,18,58.47,53.4,88.79a333.81,333.81,0,0,0,52.7,36.73,4,4,0,0,0,3.8,0,333.81,333.81,0,0,0,52.7-36.73C218,160.47,236,130.59,236,102A58.07,58.07,0,0,0,178,44Z"/></svg>
-                  </button>
-                </div>
                 <div class="glance-actions">
-                  <button class="cta-btn cta-btn--secondary cta-btn--icon type-structural" data-action="try-again" data-label="again">
-                    <span class="cta-btn__icon" id="try-again-icon"></span>
-                    <span class="cta-btn__text">Try Another</span>
-                  </button>
-                  <button class="cta-btn cta-btn--ghost cta-btn--icon type-structural" data-action="reset">
-                    <span class="cta-btn__icon" id="glance-start-over-icon"></span>
-                    <span class="cta-btn__text">Start Over</span>
-                  </button>
-                  <button class="tell-more-btn type-structural" id="tell-more-btn"
+                  <button class="tell-more-btn tell-more-btn--primary type-structural" id="tell-more-btn"
                           data-action="expand-tier-2"
                           aria-expanded="false" aria-controls="tier-leanin">
                     <span class="tell-more-btn__text">Show More</span>
                     <span class="tell-more-btn__arrow">&#8595;</span>
                   </button>
+                  <button class="cta-btn cta-btn--secondary cta-btn--icon type-structural" data-action="try-again" data-label="again">
+                    <span class="cta-btn__icon" id="try-again-icon"></span>
+                    <span class="cta-btn__text">Try Another</span>
+                  </button>
                 </div>
-
+                <!-- Feedback + bookmark + start over → compact row below primary actions -->
+                <div class="card-footer__secondary">
+                  <div class="feedback-row" id="feedback-row">
+                    <button class="feedback-btn feedback-btn--like" data-action="feedback" data-feedback="like" aria-label="I like this recommendation">
+                      <svg viewBox="0 0 256 256" width="16" height="16"><path fill="currentColor" d="M231.82,89.71A8,8,0,0,0,224,84H168V32a8,8,0,0,0-13.66-5.66l-96,96A8,8,0,0,0,56,128v80a8,8,0,0,0,8,8h96a8,8,0,0,0,7.16-4.42l40-80A8,8,0,0,0,231.82,89.71Z"/></svg>
+                    </button>
+                    <button class="feedback-btn feedback-btn--dislike" data-action="feedback" data-feedback="dislike" aria-label="Not for me">
+                      <svg viewBox="0 0 256 256" width="16" height="16" style="transform:rotate(180deg)"><path fill="currentColor" d="M231.82,89.71A8,8,0,0,0,224,84H168V32a8,8,0,0,0-13.66-5.66l-96,96A8,8,0,0,0,56,128v80a8,8,0,0,0,8,8h96a8,8,0,0,0,7.16-4.42l40-80A8,8,0,0,0,231.82,89.71Z"/></svg>
+                    </button>
+                    <button class="feedback-btn feedback-btn--bookmark" data-action="bookmark" aria-label="Save this spot" id="bookmark-btn">
+                      <svg class="bookmark-icon bookmark-icon--outline" viewBox="0 0 256 256" width="16" height="16"><path fill="currentColor" d="M178,44c-21.44,0-39.92,10.19-50,27.07C117.92,54.19,99.44,44,78,44a58.07,58.07,0,0,0-58,58c0,28.59,18,58.47,53.4,88.79a333.81,333.81,0,0,0,52.7,36.73,4,4,0,0,0,3.8,0,333.81,333.81,0,0,0,52.7-36.73C218,160.47,236,130.59,236,102A58.07,58.07,0,0,0,178,44ZM128,219.42c-14-8-100-59.35-100-117.42A50.06,50.06,0,0,1,78,52c21.11,0,38.85,11.31,46.3,29.51a4,4,0,0,0,7.4,0C139.15,63.31,156.89,52,178,52a50.06,50.06,0,0,1,50,50C228,160,142,211.46,128,219.42Z"/></svg>
+                      <svg class="bookmark-icon bookmark-icon--filled" viewBox="0 0 256 256" width="16" height="16" style="display:none"><path fill="currentColor" d="M178,44c-21.44,0-39.92,10.19-50,27.07C117.92,54.19,99.44,44,78,44a58.07,58.07,0,0,0-58,58c0,28.59,18,58.47,53.4,88.79a333.81,333.81,0,0,0,52.7,36.73,4,4,0,0,0,3.8,0,333.81,333.81,0,0,0,52.7-36.73C218,160.47,236,130.59,236,102A58.07,58.07,0,0,0,178,44Z"/></svg>
+                    </button>
+                  </div>
+                  <button class="cta-btn--link type-structural" data-action="reset">Start Over</button>
+                </div>
               </div>
             </div>
           </div>
