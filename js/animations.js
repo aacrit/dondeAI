@@ -108,14 +108,22 @@ const FACTOR_DIMS = [
 /** Normalize V3 scoring keys to V4 format so FACTOR_DIMS always matches */
 function normalizeScoringKeys(scoring) {
   if (!scoring) return scoring;
-  if (scoring.food_quality != null) return scoring; // Already V4
   const V3_TO_V4 = { food_match: 'food_quality', atmosphere: 'vibe', setting_fit: 'service' };
+  // V3 weights_used uses short names: food, setting, atmosphere
+  const V3_WEIGHT_TO_V4 = { food: 'food_quality', atmosphere: 'vibe', setting: 'service' };
+
+  const isV4 = scoring.food_quality != null;
   const normalized = { ...scoring };
-  for (const [v3, v4] of Object.entries(V3_TO_V4)) {
-    if (normalized[v3] != null && normalized[v4] == null) {
-      normalized[v4] = normalized[v3];
+
+  // Normalize top-level factor keys (V3 → V4)
+  if (!isV4) {
+    for (const [v3, v4] of Object.entries(V3_TO_V4)) {
+      if (normalized[v3] != null && normalized[v4] == null) {
+        normalized[v4] = normalized[v3];
+      }
     }
   }
+
   if (normalized.factor_details) {
     const nd = { ...normalized.factor_details };
     for (const [v3, v4] of Object.entries(V3_TO_V4)) {
@@ -123,8 +131,16 @@ function normalizeScoringKeys(scoring) {
     }
     normalized.factor_details = nd;
   }
+
+  // Always normalize weights_used — V3 uses short keys (food, setting, atmosphere)
   if (normalized.weights_used) {
     const nw = { ...normalized.weights_used };
+    for (const [v3w, v4w] of Object.entries(V3_WEIGHT_TO_V4)) {
+      if (nw[v3w] != null && nw[v4w] == null) {
+        nw[v4w] = nw[v3w];
+      }
+    }
+    // Also handle the factor-score-key format just in case
     for (const [v3, v4] of Object.entries(V3_TO_V4)) {
       if (nw[v3] != null && nw[v4] == null) {
         nw[v4] = nw[v3];
@@ -132,6 +148,7 @@ function normalizeScoringKeys(scoring) {
     }
     normalized.weights_used = nw;
   }
+
   return normalized;
 }
 
@@ -562,52 +579,62 @@ export function renderFactorBars(scoringData, timers = []) {
   });
 }
 
-/** Build drill-down HTML for a factor */
-/** V3.6: Rich inline explanation card with sub-component mini-bars */
-function buildFactorDetail(factorKey, scoringV3) {
-  const score = scoringV3[factorKey] || 0;
-  const weights = scoringV3.weights_used || {};
-  const details = scoringV3.factor_details?.[factorKey] || null;
+/** Build drill-down HTML for a factor — subtle icon list with signals */
+function buildFactorDetail(factorKey, scoring) {
+  const weights = scoring.weights_used || {};
+  const details = scoring.factor_details?.[factorKey] || null;
 
   const weightPct = weights[factorKey] || 0;
   const weightLabel = Math.round(weightPct * 100);
 
+  // Sub-component icons + labels
+  const SUB_META = {
+    cuisine:     { icon: 'plate',      label: 'Cuisine' },
+    flavor:      { icon: 'fire',       label: 'Flavor' },
+    dietary:     { icon: 'salad',      label: 'Dietary' },
+    menu:        { icon: 'forkKnife',  label: 'Menu' },
+    occasion:    { icon: 'heart',      label: 'Occasion' },
+    service:     { icon: 'diamond',    label: 'Service' },
+    social:      { icon: 'usersThree', label: 'Social Fit' },
+    noise:       { icon: 'speakerWave',label: 'Noise' },
+    lighting:    { icon: 'moon',       label: 'Lighting' },
+    dress:       { icon: 'shirt',      label: 'Dress Code' },
+    energy:      { icon: 'bolt',       label: 'Energy' },
+    music:       { icon: 'music',      label: 'Music' },
+    google:      { icon: 'starFull',   label: 'Google' },
+    sentiment:   { icon: 'chat',       label: 'Reviews' },
+    awards:      { icon: 'starOutline',label: 'Awards' },
+    community:   { icon: 'usersThree', label: 'Community' },
+    timing:      { icon: 'clock',      label: 'Timing' },
+    reservation: { icon: 'calendar',   label: 'Reservations' },
+    practical:   { icon: 'briefcase',  label: 'Practical' },
+  };
+
   let items = '';
 
-  // Sub-component mini-bars (if factor_details available)
   if (details && typeof details === 'object') {
-    // Human-readable labels for sub-component keys
-    const SUB_LABELS = {
-      cuisine: 'Cuisine', flavor: 'Flavor', dietary: 'Dietary', menu: 'Menu Match',
-      occasion: 'Occasion Fit', service: 'Service', social: 'Social Fit',
-      noise: 'Noise', lighting: 'Lighting', dress: 'Dress Code', energy: 'Energy', music: 'Music',
-      google: 'Google Rating', sentiment: 'Reviews', awards: 'Awards', community: 'Community',
-      timing: 'Timing', reservation: 'Reservations', practical: 'Practical',
-    };
-
     for (const [subKey, sub] of Object.entries(details)) {
       if (!sub || typeof sub !== 'object') continue;
-      const label = SUB_LABELS[subKey] || subKey;
+      const meta = SUB_META[subKey] || { icon: 'plate', label: subKey };
       const pct = sub.max > 0 ? Math.min((sub.score / sub.max) * 100, 100) : 0;
-      const barColor = pct >= 75 ? 'var(--ac)' : pct >= 40 ? 'var(--fg3)' : 'var(--rag-amber)';
-      const signalClass = pct >= 75 ? 'factor-detail__verdict--match' : pct < 40 ? 'factor-detail__verdict--miss' : '';
+      const signalClass = pct >= 75 ? 'factor-detail__signal--match'
+        : pct < 40 ? 'factor-detail__signal--miss' : '';
 
-      items += `<div class="factor-detail__sub">
-        <span class="factor-detail__sub-label type-structural">${label}</span>
-        <span class="factor-detail__sub-bar">
-          <span class="factor-detail__sub-fill" style="width: ${pct}%; background: ${barColor}"></span>
-        </span>
-        <span class="factor-detail__sub-score type-data--sm">${sub.score}/${sub.max}</span>
-        <span class="factor-detail__sub-signal type-structural ${signalClass}">${sub.signal}</span>
+      items += `<div class="factor-detail__row">
+        <span class="factor-detail__row-icon ${signalClass}">${svgIcon(meta.icon, 12)}</span>
+        <span class="factor-detail__row-label type-structural">${meta.label}</span>
+        <span class="factor-detail__row-signal type-structural ${signalClass}">${sub.signal}</span>
       </div>`;
     }
   }
 
   // Weight footer
-  items += `<div class="factor-detail__weight">
-    <span class="factor-detail__signal type-structural">Weight in your search</span>
-    <span class="factor-detail__verdict type-data--sm">${weightLabel}%</span>
-  </div>`;
+  if (weightLabel > 0) {
+    items += `<div class="factor-detail__weight">
+      <span class="factor-detail__weight-label type-structural">Weight</span>
+      <span class="factor-detail__weight-value type-data--sm">${weightLabel}%</span>
+    </div>`;
+  }
 
   return `<div class="factor-detail__items">${items}</div>`;
 }
