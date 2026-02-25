@@ -472,16 +472,15 @@ const QUICK_PICKS = {
   ],
 };
 
-/* ---- Match System V3 (0-99 range, honest scoring) ---- */
+/* ---- Match System V4 (0-99 range, geometric mean) ---- */
 const MATCH_WORDS = {
-  90: 'Outstanding',
-  80: 'Great Match',
-  70: 'Good Pick',
-  55: 'Worth a Try',
-  40: 'It\'s a Stretch',
-  0: 'Weak Match',
+  85: 'Outstanding',
+  70: 'Excellent',
+  55: 'Solid Pick',
+  40: 'Worth a Try',
+  0: 'Adventurous',
 };
-const MATCH_THRESHOLDS = [90, 80, 70, 55, 40, 0];
+const MATCH_THRESHOLDS = [85, 70, 55, 40, 0];
 
 export function getScoreTier(score, { mismatch = false } = {}) {
   const pct = Math.round(parseFloat(score) || 0);
@@ -489,8 +488,9 @@ export function getScoreTier(score, { mismatch = false } = {}) {
   const matched = MATCH_THRESHOLDS.find(t => clamped >= t) ?? 0;
   let verdict = MATCH_WORDS[matched];
   let tier, cssClass;
-  if (clamped >= 80) { tier = 'high'; cssClass = 'score-verdict--high'; }
-  else if (clamped >= 55) { tier = 'mid'; cssClass = 'score-verdict--mid'; }
+  // V4: Geometric mean produces tighter distribution — adjusted thresholds
+  if (clamped >= 70) { tier = 'high'; cssClass = 'score-verdict--high'; }
+  else if (clamped >= 50) { tier = 'mid'; cssClass = 'score-verdict--mid'; }
   else { tier = 'low'; cssClass = 'score-verdict--low'; }
   // Cuisine mismatch: override verdict to be transparent about the gap
   if (mismatch && tier === 'low') verdict = 'Best Alternative';
@@ -499,8 +499,9 @@ export function getScoreTier(score, { mismatch = false } = {}) {
 
 export function getScoreColor(score) {
   const pct = Math.round(parseFloat(score) || 0);
-  if (pct >= 80) return 'var(--rag-green)';
-  if (pct >= 55) return 'var(--rag-amber)';
+  // V4: Geometric mean thresholds (tighter distribution)
+  if (pct >= 70) return 'var(--rag-green)';
+  if (pct >= 50) return 'var(--rag-amber)';
   return 'var(--rag-red)';
 }
 
@@ -511,8 +512,9 @@ export function getScoreColor(score) {
  * @returns {string} CSS variable string
  */
 export function getScoreThresholdColor(score) {
-  if (score >= 80) return 'var(--rag-green)';
-  if (score >= 55) return 'var(--rag-amber)';
+  // V4: Geometric mean thresholds
+  if (score >= 70) return 'var(--rag-green)';
+  if (score >= 50) return 'var(--rag-amber)';
   return 'var(--rag-red)';
 }
 

@@ -71,7 +71,8 @@ export function animateScoreRing(rawScore) {
   }
 
   // Celebration glow for exceptional matches (90%+)
-  if (!REDUCED.matches && pct >= 90) {
+  // V4: Geometric mean — celebration at 85+ (was 90+ in power-law V3)
+  if (!REDUCED.matches && pct >= 85) {
     setTimeout(() => {
       const tile = document.getElementById('score-tile-donde');
       if (tile) {
@@ -95,12 +96,12 @@ const RADAR_DIMS = [
   { key: 'hole_in_wall_factor',    label: 'Gem',      icon: 'diamond' },
 ];
 
-/** V3 Factor dimensions */
+/** V4 Factor dimensions (geometric mean scoring) */
 const FACTOR_DIMS = [
-  { key: 'food_match',    label: 'Food Match',   icon: 'plate' },
-  { key: 'setting_fit',   label: 'Setting Fit',  icon: 'diamond' },
-  { key: 'atmosphere',    label: 'Atmosphere',    icon: 'music' },
-  { key: 'reputation',    label: 'Reputation',    icon: 'starFull' },
+  { key: 'food_quality',  label: 'Food Quality', icon: 'plate' },
+  { key: 'vibe',          label: 'Vibe',         icon: 'music' },
+  { key: 'service',       label: 'Service',      icon: 'diamond' },
+  { key: 'reputation',    label: 'Reputation',   icon: 'starFull' },
   { key: 'convenience',   label: 'Convenience',  icon: 'clock' },
 ];
 
@@ -416,19 +417,26 @@ export function renderScoreHero(dondeMatch, scores, scoringV2, sentiment, timers
 
 /* ---- V3 Factor Bars (horizontal dimension bars — replaces vibe bars) ---- */
 
-export function renderFactorBars(scoringV3, timers = []) {
+export function renderFactorBars(scoringData, timers = []) {
   const $container = document.getElementById('factor-bars');
   const $list = document.getElementById('factor-bars-list');
   if (!$container || !$list) return;
 
-  if (!scoringV3) return;
+  // V4: Accept either scoring_v4 or scoring_v3 format
+  const scoringV4 = scoringData;
+  if (!scoringV4) return;
 
   $list.innerHTML = '';
+
+  // V4: Extract dynamic weights for display
+  const weightsUsed = scoringV4.weights_used || {};
 
   const slots = FACTOR_DIMS
     .map(dim => ({
       ...dim,
-      val: scoringV3[dim.key] != null ? Math.min(parseFloat(scoringV3[dim.key]) || 0, 10) : null,
+      val: scoringV4[dim.key] != null ? Math.min(parseFloat(scoringV4[dim.key]) || 0, 10) : null,
+      weight: weightsUsed[dim.key] != null ? Math.round(parseFloat(weightsUsed[dim.key]) * 100) : null,
+      confidence: scoringV4.confidence?.[dim.key] || null,
     }))
     .filter(s => s.val !== null);
 
@@ -449,20 +457,30 @@ export function renderFactorBars(scoringV3, timers = []) {
     row.setAttribute('aria-valuenow', slot.val.toFixed(1));
     row.setAttribute('aria-valuemin', '0');
     row.setAttribute('aria-valuemax', '10');
-    row.setAttribute('aria-label', `${slot.label}, ${slot.val.toFixed(1)} out of 10. Tap to see details.`);
+    row.setAttribute('aria-label', `${slot.label}, ${slot.val.toFixed(1)} out of 10${slot.weight ? `, weight ${slot.weight}%` : ''}. Tap to see details.`);
     row.setAttribute('aria-expanded', 'false');
     row.setAttribute('data-factor', slot.key);
 
     const pct = Math.min(slot.val / 10, 1) * 100;
     const color = getFactorColor(slot.val);
+    // V4: Dynamic weight chip
+    const weightChip = slot.weight != null
+      ? `<span class="factor-row__weight type-data--xs">${slot.weight}%</span>`
+      : '';
+    // V4: Confidence badge
+    const confBadge = slot.confidence
+      ? `<span class="factor-row__confidence factor-row__confidence--${slot.confidence}" title="${slot.confidence} confidence"></span>`
+      : '';
 
     row.innerHTML = `
       <span class="factor-row__icon">${svgIcon(slot.icon, 14)}</span>
       <span class="factor-row__label type-structural">${slot.label}</span>
+      ${weightChip}
       <span class="factor-row__bar">
         <span class="factor-row__bar-fill" data-width="${pct}" style="background:${color}"></span>
       </span>
-      <span class="factor-row__score type-data--sm">${slot.val.toFixed(1)}</span>`;
+      <span class="factor-row__score type-data--sm">${slot.val.toFixed(1)}</span>
+      ${confBadge}`;
 
     // Drill-down panel (hidden by default)
     const detail = document.createElement('div');
