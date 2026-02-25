@@ -84,7 +84,7 @@ export function animateScoreRing(rawScore) {
 }
 
 /* ---- Petal Radar Chart (Ink Blossom — 6-axis vibe profile) ---- */
-import { svgIcon, buildVibeSummary, getScoreThresholdColor, getFactorColor } from './utils.js';
+import { svgIcon, buildVibeSummary, getScoreThresholdColor, getScoreTier, getFactorColor } from './utils.js';
 
 const RADAR_DIMS = [
   { key: 'date_friendly_score',    label: 'Date',     icon: 'heart' },
@@ -331,14 +331,9 @@ export function renderScoreHero(dondeMatch, scores, scoringV2, sentiment, timers
     }
   }
 
-  // Verdict label (V3: updated tiers for 0-99 range)
+  // Verdict label — V3.3 (DV5): unified with getScoreTier() instead of inline duplicate
   if ($verdict) {
-    const tier = pct >= 90 ? { verdict: 'Outstanding', tier: 'high' }
-      : pct >= 80 ? { verdict: 'Great Match', tier: 'high' }
-      : pct >= 70 ? { verdict: 'Good Pick', tier: 'mid' }
-      : pct >= 55 ? { verdict: 'Worth a Try', tier: 'mid' }
-      : pct >= 40 ? { verdict: 'It\u2019s a Stretch', tier: 'low' }
-      : { verdict: 'Weak Match', tier: 'low' };
+    const tier = getScoreTier(pct);
     $verdict.textContent = tier.verdict;
     $verdict.setAttribute('data-tier', tier.tier);
     if (!REDUCED.matches) {

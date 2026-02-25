@@ -17,7 +17,8 @@ import { initAuth, signIn as signInWith, signOut as authSignOut, isAuthenticated
 import { animateScoreRing, renderPetalRadar, renderSentimentBar, renderScoreBloom, renderScoreHero, renderFactorBars, toggleBloom, resetBloomState, handlePetalTap, handleBloomRingTap, toggleScoreBreakdown, getBloomState, animateBadge, startParticles, stopParticles, chaosToOrderReveal, initLogoAnimation, startSearchPulse, stopSearchPulse, resolveLogoToFound, cleanupLoadingLogo, fireCelebration } from './animations.js';
 import {
   getGreeting, getTimePeriod, getCuisineFromResult, svgIcon,
-  getScoreTier, getScoreColor, getScoreThresholdColor, buildGoogleStars, buildMapsUrl, relativeTime, matchCuisine, matchCulture
+  getScoreTier, getScoreColor, getScoreThresholdColor, getFactorColor,
+  buildGoogleStars, buildMapsUrl, relativeTime, matchCuisine, matchCulture
 } from './utils.js';
 
 /* ---- Cached DOM Elements ---- */
@@ -2654,7 +2655,7 @@ function openTileExpand(tileEl) {
         const v3Html = v3Available.map(d => {
           const val = Math.min(Math.max(sv3[d.key] || 0, 0), 10);
           const pctVal = (val / 10) * 100;
-          const color = val >= 8 ? 'var(--ac)' : val >= 5 ? 'var(--fg3)' : 'var(--rag-amber)';
+          const color = getFactorColor(val);  // V3.3 (DV5/HB6): use shared function instead of inline duplicate
           return `
             <div class="tile-expand__dim">
               <span class="tile-expand__dim-icon">${svgIcon(d.icon, 14)}</span>
