@@ -13,6 +13,7 @@ const KEYS = {
   userId: 'dondeai-user-id',
   feedback: 'dondeai-feedback',
   authDismissed: 'dondeai-auth-dismissed',
+  onboarded: 'dondeai-onboarded',
 };
 
 function safeGet(key) {
@@ -158,6 +159,15 @@ export function hasGuestDismissed() {
 
 export function setGuestDismissed() {
   safeSet(KEYS.authDismissed, true);
+}
+
+/* ---- First-Visit Onboarding Flag ---- */
+export function hasSeenOnboarding() {
+  return safeGet(KEYS.onboarded) === true;
+}
+
+export function setOnboardingSeen() {
+  safeSet(KEYS.onboarded, true);
 }
 
 /* ---- SSO: Server Sync Functions ---- */

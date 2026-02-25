@@ -793,3 +793,97 @@ export function stopParticles() {
     particleResizeObs = null;
   }
 }
+
+/* ---- Celebration Burst (confetti particles for 90%+ scores) ---- */
+let celebAnimId = null;
+
+export function fireCelebration() {
+  if (REDUCED.matches) return;
+
+  const canvas = document.getElementById('particle-canvas');
+  if (!canvas) return;
+
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  // Ensure canvas matches viewport
+  canvas.width = canvas.offsetWidth * (window.devicePixelRatio || 1);
+  canvas.height = canvas.offsetHeight * (window.devicePixelRatio || 1);
+  canvas.style.display = '';
+  ctx.setTransform(window.devicePixelRatio || 1, 0, 0, window.devicePixelRatio || 1, 0, 0);
+
+  const w = canvas.offsetWidth;
+  const h = canvas.offsetHeight;
+
+  // Get accent color for theming particles
+  const ac = getComputedStyle(document.documentElement).getPropertyValue('--ac').trim() || '#6c5ce7';
+
+  // Generate confetti particles bursting from center-top area (where score ring is)
+  const originX = w / 2;
+  const originY = h * 0.3;
+  const particles = [];
+
+  const COLORS = [ac, '#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4'];
+
+  for (let i = 0; i < 36; i++) {
+    const angle = (Math.random() * Math.PI * 2);
+    const speed = 2 + Math.random() * 4;
+    particles.push({
+      x: originX,
+      y: originY,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed - 2, // bias upward initially
+      size: 3 + Math.random() * 4,
+      color: COLORS[Math.floor(Math.random() * COLORS.length)],
+      alpha: 1,
+      rotation: Math.random() * 360,
+      rotSpeed: (Math.random() - 0.5) * 8,
+      shape: Math.random() > 0.5 ? 'rect' : 'circle',
+    });
+  }
+
+  const startTime = performance.now();
+  const DURATION = 1500;
+
+  function draw(now) {
+    const elapsed = now - startTime;
+    if (elapsed > DURATION) {
+      celebAnimId = null;
+      return;
+    }
+
+    ctx.clearRect(0, 0, w, h);
+
+    const progress = elapsed / DURATION;
+
+    for (const p of particles) {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.12; // gravity
+      p.vx *= 0.99;  // friction
+      p.rotation += p.rotSpeed;
+      p.alpha = Math.max(0, 1 - progress * 1.2);
+
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate((p.rotation * Math.PI) / 180);
+      ctx.globalAlpha = p.alpha;
+      ctx.fillStyle = p.color;
+
+      if (p.shape === 'rect') {
+        ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+      } else {
+        ctx.beginPath();
+        ctx.arc(0, 0, p.size / 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.restore();
+    }
+
+    celebAnimId = requestAnimationFrame(draw);
+  }
+
+  if (celebAnimId) cancelAnimationFrame(celebAnimId);
+  celebAnimId = requestAnimationFrame(draw);
+}

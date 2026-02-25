@@ -58,6 +58,59 @@ export function playChime() {
   pulseBlobs();
 }
 
+/** Celebration chime — ascending 5-note arpeggio for 90%+ matches */
+export function playCelebrationChime() {
+  const { soundEnabled, theme } = getState();
+  if (!soundEnabled) return;
+
+  const ctx = getCtx();
+  if (!ctx) return;
+
+  const profile = CHIME_PROFILES[theme.culture] || CHIME_PROFILES.neutral;
+  const now = ctx.currentTime;
+
+  // Build a 5-note ascending arpeggio from the culture's base frequencies + two higher harmonics
+  const celebFreqs = [
+    ...profile.freq,
+    profile.freq[2] * 1.26,  // major third above top note
+    profile.freq[2] * 1.5,   // perfect fifth above top note
+  ];
+
+  celebFreqs.forEach((freq, i) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = profile.wave;
+    osc.frequency.value = freq;
+
+    const start = now + i * 0.1;
+    const vol = 0.12 - i * 0.01; // gentle decrescendo across notes
+    gain.gain.setValueAtTime(Math.max(vol, 0.06), start);
+    gain.gain.exponentialRampToValueAtTime(0.001, start + 0.8);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(start);
+    osc.stop(start + 0.9);
+
+    // Echo pass — quieter repeat at +0.1s delay for reverb-like depth
+    if (i < 3) {
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = profile.wave;
+      osc2.frequency.value = freq;
+      gain2.gain.setValueAtTime(vol * 0.3, start + 0.1);
+      gain2.gain.exponentialRampToValueAtTime(0.001, start + 0.9);
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.start(start + 0.1);
+      osc2.stop(start + 1.0);
+    }
+  });
+
+  pulseBlobs();
+}
+
 function pulseBlobs() {
   const blobs = document.querySelectorAll('.ambient__blob');
   if (!blobs.length) return;
