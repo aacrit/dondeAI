@@ -76,12 +76,8 @@ function init() {
   initAccessibility();
   initAuth(); // SSO: non-blocking, restores session if exists
 
-  // SSO: Auto-show auth popup on first visit (unless guest-dismissed or already authenticated)
-  setTimeout(() => {
-    if (!isAuthAuthenticated() && !hasGuestDismissed()) {
-      openAuthSheet();
-    }
-  }, 800);
+  // SSO: Auth popup deferred to post-first-result engagement.
+  // See state subscriber below for trigger logic.
 
   // Set up greeting
   setupLanding();
@@ -126,17 +122,22 @@ function init() {
   // Init cursor glow (desktop only)
   initCursorGlow();
 
-  // Coach marks: trigger after SSO auth completes or guest dismisses
-  // If user is already authenticated or already dismissed guest, show immediately (no auth sheet will open)
-  if (!hasSeenOnboarding() && (isAuthAuthenticated() || hasGuestDismissed())) {
-    setTimeout(() => showCoachMarks(), 1200);
+  // Coach marks: show on first visit after 1.5s (decoupled from auth)
+  if (!hasSeenOnboarding()) {
+    setTimeout(() => showCoachMarks(), 1500);
   }
 
   // Subscribe to state changes
+  let _resultCount = 0;
   subscribe((state, prev) => {
     if (state.result !== prev.result && state.result) {
       // Result arrived — orchestrate the reveal transition (Act 3)
       orchestrateReveal(state.result);
+      // SSO: Deferred auth — show popup after second successful result
+      _resultCount++;
+      if (_resultCount >= 2 && !isAuthAuthenticated() && !hasGuestDismissed()) {
+        setTimeout(() => openAuthSheet(), 600);
+      }
     }
     if (state.loading !== prev.loading && state.loading) {
       // Only handle loading=true here; loading=false is handled by orchestrateReveal
@@ -297,14 +298,25 @@ function renderSmartChips() {
   startChipRotation();
 }
 
-/* ---- Chip Ambient Rotation (swap one chip every 5s) ---- */
+/* ---- Chip Ambient Rotation (swap one chip every 15s, pause on interaction) ---- */
+let _chipsPaused = false;
 function startChipRotation() {
   stopChipRotation();
+  // Pause rotation when user hovers/focuses the chip area
+  const $container = document.querySelector('.smart-chips');
+  if ($container) {
+    $container.addEventListener('pointerenter', () => { _chipsPaused = true; });
+    $container.addEventListener('pointerleave', () => { _chipsPaused = false; });
+  }
   chipRotationTimer = setInterval(() => {
     if ($cravingInput && $cravingInput.value.trim().length > 0) return;
     if (document.activeElement === $cravingInput) return;
+    if (_chipsPaused) return;
+    // Also pause if filter drawer is open
+    const filterToggle = document.querySelector('.filter-drawer__toggle');
+    if (filterToggle?.getAttribute('aria-expanded') === 'true') return;
     rotateOneChip();
-  }, 5000);
+  }, 15000);
 }
 
 function stopChipRotation() {
@@ -1247,6 +1259,7 @@ function renderSuggestions(matches, query) {
   });
 
   $suggestions.hidden = false;
+  if ($cravingInput) $cravingInput.setAttribute('aria-expanded', 'true');
 }
 
 function closeSuggestions() {
@@ -1254,7 +1267,10 @@ function closeSuggestions() {
   $suggestions.hidden = true;
   $suggestions.innerHTML = '';
   activeIndex = -1;
-  if ($cravingInput) $cravingInput.removeAttribute('aria-activedescendant');
+  if ($cravingInput) {
+    $cravingInput.removeAttribute('aria-activedescendant');
+    $cravingInput.setAttribute('aria-expanded', 'false');
+  }
 }
 
 function moveActive(delta) {
@@ -1649,6 +1665,16 @@ async function handleSubmit() {
   }
 }
 
+/* ---- Skip Loading on Tap ---- */
+function _skipLoading() {
+  const state = getState();
+  if (state.result) {
+    // Result already arrived — skip directly to reveal
+    resolveLogoToFound();
+    setTimeout(() => orchestrateReveal(state.result), 100);
+  }
+}
+
 /* ---- Loading Toggle (3-Act Focus Pull Transition) ---- */
 let searchingDotsInterval = null;
 
@@ -1669,6 +1695,8 @@ function toggleLoading(loading) {
       $loadingState.style.display = 'flex';
       $loadingState.style.opacity = '1';
       $loadingState.classList.remove('loading-state--fading');
+      // Tap-to-skip: if result arrives during animation, user can skip
+      $loadingState.addEventListener('click', _skipLoading, { once: true });
     }
     // Hide result card
     if ($resultCard) $resultCard.style.display = 'none';
@@ -1726,8 +1754,9 @@ function toggleLoading(loading) {
     // Remove defocus from input page
     if ($step0) $step0.classList.remove('step--defocused');
 
-    // Hide loading overlay
+    // Hide loading overlay and remove skip handler
     if ($loadingState) {
+      $loadingState.removeEventListener('click', _skipLoading);
       $loadingState.style.display = 'none';
       $loadingState.classList.remove('loading-state--fading');
     }
