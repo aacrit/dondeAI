@@ -125,8 +125,9 @@ function init() {
   // Init cursor glow (desktop only)
   initCursorGlow();
 
-  // First-visit coach marks (after a brief delay for the page to settle)
-  if (!hasSeenOnboarding()) {
+  // Coach marks: trigger after SSO auth completes or guest dismisses
+  // If user is already authenticated or already dismissed guest, show immediately (no auth sheet will open)
+  if (!hasSeenOnboarding() && (isAuthAuthenticated() || hasGuestDismissed())) {
     setTimeout(() => showCoachMarks(), 1200);
   }
 
@@ -877,6 +878,7 @@ function wireEvents() {
       case 'guest-dismiss':
         closeAuthSheet();
         setGuestDismissed();
+        if (!hasSeenOnboarding()) setTimeout(() => showCoachMarks(), 600);
         break;
 
       case 'sign-out':
@@ -959,7 +961,11 @@ function wireEvents() {
         if (!isExpanded) {
           renderTier2Animations();
           const $hero = document.getElementById('score-hero');
-          if ($hero) $hero.focus({ preventScroll: true });
+          if ($hero) {
+            $hero.focus({ preventScroll: true });
+            // Auto-scroll to Donde Match section so user sees the expanded content
+            setTimeout(() => $hero.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+          }
           announce('Showing more details');
         } else {
           // Collapsing — also collapse tier 3 if open
@@ -2747,6 +2753,8 @@ function renderPhotos(data) {
     return;
   }
   $photos.innerHTML = '';
+  // Remove previous pagination dots (sibling element) to prevent accumulation on re-render
+  document.getElementById('photo-dots')?.remove();
   const urls = photoUrls.slice(0, 5);
   urls.forEach((url, i) => {
     const img = document.createElement('img');
@@ -3555,7 +3563,7 @@ function buildWhyExplainer(data, craving) {
   let bestKey = '';
   let bestVal = 0;
   for (const [key, label] of Object.entries(VIBE_LABELS)) {
-    const val = parseFloat(data.deep_context?.[key] ?? data[key] ?? 0);
+    const val = parseFloat(data.scores?.[key] ?? data.deep_context?.[key] ?? data[key] ?? 0);
     if (val > bestVal) {
       bestVal = val;
       bestKey = key;
@@ -3796,6 +3804,7 @@ subscribe((state, prev) => {
       showToast(toasts().welcomeUser(state.user.name));
       renderTasteMemory();
       renderSavedSpots();
+      if (!hasSeenOnboarding()) setTimeout(() => showCoachMarks(), 600);
     }
   }
 });
