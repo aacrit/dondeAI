@@ -22,7 +22,7 @@
   --amber:       hsl(35 85% 50%);
   --amber-soft:  hsl(35 85% 50% / 0.12);
   --glass:       hsl(38 14% 98% / 0.76);
-  --glass-blur:  18px;
+  --glass-blur:  14px;
   --border:      hsl(38 12% 83%);
   --shadow:      hsl(35 20% 18% / 0.08);
   --shadow-lg:   hsl(35 20% 18% / 0.14);
@@ -67,7 +67,7 @@
   --amber:       hsl(35 80% 58%);
   --amber-soft:  hsl(35 80% 58% / 0.15);
   --glass:       hsl(35 12% 12% / 0.82);
-  --glass-blur:  22px;
+  --glass-blur:  16px;
   --border:      hsl(35 10% 22%);
   --shadow:      transparent;
   --shadow-lg:   transparent;

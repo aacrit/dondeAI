@@ -1443,17 +1443,15 @@ function updateCtaState() {
     $cta.setAttribute('aria-disabled', String(isEmpty));
 
     if (isEmpty) {
-      // Disable: kill breathing
-      $cta.classList.remove('cta-btn--ready', 'cta-btn--alive');
+      // Disable: kill ready pulse
+      $cta.classList.remove('cta-btn--ready');
       if (ctaBreathTimer) { clearTimeout(ctaBreathTimer); ctaBreathTimer = null; }
     } else if (wasDisabled && !isEmpty) {
-      // Just enabled: one-shot ready pulse → continuous breathe
-      $cta.classList.remove('cta-btn--alive');
+      // Just enabled: one-shot ready pulse (no infinite breathing)
       $cta.classList.add('cta-btn--ready');
       if (ctaBreathTimer) clearTimeout(ctaBreathTimer);
       ctaBreathTimer = setTimeout(() => {
         $cta.classList.remove('cta-btn--ready');
-        $cta.classList.add('cta-btn--alive');
       }, 400);
     }
   }
@@ -1591,7 +1589,7 @@ async function handleSubmit() {
   // Set CTA to loading state with brief confirmation glow
   const $cta = document.querySelector('.cta-btn[data-action="submit"]');
   if ($cta) {
-    $cta.classList.remove('cta-btn--ready', 'cta-btn--alive');
+    $cta.classList.remove('cta-btn--ready');
     $cta.classList.add('cta-btn--confirming');
     await new Promise(r => setTimeout(r, 200));
     $cta.classList.remove('cta-btn--confirming');
