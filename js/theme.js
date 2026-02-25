@@ -52,6 +52,11 @@ const THEME_LABELS = {
       vibeExplainer: 'Donde Vibe\u2122 maps how this spot scores across date nights, groups, family, business, solo dining, and hidden gem factor.',
       welcomeUser: (name) => `Welcome, ${name || 'friend'}!`,
     },
+    whyPrefix: 'Why this spot \u2014 ',
+    coachMarks: {
+      theme: 'Tap to switch cultural themes \u2014 each changes the entire look and vibe.',
+      input: "Tell us what you're craving \u2014 be as specific or vague as you like.",
+    },
     smartChips: ['outdoor seating', 'live music', 'great cocktails', 'hidden gem', 'cozy date spot'],
     suggestions: [
       'outdoor seating', 'live music', 'great cocktails', 'hidden gem', 'cozy date spot',
@@ -164,6 +169,11 @@ const THEME_LABELS = {
       vibeExplainer: 'Donde Vibe\u2122 reveals how this spot feels across date nights, family feasts, groups, and solo dining.',
       welcomeUser: (name) => `Welcome, ${name || 'friend'}!`,
     },
+    whyPrefix: 'Why we chose this \u2014 ',
+    coachMarks: {
+      theme: 'Tap to switch themes \u2014 each brings a unique cultural warmth.',
+      input: 'Tell us what your heart wants \u2014 we\'ll find the perfect spot.',
+    },
     smartChips: ['butter chicken spot', 'street food vibes', 'biryani feast', 'chai and conversation', 'thali for two', 'momo spot'],
     suggestions: [
       'butter chicken spot', 'street food vibes', 'biryani feast', 'chai and conversation', 'thali for two',
@@ -263,6 +273,11 @@ const THEME_LABELS = {
       matchExplainer: 'Donde Match\u2122 \u2014 cuisine quality, vibe harmony, and local reviews combined into one score.',
       vibeExplainer: 'Donde Vibe\u2122 \u2014 how this spot fits across dining occasions.',
       welcomeUser: (name) => `Welcome${name ? ', ' + name : ''}.`,
+    },
+    whyPrefix: 'Why \u2014 ',
+    coachMarks: {
+      theme: 'Tap to switch themes. Each offers a different aesthetic.',
+      input: 'What sounds good? Be as precise as you like.',
     },
     smartChips: ['late night ramen', 'omakase experience', 'izakaya vibes', 'handmade soba', 'sake pairing', 'dim sum brunch', 'late night pho', 'Korean BBQ'],
     suggestions: [
@@ -370,6 +385,11 @@ const THEME_LABELS = {
       vibeExplainer: 'Donde Vibe\u2122 maps the energy \u2014 date nights, crew hangouts, familia, solo, and hidden gem vibes.',
       welcomeUser: (name) => `Bienvenido, ${name || 'amigo'}!`,
     },
+    whyPrefix: 'Por qu\u00e9 \u2014 ',
+    coachMarks: {
+      theme: 'Toca para cambiar temas \u2014 each one brings a different energy!',
+      input: 'Dinos que quieres \u2014 we\'ll find the perfect spot!',
+    },
     smartChips: ['ceviche spot', 'asado for the crew', 'empanadas y mate', 'taco al pastor', 'pisco sour night', 'jollof that hits', 'soul food spot'],
     suggestions: [
       'ceviche spot', 'asado for the crew', 'empanadas y mate', 'taco al pastor', 'pisco sour night',
@@ -471,6 +491,11 @@ const THEME_LABELS = {
       matchExplainer: 'Donde Match\u2122 reflects how well this spot suits your taste \u2014 cuisine quality, atmosphere, and trusted reviews.',
       vibeExplainer: 'Donde Vibe\u2122 shows how this spot fits for gatherings, family feasts, dates, solo visits, and more.',
       welcomeUser: (name) => `Welcome, ${name || 'friend'}!`,
+    },
+    whyPrefix: 'Why this spot \u2014 ',
+    coachMarks: {
+      theme: 'Tap to switch themes \u2014 each brings a unique warmth and hospitality.',
+      input: 'Tell us what you\'re craving \u2014 we\'ll find the perfect gathering spot.',
     },
     smartChips: ['shawarma spot', 'mezze spread', 'fresh falafel', 'kebab platter', 'baklava and tea', 'injera and wot'],
     suggestions: [

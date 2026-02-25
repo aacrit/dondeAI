@@ -5,16 +5,16 @@
 
 import { getState, setState, subscribe, resetState } from './state.js';
 import { initRouter, goToStep, goToStepInstant } from './router.js';
-import { loadTheme, loadSound, loadHistory, addToHistory, saveTheme, loadColorMode, loadBookmarks, addBookmark, removeBookmark, isBookmarked, getOrCreateUserId, saveFeedback, loadFeedback, clearFeedback, hasGuestDismissed, setGuestDismissed } from './persistence.js';
+import { loadTheme, loadSound, loadHistory, addToHistory, saveTheme, loadColorMode, loadBookmarks, addBookmark, removeBookmark, isBookmarked, getOrCreateUserId, saveFeedback, loadFeedback, clearFeedback, hasGuestDismissed, setGuestDismissed, hasSeenOnboarding, setOnboardingSeen } from './persistence.js';
 import { initTheme, setTheme, setThemeInstant, setThemeVisualOnly, revertAutoTheme, setManualOverride, isManualOverride, setColorMode, getColorMode, getLabels, CULTURES, CULTURE_DISPLAY_NAMES } from './theme.js';
-import { initAudio, toggleSound, playChime } from './audio.js';
+import { initAudio, toggleSound, playChime, playCelebrationChime } from './audio.js';
 import { initVoice, startVoice } from './voice.js';
 import { initShare, shareResult, closeShareSheet, handleShareChannel } from './share.js';
 import { initOffline, isOnline } from './offline.js';
 import { initAccessibility, announce } from './accessibility.js';
 import { fetchRecommendation, sendFeedback } from './api.js';
 import { initAuth, signIn as signInWith, signOut as authSignOut, isAuthenticated as isAuthAuthenticated, getUser as getAuthUser, addFavoriteToServer, removeFavoriteFromServer } from './auth.js';
-import { animateScoreRing, renderPetalRadar, renderSentimentBar, renderScoreBloom, renderScoreHero, renderVibeBars, toggleBloom, resetBloomState, handlePetalTap, handleBloomRingTap, toggleScoreBreakdown, getBloomState, animateBadge, startParticles, stopParticles, chaosToOrderReveal, initLogoAnimation, startSearchPulse, stopSearchPulse, resolveLogoToFound, cleanupLoadingLogo } from './animations.js';
+import { animateScoreRing, renderPetalRadar, renderSentimentBar, renderScoreBloom, renderScoreHero, renderVibeBars, toggleBloom, resetBloomState, handlePetalTap, handleBloomRingTap, toggleScoreBreakdown, getBloomState, animateBadge, startParticles, stopParticles, chaosToOrderReveal, initLogoAnimation, startSearchPulse, stopSearchPulse, resolveLogoToFound, cleanupLoadingLogo, fireCelebration } from './animations.js';
 import {
   getGreeting, getTimePeriod, getCuisineFromResult, svgIcon,
   getScoreTier, getScoreColor, getScoreThresholdColor, buildGoogleStars, buildMapsUrl, relativeTime, matchCuisine, matchCulture
@@ -31,6 +31,18 @@ const $toast = document.getElementById('toast');
 const $toastText = document.getElementById('toast-text');
 const $cursorGlow = document.querySelector('.cursor-glow');
 const $suggestions = document.getElementById('craving-suggestions');
+
+/* ---- Haptic Feedback Library ---- */
+function haptic(pattern) {
+  if (navigator.vibrate) navigator.vibrate(pattern);
+}
+const HAPTICS = {
+  tick:        [10],                   // feedback tap, filter select
+  doublePulse: [30, 20, 30],           // bookmark save
+  reveal:      [50, 30, 50],           // result reveal
+  celebration: [50, 30, 80, 30, 50],   // 90%+ score
+  swipe:       [40],                   // swipe completion
+};
 
 /* ---- AbortController for fetch cancellation ---- */
 let currentAbort = null;
@@ -113,6 +125,11 @@ function init() {
   // Init cursor glow (desktop only)
   initCursorGlow();
 
+  // First-visit coach marks (after a brief delay for the page to settle)
+  if (!hasSeenOnboarding()) {
+    setTimeout(() => showCoachMarks(), 1200);
+  }
+
   // Subscribe to state changes
   subscribe((state, prev) => {
     if (state.result !== prev.result && state.result) {
@@ -158,7 +175,7 @@ function setupLanding() {
 /* ---- Typewriter Reveal (handwritten entrance) ---- */
 const REDUCED_MOTION = matchMedia('(prefers-reduced-motion: reduce)');
 
-function typewriterReveal(element, text) {
+function typewriterReveal(element, text, customSpeed) {
   if (REDUCED_MOTION.matches) {
     element.textContent = text;
     return;
@@ -166,7 +183,7 @@ function typewriterReveal(element, text) {
   element.textContent = '';
   element.classList.add('step__title--typing');
   let i = 0;
-  const speed = 35;
+  const speed = customSpeed || 35;
   function type() {
     if (i < text.length) {
       element.textContent += text.charAt(i);
@@ -635,8 +652,9 @@ function wireEvents() {
         break;
       }
 
-      // F14: Surprise Me
+      // F14: Surprise Me — slot-machine shuffle animation
       case 'surprise-me': {
+        haptic(HAPTICS.tick);
         const surprisePrompts = [
           "surprise me with the best spot tonight",
           "the most underrated gem nearby",
@@ -647,22 +665,47 @@ function wireEvents() {
           "the best meal I'll have this month",
           "chef's pick — go wild",
         ];
-        const prompt = surprisePrompts[Math.floor(Math.random() * surprisePrompts.length)];
+        // Spring feedback on button
+        btn.classList.add('chip-pop');
+        btn.addEventListener('animationend', () => btn.classList.remove('chip-pop'), { once: true });
+
+        // Pick the final prompt
+        const finalPrompt = surprisePrompts[Math.floor(Math.random() * surprisePrompts.length)];
+
         if ($cravingInput) {
-          $cravingInput.value = prompt;
-          // Auto-grow for textarea
-          $cravingInput.style.height = 'auto';
-          $cravingInput.style.height = $cravingInput.scrollHeight + 'px';
+          // Shimmer effect on input
+          $cravingInput.classList.add('craving-input--surprising');
+          $cravingInput.addEventListener('animationend', () => $cravingInput.classList.remove('craving-input--surprising'), { once: true });
+
+          // Slot-machine shuffle: cycle through 4 random prompts rapidly before settling
+          let shuffleCount = 0;
+          const shuffleMax = 4;
+          const shuffleInterval = setInterval(() => {
+            const randPrompt = surprisePrompts[Math.floor(Math.random() * surprisePrompts.length)];
+            $cravingInput.value = randPrompt;
+            shuffleCount++;
+            if (shuffleCount >= shuffleMax) {
+              clearInterval(shuffleInterval);
+              $cravingInput.value = finalPrompt;
+              $cravingInput.style.height = 'auto';
+              $cravingInput.style.height = $cravingInput.scrollHeight + 'px';
+              setState({ craving: finalPrompt, excludeIds: [] });
+              updateCtaState();
+              // Auto-submit after a brief pause
+              setTimeout(() => handleSubmit(), 600);
+            }
+          }, 120);
+        } else {
+          setState({ craving: finalPrompt, excludeIds: [] });
+          updateCtaState();
+          setTimeout(() => handleSubmit(), 800);
         }
-        setState({ craving: prompt, excludeIds: [] });
-        updateCtaState();
-        // Auto-submit after 800ms delay (per BR-H1)
-        setTimeout(() => handleSubmit(), 800);
         break;
       }
 
       // F11: Feedback (like/dislike) — togglable: tap again to undo
       case 'feedback': {
+        haptic(HAPTICS.tick);
         const fb = btn.dataset.feedback;
         const resultData = getState().result;
         const restaurantId = resultData?.restaurant?.id;
@@ -690,6 +733,7 @@ function wireEvents() {
 
       // F4: Bookmark toggle
       case 'bookmark': {
+        haptic(HAPTICS.doublePulse);
         const result = getState().result;
         const restaurant = result?.restaurant;
         if (!restaurant?.id) break;
@@ -875,6 +919,14 @@ function wireEvents() {
 
       case 'close-tile-expand':
         closeTileExpand();
+        break;
+
+      case 'close-lightbox':
+        closeLightbox();
+        break;
+
+      case 'dismiss-coach':
+        dismissCoachMark();
         break;
 
 
@@ -1398,6 +1450,7 @@ function updateCtaState() {
 
 /* ---- Filter Selection (with ink ripple) ---- */
 function selectFilter(field, btn) {
+  haptic(HAPTICS.tick);
   const group = btn.closest('[role="radiogroup"]') || btn.closest('.filter-pills');
   if (!group) return;
 
@@ -1732,8 +1785,17 @@ async function orchestrateReveal(data) {
   if ($header) $header.style.opacity = '';
 
   // F18: Haptic feedback on reveal (mobile only, graceful degrade)
-  if (navigator.vibrate) {
-    navigator.vibrate([50, 30, 50]);
+  haptic(HAPTICS.reveal);
+
+  // Score celebration for 90%+ matches (confetti, chime, enhanced haptic)
+  const celebScore = Math.round(parseFloat(data.donde_match) || 0);
+  if (celebScore >= 90) {
+    // Delay slightly so the score ring animation finishes first
+    animationTimers.push(setTimeout(() => {
+      fireCelebration();
+      playCelebrationChime();
+      haptic(HAPTICS.celebration);
+    }, 1600));
   }
 
   // 7. After transitions complete, clean up
@@ -2063,6 +2125,18 @@ function renderResult(data) {
     if ($blurb) $blurb.style.display = recText ? '' : 'none';
   }
 
+  // "Why This Spot" — match explainability
+  const $why = document.getElementById('result-why');
+  if ($why) {
+    const whyText = buildWhyExplainer(data, getState().craving);
+    if (whyText) {
+      $why.textContent = whyText;
+      $why.style.display = '';
+    } else {
+      $why.style.display = 'none';
+    }
+  }
+
   // F3: Enhanced map navigation tile
   renderMapPreview(data);
 
@@ -2138,8 +2212,25 @@ function prepareTier2(data, cuisine) {
     let tipContent = data.insider_tip || '';
     // Strip em-dashes — replace with commas for cleaner reading
     tipContent = tipContent.replace(/\u2014/g, ', ').replace(/ , /g, ', ');
-    if (tipContent) { $tipText.textContent = tipContent; $extrasTip.style.display = ''; }
-    else { $extrasTip.style.display = 'none'; }
+    if (tipContent) {
+      $extrasTip.style.display = '';
+      // Typewriter reveal for insider tips — "friend whispering a secret" feel
+      if (!$tipText._hasRevealed) {
+        $tipText._hasRevealed = true;
+        $tipText.textContent = '';
+        $tipText.classList.add('story-extras__text--typing');
+        animationTimers.push(setTimeout(() => {
+          typewriterReveal($tipText, tipContent, 45);
+          // Remove typing cursor when done
+          const tipLen = tipContent.length;
+          animationTimers.push(setTimeout(() => {
+            $tipText.classList.remove('story-extras__text--typing');
+          }, tipLen * 50 + 400));
+        }, 500));
+      } else {
+        $tipText.textContent = tipContent;
+      }
+    } else { $extrasTip.style.display = 'none'; }
   }
 
   if ($storyExtras) {
@@ -2650,16 +2741,102 @@ function renderPhotos(data) {
     return;
   }
   $photos.innerHTML = '';
-  photoUrls.slice(0, 5).forEach((url, i) => {
+  const urls = photoUrls.slice(0, 5);
+  urls.forEach((url, i) => {
     const img = document.createElement('img');
     img.className = 'result-photos__img';
     img.src = url;
     img.alt = `${data.restaurant.name} photo ${i + 1}`;
     img.loading = i === 0 ? 'eager' : 'lazy';
     img.decoding = 'async';
+    img.dataset.index = i;
+    img.style.cursor = 'zoom-in';
+    img.addEventListener('click', () => openLightbox(urls, i));
     $photos.appendChild(img);
   });
+
+  // Pagination dots
+  if (urls.length > 1) {
+    const dotsWrap = document.createElement('div');
+    dotsWrap.className = 'photo-dots';
+    dotsWrap.id = 'photo-dots';
+    urls.forEach((_, i) => {
+      const dot = document.createElement('span');
+      dot.className = 'photo-dots__dot' + (i === 0 ? ' photo-dots__dot--active' : '');
+      dotsWrap.appendChild(dot);
+    });
+    $photos.after(dotsWrap);
+
+    // IntersectionObserver to track active photo
+    const dots = dotsWrap.querySelectorAll('.photo-dots__dot');
+    const imgs = $photos.querySelectorAll('.result-photos__img');
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const idx = Number(entry.target.dataset.index);
+          dots.forEach((d, di) => d.classList.toggle('photo-dots__dot--active', di === idx));
+        }
+      });
+    }, { root: $photos, threshold: 0.6 });
+    imgs.forEach(img => observer.observe(img));
+  }
+
   $photos.style.display = '';
+}
+
+/* ---- Photo Lightbox ---- */
+function openLightbox(urls, startIndex) {
+  const $lightbox = document.getElementById('lightbox');
+  const $track = document.getElementById('lightbox-track');
+  const $counter = document.getElementById('lightbox-counter');
+  if (!$lightbox || !$track) return;
+
+  $track.innerHTML = '';
+  urls.forEach((url, i) => {
+    const img = document.createElement('img');
+    img.src = url;
+    img.alt = `Photo ${i + 1} of ${urls.length}`;
+    img.draggable = false;
+    $track.appendChild(img);
+  });
+
+  $lightbox.style.display = '';
+  if ($counter) $counter.textContent = `${startIndex + 1} / ${urls.length}`;
+
+  // Scroll to the clicked photo
+  requestAnimationFrame(() => {
+    const target = $track.children[startIndex];
+    if (target) target.scrollIntoView({ behavior: 'instant', inline: 'center' });
+  });
+
+  // Update counter on scroll
+  const updateCounter = () => {
+    const scrollLeft = $track.scrollLeft;
+    const slideWidth = $track.offsetWidth;
+    const idx = Math.round(scrollLeft / slideWidth);
+    if ($counter) $counter.textContent = `${Math.min(idx + 1, urls.length)} / ${urls.length}`;
+  };
+  $track.addEventListener('scroll', updateCounter, { passive: true });
+  $lightbox._cleanup = () => $track.removeEventListener('scroll', updateCounter);
+
+  // Close on Escape
+  const onKey = (e) => {
+    if (e.key === 'Escape') closeLightbox();
+  };
+  document.addEventListener('keydown', onKey);
+  $lightbox._keyCleanup = () => document.removeEventListener('keydown', onKey);
+
+  // Prevent body scroll
+  document.body.style.overflow = 'hidden';
+}
+
+function closeLightbox() {
+  const $lightbox = document.getElementById('lightbox');
+  if (!$lightbox) return;
+  $lightbox.style.display = 'none';
+  if ($lightbox._cleanup) $lightbox._cleanup();
+  if ($lightbox._keyCleanup) $lightbox._keyCleanup();
+  document.body.style.overflow = '';
 }
 
 
@@ -3133,13 +3310,46 @@ function dismissToast() {
 function wireSwipe() {
   let startX = 0;
   let startY = 0;
+  let startTime = 0;
   let isDragging = false;
-  const THRESHOLD = 50;
+  let isHorizontal = null; // null = undecided, true/false = committed
+
+  const COMPLETE_THRESHOLD = 80;
+  const VELOCITY_THRESHOLD = 0.5;
+  const DAMPING = 0.4;
+
+  const $resultStep = document.querySelector('.step[data-step="1"]');
 
   $main?.addEventListener('touchstart', (e) => {
     startX = e.touches[0].clientX;
     startY = e.touches[0].clientY;
+    startTime = Date.now();
     isDragging = true;
+    isHorizontal = null;
+  }, { passive: true });
+
+  $main?.addEventListener('touchmove', (e) => {
+    if (!isDragging || !$resultStep) return;
+    if (getState().step !== 1) return;
+
+    const dx = e.touches[0].clientX - startX;
+    const dy = e.touches[0].clientY - startY;
+
+    // Decide direction on first significant movement
+    if (isHorizontal === null) {
+      if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
+      isHorizontal = Math.abs(dx) > Math.abs(dy);
+      if (!isHorizontal) return;
+      // Reduced motion: skip visual tracking
+      if (REDUCED_MOTION.matches) return;
+      $resultStep.classList.add('step--swiping');
+    }
+
+    if (!isHorizontal || REDUCED_MOTION.matches) return;
+
+    // Only track right-swipe (positive dx), damped
+    const dampedDx = dx > 0 ? dx * DAMPING : dx * 0.1;
+    $resultStep.style.transform = `translateX(${dampedDx}px)`;
   }, { passive: true });
 
   $main?.addEventListener('touchend', (e) => {
@@ -3148,13 +3358,24 @@ function wireSwipe() {
 
     const dx = e.changedTouches[0].clientX - startX;
     const dy = e.changedTouches[0].clientY - startY;
+    const elapsed = Date.now() - startTime;
+    const velocity = Math.abs(dx) / Math.max(elapsed, 1);
 
-    if (Math.abs(dx) < THRESHOLD || Math.abs(dy) > Math.abs(dx)) return;
+    // Clean up visual tracking
+    if ($resultStep) {
+      $resultStep.classList.remove('step--swiping');
+      $resultStep.style.transform = '';
+    }
+
+    // Must be a horizontal gesture on the result view
+    if (isHorizontal === false) return;
+    if (Math.abs(dx) < 30 || Math.abs(dy) > Math.abs(dx)) return;
 
     const { step } = getState();
 
     // Only allow swipe-right on result to go back to canvas
-    if (dx > 0 && step === 1) {
+    if (dx > 0 && step === 1 && (dx > COMPLETE_THRESHOLD || velocity > VELOCITY_THRESHOLD)) {
+      haptic(HAPTICS.swipe);
       goToStep(0);
       syncFilterPillsToState();
     }
@@ -3307,6 +3528,116 @@ function renderShareCanvas(format = 'post') {
 
 // Expose for share module
 window.renderShareCanvas = renderShareCanvas;
+
+/* ---- "Why This Spot" Explainer ---- */
+const VIBE_LABELS = {
+  date_friendly_score: 'date-friendliness',
+  group_friendly_score: 'group-friendliness',
+  family_friendly_score: 'family-friendliness',
+  business_lunch_score: 'business vibes',
+  solo_dining_score: 'solo dining',
+  hole_in_wall_factor: 'hidden-gem factor',
+};
+
+function buildWhyExplainer(data, craving) {
+  if (!data || !craving?.trim()) return '';
+
+  const labels = getLabels(getState().theme.culture);
+  const prefix = labels.whyPrefix || 'Why this spot \u2014 ';
+
+  // Find the strongest vibe dimension
+  let bestKey = '';
+  let bestVal = 0;
+  for (const [key, label] of Object.entries(VIBE_LABELS)) {
+    const val = parseFloat(data.deep_context?.[key] ?? data[key] ?? 0);
+    if (val > bestVal) {
+      bestVal = val;
+      bestKey = key;
+    }
+  }
+
+  const score = Math.round(parseFloat(data.donde_match) || 0);
+  const vibeLabel = VIBE_LABELS[bestKey] || '';
+
+  if (!vibeLabel || bestVal < 5) return '';
+
+  const cravingShort = craving.trim().split(' ').slice(0, 5).join(' ');
+  return `${prefix}matched for "${cravingShort}" with top-tier ${vibeLabel} (${bestVal.toFixed(1)}/10) at ${score}% confidence.`;
+}
+
+/* ---- Coach Marks (First-Visit Onboarding) ---- */
+let coachMarkStep = 0;
+const COACH_STEPS = [
+  {
+    targetSelector: '[data-action="toggle-color"]',
+    textKey: 'theme',
+    position: 'below',
+  },
+  {
+    targetSelector: '.craving-input',
+    textKey: 'input',
+    position: 'below',
+  },
+];
+
+function showCoachMarks() {
+  coachMarkStep = 0;
+  showCoachStep();
+}
+
+function showCoachStep() {
+  const $mark = document.getElementById('coach-mark');
+  const $text = document.getElementById('coach-mark-text');
+  const $backdrop = document.getElementById('coach-mark-backdrop');
+  if (!$mark || !$text || !$backdrop) return;
+
+  if (coachMarkStep >= COACH_STEPS.length) {
+    // All done
+    $mark.style.display = 'none';
+    $backdrop.style.display = 'none';
+    setOnboardingSeen();
+    return;
+  }
+
+  const step = COACH_STEPS[coachMarkStep];
+  const target = document.querySelector(step.targetSelector);
+  if (!target) {
+    coachMarkStep++;
+    showCoachStep();
+    return;
+  }
+
+  const labels = getLabels(getState().theme.culture);
+  $text.textContent = labels.coachMarks?.[step.textKey] || step.textKey;
+
+  $backdrop.style.display = '';
+  $mark.style.display = '';
+
+  // Position below the target
+  const rect = target.getBoundingClientRect();
+  $mark.style.left = `${Math.max(16, Math.min(rect.left, window.innerWidth - 296))}px`;
+  $mark.style.top = `${rect.bottom + 12}px`;
+
+  // Elevate target above backdrop
+  target.style.position = target.style.position || 'relative';
+  target.style.zIndex = '9992';
+  target._coachElevated = true;
+}
+
+function dismissCoachMark() {
+  // De-elevate previous target
+  const step = COACH_STEPS[coachMarkStep];
+  if (step) {
+    const target = document.querySelector(step.targetSelector);
+    if (target?._coachElevated) {
+      target.style.zIndex = '';
+      delete target._coachElevated;
+    }
+  }
+
+  coachMarkStep++;
+  showCoachStep();
+}
 
 /* ---- Color Mode Popover ---- */
 

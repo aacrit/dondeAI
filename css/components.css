@@ -3826,3 +3826,194 @@
   color: var(--fg);
 }
 
+/* ============================================
+   Round 2: Photo Pagination Dots
+   ============================================ */
+.photo-dots {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  padding: var(--space-xs) 0 0;
+}
+
+.photo-dots__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--fg3);
+  opacity: 0.4;
+  transition: all 250ms var(--ease-out);
+}
+
+.photo-dots__dot--active {
+  width: 8px;
+  height: 8px;
+  background: var(--ac);
+  opacity: 1;
+  transform: scale(1.2);
+}
+
+/* ============================================
+   Round 2: Photo Lightbox
+   ============================================ */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.92);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  animation: lightboxIn 300ms var(--ease-out);
+}
+
+.lightbox__close {
+  position: absolute;
+  top: var(--space-md);
+  right: var(--space-md);
+  z-index: 2;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 50%;
+  color: #fff;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out);
+}
+
+.lightbox__close:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.lightbox__track {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+  height: 80vh;
+  scrollbar-width: none;
+}
+
+.lightbox__track::-webkit-scrollbar { display: none; }
+
+.lightbox__track img {
+  scroll-snap-align: center;
+  flex: 0 0 100%;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  touch-action: pinch-zoom;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.lightbox__counter {
+  position: absolute;
+  bottom: var(--space-lg);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================
+   Round 2: "Why This Spot" Explainer
+   ============================================ */
+.donde-blurb__why {
+  color: var(--fg3);
+  font-style: italic;
+  font-size: var(--text-xs);
+  margin-top: var(--space-xs);
+  padding-left: var(--space-sm);
+  border-left: 2px solid var(--ac);
+  opacity: 0.8;
+}
+
+/* ============================================
+   Round 2: Coach Marks (onboarding)
+   ============================================ */
+.coach-mark__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9990;
+  background: var(--fg);
+  opacity: 0.3;
+}
+
+.coach-mark {
+  position: fixed;
+  z-index: 9991;
+  max-width: 280px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-md);
+  box-shadow: 0 8px 32px -8px var(--shadow);
+  animation: fadeInUp 400ms var(--ease-out);
+}
+
+.coach-mark__text {
+  color: var(--fg);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  margin-bottom: var(--space-sm);
+}
+
+.coach-mark__dismiss {
+  display: inline-block;
+  background: var(--ac);
+  color: var(--ac-fg, #fff);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: var(--space-xs) var(--space-md);
+  cursor: pointer;
+  font-weight: 600;
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+
+.coach-mark__dismiss:hover {
+  opacity: 0.85;
+}
+
+/* ============================================
+   Round 2: Swipe Physics
+   ============================================ */
+.step--swiping {
+  will-change: transform;
+  transition: none !important;
+}
+
+.swipe-peek {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(to right, var(--ac), transparent);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 10;
+  transition: opacity 100ms ease;
+}
+
+/* ============================================
+   Round 2: Surprise Me Shimmer
+   ============================================ */
+.craving-input--surprising {
+  background: linear-gradient(90deg, var(--bg2), var(--ac-soft), var(--bg2)) !important;
+  background-size: 200% 100% !important;
+  animation: shimmer 0.6s ease !important;
+}
+

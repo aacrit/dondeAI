@@ -460,6 +460,35 @@
   }
 }
 
+/* ---- Lightbox Entrance ---- */
+@keyframes lightboxIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* ---- Blink Cursor (typewriter insider tip) ---- */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0; }
+}
+
+.story-extras__text--typing::after {
+  content: '|';
+  animation: blink 800ms step-end infinite;
+  color: var(--ac);
+  font-weight: 300;
+  margin-left: 1px;
+}
+
+/* ---- Score Celebration Glow Enhancement (90%+ scores) ---- */
+@keyframes scoreCelebrate {
+  0%   { box-shadow: 0 0 0 0 var(--ac-soft); }
+  25%  { box-shadow: 0 0 24px 8px var(--ac-soft); }
+  50%  { box-shadow: 0 0 32px 12px var(--ac-soft); }
+  75%  { box-shadow: 0 0 24px 8px var(--ac-soft); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
 /* ---- Reduced Motion: Gentle fallback (100ms linear, not 0ms) ---- */
 @media (prefers-reduced-motion: reduce) {
   .stagger-in > *,
@@ -485,11 +514,24 @@
   .result-card--revealing .glance-actions,
   .cta-btn--ready,
   .cta-btn--alive,
-  .cta-btn--boosted {
+  .cta-btn--boosted,
+  .lightbox,
+  .coach-mark,
+  .craving-input--surprising {
     animation-duration: 100ms !important;
     animation-timing-function: linear !important;
     opacity: 1;
     transform: none;
+  }
+
+  .story-extras__text--typing::after {
+    animation: none !important;
+    content: none;
+  }
+
+  .step--swiping {
+    transition: none !important;
+    transform: none !important;
   }
 
   .cta-btn--alive:not(:hover):not(:active):not(:disabled) {

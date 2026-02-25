@@ -373,6 +373,7 @@
                 <div class="donde-blurb" id="donde-blurb">
                   <div class="donde-blurb__accent" aria-hidden="true"></div>
                   <p class="donde-blurb__text type-structural" id="result-recommendation"></p>
+                  <p class="donde-blurb__why type-data--sm" id="result-why" style="display: none;"></p>
                 </div>
 
                 <!-- Compact navigation tile (address → maps) -->
@@ -664,6 +665,25 @@
         <div class="tile-expand__content" id="tile-expand-content"></div>
       </div>
     </div>
+
+    <!-- Photo Lightbox (fullscreen photo viewer) -->
+    <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Photo viewer" style="display: none;">
+      <button class="lightbox__close" data-action="close-lightbox" aria-label="Close">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+      <div class="lightbox__track" id="lightbox-track"></div>
+      <div class="lightbox__counter type-data--sm" id="lightbox-counter"></div>
+    </div>
+
+    <!-- Coach Marks (first-visit onboarding) -->
+    <div class="coach-mark" id="coach-mark" style="display: none;" role="tooltip">
+      <p class="coach-mark__text type-structural" id="coach-mark-text"></p>
+      <button class="coach-mark__dismiss type-data--sm" data-action="dismiss-coach">Got it</button>
+    </div>
+    <div class="coach-mark__backdrop" id="coach-mark-backdrop" style="display: none;"></div>
 
     <!-- Theme Wash (radial clip-path transition) -->
     <div class="theme-wash" id="theme-wash" aria-hidden="true"></div>
