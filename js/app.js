@@ -2884,7 +2884,15 @@ function renderDeepContextExtras(data) {
   // Quick Stats ribbon — compact deep-context data strip (includes wow factors)
   renderQuickStats(data);
 
-  // Origin Story now rendered in The Story block (Tier 2, prepareTier2)
+  // Origin Story
+  const $origin = document.getElementById('origin-story');
+  const $originText = document.getElementById('origin-story-text');
+  if ($origin && $originText && dc.origin_story) {
+    $originText.textContent = dc.origin_story;
+    $origin.style.display = '';
+  } else if ($origin) {
+    $origin.style.display = 'none';
+  }
 }
 
 /* ---- Quick Stats: Impact-ranked deep-context ribbon ---- */
