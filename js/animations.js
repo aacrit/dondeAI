@@ -521,20 +521,49 @@ export function renderFactorBars(scoringV3, timers = []) {
 }
 
 /** Build drill-down HTML for a factor */
+/** V3.6: Rich inline explanation card with sub-component mini-bars */
 function buildFactorDetail(factorKey, scoringV3) {
   const score = scoringV3[factorKey] || 0;
   const weights = scoringV3.weights_used || {};
+  const details = scoringV3.factor_details?.[factorKey] || null;
 
   const weightPct = weights[factorKey.replace('_match', '').replace('_fit', '')] || 0;
   const weightLabel = Math.round(weightPct * 100);
 
   let items = '';
-  items += `<div class="factor-detail__item">
-    <span class="factor-detail__signal type-structural">Score</span>
-    <span class="factor-detail__verdict type-data--sm">${score.toFixed(1)} / 10</span>
-  </div>`;
-  items += `<div class="factor-detail__item">
-    <span class="factor-detail__signal type-structural">Weight</span>
+
+  // Sub-component mini-bars (if factor_details available)
+  if (details && typeof details === 'object') {
+    // Human-readable labels for sub-component keys
+    const SUB_LABELS = {
+      cuisine: 'Cuisine', flavor: 'Flavor', dietary: 'Dietary', menu: 'Menu Match',
+      occasion: 'Occasion Fit', service: 'Service', social: 'Social Fit',
+      noise: 'Noise', lighting: 'Lighting', dress: 'Dress Code', energy: 'Energy', music: 'Music',
+      google: 'Google Rating', sentiment: 'Reviews', awards: 'Awards', community: 'Community',
+      timing: 'Timing', reservation: 'Reservations', practical: 'Practical',
+    };
+
+    for (const [subKey, sub] of Object.entries(details)) {
+      if (!sub || typeof sub !== 'object') continue;
+      const label = SUB_LABELS[subKey] || subKey;
+      const pct = sub.max > 0 ? Math.min((sub.score / sub.max) * 100, 100) : 0;
+      const barColor = pct >= 75 ? 'var(--ac)' : pct >= 40 ? 'var(--fg3)' : 'var(--rag-amber)';
+      const signalClass = pct >= 75 ? 'factor-detail__verdict--match' : pct < 40 ? 'factor-detail__verdict--miss' : '';
+
+      items += `<div class="factor-detail__sub">
+        <span class="factor-detail__sub-label type-structural">${label}</span>
+        <span class="factor-detail__sub-bar">
+          <span class="factor-detail__sub-fill" style="width: ${pct}%; background: ${barColor}"></span>
+        </span>
+        <span class="factor-detail__sub-score type-data--sm">${sub.score}/${sub.max}</span>
+        <span class="factor-detail__sub-signal type-structural ${signalClass}">${sub.signal}</span>
+      </div>`;
+    }
+  }
+
+  // Weight footer
+  items += `<div class="factor-detail__weight">
+    <span class="factor-detail__signal type-structural">Weight in your search</span>
     <span class="factor-detail__verdict type-data--sm">${weightLabel}%</span>
   </div>`;
 
