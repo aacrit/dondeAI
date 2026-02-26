@@ -1096,12 +1096,21 @@
   word-break: break-word;
   padding-left: 0;
   min-width: 0;
+  /* V5: Accommodate 100-120 word blurbs */
+  max-height: 14em;
+  overflow-y: auto;
 }
 
 @media (max-width: 767px) {
   .donde-blurb {
     padding: 0;
   }
+}
+
+/* V5: Boost-aware blurb accent border */
+.donde-blurb--boosted {
+  border-left: 3px solid var(--ac);
+  padding-left: var(--space-sm);
 }
 
 /* ── Glance Actions (inside card-footer) ── */
@@ -1645,6 +1654,101 @@
 
 /* Callout now stands alone (brand moved above gauge) */
 
+/* ---- V5: Intent Boost Badge ---- */
+.boost-badge {
+  display: none;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--ac-muted, rgba(var(--ac-rgb, 99, 102, 241), 0.12));
+  border: 1px solid var(--ac-subtle, rgba(var(--ac-rgb, 99, 102, 241), 0.25));
+  border-radius: var(--radius-pill, 100px);
+  font-size: var(--text-xs);
+  color: var(--ac);
+  cursor: pointer;
+  position: relative;
+  max-width: fit-content;
+  margin: var(--space-xs) auto 0;
+}
+
+.boost-badge--visible {
+  display: inline-flex;
+  animation: boostSlideIn 300ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.boost-badge__icon {
+  font-size: 1em;
+  line-height: 1;
+}
+
+.boost-badge__text {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.boost-badge__popout {
+  display: none;
+  position: absolute;
+  top: calc(100% + var(--space-xs));
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md, 8px);
+  padding: var(--space-sm);
+  font-size: var(--text-xs);
+  color: var(--fg2);
+  min-width: 200px;
+  max-width: 280px;
+  z-index: 100;
+  box-shadow: var(--shadow-md, 0 4px 12px rgba(0,0,0,0.15));
+  text-align: center;
+  line-height: 1.4;
+}
+
+.boost-badge:hover .boost-badge__popout,
+.boost-badge:focus .boost-badge__popout {
+  display: block;
+}
+
+/* ---- V5: Relaxation Notice ---- */
+.relaxation-notice {
+  display: none;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md, 8px);
+  font-size: var(--text-xs);
+  color: var(--fg3);
+  margin: 0 var(--space-sm) var(--space-xs);
+  text-align: center;
+  animation: relaxationFadeIn 400ms ease-out both;
+}
+
+.relaxation-notice__icon {
+  font-size: 1em;
+}
+
+.relaxation-notice__text {
+  line-height: 1.3;
+}
+
+.relaxation-notice__dismiss {
+  background: none;
+  border: none;
+  color: var(--fg4);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  padding: 0 var(--space-2xs);
+  line-height: 1;
+}
+
+.relaxation-notice--dismissing {
+  animation: relaxationFadeIn 300ms ease-out reverse both;
+}
+
 /* ---- Vibe Bars inside Score Hero (compact reveal) ---- */
 .score-hero__vibe-bars {
   width: 100%;
@@ -1666,122 +1770,8 @@
   padding-top: var(--space-sm);
 }
 
-/* ---- Vibe Bars (horizontal dimension bars) ---- */
-.vibe-bars {
-  width: 100%;
-  max-width: 400px;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-}
-
-.vibe-bars__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.vibe-bars__title {
-  font-family: var(--font-data);
-  font-size: var(--text-xs);
-  color: var(--fg3);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.vibe-bars__title sup {
-  font-size: 0.6em;
-  vertical-align: super;
-}
-
-.vibe-bars__list {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--space-xs);
-}
-
-/* Individual vibe row — single-column with progress bar */
-.vibe-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2xs);
-  min-height: 24px;
-  padding: var(--space-2xs) 0;
-}
-
-.vibe-row__icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--fg3);
-  flex-shrink: 0;
-}
-
-.vibe-row__icon svg {
-  width: 14px;
-  height: 14px;
-}
-
-.vibe-row__label {
-  font-family: var(--font-structural);
-  font-size: var(--text-xs);
-  font-weight: 600;
-  color: var(--fg2);
-  line-height: 1;
-  white-space: nowrap;
-  min-width: 52px;
-}
-
-/* Vibe bar: horizontal progress bar with RAG coloring */
-.vibe-row__bar {
-  flex: 1;
-  height: 6px;
-  background: var(--border);
-  border-radius: 3px;
-  overflow: hidden;
-  min-width: 40px;
-}
-
-.vibe-row__bar-fill {
-  display: block;
-  height: 100%;
-  border-radius: 3px;
-  width: 0%;
-  transition: width 600ms var(--ease-out);
-}
-
-.vibe-row__score {
-  font-family: var(--font-data);
-  font-size: var(--text-xs);
-  color: var(--fg3);
-  letter-spacing: 0.02em;
-  white-space: nowrap;
-  min-width: 28px;
-  text-align: right;
-}
-
-.vibe-row--dominant .vibe-row__icon {
-  color: var(--ac);
-}
-
-.vibe-row--dominant .vibe-row__label {
-  color: var(--fg);
-}
-
-.vibe-row--dominant .vibe-row__bar {
-  height: 8px;
-  border-radius: 4px;
-}
-
-.vibe-row--dominant .vibe-row__bar-fill {
-  border-radius: 4px;
-}
-
-.vibe-row--dominant .vibe-row__score {
-  color: var(--fg);
-  font-weight: 600;
-}
+/* ---- Vibe Bars (removed in V5 — replaced by 5-factor V5 bars) ----
+   Styles kept minimal for any legacy rendering graceful degradation. */
 
 /* ---- V3 Factor Bars inside Score Hero ---- */
 .score-hero__factors {
@@ -2026,6 +2016,41 @@
   .factor-detail {
     transition-duration: 0ms;
   }
+}
+
+/* V5: Confidence badges on factor rows */
+.factor-row__confidence {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-left: var(--space-2xs, 4px);
+  flex-shrink: 0;
+}
+
+.factor-row__confidence--high {
+  background: var(--rag-green);
+}
+
+.factor-row__confidence--medium {
+  background: var(--rag-amber);
+  /* Half-fill effect */
+  background: linear-gradient(to right, var(--rag-amber) 50%, transparent 50%);
+  border: 1px solid var(--rag-amber);
+}
+
+.factor-row__confidence--low {
+  background: transparent;
+  border: 1px solid var(--fg4, #999);
+}
+
+.factor-row__google-star {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: var(--space-2xs, 4px);
+  font-size: var(--text-xs);
+  font-weight: 600;
 }
 
 /* ---- Sentiment Inline Track (used inside badge-popout) ---- */
@@ -4492,5 +4517,158 @@
   background: linear-gradient(90deg, var(--bg2), var(--ac-soft), var(--bg2)) !important;
   background-size: 200% 100% !important;
   animation: shimmer 0.6s ease !important;
+}
+
+/* ============================================
+   V5: Intent Boost Badge
+   ============================================ */
+.intent-boost-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  padding: var(--space-2xs) var(--space-sm);
+  background: color-mix(in srgb, var(--ac) 12%, var(--bg));
+  border: 1px solid color-mix(in srgb, var(--ac) 25%, transparent);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  position: relative;
+  animation: slideInBoost 300ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  -webkit-tap-highlight-color: transparent;
+  margin: var(--space-xs) 0;
+}
+
+.intent-boost-badge__icon {
+  display: flex;
+  align-items: center;
+  color: var(--ac);
+  flex-shrink: 0;
+}
+
+.intent-boost-badge__icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.intent-boost-badge__text {
+  font-family: var(--font-data);
+  font-size: var(--text-xs);
+  color: var(--fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.intent-boost-badge__popout {
+  display: none;
+}
+
+.intent-boost-badge[aria-expanded="true"] .intent-boost-badge__popout {
+  display: block;
+}
+
+.intent-boost-badge__reason {
+  color: var(--fg2);
+  font-size: var(--text-xs);
+  margin-top: var(--space-2xs);
+}
+
+/* ============================================
+   V5: Relaxation Notice
+   ============================================ */
+.relaxation-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  background: color-mix(in srgb, var(--fg3) 8%, var(--bg));
+  border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-sm);
+  animation: fadeInUp 300ms var(--ease-out) forwards;
+}
+
+.relaxation-notice__text {
+  font-family: var(--font-structural);
+  font-size: var(--text-xs);
+  color: var(--fg2);
+  line-height: 1.4;
+}
+
+.relaxation-notice__dismiss {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  font-size: 14px;
+  color: var(--fg3);
+  background: none;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color var(--dur-fast) var(--ease-out);
+}
+
+.relaxation-notice__dismiss:hover {
+  color: var(--fg);
+}
+
+.relaxation-notice--dismissing {
+  animation: fadeOutRelaxation 400ms var(--ease-out) forwards;
+}
+
+/* ============================================
+   V5: Factor Confidence Badges
+   ============================================ */
+.factor-confidence {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-left: var(--space-2xs);
+  vertical-align: middle;
+}
+
+.factor-confidence--high {
+  background: var(--rag-green);
+}
+
+.factor-confidence--medium {
+  background: linear-gradient(180deg, var(--rag-amber) 50%, transparent 50%);
+  border: 1.5px solid var(--rag-amber);
+  box-sizing: border-box;
+}
+
+.factor-confidence--low {
+  background: transparent;
+  border: 1.5px solid var(--fg4);
+  box-sizing: border-box;
+}
+
+/* ============================================
+   V5: Google Star Rating in Reputation Bar
+   ============================================ */
+.factor-row__google-star {
+  font-family: var(--font-data);
+  font-size: var(--text-2xs, 10px);
+  color: var(--fg3);
+  opacity: 0.8;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .intent-boost-badge {
+    animation-duration: 0ms;
+  }
+  .relaxation-notice {
+    animation-duration: 0ms;
+  }
+  .relaxation-notice--dismissing {
+    animation-duration: 0ms;
+  }
 }
 

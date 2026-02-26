@@ -12,6 +12,7 @@ const state = {
   neighborhood: 'Anywhere',
   priceLevel: 'Any',
   dietaryRestrictions: [], // F5: multi-select dietary filter
+  openNow: false, // V5: Open Now filter toggle
   result: null,
   loading: false,
   error: null,
@@ -54,6 +55,7 @@ export function resetState() {
     neighborhood: 'Anywhere',
     priceLevel: 'Any',
     dietaryRestrictions: [],
+    openNow: false,
     result: null,
     loading: false,
     error: null,
