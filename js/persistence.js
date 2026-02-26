@@ -10,6 +10,7 @@ const KEYS = {
   history: 'dondeai-history',
   colorMode: 'dondeai-colormode',
   bookmarks: 'dondeai-bookmarks',
+  visits: 'dondeai-visits',
   userId: 'dondeai-user-id',
   feedback: 'dondeai-feedback',
   authDismissed: 'dondeai-auth-dismissed',
@@ -109,6 +110,34 @@ export function removeBookmark(id) {
 
 export function isBookmarked(id) {
   return loadBookmarks().some(b => b.id === id);
+}
+
+/* ---- Visits ("I'm Going Here!") ---- */
+export function loadVisits() {
+  return safeGet(KEYS.visits) || [];
+}
+
+export function saveVisits(visits) {
+  safeSet(KEYS.visits, visits);
+}
+
+export function addVisit(restaurant) {
+  const visits = loadVisits();
+  if (visits.some(v => v.id === restaurant.id)) return visits;
+  visits.unshift({
+    id: restaurant.id,
+    name: restaurant.name,
+    cuisine_type: restaurant.cuisine_type,
+    neighborhood_name: restaurant.neighborhood_name,
+    timestamp: Date.now(),
+  });
+  const trimmed = visits.slice(0, 20);
+  saveVisits(trimmed);
+  return trimmed;
+}
+
+export function isVisited(id) {
+  return loadVisits().some(v => v.id === id);
 }
 
 /* ---- F9: Anonymous User ID ---- */
@@ -251,6 +280,42 @@ export async function loadHistoryFromServer(supabase) {
       price_level: row.price_level || 'Any',
     },
     cuisineIcon: 'plate',
+    timestamp: new Date(row.created_at).getTime(),
+  }));
+}
+
+/* ---- SSO: Visits Server Sync ---- */
+export async function syncVisitsToServer(supabase, userId, visits) {
+  if (!supabase || !userId) return;
+  const rows = visits.map(v => ({
+    auth_user_id: userId,
+    restaurant_id: v.id,
+    restaurant_name: v.name,
+    cuisine_type: v.cuisine_type || null,
+    neighborhood_name: v.neighborhood_name || null,
+  }));
+  const { error } = await supabase
+    .from('user_visits')
+    .upsert(rows, { onConflict: 'auth_user_id,restaurant_id', ignoreDuplicates: true });
+  if (error) console.error('[persistence] Failed to sync visits:', error);
+}
+
+export async function loadVisitsFromServer(supabase) {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from('user_visits')
+    .select('restaurant_id, restaurant_name, cuisine_type, neighborhood_name, created_at')
+    .order('created_at', { ascending: false })
+    .limit(20);
+  if (error) {
+    console.error('[persistence] Failed to load server visits:', error);
+    return [];
+  }
+  return (data || []).map(row => ({
+    id: row.restaurant_id,
+    name: row.restaurant_name,
+    cuisine_type: row.cuisine_type,
+    neighborhood_name: row.neighborhood_name,
     timestamp: new Date(row.created_at).getTime(),
   }));
 }

@@ -5,15 +5,15 @@
 
 import { getState, setState, subscribe, resetState } from './state.js';
 import { initRouter, goToStep, goToStepInstant } from './router.js';
-import { loadTheme, loadSound, loadHistory, addToHistory, saveTheme, loadColorMode, loadBookmarks, addBookmark, removeBookmark, isBookmarked, getOrCreateUserId, saveFeedback, loadFeedback, clearFeedback, hasGuestDismissed, setGuestDismissed, hasSeenOnboarding, setOnboardingSeen } from './persistence.js';
+import { loadTheme, loadSound, loadHistory, addToHistory, saveTheme, loadColorMode, loadBookmarks, addBookmark, removeBookmark, isBookmarked, loadVisits, addVisit, isVisited, getOrCreateUserId, saveFeedback, loadFeedback, clearFeedback, hasGuestDismissed, setGuestDismissed, hasSeenOnboarding, setOnboardingSeen } from './persistence.js';
 import { initTheme, setTheme, setThemeInstant, setThemeVisualOnly, revertAutoTheme, setManualOverride, isManualOverride, setColorMode, getColorMode, getLabels, CULTURES, CULTURE_DISPLAY_NAMES } from './theme.js';
 import { initAudio, toggleSound, playChime, playCelebrationChime } from './audio.js';
 import { initVoice, startVoice } from './voice.js';
 import { initShare, shareResult, closeShareSheet, handleShareChannel } from './share.js';
 import { initOffline, isOnline } from './offline.js';
 import { initAccessibility, announce } from './accessibility.js';
-import { fetchRecommendation, sendFeedback } from './api.js';
-import { initAuth, signIn as signInWith, signOut as authSignOut, isAuthenticated as isAuthAuthenticated, getUser as getAuthUser, addFavoriteToServer, removeFavoriteFromServer } from './auth.js';
+import { fetchRecommendation, sendFeedback, sendVisit, sendAppFeedback } from './api.js';
+import { initAuth, signIn as signInWith, signOut as authSignOut, isAuthenticated as isAuthAuthenticated, getUser as getAuthUser, addFavoriteToServer, removeFavoriteFromServer, addVisitToServer } from './auth.js';
 import { animateScoreRing, renderPetalRadar, renderSentimentBar, renderScoreBloom, renderScoreHero, renderFactorBars, toggleBloom, resetBloomState, handlePetalTap, handleBloomRingTap, toggleScoreBreakdown, getBloomState, animateBadge, startParticles, stopParticles, chaosToOrderReveal, initLogoAnimation, startSearchPulse, stopSearchPulse, resolveLogoToFound, cleanupLoadingLogo, fireCelebration } from './animations.js';
 import {
   getGreeting, getTimePeriod, getCuisineFromResult, svgIcon,
@@ -99,6 +99,9 @@ function init() {
 
   // F4: Render saved spots (bookmarks)
   renderSavedSpots();
+
+  // Render visited spots ("Been Here")
+  renderVisitedSpots();
 
   // F9: Initialize anonymous user ID
   getOrCreateUserId();
@@ -795,6 +798,56 @@ function wireEvents() {
         break;
       }
 
+      // "I'm Going Here!" — strongest engagement signal
+      case 'going': {
+        haptic(HAPTICS.celebration);
+        const result = getState().result;
+        const restaurant = result?.restaurant;
+        if (!restaurant?.id) break;
+        if (isVisited(restaurant.id)) break; // Already marked
+        addVisit(restaurant);
+        const goingUserId = getOrCreateUserId();
+        sendVisit(restaurant, goingUserId);
+        // SSO: also write with auth_user_id for richer data
+        if (isAuthAuthenticated()) addVisitToServer(restaurant);
+        updateGoingBtn(restaurant.id);
+        renderVisitedSpots();
+        showToast(toasts().goingHere, false);
+        break;
+      }
+
+      // App Feedback Sheet
+      case 'open-app-feedback': {
+        openFeedbackSheet();
+        break;
+      }
+
+      case 'close-app-feedback': {
+        closeFeedbackSheet();
+        break;
+      }
+
+      case 'select-feedback-cat': {
+        haptic(HAPTICS.tick);
+        const wasPressed = btn.getAttribute('aria-pressed') === 'true';
+        document.querySelectorAll('.feedback-cat-pill').forEach(b => b.setAttribute('aria-pressed', 'false'));
+        btn.setAttribute('aria-pressed', String(!wasPressed));
+        updateFeedbackSubmitState();
+        break;
+      }
+
+      case 'submit-app-feedback': {
+        const selectedCat = document.querySelector('.feedback-cat-pill[aria-pressed="true"]');
+        const category = selectedCat?.dataset.category;
+        const messageEl = document.getElementById('feedback-text');
+        const message = messageEl?.value?.trim();
+        if (!category || !message) break;
+        const fbUserId = getOrCreateUserId();
+        sendAppFeedback(category, message, fbUserId);
+        closeFeedbackSheet();
+        showToast(toasts().feedbackSent, false);
+        break;
+      }
 
       case 'submit':
         setState({ excludeIds: [] });
@@ -2096,6 +2149,9 @@ function renderResult(data) {
   // F11: Set feedback button state
   if (r.id) renderFeedbackState(r.id);
 
+  // Set "I'm Going Here!" button state
+  if (r.id) updateGoingBtn(r.id);
+
   // Cuisine mismatch notice
   const $mismatch = document.getElementById('cuisine-mismatch-notice');
   if ($mismatch) {
@@ -2961,6 +3017,93 @@ function renderFeedbackState(restaurantId) {
   });
 }
 
+/* ---- "I'm Going Here!" Button State ---- */
+function updateGoingBtn(restaurantId) {
+  const $btn = document.getElementById('going-btn');
+  if (!$btn) return;
+  const visited = isVisited(restaurantId);
+  const labels = getLabels(getState().theme.culture);
+  const $text = $btn.querySelector('.going-btn__text');
+  if (visited) {
+    $btn.classList.add('going-btn--done');
+    if ($text) $text.textContent = labels.goingDone || "You're Going!";
+    $btn.setAttribute('aria-label', labels.goingDone || "You're Going!");
+  } else {
+    $btn.classList.remove('going-btn--done');
+    if ($text) $text.textContent = labels.goingHere || "I'm Going Here!";
+    $btn.setAttribute('aria-label', labels.goingHere || "I'm Going Here!");
+  }
+}
+
+/* ---- Visited Spots on Landing ---- */
+function renderVisitedSpots() {
+  const $container = document.getElementById('visited-spots');
+  const $list = document.getElementById('visited-spots-list');
+  if (!$container || !$list) return;
+  const visits = loadVisits();
+  if (visits.length === 0) {
+    $container.style.display = 'none';
+    return;
+  }
+  $list.innerHTML = '';
+  visits.slice(0, 5).forEach(v => {
+    const item = document.createElement('button');
+    item.className = 'visited-spot type-structural';
+    item.innerHTML = `
+      <span class="visited-spot__pin type-data--sm">
+        <svg viewBox="0 0 256 256" width="10" height="10"><path fill="currentColor" d="M128,16a88.1,88.1,0,0,0-88,88c0,75.3,80,132.17,83.41,134.55a8,8,0,0,0,9.18,0C136,236.17,216,179.3,216,104A88.1,88.1,0,0,0,128,16Zm0,56a32,32,0,1,1-32,32A32,32,0,0,1,128,72Z"/></svg>
+        Been
+      </span>
+      <span class="visited-spot__name">${v.name}</span>
+      <span class="visited-spot__meta type-data--sm">${v.cuisine_type || v.neighborhood_name || ''}</span>
+    `;
+    $list.appendChild(item);
+  });
+  $container.style.display = '';
+}
+
+/* ---- App Feedback Sheet ---- */
+function openFeedbackSheet() {
+  const $sheet = document.getElementById('feedback-sheet');
+  if (!$sheet) return;
+  // Set culture-adaptive labels
+  const labels = getLabels(getState().theme.culture);
+  const $title = document.getElementById('feedback-sheet-title');
+  const $subtitle = document.getElementById('feedback-sheet-subtitle');
+  if ($title) $title.textContent = labels.feedbackTitle || 'Share Your Thoughts';
+  if ($subtitle) $subtitle.textContent = labels.feedbackSubtitle || 'Help us make Donde better for everyone.';
+  // Reset form
+  document.querySelectorAll('.feedback-cat-pill').forEach(b => b.setAttribute('aria-pressed', 'false'));
+  const $text = document.getElementById('feedback-text');
+  if ($text) $text.value = '';
+  const $count = document.getElementById('feedback-char-count');
+  if ($count) $count.textContent = '0 / 500';
+  const $submit = document.getElementById('feedback-submit');
+  if ($submit) $submit.disabled = true;
+  // Wire textarea character count
+  if ($text && !$text._wired) {
+    $text._wired = true;
+    $text.addEventListener('input', () => {
+      const len = $text.value.length;
+      if ($count) $count.textContent = `${len} / 500`;
+      updateFeedbackSubmitState();
+    });
+  }
+  $sheet.classList.add('feedback-sheet--open');
+}
+
+function closeFeedbackSheet() {
+  const $sheet = document.getElementById('feedback-sheet');
+  if ($sheet) $sheet.classList.remove('feedback-sheet--open');
+}
+
+function updateFeedbackSubmitState() {
+  const hasCat = !!document.querySelector('.feedback-cat-pill[aria-pressed="true"]');
+  const hasText = (document.getElementById('feedback-text')?.value?.trim().length || 0) > 0;
+  const $submit = document.getElementById('feedback-submit');
+  if ($submit) $submit.disabled = !(hasCat && hasText);
+}
+
 /* ---- 1D: Render Deep Context Extras (USP, Wow Factors, Origin Story) ---- */
 function renderDeepContextExtras(data) {
   const dc = data.deep_context;
@@ -3692,6 +3835,7 @@ subscribe((state, prev) => {
       showToast(toasts().welcomeUser(state.user.name));
       renderTasteMemory();
       renderSavedSpots();
+      renderVisitedSpots();
       if (!hasSeenOnboarding()) setTimeout(() => showCoachMarks(), 600);
     }
   }
