@@ -501,33 +501,18 @@ export function renderFactorBars(scoringData, timers = [], restaurantData = null
       : slot.weight >= 18 ? 'weight-mid' : 'weight-low';
     row.className += ` factor-row--${weightTier}`;
 
-    // V5: Google Rating annotation after score (not embedded in label — prevents double score)
-    let labelText = slot.label;
-    let googleAnnotation = '';
-    if (slot.key === 'reputation' && googleRating) {
-      googleAnnotation = `<span class="factor-row__google-star">(${parseFloat(googleRating).toFixed(1)}<span style="color:var(--star-gold)">&#9733;</span>)</span>`;
-    }
-
     // Score-based fill color so all bars are visible regardless of weight tier
     const scoreTierClass = slot.val >= 7.5 ? 'bar-fill--strong'
       : slot.val >= 5 ? 'bar-fill--mid'
       : 'bar-fill--weak';
 
-    // Weight dots: 3 filled = high importance, 2 = mid, 1 = low
-    const dotCount = weightTier === 'weight-high' ? 3 : weightTier === 'weight-mid' ? 2 : 1;
-    const dotsHtml = Array.from({length: 3}, (_, i) =>
-      `<span class="factor-row__dot ${i < dotCount ? 'factor-row__dot--filled' : 'factor-row__dot--empty'}"></span>`
-    ).join('');
-    const dotsEl = `<span class="factor-row__weight-dots" aria-hidden="true">${dotsHtml}</span>`;
-
     row.innerHTML = `
       <span class="factor-row__icon">${svgIcon(slot.icon, 16)}</span>
-      <span class="factor-row__label type-structural">${labelText}</span>
-      ${dotsEl}
+      <span class="factor-row__label type-structural">${slot.label}</span>
       <span class="factor-row__bar">
         <span class="factor-row__bar-fill ${scoreTierClass}" data-width="${pct}"></span>
       </span>
-      <span class="factor-row__score type-data--sm">${Math.round(slot.val)}</span>${googleAnnotation}`;
+      <span class="factor-row__score type-data--sm">${Math.round(slot.val)}</span>`;
 
     // Drill-down panel (hidden by default)
     const detail = document.createElement('div');
@@ -558,7 +543,7 @@ export function renderFactorBars(scoringData, timers = [], restaurantData = null
         row.setAttribute('aria-expanded', 'true');
         // Populate detail if empty
         if (!detail.innerHTML.trim()) {
-          detail.innerHTML = buildFactorDetail(slot.key, scoring);
+          detail.innerHTML = buildFactorDetail(slot.key, scoring, slot.weight);
         }
         detail.setAttribute('aria-hidden', 'false');
         // Measure, then animate with spring easing
@@ -597,8 +582,10 @@ export function renderFactorBars(scoringData, timers = [], restaurantData = null
   });
 }
 
-/** Build drill-down HTML for a factor — 3-tier color-coded sub-factor list */
-function buildFactorDetail(factorKey, scoring) {
+const FACTOR_LABELS = { food: 'Food', vibe: 'Vibe', service: 'Service', reputation: 'Reputation', convenience: 'Convenience' };
+
+/** Build drill-down HTML for a factor — weight header + rank-based color-coded sub-factor list */
+function buildFactorDetail(factorKey, scoring, slotWeight) {
   const details = scoring.factor_details?.[factorKey] || null;
 
   // Sub-component icons + labels
@@ -624,7 +611,15 @@ function buildFactorDetail(factorKey, scoring) {
     practical:   { icon: 'briefcase',  label: 'Practical' },
   };
 
-  if (!details || typeof details !== 'object') return `<div class="factor-detail__items"></div>`;
+  // Weight header shown at top of drill-down
+  const weightHeader = slotWeight != null
+    ? `<div class="factor-detail__header">
+         <span class="factor-detail__header-label type-structural">${FACTOR_LABELS[factorKey] || factorKey}</span>
+         <span class="factor-detail__header-weight type-data--sm">${slotWeight}% of score</span>
+       </div>`
+    : '';
+
+  if (!details || typeof details !== 'object') return `<div class="factor-detail__items">${weightHeader}</div>`;
 
   // Collect entries with percentages for rank-based coloring
   const entries = Object.entries(details)
@@ -634,9 +629,14 @@ function buildFactorDetail(factorKey, scoring) {
       pct: sub.max > 0 ? Math.min((sub.score / sub.max) * 100, 100) : 0,
     }));
 
-  if (entries.length === 0) return `<div class="factor-detail__items"></div>`;
+  if (entries.length === 0) return `<div class="factor-detail__items">${weightHeader}</div>`;
 
-  // Rank-based coloring: only top driver (≥65%) = green, only bottom (<40%) = red, rest neutral
+  // Parent-score-aware detractor threshold: excellent parent → only flag genuinely terrible sub-factors
+  const parentScore = typeof scoring[factorKey] === 'number'
+    ? Math.min(parseFloat(scoring[factorKey]) || 0, 10) : 0;
+  const detractorThreshold = parentScore >= 7.5 ? 25 : parentScore >= 5 ? 35 : 40;
+
+  // Rank-based coloring: only top driver (≥65%) = green, only bottom (below threshold) = red, rest neutral
   const maxPct = Math.max(...entries.map(e => e.pct));
   const minPct = Math.min(...entries.map(e => e.pct));
 
@@ -646,7 +646,7 @@ function buildFactorDetail(factorKey, scoring) {
     let tierClass = 'factor-detail__row--neutral';
     if (pct === maxPct && pct >= 65 && entries.length > 1) {
       tierClass = 'factor-detail__row--helper';
-    } else if (pct === minPct && pct < 40 && entries.length > 1) {
+    } else if (pct === minPct && pct < detractorThreshold && entries.length > 1) {
       tierClass = 'factor-detail__row--detractor';
     }
     const cleanSignal = humanizeSignal(sub.signal);
@@ -660,7 +660,7 @@ function buildFactorDetail(factorKey, scoring) {
     </div>`;
   }
 
-  return `<div class="factor-detail__items">${items}</div>`;
+  return `<div class="factor-detail__items">${weightHeader}${items}</div>`;
 }
 
 // Legacy export for backward compat — vibe bars removed in V5

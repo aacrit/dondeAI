@@ -1915,33 +1915,48 @@
   box-shadow: 0 0 6px color-mix(in srgb, var(--rag-amber) 30%, transparent);
 }
 
-/* Weight-tier icon tint (bar fill now score-based, not weight-based) */
+/* Weight-tier: 3 stacked visual channels communicating importance without extra elements */
+
+/* Channel 1: Icon tint */
 .factor-row--weight-high .factor-row__icon { color: var(--ac); }
-.factor-row--weight-mid .factor-row__icon { color: var(--fg2); }
-.factor-row--weight-low .factor-row__icon { color: var(--fg3); }
+.factor-row--weight-mid  .factor-row__icon { color: var(--fg2); }
+.factor-row--weight-low  .factor-row__icon { color: var(--fg3); }
+
+/* Channel 2a: Variable bar height (thicker = more important) */
+.factor-row--weight-high .factor-row__bar { height: 7px; border-radius: 3.5px; }
+.factor-row--weight-mid  .factor-row__bar { height: 5px; border-radius: 2.5px; }
+.factor-row--weight-low  .factor-row__bar { height: 3.5px; border-radius: 1.75px; }
+.factor-row--weight-high .factor-row__bar-fill { border-radius: 3.5px; }
+.factor-row--weight-mid  .factor-row__bar-fill { border-radius: 2.5px; }
+.factor-row--weight-low  .factor-row__bar-fill { border-radius: 1.75px; }
+
+/* Channel 2b: Glow intensity on bar fill (luminance signal, dark-mode native) */
+.factor-row--weight-high .bar-fill--strong {
+  box-shadow: 0 0 6px 1px color-mix(in srgb, var(--ac) 60%, transparent),
+              0 0 14px 2px color-mix(in srgb, var(--ac) 25%, transparent);
+}
+.factor-row--weight-high .bar-fill--mid {
+  box-shadow: 0 0 5px 1px color-mix(in srgb, var(--fg2) 50%, transparent);
+}
+.factor-row--weight-mid .bar-fill--strong {
+  box-shadow: 0 0 4px 0px color-mix(in srgb, var(--ac) 30%, transparent);
+}
+.factor-row--weight-mid .bar-fill--mid {
+  box-shadow: 0 0 4px 0px color-mix(in srgb, var(--fg2) 30%, transparent);
+}
+
+/* Channel 3: Label + score opacity hierarchy */
+.factor-row--weight-high .factor-row__label { font-weight: 700; opacity: 1.0; }
+.factor-row--weight-mid  .factor-row__label { font-weight: 600; opacity: 0.85; }
+.factor-row--weight-low  .factor-row__label { font-weight: 500; opacity: 0.6; }
+.factor-row--weight-high .factor-row__score { opacity: 1.0; font-weight: 600; }
+.factor-row--weight-mid  .factor-row__score { opacity: 0.85; }
+.factor-row--weight-low  .factor-row__score { opacity: 0.6; }
 
 /* Score-based bar fill — all bars visible regardless of weight */
 .bar-fill--strong { background: var(--ac); }
 .bar-fill--mid    { background: var(--fg2); }
 .bar-fill--weak   { background: var(--rag-amber, hsl(38, 95%, 60%)); }
-
-/* Weight dots: 3 dots between label and bar */
-.factor-row__weight-dots {
-  display: flex;
-  gap: 2px;
-  align-items: center;
-  flex-shrink: 0;
-}
-.factor-row__dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-.factor-row--weight-high .factor-row__dot--filled { background: var(--ac); }
-.factor-row--weight-mid  .factor-row__dot--filled { background: var(--fg2); }
-.factor-row--weight-low  .factor-row__dot--filled { background: var(--fg3); }
-.factor-row__dot--empty { background: transparent; border: 1px solid var(--fg4); }
 
 /* Drill-down detail panel — height animated via JS */
 .factor-detail {
@@ -1961,6 +1976,33 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-2xs);
+}
+
+/* Factor detail: weight header — shows "X% of score" at top of drill-down */
+.factor-detail__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-xs) var(--space-2xs) var(--space-2xs);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 40%, transparent);
+  margin-bottom: var(--space-2xs);
+}
+
+.factor-detail__header-label {
+  font-family: var(--font-structural);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--fg2);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.factor-detail__header-weight {
+  font-family: var(--font-data);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--ac);
+  letter-spacing: 0.02em;
 }
 
 /* Factor detail: subtle icon list rows with left-border tier indicator + stagger */
