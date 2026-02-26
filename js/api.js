@@ -57,7 +57,7 @@ export async function fetchRecommendation({ special_request, occasion, neighborh
   if (dietary_restrictions?.length) body.dietary_restrictions = dietary_restrictions;
   if (user_id) body.user_id = user_id;
   if (feedback) body.feedback = feedback;
-  if (open_now != null) body.open_now = open_now;
+  if (open_now === true) body.open_now = true;
   body.time_of_day = getBackendTimeOfDay(); // I3/B2: Send client time context
 
   // SSO: Use user JWT when authenticated, anon key otherwise
