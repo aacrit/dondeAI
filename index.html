@@ -321,6 +321,12 @@
               <span class="saved-spots__label type-data--sm">Saved Spots</span>
               <div class="saved-spots__list" id="saved-spots-list"></div>
             </div>
+
+            <!-- Visited Spots ("Been Here") -->
+            <div class="visited-spots" id="visited-spots" aria-label="Places you've been" style="display: none;">
+              <span class="visited-spots__label type-data--sm">Been Here</span>
+              <div class="visited-spots__list" id="visited-spots-list"></div>
+            </div>
           </div>
         </section>
 
@@ -448,22 +454,24 @@
 
               </div>
 
-              <!-- ══════ CARD FOOTER — Decluttered: 2 primary actions ══════ -->
+              <!-- ══════ CARD FOOTER — 3-tier hierarchy: Going → Try Another → utilities ══════ -->
               <div class="card-footer" id="card-footer">
-                <div class="glance-actions">
-                  <button class="tell-more-btn tell-more-btn--primary type-structural" id="tell-more-btn"
-                          data-action="expand-tier-2"
-                          aria-expanded="false" aria-controls="tier-leanin">
-                    <span class="tell-more-btn__text">Show More</span>
-                    <span class="tell-more-btn__arrow">&#8595;</span>
-                  </button>
-                  <button class="cta-btn cta-btn--secondary cta-btn--icon type-structural" data-action="try-again" data-label="again">
-                    <span class="cta-btn__icon" id="try-again-icon"></span>
-                    <span class="cta-btn__text">Try Another</span>
-                  </button>
-                </div>
-                <!-- Feedback + bookmark + start over → compact row below primary actions -->
-                <div class="card-footer__secondary">
+                <!-- PRIMARY: "I'm Going Here!" — strongest engagement signal -->
+                <button class="going-btn type-structural" id="going-btn" data-action="going" aria-label="I'm going here">
+                  <svg class="going-btn__icon" viewBox="0 0 256 256" width="20" height="20" aria-hidden="true">
+                    <path fill="currentColor" d="M128,16a88.1,88.1,0,0,0-88,88c0,75.3,80,132.17,83.41,134.55a8,8,0,0,0,9.18,0C136,236.17,216,179.3,216,104A88.1,88.1,0,0,0,128,16Zm0,56a32,32,0,1,1-32,32A32,32,0,0,1,128,72Z"/>
+                  </svg>
+                  <span class="going-btn__text" data-label="goingHere">I'm Going Here!</span>
+                </button>
+
+                <!-- SECONDARY: Try Another -->
+                <button class="cta-btn cta-btn--secondary cta-btn--icon type-structural" data-action="try-again" data-label="again">
+                  <span class="cta-btn__icon" id="try-again-icon"></span>
+                  <span class="cta-btn__text">Try Another</span>
+                </button>
+
+                <!-- TERTIARY: feedback + show more + start over + app feedback -->
+                <div class="card-footer__tertiary">
                   <div class="feedback-row" id="feedback-row">
                     <button class="feedback-btn feedback-btn--like" data-action="feedback" data-feedback="like" aria-label="I like this recommendation">
                       <svg viewBox="0 0 256 256" width="16" height="16"><path fill="currentColor" d="M231.82,89.71A8,8,0,0,0,224,84H168V32a8,8,0,0,0-13.66-5.66l-96,96A8,8,0,0,0,56,128v80a8,8,0,0,0,8,8h96a8,8,0,0,0,7.16-4.42l40-80A8,8,0,0,0,231.82,89.71Z"/></svg>
@@ -476,7 +484,16 @@
                       <svg class="bookmark-icon bookmark-icon--filled" viewBox="0 0 256 256" width="16" height="16" style="display:none"><path fill="currentColor" d="M178,44c-21.44,0-39.92,10.19-50,27.07C117.92,54.19,99.44,44,78,44a58.07,58.07,0,0,0-58,58c0,28.59,18,58.47,53.4,88.79a333.81,333.81,0,0,0,52.7,36.73,4,4,0,0,0,3.8,0,333.81,333.81,0,0,0,52.7-36.73C218,160.47,236,130.59,236,102A58.07,58.07,0,0,0,178,44Z"/></svg>
                     </button>
                   </div>
+                  <button class="tell-more-btn type-structural" id="tell-more-btn"
+                          data-action="expand-tier-2"
+                          aria-expanded="false" aria-controls="tier-leanin">
+                    <span class="tell-more-btn__text">Show More</span>
+                    <span class="tell-more-btn__arrow">&#8595;</span>
+                  </button>
+                  <span class="card-footer__sep" aria-hidden="true">&middot;</span>
                   <button class="cta-btn--link type-structural" data-action="reset">Start Over</button>
+                  <span class="card-footer__sep" aria-hidden="true">&middot;</span>
+                  <button class="cta-btn--link type-structural" data-action="open-app-feedback">Feedback</button>
                 </div>
               </div>
             </div>
@@ -631,6 +648,29 @@
             </span>
             <span class="share-btn__label type-structural">iMessage</span>
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- App Feedback Sheet -->
+    <div class="feedback-sheet" id="feedback-sheet" role="dialog" aria-label="Send feedback" aria-modal="true">
+      <div class="feedback-sheet__backdrop" data-action="close-app-feedback"></div>
+      <div class="feedback-sheet__panel">
+        <h3 class="feedback-sheet__title type-structural" id="feedback-sheet-title">Share Your Thoughts</h3>
+        <p class="feedback-sheet__subtitle type-data--sm" id="feedback-sheet-subtitle">Help us make Donde better for everyone.</p>
+        <div class="feedback-sheet__form">
+          <div class="feedback-sheet__categories" id="feedback-categories" role="radiogroup" aria-label="Feedback category">
+            <button class="feedback-cat-pill type-structural" data-action="select-feedback-cat" data-category="recommendation" aria-pressed="false">Recommendations</button>
+            <button class="feedback-cat-pill type-structural" data-action="select-feedback-cat" data-category="experience" aria-pressed="false">Experience</button>
+            <button class="feedback-cat-pill type-structural" data-action="select-feedback-cat" data-category="feature" aria-pressed="false">Feature Request</button>
+            <button class="feedback-cat-pill type-structural" data-action="select-feedback-cat" data-category="restaurant_info" aria-pressed="false">Restaurant Info</button>
+            <button class="feedback-cat-pill type-structural" data-action="select-feedback-cat" data-category="other" aria-pressed="false">Other</button>
+          </div>
+          <textarea class="feedback-sheet__input" id="feedback-text" rows="3" placeholder="What's on your mind?" maxlength="500"></textarea>
+          <div class="feedback-sheet__footer">
+            <span class="feedback-sheet__count type-data--sm" id="feedback-char-count">0 / 500</span>
+            <button class="feedback-sheet__submit cta-btn type-structural" id="feedback-submit" data-action="submit-app-feedback" disabled>Send</button>
+          </div>
         </div>
       </div>
     </div>
