@@ -85,7 +85,7 @@ export function animateScoreRing(rawScore) {
 }
 
 /* ---- Petal Radar Chart (Ink Blossom — 6-axis vibe profile) ---- */
-import { svgIcon, buildVibeSummary, getScoreThresholdColor, getScoreTier, getFactorColor } from './utils.js';
+import { svgIcon, buildVibeSummary, getScoreThresholdColor, getScoreTier, getFactorColor, humanizeSnake, humanizeSignal } from './utils.js';
 
 const RADAR_DIMS = [
   { key: 'date_friendly_score',    label: 'Date',     icon: 'heart' },
@@ -495,15 +495,11 @@ export function renderFactorBars(scoringData, timers = [], restaurantData = null
     row.setAttribute('data-factor', slot.key);
 
     const pct = Math.min(slot.val / 10, 1) * 100;
-    const color = getFactorColor(slot.val);
-    const weightSuffix = slot.weight != null
-      ? `<span class="factor-row__weight type-data--xs">${slot.weight}%</span>`
-      : '';
 
-    // Confidence badge: high=solid green dot, medium=half amber dot, low=outline gray dot
-    const confBadge = slot.confidence
-      ? `<span class="factor-row__confidence factor-row__confidence--${slot.confidence}" title="${slot.confidence} confidence"></span>`
-      : '';
+    // Weight-tier color coding: high=accent, mid=structural, low=muted
+    const weightTier = slot.weight >= 30 ? 'weight-high'
+      : slot.weight >= 18 ? 'weight-mid' : 'weight-low';
+    row.className += ` factor-row--${weightTier}`;
 
     // V5: Google Rating inline for Reputation bar
     let labelText = slot.label;
@@ -512,14 +508,12 @@ export function renderFactorBars(scoringData, timers = [], restaurantData = null
     }
 
     row.innerHTML = `
-      <span class="factor-row__icon" style="color:${color}">${svgIcon(slot.icon, 16)}</span>
+      <span class="factor-row__icon">${svgIcon(slot.icon, 16)}</span>
       <span class="factor-row__label type-structural">${labelText}</span>
       <span class="factor-row__bar">
-        <span class="factor-row__bar-fill" data-width="${pct}" style="background:${color}"></span>
+        <span class="factor-row__bar-fill" data-width="${pct}"></span>
       </span>
-      <span class="factor-row__score type-data--sm">${slot.val.toFixed(1)}</span>
-      ${weightSuffix}
-      ${confBadge}`;
+      <span class="factor-row__score type-data--sm">${slot.val.toFixed(1)}</span>`;
 
     // Drill-down panel (hidden by default)
     const detail = document.createElement('div');
@@ -543,16 +537,28 @@ export function renderFactorBars(scoringData, timers = [], restaurantData = null
       $list.querySelectorAll('.factor-row').forEach(r => r.setAttribute('aria-expanded', 'false'));
       $list.querySelectorAll('.factor-detail').forEach(d => {
         d.setAttribute('aria-hidden', 'true');
-        d.style.maxHeight = '0';
+        d.style.height = '0';
+        d.style.opacity = '0';
       });
       if (!isOpen) {
         row.setAttribute('aria-expanded', 'true');
-        detail.setAttribute('aria-hidden', 'false');
         // Populate detail if empty
         if (!detail.innerHTML.trim()) {
           detail.innerHTML = buildFactorDetail(slot.key, scoring);
         }
-        detail.style.maxHeight = detail.scrollHeight + 'px';
+        detail.setAttribute('aria-hidden', 'false');
+        // Measure, then animate with spring easing
+        detail.style.height = 'auto';
+        const measuredHeight = detail.scrollHeight;
+        detail.style.height = '0';
+        detail.style.opacity = '0';
+        requestAnimationFrame(() => {
+          detail.style.transition = REDUCED.matches
+            ? 'none'
+            : 'height 350ms var(--spring, cubic-bezier(.34, 1.56, .64, 1)), opacity 250ms var(--ease-out, ease-out)';
+          detail.style.height = measuredHeight + 'px';
+          detail.style.opacity = '1';
+        });
       }
     });
 
@@ -577,13 +583,9 @@ export function renderFactorBars(scoringData, timers = [], restaurantData = null
   });
 }
 
-/** Build drill-down HTML for a factor — subtle icon list with signals */
+/** Build drill-down HTML for a factor — 3-tier color-coded sub-factor list */
 function buildFactorDetail(factorKey, scoring) {
-  const weights = scoring.weights_used || {};
   const details = scoring.factor_details?.[factorKey] || null;
-
-  const weightPct = weights[factorKey] || 0;
-  const weightLabel = Math.round(weightPct * 100);
 
   // Sub-component icons + labels
   const SUB_META = {
@@ -599,7 +601,7 @@ function buildFactorDetail(factorKey, scoring) {
     dress:       { icon: 'shirt',      label: 'Dress Code' },
     energy:      { icon: 'bolt',       label: 'Energy' },
     music:       { icon: 'music',      label: 'Music' },
-    google:      { icon: 'starFull',   label: 'Google' },
+    google:      { icon: 'starFull',   label: 'Google Rating' },
     sentiment:   { icon: 'chat',       label: 'Reviews' },
     awards:      { icon: 'starOutline',label: 'Awards' },
     community:   { icon: 'usersThree', label: 'Community' },
@@ -613,25 +615,22 @@ function buildFactorDetail(factorKey, scoring) {
   if (details && typeof details === 'object') {
     for (const [subKey, sub] of Object.entries(details)) {
       if (!sub || typeof sub !== 'object') continue;
-      const meta = SUB_META[subKey] || { icon: 'plate', label: subKey };
+      const meta = SUB_META[subKey] || { icon: 'plate', label: humanizeSnake(subKey) };
       const pct = sub.max > 0 ? Math.min((sub.score / sub.max) * 100, 100) : 0;
-      const signalClass = pct >= 75 ? 'factor-detail__signal--match'
-        : pct < 40 ? 'factor-detail__signal--miss' : '';
 
-      items += `<div class="factor-detail__row">
-        <span class="factor-detail__row-icon ${signalClass}">${svgIcon(meta.icon, 12)}</span>
+      // 3-tier color: helper (green) / detractor (red) / neutral (gray)
+      const tierClass = pct >= 70 ? 'factor-detail__row--helper'
+        : pct < 35 ? 'factor-detail__row--detractor'
+        : 'factor-detail__row--neutral';
+
+      const cleanSignal = humanizeSignal(sub.signal);
+
+      items += `<div class="factor-detail__row ${tierClass}">
+        <span class="factor-detail__row-icon">${svgIcon(meta.icon, 12)}</span>
         <span class="factor-detail__row-label type-structural">${meta.label}</span>
-        <span class="factor-detail__row-signal type-structural ${signalClass}">${sub.signal}</span>
+        <span class="factor-detail__row-signal type-structural">${cleanSignal}</span>
       </div>`;
     }
-  }
-
-  // Weight footer
-  if (weightLabel > 0) {
-    items += `<div class="factor-detail__weight">
-      <span class="factor-detail__weight-label type-structural">Weight</span>
-      <span class="factor-detail__weight-value type-data--sm">${weightLabel}%</span>
-    </div>`;
   }
 
   return `<div class="factor-detail__items">${items}</div>`;
