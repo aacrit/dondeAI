@@ -48,6 +48,62 @@ export async function sendFeedback(restaurantId, feedback, userId) {
   } catch { /* fire-and-forget — localStorage is the fallback */ }
 }
 
+/**
+ * Send "I'm Going Here!" visit signal (fire-and-forget).
+ * Inserts into user_visits table via PostgREST.
+ */
+export async function sendVisit(restaurant, userId) {
+  if (!restaurant?.id || !userId) return;
+  let authToken = null;
+  try { authToken = await getAccessToken(); } catch { /* ok */ }
+  const bearerToken = authToken || ANON_KEY;
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/user_visits`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${bearerToken}`,
+        'apikey': ANON_KEY,
+        'Prefer': 'return=minimal,resolution=ignore-duplicates',
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        restaurant_id: restaurant.id,
+        restaurant_name: restaurant.name || null,
+        cuisine_type: restaurant.cuisine_type || null,
+        neighborhood_name: restaurant.neighborhood_name || null,
+      }),
+    });
+  } catch { /* fire-and-forget */ }
+}
+
+/**
+ * Send app feedback form submission (fire-and-forget).
+ * Inserts into user_app_feedback table via PostgREST.
+ */
+export async function sendAppFeedback(category, message, userId) {
+  if (!category || !message) return;
+  let authToken = null;
+  try { authToken = await getAccessToken(); } catch { /* ok */ }
+  const bearerToken = authToken || ANON_KEY;
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/user_app_feedback`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${bearerToken}`,
+        'apikey': ANON_KEY,
+        'Prefer': 'return=minimal',
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        category,
+        message,
+      }),
+    });
+  } catch { /* fire-and-forget */ }
+}
+
 export async function fetchRecommendation({ special_request, occasion, neighborhood, price_level, exclude, dietary_restrictions, user_id, feedback, open_now }) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
