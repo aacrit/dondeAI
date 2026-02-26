@@ -2,7 +2,7 @@
 
 Last updated: 2026-02-26
 
-> **Read all `docs/*.md` files for context before making changes. Only open source files when modifying code.**
+> **Read `AGENT-TEAMS.md` and all `docs/*.md` files for context before making changes. Only open source files when modifying code.**
 
 AI restaurant recommendations for Chicago. One craving in, one perfect spot out.
 
@@ -10,10 +10,10 @@ AI restaurant recommendations for Chicago. One craving in, one perfect spot out.
 
 | Doc | Contents |
 |-----|----------|
+| `AGENT-TEAMS.md` | Claude Code subagent skills and QA agent references |
 | `docs/ARCHITECTURE.md` | Repo structure, tech stack, module graph, CSS load order, state shape |
 | `docs/DESIGN-SYSTEM.md` | Themes, tokens, typography, motion, Ink Rule, breakpoints, accessibility |
 | `docs/FEATURES.md` | User-facing feature checklist with implementation status |
-| `docs/AGENT-TEAMS.md` | Claude Code subagent skills and QA agent references |
 | `docs/TEST-CASES.md` | Manual test suite (no automated frontend tests exist) |
 | `docs/TEST-CRITICAL.md` | 10-item smoke test for quick validation |
 
