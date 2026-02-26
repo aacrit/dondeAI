@@ -287,6 +287,16 @@
                     <button class="filter-pill filter-pill--toggle type-structural" aria-pressed="false" data-action="toggle-dietary" data-value="halal">Halal</button>
                   </div>
                 </div>
+                <!-- V5: Open Now Toggle -->
+                <div class="filter-section">
+                  <h3 class="filter-section__title type-structural--caps">Availability</h3>
+                  <div class="filter-pills" role="group" aria-label="Availability">
+                    <button class="filter-pill filter-pill--toggle type-structural" aria-pressed="false" data-action="toggle-open-now" data-value="open_now" id="open-now-pill">
+                      <svg viewBox="0 0 256 256" width="14" height="14"><path fill="currentColor" d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm64-88a8,8,0,0,1-8,8H128a8,8,0,0,1-8-8V72a8,8,0,0,1,16,0v48h48A8,8,0,0,1,192,128Z"/></svg>
+                      Open Now
+                    </button>
+                  </div>
+                </div>
                 <div class="filter-utility-row">
                   <button class="filter-utility-link filter-utility-link--clear type-structural" data-action="clear-filters">Clear</button>
                   <button class="filter-utility-link type-structural" data-action="randomize">&#8635; Randomize</button>
@@ -330,6 +340,8 @@
             <!-- Result Card (populated by JS) — 3-Tier Progressive Disclosure -->
             <div class="result-card card-enter" id="result-card" style="display: none;">
 
+              <!-- V5: Relaxation Notice — rendered dynamically by JS -->
+
               <!-- F1: Restaurant Photos (horizontal scroll strip) -->
               <div class="result-photos" id="result-photos" style="display: none;" aria-label="Restaurant photos"></div>
 
@@ -358,6 +370,7 @@
                       <span class="match-mini__score type-data" id="match-pill-score">0</span>
                     </span>
                   </div>
+                  <!-- V5: Intent Boost Badge — rendered dynamically by JS -->
                   <div class="glance-hero__info">
                     <div class="result-header">
                       <h2 class="result-name type-emotional--md" id="result-name"></h2>
