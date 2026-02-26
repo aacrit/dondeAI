@@ -2177,7 +2177,7 @@ function renderResult(data) {
   const $rec = document.getElementById('result-recommendation');
   const $blurb = document.getElementById('donde-blurb');
   if ($rec) {
-    const recText = data.recommendation || '';
+    const recText = (data.recommendation || '').replace(/\u2014/g, ', ').replace(/ , /g, ', ').replace(/,\s*,/g, ',');
     $rec.textContent = recText;
     if ($blurb) {
       $blurb.style.display = recText ? '' : 'none';
@@ -2262,12 +2262,6 @@ function prepareTier2(data, cuisine) {
     tipContent = tipContent.replace(/\u2014/g, ', ').replace(/ , /g, ', ');
 
     let originContent = dc.origin_story || '';
-    if (originContent) {
-      const fableOpeners = /^(once|long ago|there once|in the beginning|it began|years ago|back when|a long)/i;
-      if (!fableOpeners.test(originContent.trim())) {
-        originContent = 'Once, ' + originContent.charAt(0).toLowerCase() + originContent.slice(1);
-      }
-    }
 
     const hasOrigin = !!originContent;
     const hasTip = !!tipContent;

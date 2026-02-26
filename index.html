@@ -468,17 +468,17 @@
 
               </div>
 
-              <!-- ══════ CARD FOOTER — 4-tier hierarchy: Show More → Going + Try Another → Start Over → Feedback ══════ -->
-              <div class="card-footer" id="card-footer">
-                <!-- ROW 1: SHOW MORE — intuitive reveal for current recommendation details -->
-                <button class="tell-more-btn type-structural" id="tell-more-btn"
-                        data-action="expand-tier-2"
-                        aria-expanded="false" aria-controls="tier-leanin">
-                  <span class="tell-more-btn__text">Show More</span>
-                  <span class="tell-more-btn__arrow">&#8595;</span>
-                </button>
+              <!-- Show More / Show Less — above the action divider line -->
+              <button class="tell-more-btn type-structural" id="tell-more-btn"
+                      data-action="expand-tier-2"
+                      aria-expanded="false" aria-controls="tier-leanin">
+                <span class="tell-more-btn__text">Show More</span>
+                <span class="tell-more-btn__arrow">&#8595;</span>
+              </button>
 
-                <!-- ROW 2: PRIMARY + SECONDARY side by side -->
+              <!-- ══════ CARD FOOTER — Going + Try Another → Start Over → Feedback (below divider line) ══════ -->
+              <div class="card-footer" id="card-footer">
+                <!-- ROW 1: PRIMARY + SECONDARY side by side -->
                 <div class="card-footer__actions">
                   <button class="going-btn type-structural" id="going-btn" data-action="going" aria-label="I'm going here">
                     <svg class="going-btn__icon" viewBox="0 0 256 256" width="20" height="20" aria-hidden="true">
