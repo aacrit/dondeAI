@@ -104,7 +104,7 @@ export async function sendAppFeedback(category, message, userId) {
   } catch { /* fire-and-forget */ }
 }
 
-export async function fetchRecommendation({ special_request, occasion, neighborhood, price_level, exclude, dietary_restrictions, user_id, feedback }) {
+export async function fetchRecommendation({ special_request, occasion, neighborhood, price_level, exclude, dietary_restrictions, user_id, feedback, open_now }) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
