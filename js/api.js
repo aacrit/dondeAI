@@ -48,7 +48,7 @@ export async function sendFeedback(restaurantId, feedback, userId) {
   } catch { /* fire-and-forget — localStorage is the fallback */ }
 }
 
-export async function fetchRecommendation({ special_request, occasion, neighborhood, price_level, exclude, dietary_restrictions, user_id, feedback }) {
+export async function fetchRecommendation({ special_request, occasion, neighborhood, price_level, exclude, dietary_restrictions, user_id, feedback, open_now }) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
@@ -57,6 +57,7 @@ export async function fetchRecommendation({ special_request, occasion, neighborh
   if (dietary_restrictions?.length) body.dietary_restrictions = dietary_restrictions;
   if (user_id) body.user_id = user_id;
   if (feedback) body.feedback = feedback;
+  if (open_now != null) body.open_now = open_now;
   body.time_of_day = getBackendTimeOfDay(); // I3/B2: Send client time context
 
   // SSO: Use user JWT when authenticated, anon key otherwise
@@ -86,6 +87,25 @@ export async function fetchRecommendation({ special_request, occasion, neighborh
 
     if (!data.success) {
       throw new Error(data.recommendation || 'Something went wrong. Please try again.');
+    }
+
+    // V5: Normalize scoring — prefer scoring_v5, fall back to v4/v3
+    if (data.scoring_v5) {
+      data.scoring = data.scoring_v5;
+    } else if (data.scoring_v4) {
+      data.scoring = data.scoring_v4;
+    } else if (data.scoring_v3) {
+      data.scoring = data.scoring_v3;
+    }
+
+    // V5: Parse intent_boost (default to inactive)
+    if (!data.intent_boost) {
+      data.intent_boost = { active: false };
+    }
+
+    // V5: Parse relaxation_applied (default to empty)
+    if (!data.relaxation_applied) {
+      data.relaxation_applied = null;
     }
 
     return data;

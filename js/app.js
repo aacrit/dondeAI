@@ -558,6 +558,9 @@ function wireEvents() {
         document.querySelectorAll('[data-action="toggle-dietary"]').forEach(pill => {
           pill.setAttribute('aria-pressed', 'false');
         });
+        // V5: Clear Open Now pill
+        const $openNowPill = document.getElementById('open-now-pill');
+        if ($openNowPill) $openNowPill.setAttribute('aria-pressed', 'false');
         setupLanding();
         renderSmartChips();
         renderTasteMemory();
@@ -669,6 +672,21 @@ function wireEvents() {
         if (dst.occasion !== 'Any' && dst.neighborhood !== 'Anywhere' && dst.priceLevel !== 'Any' && dst.dietaryRestrictions.length > 0) {
           autoAdvanceTimer = setTimeout(() => collapseFilters(), 600);
         }
+        break;
+      }
+
+      // V5: Open Now toggle
+      case 'toggle-open-now': {
+        const isActive = btn.getAttribute('aria-pressed') === 'true';
+        btn.setAttribute('aria-pressed', String(!isActive));
+        setState({ openNow: !isActive });
+        haptic(HAPTICS.tick);
+        // Ink ripple feedback
+        const rippleEl = document.createElement('span');
+        rippleEl.className = 'filter-pill__ripple';
+        btn.appendChild(rippleEl);
+        rippleEl.addEventListener('animationend', () => rippleEl.remove(), { once: true });
+        updateFilterSummary();
         break;
       }
 
@@ -992,8 +1010,9 @@ function wireEvents() {
         if (!data) break;
         const newState = toggleBloom(
           data.scores || {},
-          data.scoring_v3 || data.scoring_v2 || null,
-          animationTimers
+          data.scoring || data.scoring_v5 || null,
+          animationTimers,
+          data
         );
         // Update callout arrow direction
         const $calloutArrow = document.getElementById('score-hero-callout')
@@ -1517,6 +1536,7 @@ function updateFilterSummary() {
   if (s.neighborhood !== 'Anywhere') parts.push(s.neighborhood);
   if (s.priceLevel !== 'Any') parts.push(s.priceLevel);
   if (s.dietaryRestrictions?.length) parts.push(s.dietaryRestrictions.join(', '));
+  if (s.openNow) parts.push('Open Now');
   const $summary = document.getElementById('filter-summary');
   if ($summary) {
     $summary.textContent = parts.length ? parts.join(' \u00B7 ') : '';
@@ -1591,6 +1611,8 @@ async function handleSubmit() {
     if (s.excludeIds.length) payload.exclude = s.excludeIds;
     // F5: Dietary restrictions
     if (s.dietaryRestrictions.length) payload.dietary_restrictions = s.dietaryRestrictions;
+    // V5: Open Now filter
+    if (s.openNow) payload.open_now = true;
     // F9: Anonymous user ID for personalization
     payload.user_id = getOrCreateUserId();
     // F11: Send pending feedback with request
@@ -1788,9 +1810,9 @@ async function orchestrateReveal(data) {
   // F18: Haptic feedback on reveal (mobile only, graceful degrade)
   haptic(HAPTICS.reveal);
 
-  // V4: Score celebration for 85%+ matches (geometric mean — tighter distribution)
+  // V5: Score celebration for 88%+ matches (Perfect Match tier)
   const celebScore = Math.round(parseFloat(data.donde_match) || 0);
-  if (celebScore >= 85) {
+  if (celebScore >= 88) {
     // Delay slightly so the score ring animation finishes first
     animationTimers.push(setTimeout(() => {
       fireCelebration();
@@ -1908,7 +1930,7 @@ function renderResult(data) {
   const $matchScore = document.getElementById('match-pill-score');
   const $matchVerdict = document.getElementById('match-pill-verdict');
   if ($matchScore) $matchScore.textContent = '0'; // Will animate up
-  const tier = getScoreTier(dondeScore, { mismatch: !!data.cuisine_mismatch?.requested });
+  const tier = getScoreTier(dondeScore);
   const $matchPill = document.getElementById('match-pill');
   if ($matchPill) $matchPill.setAttribute('data-tier', tier.tier);
   if ($matchVerdict) {
@@ -2088,13 +2110,23 @@ function renderResult(data) {
     }
   }
 
+  // V5: Intent Boost badge — shown between score arc and factor bars
+  renderIntentBoostBadge(data);
+
+  // V5: Relaxation notice — shown above result card when filters were expanded
+  renderRelaxationNotice(data);
+
   // DondeAI Recommendation blurb — the editorial voice in Tier 1
   const $rec = document.getElementById('result-recommendation');
   const $blurb = document.getElementById('donde-blurb');
   if ($rec) {
     const recText = data.recommendation || '';
     $rec.textContent = recText;
-    if ($blurb) $blurb.style.display = recText ? '' : 'none';
+    if ($blurb) {
+      $blurb.style.display = recText ? '' : 'none';
+      // V5: Boost-aware blurb accent border
+      $blurb.classList.toggle('donde-blurb--boosted', !!data.intent_boost?.active);
+    }
   }
 
   // "Why This Spot" removed — user feedback: not accurate, no value
@@ -2154,7 +2186,7 @@ function prepareTier2(data, cuisine) {
   renderScoreHero(
     data.donde_match,
     data.scores || {},
-    data.scoring_v3 || data.scoring_v2 || null,
+    data.scoring || data.scoring_v5 || null,
     null,
     []
   );
@@ -2264,7 +2296,7 @@ function renderTier2Animations() {
   renderScoreHero(
     data.donde_match,
     data.scores || {},
-    data.scoring_v3 || data.scoring_v2 || null,
+    data.scoring || data.scoring_v5 || null,
     null,
     animationTimers
   );
@@ -2459,7 +2491,7 @@ function openTileExpand(tileEl) {
   if (!data) return;
 
   if (tileEl.id === 'score-tile-donde') {
-    const tier = getScoreTier(data.donde_match, { mismatch: !!data.cuisine_mismatch?.requested });
+    const tier = getScoreTier(data.donde_match);
     const pct = Math.round(parseFloat(data.donde_match) || 80);
     const circumference = 2 * Math.PI * 45;
     const offset = circumference - (pct / 100) * circumference;
@@ -2494,26 +2526,17 @@ function openTileExpand(tileEl) {
       </div>
       <span class="score-verdict type-structural--bold ${tier.cssClass}" style="font-size: var(--text-lg);">${tier.verdict}</span>`;
 
-    // V4: Factor breakdown — "Why This Match" (geometric mean factors)
-    const sv4 = data.scoring_v4 || data.scoring_v3;
+    // V5: Factor breakdown — "Why This Match" (weighted factors)
+    const sv4 = data.scoring || data.scoring_v5 || null;
     if (sv4) {
-      const v4Dims = [
-        { key: 'food_quality',  label: 'Food Quality', icon: 'plate' },
-        { key: 'vibe',          label: 'Vibe',         icon: 'music' },
-        { key: 'service',       label: 'Service',      icon: 'diamond' },
-        { key: 'reputation',    label: 'Reputation',   icon: 'starFull' },
-        { key: 'convenience',   label: 'Convenience',  icon: 'clock' },
+      const v5Dims = [
+        { key: 'food',        label: 'Food',        icon: 'plate' },
+        { key: 'vibe',        label: 'Vibe',        icon: 'music' },
+        { key: 'service',     label: 'Service',     icon: 'diamond' },
+        { key: 'reputation',  label: 'Reputation',  icon: 'starFull' },
+        { key: 'convenience', label: 'Convenience', icon: 'clock' },
       ];
-      // Fallback to V3 keys if V4 not available
-      const isV4 = sv4.food_quality != null;
-      const v3FallbackDims = [
-        { key: 'food_match',    label: 'Food Quality', icon: 'plate' },
-        { key: 'atmosphere',    label: 'Vibe',         icon: 'music' },
-        { key: 'setting_fit',   label: 'Service',      icon: 'diamond' },
-        { key: 'reputation',    label: 'Reputation',   icon: 'starFull' },
-        { key: 'convenience',   label: 'Convenience',  icon: 'clock' },
-      ];
-      const dims = isV4 ? v4Dims : v3FallbackDims;
+      const dims = v5Dims;
       const weightsUsed = sv4.weights_used || {};
       const available = dims.filter(d => sv4[d.key] != null);
       if (available.length > 0) {
@@ -2523,10 +2546,14 @@ function openTileExpand(tileEl) {
           const color = getFactorColor(val);
           const weight = weightsUsed[d.key] != null ? Math.round(weightsUsed[d.key] * 100) : null;
           const weightChip = weight != null ? `<span class="tile-expand__dim-weight type-data--xs">${weight}%</span>` : '';
+          // V5: Show Google rating inline for reputation factor
+          const googleInline = (d.key === 'reputation' && data.restaurant?.google_rating)
+            ? ` <span class="factor-row__google-star" style="color:var(--star-gold)">${svgIcon('starFull', 10)} ${parseFloat(data.restaurant.google_rating).toFixed(1)}</span>`
+            : '';
           return `
             <div class="tile-expand__dim">
               <span class="tile-expand__dim-icon">${svgIcon(d.icon, 14)}</span>
-              <span class="tile-expand__dim-label type-data--sm">${d.label}</span>
+              <span class="tile-expand__dim-label type-data--sm">${d.label}${googleInline}</span>
               ${weightChip}
               <div class="tile-expand__dim-bar">
                 <div class="tile-expand__dim-fill" style="width: ${pctVal}%; background: ${color}"></div>
@@ -2541,7 +2568,7 @@ function openTileExpand(tileEl) {
           const topReason = sv4.weight_shift_reasons[0].split(':')[0]; // Short label before colon
           summaryHtml = `<p class="tile-expand__summary type-data--sm">${topReason}</p>`;
         } else if (weightsUsed) {
-          const factorLabels = { food_quality: 'Food', vibe: 'Vibe', service: 'Service', reputation: 'Reputation', convenience: 'Convenience', food: 'Food', setting: 'Setting', atmosphere: 'Vibe' };
+          const factorLabels = { food: 'Food', vibe: 'Vibe', service: 'Service', reputation: 'Reputation', convenience: 'Convenience' };
           const topFactor = Object.entries(weightsUsed).sort((a, b) => b[1] - a[1])[0];
           if (topFactor && factorLabels[topFactor[0]]) {
             summaryHtml = `<p class="tile-expand__summary type-data--sm">Weighted for ${factorLabels[topFactor[0]]}</p>`;
@@ -2555,38 +2582,8 @@ function openTileExpand(tileEl) {
             ${summaryHtml}
           </div>`;
       }
-    } else {
-      // Fallback: V2 breakdown if V3 not available
-      const sv2 = data.scoring_v2;
-      if (sv2) {
-        const v2Dims = [
-          { key: 'occasion_fit',    label: 'Occasion' },
-          { key: 'craving_match',   label: 'Craving' },
-          { key: 'vibe_alignment',  label: 'Vibe' },
-          { key: 'practical_fit',   label: 'Practical' },
-          { key: 'discovery_value', label: 'Discovery' },
-        ];
-        const v2Available = v2Dims.filter(d => sv2[d.key] != null);
-        if (v2Available.length > 0) {
-          const v2Html = v2Available.map(d => {
-            const val = Math.min(Math.max(sv2[d.key] || 0, 0), 100);
-            return `
-              <div class="tile-expand__dim">
-                <span class="tile-expand__dim-label type-data--sm">${d.label}</span>
-                <div class="tile-expand__dim-bar">
-                  <div class="tile-expand__dim-fill" style="width: ${val}%"></div>
-                </div>
-                <span class="tile-expand__dim-value type-data--sm">${humanizeV2(val)}</span>
-              </div>`;
-          }).join('');
-          $content.innerHTML += `
-            <div class="tile-expand__v2">
-              <span class="tile-expand__v2-label type-data--sm">Why This Match</span>
-              <div class="tile-expand__dims">${v2Html}</div>
-            </div>`;
-        }
-      }
     }
+    // V5: Only V5 factor bars supported
   } else if (tileEl.id === 'score-tile-radar') {
     // Expanded petal radar with dimension list
     const scores = data.scores || {};
@@ -2763,6 +2760,94 @@ function closeLightbox() {
 
 
 /* ---- F2: Open Now badge in quick tags (interactive with hours popout) ---- */
+/* ---- V5: Intent Boost Badge ---- */
+function renderIntentBoostBadge(data) {
+  // Remove any previous boost badge
+  document.getElementById('intent-boost-badge')?.remove();
+
+  const boost = data.intent_boost;
+  if (!boost?.active) return;
+
+  const $glanceHero = document.querySelector('.glance-hero');
+  if (!$glanceHero) return;
+
+  const badge = document.createElement('div');
+  badge.id = 'intent-boost-badge';
+  badge.className = 'boost-badge boost-badge--visible';
+  badge.setAttribute('role', 'button');
+  badge.setAttribute('tabindex', '0');
+  badge.setAttribute('aria-expanded', 'false');
+  badge.setAttribute('aria-haspopup', 'true');
+
+  const reason = boost.reason || 'Intent matched';
+  badge.innerHTML = `
+    <span class="boost-badge__icon">${svgIcon('bolt', 14)}</span>
+    <span class="boost-badge__text type-data--sm">Boosted: ${reason}</span>
+    <div class="boost-badge__popout" role="tooltip">
+      <span class="badge-popout__title">Intent Boost</span>
+      <div class="badge-popout__body">
+        <div>Base score: <strong>${boost.base_score ?? data.donde_match}</strong></div>
+        ${boost.boost_points != null ? `<div>Boost: <strong>+${boost.boost_points}</strong> pts</div>` : ''}
+        <div class="boost-badge__reason">${reason}</div>
+      </div>
+    </div>`;
+
+  // Insert after glance-hero (between score arc and factor bars)
+  $glanceHero.insertAdjacentElement('afterend', badge);
+
+  // Tap to show/hide popout
+  badge.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const popout = badge.querySelector('.badge-popout');
+    const isOpen = badge.getAttribute('aria-expanded') === 'true';
+    badge.setAttribute('aria-expanded', String(!isOpen));
+    if (popout) popout.classList.toggle('badge-popout--open', !isOpen);
+  });
+}
+
+/* ---- V5: Relaxation Notice ---- */
+function renderRelaxationNotice(data) {
+  // Remove any previous relaxation notice
+  document.getElementById('relaxation-notice')?.remove();
+
+  const relaxation = data.relaxation_applied;
+  if (!relaxation) return;
+
+  const $resultCard = document.getElementById('result-card');
+  if (!$resultCard) return;
+
+  const notice = document.createElement('div');
+  notice.id = 'relaxation-notice';
+  notice.className = 'relaxation-notice';
+  notice.setAttribute('role', 'status');
+  notice.setAttribute('aria-live', 'polite');
+
+  const filterText = typeof relaxation === 'string' ? relaxation
+    : Array.isArray(relaxation) ? relaxation.join(', ')
+    : 'some filters';
+
+  notice.innerHTML = `
+    <span class="relaxation-notice__text type-structural">We expanded beyond ${filterText} to find your best match</span>
+    <button class="relaxation-notice__dismiss" aria-label="Dismiss notice">&times;</button>`;
+
+  // Insert before result card content
+  $resultCard.insertAdjacentElement('afterbegin', notice);
+
+  // Dismiss handler
+  notice.querySelector('.relaxation-notice__dismiss')?.addEventListener('click', () => {
+    notice.classList.add('relaxation-notice--dismissing');
+    notice.addEventListener('animationend', () => notice.remove(), { once: true });
+  });
+
+  // Auto-dismiss after 5s
+  animationTimers.push(setTimeout(() => {
+    if (notice.parentNode) {
+      notice.classList.add('relaxation-notice--dismissing');
+      notice.addEventListener('animationend', () => notice.remove(), { once: true });
+    }
+  }, 5000));
+}
+
 function renderOpenNowTag(data) {
   const $quickTags = document.getElementById('quick-tags');
   if (!$quickTags) return;
@@ -2905,8 +2990,8 @@ function renderQuickStats(data) {
   if (!dc) { $stats.style.display = 'none'; return; }
 
   // Dimension weights from scoring — drives which stats surface first
-  const dw = data.scoring_v2?.weights_used ||
-    { occasion: 0.25, craving: 0.25, vibe: 0.20, practical: 0.15, discovery: 0.15 };
+  const dw = data.scoring?.weights_used || data.scoring_v5?.weights_used ||
+    { food: 0.25, vibe: 0.20, service: 0.15, reputation: 0.20, convenience: 0.20 };
 
   const candidates = [];
 

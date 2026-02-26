@@ -70,9 +70,9 @@ export function animateScoreRing(rawScore) {
     }
   }
 
-  // Celebration glow for exceptional matches (90%+)
-  // V4: Geometric mean — celebration at 85+ (was 90+ in power-law V3)
-  if (!REDUCED.matches && pct >= 85) {
+  // Celebration glow for exceptional matches
+  // V5: Perfect Match tier — celebration at 88+ (was 85+ in V4)
+  if (!REDUCED.matches && pct >= 88) {
     setTimeout(() => {
       const tile = document.getElementById('score-tile-donde');
       if (tile) {
@@ -96,57 +96,60 @@ const RADAR_DIMS = [
   { key: 'hole_in_wall_factor',    label: 'Gem',      icon: 'diamond' },
 ];
 
-/** V4 Factor dimensions (geometric mean scoring) */
+/** V5 Factor dimensions */
 const FACTOR_DIMS = [
-  { key: 'food_quality',  label: 'Food Quality', icon: 'plate' },
-  { key: 'vibe',          label: 'Vibe',         icon: 'music' },
-  { key: 'service',       label: 'Service',      icon: 'diamond' },
-  { key: 'reputation',    label: 'Reputation',   icon: 'starFull' },
-  { key: 'convenience',   label: 'Convenience',  icon: 'clock' },
+  { key: 'food',        label: 'Food',        icon: 'plate' },
+  { key: 'vibe',        label: 'Vibe',        icon: 'music' },
+  { key: 'service',     label: 'Service',      icon: 'diamond' },
+  { key: 'reputation',  label: 'Reputation',   icon: 'starFull' },
+  { key: 'convenience', label: 'Convenience',  icon: 'clock' },
 ];
 
-/** Normalize V3 scoring keys to V4 format so FACTOR_DIMS always matches */
+/** Normalize V3/V4 scoring keys to V5 format so FACTOR_DIMS always matches */
 function normalizeScoringKeys(scoring) {
   if (!scoring) return scoring;
-  const V3_TO_V4 = { food_match: 'food_quality', atmosphere: 'vibe', setting_fit: 'service' };
-  // V3 weights_used uses short names: food, setting, atmosphere
-  const V3_WEIGHT_TO_V4 = { food: 'food_quality', atmosphere: 'vibe', setting: 'service' };
+  // V5 uses: food, vibe, service, reputation, convenience
+  // V4 used: food_quality, vibe, service, reputation, convenience
+  // V3 used: food_match, atmosphere, setting_fit, reputation, convenience
+  const KEY_MAP = { food_quality: 'food', food_match: 'food', atmosphere: 'vibe', setting_fit: 'service' };
+  const WEIGHT_KEY_MAP = { food_quality: 'food', food: 'food', atmosphere: 'vibe', setting: 'service', setting_fit: 'service' };
 
-  const isV4 = scoring.food_quality != null;
   const normalized = { ...scoring };
 
-  // Normalize top-level factor keys (V3 → V4)
-  if (!isV4) {
-    for (const [v3, v4] of Object.entries(V3_TO_V4)) {
-      if (normalized[v3] != null && normalized[v4] == null) {
-        normalized[v4] = normalized[v3];
-      }
+  // Normalize top-level factor keys
+  for (const [old, v5] of Object.entries(KEY_MAP)) {
+    if (normalized[old] != null && normalized[v5] == null) {
+      normalized[v5] = normalized[old];
     }
   }
 
   if (normalized.factor_details) {
     const nd = { ...normalized.factor_details };
-    for (const [v3, v4] of Object.entries(V3_TO_V4)) {
-      if (nd[v3] && !nd[v4]) nd[v4] = nd[v3];
+    for (const [old, v5] of Object.entries(KEY_MAP)) {
+      if (nd[old] && !nd[v5]) nd[v5] = nd[old];
     }
     normalized.factor_details = nd;
   }
 
-  // Always normalize weights_used — V3 uses short keys (food, setting, atmosphere)
   if (normalized.weights_used) {
     const nw = { ...normalized.weights_used };
-    for (const [v3w, v4w] of Object.entries(V3_WEIGHT_TO_V4)) {
-      if (nw[v3w] != null && nw[v4w] == null) {
-        nw[v4w] = nw[v3w];
-      }
-    }
-    // Also handle the factor-score-key format just in case
-    for (const [v3, v4] of Object.entries(V3_TO_V4)) {
-      if (nw[v3] != null && nw[v4] == null) {
-        nw[v4] = nw[v3];
+    for (const [old, v5] of Object.entries(WEIGHT_KEY_MAP)) {
+      if (nw[old] != null && nw[v5] == null) {
+        nw[v5] = nw[old];
       }
     }
     normalized.weights_used = nw;
+  }
+
+  // Normalize confidence keys too
+  if (normalized.confidence) {
+    const nc = { ...normalized.confidence };
+    for (const [old, v5] of Object.entries(KEY_MAP)) {
+      if (nc[old] != null && nc[v5] == null) {
+        nc[v5] = nc[old];
+      }
+    }
+    normalized.confidence = nc;
   }
 
   return normalized;
@@ -418,43 +421,22 @@ export function renderScoreHero(dondeMatch, scores, scoringV2, sentiment, timers
         $callout.classList.add('score-hero__callout--visible');
       }
     }
-  } else if ($callout && $calloutValue) {
-    // Fallback: use old vibe scores if V3 not available
-    const available = RADAR_DIMS.filter(d => {
-      const v = scores[d.key];
-      return v != null && v !== '' && !isNaN(parseFloat(v));
-    });
-    const slots = RADAR_DIMS.map(dim => {
-      const found = available.find(a => a.key === dim.key);
-      const val = found ? Math.min(parseFloat(scores[dim.key]) || 0, 10) : 0;
-      return { ...dim, val, hasData: !!found };
-    });
-    const best = slots.filter(s => s.hasData).sort((a, b) => b.val - a.val)[0];
-    if (best) {
-      $calloutValue.textContent = best.label;
-      $callout.style.display = '';
-      if (!REDUCED.matches) {
-        timers.push(setTimeout(() => {
-          $callout.classList.add('score-hero__callout--visible');
-        }, 900));
-      } else {
-        $callout.classList.add('score-hero__callout--visible');
-      }
-    }
   }
+  // V5: Vibe score fallback removed — only factor bars exist
 
-  // V3: Auto-expand factor bars when score < 80
-  if (scoringV2 && pct < 80) {
+  // V5: Auto-expand factor bars when score < 75 (Strong Pick threshold)
+  if (scoringV2 && pct < 75) {
     timers.push(setTimeout(() => {
       autoExpandFactors(scoringV2, timers);
     }, 1400));
   }
 
-  // Build aria-label
+  // Build aria-label (normalize keys for V5 compat)
   if (scoringV2) {
+    const normalizedForAria = normalizeScoringKeys(scoringV2);
     const ariaDesc = FACTOR_DIMS
-      .filter(d => scoringV2[d.key] != null)
-      .map(d => `${d.label} ${(scoringV2[d.key] || 0).toFixed(1)} out of 10`)
+      .filter(d => normalizedForAria[d.key] != null)
+      .map(d => `${d.label} ${(normalizedForAria[d.key] || 0).toFixed(1)} out of 10`)
       .join(', ');
     $hero.setAttribute('aria-label', `DondeAI Match ${pct}%. Factors: ${ariaDesc}`);
   } else {
@@ -462,49 +444,53 @@ export function renderScoreHero(dondeMatch, scores, scoringV2, sentiment, timers
   }
 }
 
-/* ---- V3 Factor Bars (horizontal dimension bars — replaces vibe bars) ---- */
+/* ---- V5 Factor Bars (horizontal dimension bars — 5 weighted factors) ---- */
 
-export function renderFactorBars(scoringData, timers = []) {
+export function renderFactorBars(scoringData, timers = [], restaurantData = null) {
   const $container = document.getElementById('factor-bars');
   const $list = document.getElementById('factor-bars-list');
   if (!$container || !$list) return;
 
-  // V4: Accept either scoring_v4 or scoring_v3 format — normalize V3 keys
-  const scoringV4 = normalizeScoringKeys(scoringData);
-  if (!scoringV4) return;
+  // V5: Accept scoring_v5/v4/v3 format — normalize keys for backward compat
+  const scoring = normalizeScoringKeys(scoringData);
+  if (!scoring) return;
 
   $list.innerHTML = '';
 
-  // V4: Extract dynamic weights for display
-  const weightsUsed = scoringV4.weights_used || {};
+  // V5: Extract dynamic weights for display
+  const weightsUsed = scoring.weights_used || {};
+
+  // Find dominant factor (highest weight)
+  let dominantKey = null;
+  let maxWeight = 0;
+  for (const [k, w] of Object.entries(weightsUsed)) {
+    if (parseFloat(w) > maxWeight) { maxWeight = parseFloat(w); dominantKey = k; }
+  }
 
   const slots = FACTOR_DIMS
     .map(dim => ({
       ...dim,
-      val: scoringV4[dim.key] != null ? Math.min(parseFloat(scoringV4[dim.key]) || 0, 10) : null,
+      val: scoring[dim.key] != null ? Math.min(parseFloat(scoring[dim.key]) || 0, 10) : null,
       weight: weightsUsed[dim.key] != null ? Math.round(parseFloat(weightsUsed[dim.key]) * 100) : null,
-      confidence: scoringV4.confidence?.[dim.key] || null,
+      confidence: scoring.confidence?.[dim.key] || null,
     }))
     .filter(s => s.val !== null);
 
   if (slots.length < 2) return;
 
-  // Find strongest factor
-  const strongest = slots.reduce((best, s) => (s.val || 0) > (best?.val || 0) ? s : best, null);
-  // Find weakest factor (for low-score glow)
-  const weakest = slots.reduce((w, s) => (s.val || 10) < (w?.val || 10) ? s : w, null);
+  // Google rating for reputation bar inline display
+  const googleRating = restaurantData?.restaurant?.google_rating;
 
   slots.forEach((slot, i) => {
+    const isDominant = dominantKey && slot.key === dominantKey;
     const row = document.createElement('button');
-    row.className = 'factor-row' + (strongest && slot.key === strongest.key ? ' factor-row--dominant' : '');
-    if (weakest && slot.key === weakest.key && slot.val < 5) {
-      row.className += ' factor-row--weak';
-    }
+    row.className = 'factor-row' + (isDominant ? ' factor-row--dominant' : '');
+    if (slot.val < 5) row.className += ' factor-row--weak';
     row.setAttribute('role', 'meter');
     row.setAttribute('aria-valuenow', slot.val.toFixed(1));
     row.setAttribute('aria-valuemin', '0');
     row.setAttribute('aria-valuemax', '10');
-    row.setAttribute('aria-label', `${slot.label}, ${slot.val.toFixed(1)} out of 10${slot.weight ? `, weight ${slot.weight}%` : ''}. Tap to see details.`);
+    row.setAttribute('aria-label', `${slot.label}, ${slot.val.toFixed(1)} out of 10${slot.weight ? `, weight ${slot.weight}%` : ''}${slot.confidence ? `, confidence ${slot.confidence}` : ''}. Tap to see details.`);
     row.setAttribute('aria-expanded', 'false');
     row.setAttribute('data-factor', slot.key);
 
@@ -514,14 +500,26 @@ export function renderFactorBars(scoringData, timers = []) {
       ? `<span class="factor-row__weight type-data--xs">${slot.weight}%</span>`
       : '';
 
+    // Confidence badge: high=solid green dot, medium=half amber dot, low=outline gray dot
+    const confBadge = slot.confidence
+      ? `<span class="factor-row__confidence factor-row__confidence--${slot.confidence}" title="${slot.confidence} confidence"></span>`
+      : '';
+
+    // V5: Google Rating inline for Reputation bar
+    let labelText = slot.label;
+    if (slot.key === 'reputation' && googleRating) {
+      labelText = `${slot.label} ${slot.val.toFixed(1)} <span class="factor-row__google-star">(${parseFloat(googleRating).toFixed(1)}<span style="color:var(--star-gold)">&#9733;</span>)</span>`;
+    }
+
     row.innerHTML = `
       <span class="factor-row__icon" style="color:${color}">${svgIcon(slot.icon, 16)}</span>
-      <span class="factor-row__label type-structural">${slot.label}</span>
+      <span class="factor-row__label type-structural">${labelText}</span>
       <span class="factor-row__bar">
         <span class="factor-row__bar-fill" data-width="${pct}" style="background:${color}"></span>
       </span>
       <span class="factor-row__score type-data--sm">${slot.val.toFixed(1)}</span>
-      ${weightSuffix}`;
+      ${weightSuffix}
+      ${confBadge}`;
 
     // Drill-down panel (hidden by default)
     const detail = document.createElement('div');
@@ -552,7 +550,7 @@ export function renderFactorBars(scoringData, timers = []) {
         detail.setAttribute('aria-hidden', 'false');
         // Populate detail if empty
         if (!detail.innerHTML.trim()) {
-          detail.innerHTML = buildFactorDetail(slot.key, scoringV4);
+          detail.innerHTML = buildFactorDetail(slot.key, scoring);
         }
         detail.style.maxHeight = detail.scrollHeight + 'px';
       }
@@ -639,25 +637,27 @@ function buildFactorDetail(factorKey, scoring) {
   return `<div class="factor-detail__items">${items}</div>`;
 }
 
-// Keep legacy export for backward compat
+// Legacy export for backward compat — vibe bars removed in V5
 export function renderVibeBars(scores, timers = []) {
-  // V3: no-op, replaced by renderFactorBars
+  // V5: no-op — 6-dimension vibe bars replaced by 5-factor V5 bars
 }
 
 export function toggleScoreBreakdown() {
   // V2 breakdown removed
 }
 
-/* ---- V3 Factor Profile: Compact bars inside Score Hero ---- */
+/* ---- V5 Factor Profile: Compact bars inside Score Hero ---- */
 
 let _vibeState = 'compact'; // 'compact' | 'expanded'
 let _factorBarsRendered = false;
+let _lastRestaurantData = null; // V5: cache for re-render
 
 export function getBloomState() { return _vibeState; }
 
 export function resetBloomState() {
   _vibeState = 'compact';
   _factorBarsRendered = false;
+  _lastRestaurantData = null;
   const $hero = document.getElementById('score-hero');
   if ($hero) {
     $hero.classList.remove('score-hero--factors-expanded');
@@ -668,14 +668,14 @@ export function resetBloomState() {
   if ($factorBars) $factorBars.setAttribute('aria-hidden', 'true');
 }
 
-/** Auto-expand factor bars when score < 80 */
-function autoExpandFactors(scoringV3, timers = []) {
+/** V5: Auto-expand factor bars when score < 75 (Strong Pick threshold) */
+function autoExpandFactors(scoringData, timers = []) {
   const $hero = document.getElementById('score-hero');
   if (!$hero || _vibeState === 'expanded') return;
 
   $hero.classList.add('score-hero--factors-expanded');
   if (!_factorBarsRendered) {
-    renderFactorBars(scoringV3, timers);
+    renderFactorBars(scoringData, timers, _lastRestaurantData);
     _factorBarsRendered = true;
   }
   const $factorBars = document.getElementById('factor-bars');
@@ -684,20 +684,19 @@ function autoExpandFactors(scoringV3, timers = []) {
 }
 
 /**
- * 2-state toggle: compact ↔ factors-expanded
+ * V5: 2-state toggle: compact <-> factors-expanded
  */
-export function toggleBloom(scores, scoringV2, timers = []) {
+export function toggleBloom(scores, scoringData, timers = [], restaurantData = null) {
   const $hero = document.getElementById('score-hero');
   if (!$hero) return _vibeState;
 
-  // V3: Use scoring_v3 data (passed as scoringV2 param for backward compat)
-  const scoringV3 = scoringV2;
+  if (restaurantData) _lastRestaurantData = restaurantData;
 
   if (_vibeState === 'compact') {
-    // → expanded: show factor bars
+    // -> expanded: show V5 factor bars
     $hero.classList.add('score-hero--factors-expanded');
     if (!_factorBarsRendered) {
-      renderFactorBars(scoringV3 || {}, timers);
+      renderFactorBars(scoringData || {}, timers, _lastRestaurantData);
       _factorBarsRendered = true;
     }
     const $factorBars = document.getElementById('factor-bars');
@@ -705,7 +704,7 @@ export function toggleBloom(scores, scoringV2, timers = []) {
     _vibeState = 'expanded';
     return 'expanded';
   } else {
-    // → compact: collapse factor bars
+    // -> compact: collapse factor bars
     $hero.classList.remove('score-hero--factors-expanded');
     const $factorBars = document.getElementById('factor-bars');
     if ($factorBars) $factorBars.setAttribute('aria-hidden', 'true');
