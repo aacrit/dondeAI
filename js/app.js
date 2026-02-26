@@ -2196,6 +2196,8 @@ function renderResult(data) {
   if ($tryAgainIcon) $tryAgainIcon.innerHTML = svgIcon('refresh', 18);
   const $glanceStartOverIcon = document.getElementById('glance-start-over-icon');
   if ($glanceStartOverIcon) $glanceStartOverIcon.innerHTML = svgIcon('home', 18);
+  const $startOverIcon = document.getElementById('start-over-icon');
+  if ($startOverIcon) $startOverIcon.innerHTML = svgIcon('home', 20);
 
   // Update Try Another button with exhaustion indicator
   updateTryAgainState();

@@ -476,9 +476,9 @@
                 <span class="tell-more-btn__arrow">&#8595;</span>
               </button>
 
-              <!-- ══════ CARD FOOTER — Going + Try Another → Start Over → Feedback (below divider line) ══════ -->
+              <!-- ══════ CARD FOOTER — Going → Try Another + Start Over → Feedback (below divider line) ══════ -->
               <div class="card-footer" id="card-footer">
-                <!-- ROW 1: PRIMARY + SECONDARY side by side -->
+                <!-- ROW 1: PRIMARY — full-width Going Here -->
                 <div class="card-footer__actions">
                   <button class="going-btn type-structural" id="going-btn" data-action="going" aria-label="I'm going here">
                     <svg class="going-btn__icon" viewBox="0 0 256 256" width="20" height="20" aria-hidden="true">
@@ -486,14 +486,19 @@
                     </svg>
                     <span class="going-btn__text" data-label="goingHere">I'm Going Here!</span>
                   </button>
+                </div>
+
+                <!-- ROW 2: SECONDARY — Try Another + Start Over equal pills -->
+                <div class="card-footer__secondary-row">
                   <button class="cta-btn cta-btn--secondary cta-btn--icon type-structural" data-action="try-again" data-label="again">
                     <span class="cta-btn__icon" id="try-again-icon"></span>
                     <span class="cta-btn__text">Try Another</span>
                   </button>
+                  <button class="cta-btn cta-btn--neutral cta-btn--icon type-structural" data-action="reset" id="start-over-btn">
+                    <span class="cta-btn__icon" id="start-over-icon"></span>
+                    <span class="cta-btn__text">Start Over</span>
+                  </button>
                 </div>
-
-                <!-- ROW 3: TERTIARY — Start Over -->
-                <button class="cta-btn--link type-structural" data-action="reset">Start Over</button>
 
                 <!-- ROW 4: LOWEST — Feedback actions -->
                 <div class="card-footer__feedback">

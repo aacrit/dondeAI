@@ -501,19 +501,33 @@ export function renderFactorBars(scoringData, timers = [], restaurantData = null
       : slot.weight >= 18 ? 'weight-mid' : 'weight-low';
     row.className += ` factor-row--${weightTier}`;
 
-    // V5: Google Rating inline for Reputation bar
+    // V5: Google Rating annotation after score (not embedded in label — prevents double score)
     let labelText = slot.label;
+    let googleAnnotation = '';
     if (slot.key === 'reputation' && googleRating) {
-      labelText = `${slot.label} ${slot.val.toFixed(1)} <span class="factor-row__google-star">(${parseFloat(googleRating).toFixed(1)}<span style="color:var(--star-gold)">&#9733;</span>)</span>`;
+      googleAnnotation = `<span class="factor-row__google-star">(${parseFloat(googleRating).toFixed(1)}<span style="color:var(--star-gold)">&#9733;</span>)</span>`;
     }
+
+    // Score-based fill color so all bars are visible regardless of weight tier
+    const scoreTierClass = slot.val >= 7.5 ? 'bar-fill--strong'
+      : slot.val >= 5 ? 'bar-fill--mid'
+      : 'bar-fill--weak';
+
+    // Weight dots: 3 filled = high importance, 2 = mid, 1 = low
+    const dotCount = weightTier === 'weight-high' ? 3 : weightTier === 'weight-mid' ? 2 : 1;
+    const dotsHtml = Array.from({length: 3}, (_, i) =>
+      `<span class="factor-row__dot ${i < dotCount ? 'factor-row__dot--filled' : 'factor-row__dot--empty'}"></span>`
+    ).join('');
+    const dotsEl = `<span class="factor-row__weight-dots" aria-hidden="true">${dotsHtml}</span>`;
 
     row.innerHTML = `
       <span class="factor-row__icon">${svgIcon(slot.icon, 16)}</span>
       <span class="factor-row__label type-structural">${labelText}</span>
+      ${dotsEl}
       <span class="factor-row__bar">
-        <span class="factor-row__bar-fill" data-width="${pct}"></span>
+        <span class="factor-row__bar-fill ${scoreTierClass}" data-width="${pct}"></span>
       </span>
-      <span class="factor-row__score type-data--sm">${slot.val.toFixed(1)}</span>`;
+      <span class="factor-row__score type-data--sm">${Math.round(slot.val)}</span>${googleAnnotation}`;
 
     // Drill-down panel (hidden by default)
     const detail = document.createElement('div');
@@ -610,27 +624,40 @@ function buildFactorDetail(factorKey, scoring) {
     practical:   { icon: 'briefcase',  label: 'Practical' },
   };
 
+  if (!details || typeof details !== 'object') return `<div class="factor-detail__items"></div>`;
+
+  // Collect entries with percentages for rank-based coloring
+  const entries = Object.entries(details)
+    .filter(([, sub]) => sub && typeof sub === 'object')
+    .map(([subKey, sub]) => ({
+      subKey, sub,
+      pct: sub.max > 0 ? Math.min((sub.score / sub.max) * 100, 100) : 0,
+    }));
+
+  if (entries.length === 0) return `<div class="factor-detail__items"></div>`;
+
+  // Rank-based coloring: only top driver (≥65%) = green, only bottom (<40%) = red, rest neutral
+  const maxPct = Math.max(...entries.map(e => e.pct));
+  const minPct = Math.min(...entries.map(e => e.pct));
+
   let items = '';
-
-  if (details && typeof details === 'object') {
-    for (const [subKey, sub] of Object.entries(details)) {
-      if (!sub || typeof sub !== 'object') continue;
-      const meta = SUB_META[subKey] || { icon: 'plate', label: humanizeSnake(subKey) };
-      const pct = sub.max > 0 ? Math.min((sub.score / sub.max) * 100, 100) : 0;
-
-      // 3-tier color: helper (green) / detractor (red) / neutral (gray)
-      const tierClass = pct >= 70 ? 'factor-detail__row--helper'
-        : pct < 35 ? 'factor-detail__row--detractor'
-        : 'factor-detail__row--neutral';
-
-      const cleanSignal = humanizeSignal(sub.signal);
-
-      items += `<div class="factor-detail__row ${tierClass}">
-        <span class="factor-detail__row-icon">${svgIcon(meta.icon, 12)}</span>
-        <span class="factor-detail__row-label type-structural">${meta.label}</span>
-        <span class="factor-detail__row-signal type-structural">${cleanSignal}</span>
-      </div>`;
+  for (const { subKey, sub, pct } of entries) {
+    const meta = SUB_META[subKey] || { icon: 'plate', label: humanizeSnake(subKey) };
+    let tierClass = 'factor-detail__row--neutral';
+    if (pct === maxPct && pct >= 65 && entries.length > 1) {
+      tierClass = 'factor-detail__row--helper';
+    } else if (pct === minPct && pct < 40 && entries.length > 1) {
+      tierClass = 'factor-detail__row--detractor';
     }
+    const cleanSignal = humanizeSignal(sub.signal);
+    items += `<div class="factor-detail__row ${tierClass}">
+      <span class="factor-detail__row-icon">${svgIcon(meta.icon, 12)}</span>
+      <span class="factor-detail__row-label type-structural">${meta.label}</span>
+      <span class="factor-detail__mini-bar">
+        <span class="factor-detail__mini-bar-fill" style="width:${pct.toFixed(0)}%"></span>
+      </span>
+      <span class="factor-detail__row-signal type-structural">${cleanSignal}</span>
+    </div>`;
   }
 
   return `<div class="factor-detail__items">${items}</div>`;
