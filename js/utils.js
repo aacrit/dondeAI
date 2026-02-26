@@ -677,3 +677,39 @@ export function getVibeDetail(dimKey, score) {
   if (score >= 4.5) return entry.mid;
   return entry.low;
 }
+
+/* ---- Humanize snake_case strings to Title Case ---- */
+export function humanizeSnake(str) {
+  if (!str || typeof str !== 'string') return '';
+  return str
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, c => c.toUpperCase());
+}
+
+/* ---- Humanize factor detail signal text for user display ---- */
+export function humanizeSignal(signal) {
+  if (!signal || typeof signal !== 'string') return 'Not available';
+  let s = signal
+    .replace(/\s*\(conf=[^)]+\)/g, '')          // "(conf=high)" → ""
+    .replace(/\s*\(neutral\)/g, '')              // "(neutral)" → ""
+    .replace(/No \w+ data/g, 'Not enough data')  // "No Google data" → "Not enough data"
+    .replace(/^No data$/i, 'Not enough data');
+  // Humanize numeric scales
+  s = s.replace(/^Energy (\d+)\/10$/i, (_, v) => {
+    const n = parseInt(v);
+    return n >= 8 ? 'High energy' : n >= 5 ? 'Moderate energy' : 'Calm atmosphere';
+  });
+  s = s.replace(/^Conversation (\d+)\/10$/i, (_, v) => {
+    const n = parseInt(v);
+    return n >= 8 ? 'Easy to talk' : n >= 5 ? 'Moderate noise' : 'Hard to hear';
+  });
+  s = s.replace(/^Sentiment (\d+)\/10$/i, (_, v) => {
+    const n = parseInt(v);
+    return n >= 8 ? 'Very positive reviews' : n >= 5 ? 'Mixed reviews' : 'Mostly negative';
+  });
+  // Clean Google rating format: "4.3★ (150 reviews, conf=high)" → "4.3★ · 150 reviews"
+  s = s.replace(/^([\d.]+)\u2605\s*\((\d+)\s*reviews[^)]*\)$/, '$1\u2605 \u00b7 $2 reviews');
+  // Capitalize first letter
+  if (s.length > 0) s = s.charAt(0).toUpperCase() + s.slice(1);
+  return s;
+}

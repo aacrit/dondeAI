@@ -18,7 +18,8 @@ import { animateScoreRing, renderPetalRadar, renderSentimentBar, renderScoreBloo
 import {
   getGreeting, getTimePeriod, getCuisineFromResult, svgIcon,
   getScoreTier, getScoreColor, getScoreThresholdColor, getFactorColor,
-  buildGoogleStars, buildMapsUrl, relativeTime, matchCuisine, matchCulture
+  buildGoogleStars, buildMapsUrl, relativeTime, matchCuisine, matchCulture,
+  humanizeSnake
 } from './utils.js';
 
 /* ---- Cached DOM Elements ---- */
@@ -2498,13 +2499,7 @@ function renderQuickActions(data) {
   $actions.style.display = items.length > 0 ? '' : 'none';
 }
 
-/* ---- Humanize snake_case strings to Title Case ---- */
-function humanizeSnake(str) {
-  if (!str || typeof str !== 'string') return '';
-  return str
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, c => c.toUpperCase());
-}
+/* humanizeSnake moved to utils.js — imported at top of file */
 
 /* ---- Spice Level → Intuitive Label ---- */
 function formatSpiceLevel(raw) {
@@ -2601,7 +2596,6 @@ function openTileExpand(tileEl) {
           const pctVal = (val / 10) * 100;
           const color = getFactorColor(val);
           const weight = weightsUsed[d.key] != null ? Math.round(weightsUsed[d.key] * 100) : null;
-          const weightChip = weight != null ? `<span class="tile-expand__dim-weight type-data--xs">${weight}%</span>` : '';
           // V5: Show Google rating inline for reputation factor
           const googleInline = (d.key === 'reputation' && data.restaurant?.google_rating)
             ? ` <span class="factor-row__google-star" style="color:var(--star-gold)">${svgIcon('starFull', 10)} ${parseFloat(data.restaurant.google_rating).toFixed(1)}</span>`
@@ -2610,7 +2604,6 @@ function openTileExpand(tileEl) {
             <div class="tile-expand__dim">
               <span class="tile-expand__dim-icon">${svgIcon(d.icon, 14)}</span>
               <span class="tile-expand__dim-label type-data--sm">${d.label}${googleInline}</span>
-              ${weightChip}
               <div class="tile-expand__dim-bar">
                 <div class="tile-expand__dim-fill" style="width: ${pctVal}%; background: ${color}"></div>
               </div>
