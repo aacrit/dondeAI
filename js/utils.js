@@ -472,15 +472,15 @@ const QUICK_PICKS = {
   ],
 };
 
-/* ---- Match System V4 (0-99 range, geometric mean) ---- */
+/* ---- Match System V5 (0-99 range, weighted factors) ---- */
 const MATCH_WORDS = {
-  85: 'Outstanding',
-  70: 'Excellent',
-  55: 'Solid Pick',
-  40: 'Worth a Try',
-  0: 'Adventurous',
+  88: 'Perfect Match',
+  75: 'Strong Pick',
+  60: 'Solid Option',
+  45: 'Worth a Try',
+  0: 'Best Available',
 };
-const MATCH_THRESHOLDS = [85, 70, 55, 40, 0];
+const MATCH_THRESHOLDS = [88, 75, 60, 45, 0];
 
 export function getScoreTier(score, { mismatch = false } = {}) {
   const pct = Math.round(parseFloat(score) || 0);
@@ -488,9 +488,9 @@ export function getScoreTier(score, { mismatch = false } = {}) {
   const matched = MATCH_THRESHOLDS.find(t => clamped >= t) ?? 0;
   let verdict = MATCH_WORDS[matched];
   let tier, cssClass;
-  // V4: Geometric mean produces tighter distribution — adjusted thresholds
-  if (clamped >= 70) { tier = 'high'; cssClass = 'score-verdict--high'; }
-  else if (clamped >= 50) { tier = 'mid'; cssClass = 'score-verdict--mid'; }
+  // V5: Weighted factor scoring — adjusted thresholds
+  if (clamped >= 75) { tier = 'high'; cssClass = 'score-verdict--high'; }
+  else if (clamped >= 45) { tier = 'mid'; cssClass = 'score-verdict--mid'; }
   else { tier = 'low'; cssClass = 'score-verdict--low'; }
   // Cuisine mismatch: override verdict to be transparent about the gap
   if (mismatch && tier === 'low') verdict = 'Best Alternative';
@@ -499,9 +499,9 @@ export function getScoreTier(score, { mismatch = false } = {}) {
 
 export function getScoreColor(score) {
   const pct = Math.round(parseFloat(score) || 0);
-  // V4: Geometric mean thresholds (tighter distribution)
-  if (pct >= 70) return 'var(--rag-green)';
-  if (pct >= 50) return 'var(--rag-amber)';
+  // V5: Weighted factor thresholds
+  if (pct >= 75) return 'var(--rag-green)';
+  if (pct >= 45) return 'var(--rag-amber)';
   return 'var(--rag-red)';
 }
 
@@ -512,9 +512,9 @@ export function getScoreColor(score) {
  * @returns {string} CSS variable string
  */
 export function getScoreThresholdColor(score) {
-  // V4: Geometric mean thresholds
-  if (score >= 70) return 'var(--rag-green)';
-  if (score >= 50) return 'var(--rag-amber)';
+  // V5: Weighted factor thresholds
+  if (score >= 75) return 'var(--rag-green)';
+  if (score >= 45) return 'var(--rag-amber)';
   return 'var(--rag-red)';
 }
 

@@ -6,9 +6,9 @@
 
 import { getState, setState } from './state.js';
 import {
-  getOrCreateUserId, loadBookmarks, loadHistory,
-  syncBookmarksToServer, syncHistoryToServer,
-  loadBookmarksFromServer, loadHistoryFromServer,
+  getOrCreateUserId, loadBookmarks, loadHistory, loadVisits,
+  syncBookmarksToServer, syncHistoryToServer, syncVisitsToServer,
+  loadBookmarksFromServer, loadHistoryFromServer, loadVisitsFromServer,
 } from './persistence.js';
 
 /* ---- Supabase Client ---- */
@@ -128,6 +128,23 @@ export async function removeFavoriteFromServer(restaurantId) {
     .catch(e => console.error('[auth] Failed to remove favorite:', e));
 }
 
+/* ---- Server-side visits (dual-write from app.js) ---- */
+
+export async function addVisitToServer(restaurant) {
+  const sb = await getSupabase();
+  if (!sb || !isAuthenticated()) return;
+  const user = getUser();
+  sb.from('user_visits').upsert({
+    auth_user_id: user.id,
+    restaurant_id: restaurant.id,
+    restaurant_name: restaurant.name,
+    cuisine_type: restaurant.cuisine_type || null,
+    neighborhood_name: restaurant.neighborhood_name || null,
+  }, { onConflict: 'auth_user_id,restaurant_id', ignoreDuplicates: true })
+    .then(() => {})
+    .catch(e => console.error('[auth] Failed to save visit:', e));
+}
+
 /* ---- Internal ---- */
 
 function setUserFromSession(session) {
@@ -162,21 +179,30 @@ async function handleFirstSignIn(sb, user) {
   const anonymousId = getOrCreateUserId();
   const bookmarks = loadBookmarks();
   const history = loadHistory();
+  const visits = loadVisits();
 
-  // Sync bookmarks and history to server
+  // Sync bookmarks, history, and visits to server
   if (bookmarks.length > 0) {
     await syncBookmarksToServer(sb, user.id, bookmarks);
   }
   if (history.length > 0) {
     await syncHistoryToServer(sb, user.id, history);
   }
+  if (visits.length > 0) {
+    await syncVisitsToServer(sb, user.id, visits);
+  }
 
-  // Link anonymous queries
+  // Link anonymous queries and visits
   if (anonymousId) {
     await sb.rpc('link_anonymous_queries', {
       p_auth_user_id: user.id,
       p_anonymous_id: anonymousId,
     }).catch(e => console.error('[auth] Failed to link anonymous queries:', e));
+
+    await sb.rpc('link_anonymous_visits', {
+      p_auth_user_id: user.id,
+      p_anonymous_id: anonymousId,
+    }).catch(e => console.error('[auth] Failed to link anonymous visits:', e));
   }
 
   // Mark migration complete

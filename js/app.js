@@ -5,15 +5,15 @@
 
 import { getState, setState, subscribe, resetState } from './state.js';
 import { initRouter, goToStep, goToStepInstant } from './router.js';
-import { loadTheme, loadSound, loadHistory, addToHistory, saveTheme, loadColorMode, loadBookmarks, addBookmark, removeBookmark, isBookmarked, getOrCreateUserId, saveFeedback, loadFeedback, clearFeedback, hasGuestDismissed, setGuestDismissed, hasSeenOnboarding, setOnboardingSeen } from './persistence.js';
+import { loadTheme, loadSound, loadHistory, addToHistory, saveTheme, loadColorMode, loadBookmarks, addBookmark, removeBookmark, isBookmarked, loadVisits, addVisit, isVisited, getOrCreateUserId, saveFeedback, loadFeedback, clearFeedback, hasGuestDismissed, setGuestDismissed, hasSeenOnboarding, setOnboardingSeen } from './persistence.js';
 import { initTheme, setTheme, setThemeInstant, setThemeVisualOnly, revertAutoTheme, setManualOverride, isManualOverride, setColorMode, getColorMode, getLabels, CULTURES, CULTURE_DISPLAY_NAMES } from './theme.js';
 import { initAudio, toggleSound, playChime, playCelebrationChime } from './audio.js';
 import { initVoice, startVoice } from './voice.js';
 import { initShare, shareResult, closeShareSheet, handleShareChannel } from './share.js';
 import { initOffline, isOnline } from './offline.js';
 import { initAccessibility, announce } from './accessibility.js';
-import { fetchRecommendation, sendFeedback } from './api.js';
-import { initAuth, signIn as signInWith, signOut as authSignOut, isAuthenticated as isAuthAuthenticated, getUser as getAuthUser, addFavoriteToServer, removeFavoriteFromServer } from './auth.js';
+import { fetchRecommendation, sendFeedback, sendVisit, sendAppFeedback } from './api.js';
+import { initAuth, signIn as signInWith, signOut as authSignOut, isAuthenticated as isAuthAuthenticated, getUser as getAuthUser, addFavoriteToServer, removeFavoriteFromServer, addVisitToServer } from './auth.js';
 import { animateScoreRing, renderPetalRadar, renderSentimentBar, renderScoreBloom, renderScoreHero, renderFactorBars, toggleBloom, resetBloomState, handlePetalTap, handleBloomRingTap, toggleScoreBreakdown, getBloomState, animateBadge, startParticles, stopParticles, chaosToOrderReveal, initLogoAnimation, startSearchPulse, stopSearchPulse, resolveLogoToFound, cleanupLoadingLogo, fireCelebration } from './animations.js';
 import {
   getGreeting, getTimePeriod, getCuisineFromResult, svgIcon,
@@ -99,6 +99,9 @@ function init() {
 
   // F4: Render saved spots (bookmarks)
   renderSavedSpots();
+
+  // Render visited spots ("Been Here")
+  renderVisitedSpots();
 
   // F9: Initialize anonymous user ID
   getOrCreateUserId();
@@ -558,6 +561,9 @@ function wireEvents() {
         document.querySelectorAll('[data-action="toggle-dietary"]').forEach(pill => {
           pill.setAttribute('aria-pressed', 'false');
         });
+        // V5: Clear Open Now pill
+        const $openNowPill = document.getElementById('open-now-pill');
+        if ($openNowPill) $openNowPill.setAttribute('aria-pressed', 'false');
         setupLanding();
         renderSmartChips();
         renderTasteMemory();
@@ -672,6 +678,21 @@ function wireEvents() {
         break;
       }
 
+      // V5: Open Now toggle
+      case 'toggle-open-now': {
+        const isActive = btn.getAttribute('aria-pressed') === 'true';
+        btn.setAttribute('aria-pressed', String(!isActive));
+        setState({ openNow: !isActive });
+        haptic(HAPTICS.tick);
+        // Ink ripple feedback
+        const rippleEl = document.createElement('span');
+        rippleEl.className = 'filter-pill__ripple';
+        btn.appendChild(rippleEl);
+        rippleEl.addEventListener('animationend', () => rippleEl.remove(), { once: true });
+        updateFilterSummary();
+        break;
+      }
+
       // F14: Surprise Me — slot-machine shuffle animation
       case 'surprise-me': {
         haptic(HAPTICS.tick);
@@ -777,6 +798,56 @@ function wireEvents() {
         break;
       }
 
+      // "I'm Going Here!" — strongest engagement signal
+      case 'going': {
+        haptic(HAPTICS.celebration);
+        const result = getState().result;
+        const restaurant = result?.restaurant;
+        if (!restaurant?.id) break;
+        if (isVisited(restaurant.id)) break; // Already marked
+        addVisit(restaurant);
+        const goingUserId = getOrCreateUserId();
+        sendVisit(restaurant, goingUserId);
+        // SSO: also write with auth_user_id for richer data
+        if (isAuthAuthenticated()) addVisitToServer(restaurant);
+        updateGoingBtn(restaurant.id);
+        renderVisitedSpots();
+        showToast(toasts().goingHere, false);
+        break;
+      }
+
+      // App Feedback Sheet
+      case 'open-app-feedback': {
+        openFeedbackSheet();
+        break;
+      }
+
+      case 'close-app-feedback': {
+        closeFeedbackSheet();
+        break;
+      }
+
+      case 'select-feedback-cat': {
+        haptic(HAPTICS.tick);
+        const wasPressed = btn.getAttribute('aria-pressed') === 'true';
+        document.querySelectorAll('.feedback-cat-pill').forEach(b => b.setAttribute('aria-pressed', 'false'));
+        btn.setAttribute('aria-pressed', String(!wasPressed));
+        updateFeedbackSubmitState();
+        break;
+      }
+
+      case 'submit-app-feedback': {
+        const selectedCat = document.querySelector('.feedback-cat-pill[aria-pressed="true"]');
+        const category = selectedCat?.dataset.category;
+        const messageEl = document.getElementById('feedback-text');
+        const message = messageEl?.value?.trim();
+        if (!category || !message) break;
+        const fbUserId = getOrCreateUserId();
+        sendAppFeedback(category, message, fbUserId);
+        closeFeedbackSheet();
+        showToast(toasts().feedbackSent, false);
+        break;
+      }
 
       case 'submit':
         setState({ excludeIds: [] });
@@ -992,8 +1063,9 @@ function wireEvents() {
         if (!data) break;
         const newState = toggleBloom(
           data.scores || {},
-          data.scoring_v3 || data.scoring_v2 || null,
-          animationTimers
+          data.scoring || data.scoring_v5 || null,
+          animationTimers,
+          data
         );
         // Update callout arrow direction
         const $calloutArrow = document.getElementById('score-hero-callout')
@@ -1517,6 +1589,7 @@ function updateFilterSummary() {
   if (s.neighborhood !== 'Anywhere') parts.push(s.neighborhood);
   if (s.priceLevel !== 'Any') parts.push(s.priceLevel);
   if (s.dietaryRestrictions?.length) parts.push(s.dietaryRestrictions.join(', '));
+  if (s.openNow) parts.push('Open Now');
   const $summary = document.getElementById('filter-summary');
   if ($summary) {
     $summary.textContent = parts.length ? parts.join(' \u00B7 ') : '';
@@ -1591,6 +1664,8 @@ async function handleSubmit() {
     if (s.excludeIds.length) payload.exclude = s.excludeIds;
     // F5: Dietary restrictions
     if (s.dietaryRestrictions.length) payload.dietary_restrictions = s.dietaryRestrictions;
+    // V5: Open Now filter
+    if (s.openNow) payload.open_now = true;
     // F9: Anonymous user ID for personalization
     payload.user_id = getOrCreateUserId();
     // F11: Send pending feedback with request
@@ -1788,9 +1863,9 @@ async function orchestrateReveal(data) {
   // F18: Haptic feedback on reveal (mobile only, graceful degrade)
   haptic(HAPTICS.reveal);
 
-  // V4: Score celebration for 85%+ matches (geometric mean — tighter distribution)
+  // V5: Score celebration for 88%+ matches (Perfect Match tier)
   const celebScore = Math.round(parseFloat(data.donde_match) || 0);
-  if (celebScore >= 85) {
+  if (celebScore >= 88) {
     // Delay slightly so the score ring animation finishes first
     animationTimers.push(setTimeout(() => {
       fireCelebration();
@@ -1908,7 +1983,7 @@ function renderResult(data) {
   const $matchScore = document.getElementById('match-pill-score');
   const $matchVerdict = document.getElementById('match-pill-verdict');
   if ($matchScore) $matchScore.textContent = '0'; // Will animate up
-  const tier = getScoreTier(dondeScore, { mismatch: !!data.cuisine_mismatch?.requested });
+  const tier = getScoreTier(dondeScore);
   const $matchPill = document.getElementById('match-pill');
   if ($matchPill) $matchPill.setAttribute('data-tier', tier.tier);
   if ($matchVerdict) {
@@ -2074,6 +2149,9 @@ function renderResult(data) {
   // F11: Set feedback button state
   if (r.id) renderFeedbackState(r.id);
 
+  // Set "I'm Going Here!" button state
+  if (r.id) updateGoingBtn(r.id);
+
   // Cuisine mismatch notice
   const $mismatch = document.getElementById('cuisine-mismatch-notice');
   if ($mismatch) {
@@ -2088,13 +2166,23 @@ function renderResult(data) {
     }
   }
 
+  // V5: Intent Boost badge — shown between score arc and factor bars
+  renderIntentBoostBadge(data);
+
+  // V5: Relaxation notice — shown above result card when filters were expanded
+  renderRelaxationNotice(data);
+
   // DondeAI Recommendation blurb — the editorial voice in Tier 1
   const $rec = document.getElementById('result-recommendation');
   const $blurb = document.getElementById('donde-blurb');
   if ($rec) {
     const recText = data.recommendation || '';
     $rec.textContent = recText;
-    if ($blurb) $blurb.style.display = recText ? '' : 'none';
+    if ($blurb) {
+      $blurb.style.display = recText ? '' : 'none';
+      // V5: Boost-aware blurb accent border
+      $blurb.classList.toggle('donde-blurb--boosted', !!data.intent_boost?.active);
+    }
   }
 
   // "Why This Spot" removed — user feedback: not accurate, no value
@@ -2154,7 +2242,7 @@ function prepareTier2(data, cuisine) {
   renderScoreHero(
     data.donde_match,
     data.scores || {},
-    data.scoring_v3 || data.scoring_v2 || null,
+    data.scoring || data.scoring_v5 || null,
     null,
     []
   );
@@ -2264,7 +2352,7 @@ function renderTier2Animations() {
   renderScoreHero(
     data.donde_match,
     data.scores || {},
-    data.scoring_v3 || data.scoring_v2 || null,
+    data.scoring || data.scoring_v5 || null,
     null,
     animationTimers
   );
@@ -2459,7 +2547,7 @@ function openTileExpand(tileEl) {
   if (!data) return;
 
   if (tileEl.id === 'score-tile-donde') {
-    const tier = getScoreTier(data.donde_match, { mismatch: !!data.cuisine_mismatch?.requested });
+    const tier = getScoreTier(data.donde_match);
     const pct = Math.round(parseFloat(data.donde_match) || 80);
     const circumference = 2 * Math.PI * 45;
     const offset = circumference - (pct / 100) * circumference;
@@ -2494,26 +2582,17 @@ function openTileExpand(tileEl) {
       </div>
       <span class="score-verdict type-structural--bold ${tier.cssClass}" style="font-size: var(--text-lg);">${tier.verdict}</span>`;
 
-    // V4: Factor breakdown — "Why This Match" (geometric mean factors)
-    const sv4 = data.scoring_v4 || data.scoring_v3;
+    // V5: Factor breakdown — "Why This Match" (weighted factors)
+    const sv4 = data.scoring || data.scoring_v5 || null;
     if (sv4) {
-      const v4Dims = [
-        { key: 'food_quality',  label: 'Food Quality', icon: 'plate' },
-        { key: 'vibe',          label: 'Vibe',         icon: 'music' },
-        { key: 'service',       label: 'Service',      icon: 'diamond' },
-        { key: 'reputation',    label: 'Reputation',   icon: 'starFull' },
-        { key: 'convenience',   label: 'Convenience',  icon: 'clock' },
+      const v5Dims = [
+        { key: 'food',        label: 'Food',        icon: 'plate' },
+        { key: 'vibe',        label: 'Vibe',        icon: 'music' },
+        { key: 'service',     label: 'Service',     icon: 'diamond' },
+        { key: 'reputation',  label: 'Reputation',  icon: 'starFull' },
+        { key: 'convenience', label: 'Convenience', icon: 'clock' },
       ];
-      // Fallback to V3 keys if V4 not available
-      const isV4 = sv4.food_quality != null;
-      const v3FallbackDims = [
-        { key: 'food_match',    label: 'Food Quality', icon: 'plate' },
-        { key: 'atmosphere',    label: 'Vibe',         icon: 'music' },
-        { key: 'setting_fit',   label: 'Service',      icon: 'diamond' },
-        { key: 'reputation',    label: 'Reputation',   icon: 'starFull' },
-        { key: 'convenience',   label: 'Convenience',  icon: 'clock' },
-      ];
-      const dims = isV4 ? v4Dims : v3FallbackDims;
+      const dims = v5Dims;
       const weightsUsed = sv4.weights_used || {};
       const available = dims.filter(d => sv4[d.key] != null);
       if (available.length > 0) {
@@ -2523,10 +2602,14 @@ function openTileExpand(tileEl) {
           const color = getFactorColor(val);
           const weight = weightsUsed[d.key] != null ? Math.round(weightsUsed[d.key] * 100) : null;
           const weightChip = weight != null ? `<span class="tile-expand__dim-weight type-data--xs">${weight}%</span>` : '';
+          // V5: Show Google rating inline for reputation factor
+          const googleInline = (d.key === 'reputation' && data.restaurant?.google_rating)
+            ? ` <span class="factor-row__google-star" style="color:var(--star-gold)">${svgIcon('starFull', 10)} ${parseFloat(data.restaurant.google_rating).toFixed(1)}</span>`
+            : '';
           return `
             <div class="tile-expand__dim">
               <span class="tile-expand__dim-icon">${svgIcon(d.icon, 14)}</span>
-              <span class="tile-expand__dim-label type-data--sm">${d.label}</span>
+              <span class="tile-expand__dim-label type-data--sm">${d.label}${googleInline}</span>
               ${weightChip}
               <div class="tile-expand__dim-bar">
                 <div class="tile-expand__dim-fill" style="width: ${pctVal}%; background: ${color}"></div>
@@ -2541,7 +2624,7 @@ function openTileExpand(tileEl) {
           const topReason = sv4.weight_shift_reasons[0].split(':')[0]; // Short label before colon
           summaryHtml = `<p class="tile-expand__summary type-data--sm">${topReason}</p>`;
         } else if (weightsUsed) {
-          const factorLabels = { food_quality: 'Food', vibe: 'Vibe', service: 'Service', reputation: 'Reputation', convenience: 'Convenience', food: 'Food', setting: 'Setting', atmosphere: 'Vibe' };
+          const factorLabels = { food: 'Food', vibe: 'Vibe', service: 'Service', reputation: 'Reputation', convenience: 'Convenience' };
           const topFactor = Object.entries(weightsUsed).sort((a, b) => b[1] - a[1])[0];
           if (topFactor && factorLabels[topFactor[0]]) {
             summaryHtml = `<p class="tile-expand__summary type-data--sm">Weighted for ${factorLabels[topFactor[0]]}</p>`;
@@ -2555,38 +2638,8 @@ function openTileExpand(tileEl) {
             ${summaryHtml}
           </div>`;
       }
-    } else {
-      // Fallback: V2 breakdown if V3 not available
-      const sv2 = data.scoring_v2;
-      if (sv2) {
-        const v2Dims = [
-          { key: 'occasion_fit',    label: 'Occasion' },
-          { key: 'craving_match',   label: 'Craving' },
-          { key: 'vibe_alignment',  label: 'Vibe' },
-          { key: 'practical_fit',   label: 'Practical' },
-          { key: 'discovery_value', label: 'Discovery' },
-        ];
-        const v2Available = v2Dims.filter(d => sv2[d.key] != null);
-        if (v2Available.length > 0) {
-          const v2Html = v2Available.map(d => {
-            const val = Math.min(Math.max(sv2[d.key] || 0, 0), 100);
-            return `
-              <div class="tile-expand__dim">
-                <span class="tile-expand__dim-label type-data--sm">${d.label}</span>
-                <div class="tile-expand__dim-bar">
-                  <div class="tile-expand__dim-fill" style="width: ${val}%"></div>
-                </div>
-                <span class="tile-expand__dim-value type-data--sm">${humanizeV2(val)}</span>
-              </div>`;
-          }).join('');
-          $content.innerHTML += `
-            <div class="tile-expand__v2">
-              <span class="tile-expand__v2-label type-data--sm">Why This Match</span>
-              <div class="tile-expand__dims">${v2Html}</div>
-            </div>`;
-        }
-      }
     }
+    // V5: Only V5 factor bars supported
   } else if (tileEl.id === 'score-tile-radar') {
     // Expanded petal radar with dimension list
     const scores = data.scores || {};
@@ -2763,6 +2816,94 @@ function closeLightbox() {
 
 
 /* ---- F2: Open Now badge in quick tags (interactive with hours popout) ---- */
+/* ---- V5: Intent Boost Badge ---- */
+function renderIntentBoostBadge(data) {
+  // Remove any previous boost badge
+  document.getElementById('intent-boost-badge')?.remove();
+
+  const boost = data.intent_boost;
+  if (!boost?.active) return;
+
+  const $glanceHero = document.querySelector('.glance-hero');
+  if (!$glanceHero) return;
+
+  const badge = document.createElement('div');
+  badge.id = 'intent-boost-badge';
+  badge.className = 'boost-badge boost-badge--visible';
+  badge.setAttribute('role', 'button');
+  badge.setAttribute('tabindex', '0');
+  badge.setAttribute('aria-expanded', 'false');
+  badge.setAttribute('aria-haspopup', 'true');
+
+  const reason = boost.reason || 'Intent matched';
+  badge.innerHTML = `
+    <span class="boost-badge__icon">${svgIcon('bolt', 14)}</span>
+    <span class="boost-badge__text type-data--sm">Boosted: ${reason}</span>
+    <div class="boost-badge__popout" role="tooltip">
+      <span class="badge-popout__title">Intent Boost</span>
+      <div class="badge-popout__body">
+        <div>Base score: <strong>${boost.base_score ?? data.donde_match}</strong></div>
+        ${boost.boost_points != null ? `<div>Boost: <strong>+${boost.boost_points}</strong> pts</div>` : ''}
+        <div class="boost-badge__reason">${reason}</div>
+      </div>
+    </div>`;
+
+  // Insert after glance-hero (between score arc and factor bars)
+  $glanceHero.insertAdjacentElement('afterend', badge);
+
+  // Tap to show/hide popout
+  badge.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const popout = badge.querySelector('.badge-popout');
+    const isOpen = badge.getAttribute('aria-expanded') === 'true';
+    badge.setAttribute('aria-expanded', String(!isOpen));
+    if (popout) popout.classList.toggle('badge-popout--open', !isOpen);
+  });
+}
+
+/* ---- V5: Relaxation Notice ---- */
+function renderRelaxationNotice(data) {
+  // Remove any previous relaxation notice
+  document.getElementById('relaxation-notice')?.remove();
+
+  const relaxation = data.relaxation_applied;
+  if (!relaxation) return;
+
+  const $resultCard = document.getElementById('result-card');
+  if (!$resultCard) return;
+
+  const notice = document.createElement('div');
+  notice.id = 'relaxation-notice';
+  notice.className = 'relaxation-notice';
+  notice.setAttribute('role', 'status');
+  notice.setAttribute('aria-live', 'polite');
+
+  const filterText = typeof relaxation === 'string' ? relaxation
+    : Array.isArray(relaxation) ? relaxation.join(', ')
+    : 'some filters';
+
+  notice.innerHTML = `
+    <span class="relaxation-notice__text type-structural">We expanded beyond ${filterText} to find your best match</span>
+    <button class="relaxation-notice__dismiss" aria-label="Dismiss notice">&times;</button>`;
+
+  // Insert before result card content
+  $resultCard.insertAdjacentElement('afterbegin', notice);
+
+  // Dismiss handler
+  notice.querySelector('.relaxation-notice__dismiss')?.addEventListener('click', () => {
+    notice.classList.add('relaxation-notice--dismissing');
+    notice.addEventListener('animationend', () => notice.remove(), { once: true });
+  });
+
+  // Auto-dismiss after 5s
+  animationTimers.push(setTimeout(() => {
+    if (notice.parentNode) {
+      notice.classList.add('relaxation-notice--dismissing');
+      notice.addEventListener('animationend', () => notice.remove(), { once: true });
+    }
+  }, 5000));
+}
+
 function renderOpenNowTag(data) {
   const $quickTags = document.getElementById('quick-tags');
   if (!$quickTags) return;
@@ -2876,6 +3017,93 @@ function renderFeedbackState(restaurantId) {
   });
 }
 
+/* ---- "I'm Going Here!" Button State ---- */
+function updateGoingBtn(restaurantId) {
+  const $btn = document.getElementById('going-btn');
+  if (!$btn) return;
+  const visited = isVisited(restaurantId);
+  const labels = getLabels(getState().theme.culture);
+  const $text = $btn.querySelector('.going-btn__text');
+  if (visited) {
+    $btn.classList.add('going-btn--done');
+    if ($text) $text.textContent = labels.goingDone || "You're Going!";
+    $btn.setAttribute('aria-label', labels.goingDone || "You're Going!");
+  } else {
+    $btn.classList.remove('going-btn--done');
+    if ($text) $text.textContent = labels.goingHere || "I'm Going Here!";
+    $btn.setAttribute('aria-label', labels.goingHere || "I'm Going Here!");
+  }
+}
+
+/* ---- Visited Spots on Landing ---- */
+function renderVisitedSpots() {
+  const $container = document.getElementById('visited-spots');
+  const $list = document.getElementById('visited-spots-list');
+  if (!$container || !$list) return;
+  const visits = loadVisits();
+  if (visits.length === 0) {
+    $container.style.display = 'none';
+    return;
+  }
+  $list.innerHTML = '';
+  visits.slice(0, 5).forEach(v => {
+    const item = document.createElement('button');
+    item.className = 'visited-spot type-structural';
+    item.innerHTML = `
+      <span class="visited-spot__pin type-data--sm">
+        <svg viewBox="0 0 256 256" width="10" height="10"><path fill="currentColor" d="M128,16a88.1,88.1,0,0,0-88,88c0,75.3,80,132.17,83.41,134.55a8,8,0,0,0,9.18,0C136,236.17,216,179.3,216,104A88.1,88.1,0,0,0,128,16Zm0,56a32,32,0,1,1-32,32A32,32,0,0,1,128,72Z"/></svg>
+        Been
+      </span>
+      <span class="visited-spot__name">${v.name}</span>
+      <span class="visited-spot__meta type-data--sm">${v.cuisine_type || v.neighborhood_name || ''}</span>
+    `;
+    $list.appendChild(item);
+  });
+  $container.style.display = '';
+}
+
+/* ---- App Feedback Sheet ---- */
+function openFeedbackSheet() {
+  const $sheet = document.getElementById('feedback-sheet');
+  if (!$sheet) return;
+  // Set culture-adaptive labels
+  const labels = getLabels(getState().theme.culture);
+  const $title = document.getElementById('feedback-sheet-title');
+  const $subtitle = document.getElementById('feedback-sheet-subtitle');
+  if ($title) $title.textContent = labels.feedbackTitle || 'Share Your Thoughts';
+  if ($subtitle) $subtitle.textContent = labels.feedbackSubtitle || 'Help us make Donde better for everyone.';
+  // Reset form
+  document.querySelectorAll('.feedback-cat-pill').forEach(b => b.setAttribute('aria-pressed', 'false'));
+  const $text = document.getElementById('feedback-text');
+  if ($text) $text.value = '';
+  const $count = document.getElementById('feedback-char-count');
+  if ($count) $count.textContent = '0 / 500';
+  const $submit = document.getElementById('feedback-submit');
+  if ($submit) $submit.disabled = true;
+  // Wire textarea character count
+  if ($text && !$text._wired) {
+    $text._wired = true;
+    $text.addEventListener('input', () => {
+      const len = $text.value.length;
+      if ($count) $count.textContent = `${len} / 500`;
+      updateFeedbackSubmitState();
+    });
+  }
+  $sheet.classList.add('feedback-sheet--open');
+}
+
+function closeFeedbackSheet() {
+  const $sheet = document.getElementById('feedback-sheet');
+  if ($sheet) $sheet.classList.remove('feedback-sheet--open');
+}
+
+function updateFeedbackSubmitState() {
+  const hasCat = !!document.querySelector('.feedback-cat-pill[aria-pressed="true"]');
+  const hasText = (document.getElementById('feedback-text')?.value?.trim().length || 0) > 0;
+  const $submit = document.getElementById('feedback-submit');
+  if ($submit) $submit.disabled = !(hasCat && hasText);
+}
+
 /* ---- 1D: Render Deep Context Extras (USP, Wow Factors, Origin Story) ---- */
 function renderDeepContextExtras(data) {
   const dc = data.deep_context;
@@ -2905,8 +3133,8 @@ function renderQuickStats(data) {
   if (!dc) { $stats.style.display = 'none'; return; }
 
   // Dimension weights from scoring — drives which stats surface first
-  const dw = data.scoring_v2?.weights_used ||
-    { occasion: 0.25, craving: 0.25, vibe: 0.20, practical: 0.15, discovery: 0.15 };
+  const dw = data.scoring?.weights_used || data.scoring_v5?.weights_used ||
+    { food: 0.25, vibe: 0.20, service: 0.15, reputation: 0.20, convenience: 0.20 };
 
   const candidates = [];
 
@@ -3607,6 +3835,7 @@ subscribe((state, prev) => {
       showToast(toasts().welcomeUser(state.user.name));
       renderTasteMemory();
       renderSavedSpots();
+      renderVisitedSpots();
       if (!hasSeenOnboarding()) setTimeout(() => showCoachMarks(), 600);
     }
   }

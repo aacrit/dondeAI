@@ -48,7 +48,63 @@ export async function sendFeedback(restaurantId, feedback, userId) {
   } catch { /* fire-and-forget — localStorage is the fallback */ }
 }
 
-export async function fetchRecommendation({ special_request, occasion, neighborhood, price_level, exclude, dietary_restrictions, user_id, feedback }) {
+/**
+ * Send "I'm Going Here!" visit signal (fire-and-forget).
+ * Inserts into user_visits table via PostgREST.
+ */
+export async function sendVisit(restaurant, userId) {
+  if (!restaurant?.id || !userId) return;
+  let authToken = null;
+  try { authToken = await getAccessToken(); } catch { /* ok */ }
+  const bearerToken = authToken || ANON_KEY;
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/user_visits`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${bearerToken}`,
+        'apikey': ANON_KEY,
+        'Prefer': 'return=minimal,resolution=ignore-duplicates',
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        restaurant_id: restaurant.id,
+        restaurant_name: restaurant.name || null,
+        cuisine_type: restaurant.cuisine_type || null,
+        neighborhood_name: restaurant.neighborhood_name || null,
+      }),
+    });
+  } catch { /* fire-and-forget */ }
+}
+
+/**
+ * Send app feedback form submission (fire-and-forget).
+ * Inserts into user_app_feedback table via PostgREST.
+ */
+export async function sendAppFeedback(category, message, userId) {
+  if (!category || !message) return;
+  let authToken = null;
+  try { authToken = await getAccessToken(); } catch { /* ok */ }
+  const bearerToken = authToken || ANON_KEY;
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/user_app_feedback`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${bearerToken}`,
+        'apikey': ANON_KEY,
+        'Prefer': 'return=minimal',
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        category,
+        message,
+      }),
+    });
+  } catch { /* fire-and-forget */ }
+}
+
+export async function fetchRecommendation({ special_request, occasion, neighborhood, price_level, exclude, dietary_restrictions, user_id, feedback, open_now }) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
@@ -57,6 +113,7 @@ export async function fetchRecommendation({ special_request, occasion, neighborh
   if (dietary_restrictions?.length) body.dietary_restrictions = dietary_restrictions;
   if (user_id) body.user_id = user_id;
   if (feedback) body.feedback = feedback;
+  if (open_now === true) body.open_now = true;
   body.time_of_day = getBackendTimeOfDay(); // I3/B2: Send client time context
 
   // SSO: Use user JWT when authenticated, anon key otherwise
@@ -86,6 +143,25 @@ export async function fetchRecommendation({ special_request, occasion, neighborh
 
     if (!data.success) {
       throw new Error(data.recommendation || 'Something went wrong. Please try again.');
+    }
+
+    // V5: Normalize scoring — prefer scoring_v5, fall back to v4/v3
+    if (data.scoring_v5) {
+      data.scoring = data.scoring_v5;
+    } else if (data.scoring_v4) {
+      data.scoring = data.scoring_v4;
+    } else if (data.scoring_v3) {
+      data.scoring = data.scoring_v3;
+    }
+
+    // V5: Parse intent_boost (default to inactive)
+    if (!data.intent_boost) {
+      data.intent_boost = { active: false };
+    }
+
+    // V5: Parse relaxation_applied (default to empty)
+    if (!data.relaxation_applied) {
+      data.relaxation_applied = null;
     }
 
     return data;
