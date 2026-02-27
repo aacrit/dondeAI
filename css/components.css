@@ -4923,15 +4923,15 @@
    V6.1: Match Reason Headline (inside glance-hero__info)
    ============================================ */
 .match-headline {
-  font-family: var(--font-emotional, 'Playfair Display', serif);
+  font-family: var(--font-structural, 'Inter', sans-serif);
   font-size: var(--text-sm);
-  font-style: italic;
-  font-weight: 400;
+  font-style: normal;
+  font-weight: 500;
   color: var(--fg2);
-  margin: 2px 0 0;
+  margin: 0;
   padding: 0;
-  line-height: 1.35;
-  letter-spacing: -0.01em;
+  line-height: 1.4;
+  letter-spacing: 0.01em;
 }
 
 /* ============================================

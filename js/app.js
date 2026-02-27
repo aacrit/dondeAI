@@ -2885,10 +2885,8 @@ function renderSignalChips(data) {
     chips.push({ text: 'Open Now', priority: 6 });
   }
 
-  // 5. High vibe match
-  if (sv5?.vibe != null && parseFloat(sv5.vibe) >= 8) {
-    chips.push({ text: 'Great Vibe', priority: 5 });
-  }
+  // 5. High vibe match — removed: "Great Vibe" chip was redundant with scoring;
+  //    vibe signal is already reflected in the donde match score.
 
   // Sort by priority (highest first), take top 4
   chips.sort((a, b) => b.priority - a.priority);
