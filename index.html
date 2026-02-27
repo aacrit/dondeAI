@@ -441,12 +441,24 @@
               <!-- ══════ TIER 2: LEAN-IN — "Tell me more / Should I go?" ══════ -->
               <div class="tier tier--leanin" id="tier-leanin" aria-hidden="true">
 
-                <!-- Score Hero: Full arc gauge -->
+                <!-- Score Hero: Full arc gauge + V7 factor constellation -->
                 <div class="score-hero" id="score-hero"
                      role="figure" tabindex="0"
                      aria-label="DondeAI Match score detail">
                   <div class="score-hero__gauge">
-                    <svg class="score-hero__svg" viewBox="0 0 200 120" aria-hidden="true">
+                    <svg class="score-hero__svg" viewBox="0 0 200 130" aria-hidden="true">
+                      <!-- V7: Factor constellation rings (concentric arcs behind main arc) -->
+                      <circle class="score-hero__factor-ring" data-factor="food"
+                              cx="100" cy="110" r="92" />
+                      <circle class="score-hero__factor-ring" data-factor="vibe"
+                              cx="100" cy="110" r="86" />
+                      <circle class="score-hero__factor-ring" data-factor="service"
+                              cx="100" cy="110" r="80" />
+                      <circle class="score-hero__factor-ring" data-factor="reputation"
+                              cx="100" cy="110" r="74" />
+                      <circle class="score-hero__factor-ring" data-factor="convenience"
+                              cx="100" cy="110" r="68" />
+                      <!-- Main score arc (on top of rings) -->
                       <path class="score-hero__arc-bg" d="M 20 110 A 80 80 0 0 1 180 110" />
                       <path class="score-hero__arc-fill" id="score-hero-arc-fill" d="M 20 110 A 80 80 0 0 1 180 110" />
                     </svg>
@@ -465,7 +477,9 @@
                       </span>
                       <span class="score-hero__number type-data" id="score-hero-number">0%</span>
                       <span class="score-hero__verdict type-structural" id="score-hero-verdict"></span>
-                      <!-- Strongest factor callout — inside the arc for compact display -->
+                      <!-- V7: Match narrative callout — replaces generic "Strongest" -->
+                      <span class="score-hero__narrative type-structural" id="score-hero-narrative" style="display: none;"></span>
+                      <!-- Strongest factor callout — fallback when no narrative -->
                       <button class="score-hero__callout type-data--sm" id="score-hero-callout"
                               data-action="toggle-factors" style="display: none;"
                               aria-label="Toggle score factors">

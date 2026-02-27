@@ -17,6 +17,8 @@ const state = {
   loading: false,
   error: null,
   excludeIds: [],
+  rankedQueue: [],       // V7: Pre-computed top-N results for instant "Try Again"
+  rankedQueueIndex: 0,   // V7: Current position in ranked queue
   theme: { culture: 'neutral', mode: 'light' },
   colorMode: 'auto', // 'auto' = auto-theme active, 'off' = Studio locked
   soundEnabled: false,
@@ -60,6 +62,8 @@ export function resetState() {
     loading: false,
     error: null,
     excludeIds: [],
+    rankedQueue: [],
+    rankedQueueIndex: 0,
     pendingFeedback: null,
   });
 }

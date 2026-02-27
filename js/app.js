@@ -876,10 +876,46 @@ function wireEvents() {
           if (!exclude.includes(prevId)) exclude.push(prevId);
           setState({ excludeIds: exclude });
         }
+
+        // V7: Instant "Try Again" from ranked queue
+        const queue = getState().rankedQueue;
+        const qIdx = getState().rankedQueueIndex;
+        if (queue.length > 0 && qIdx < queue.length) {
+          // Serve next result from pre-computed queue — no API call needed
+          const nextResult = queue[qIdx];
+          setState({ rankedQueueIndex: qIdx + 1, result: nextResult });
+
+          // V7: Card swap animation — fade out old, fade in new
+          const $resultCard = document.querySelector('.result-card');
+          animationTimers.forEach(clearTimeout);
+          animationTimers = [];
+
+          if ($resultCard && !REDUCED_MOTION.matches) {
+            $resultCard.classList.add('result-card--swapping-out');
+            setTimeout(() => {
+              $resultCard.classList.remove('result-card--swapping-out');
+              renderResult(nextResult);
+              $resultCard.classList.add('result-card--swapping-in');
+              // Re-trigger score animation for the new result
+              const dondeScore = Math.round(parseFloat(nextResult.donde_match) || 80);
+              const $matchScore = document.getElementById('match-pill-score');
+              if ($matchScore) animateScoreCountUp($matchScore, dondeScore);
+              setTimeout(() => $resultCard.classList.remove('result-card--swapping-in'), 350);
+            }, 250);
+          } else {
+            renderResult(nextResult);
+            const dondeScore = Math.round(parseFloat(nextResult.donde_match) || 80);
+            const $matchScore = document.getElementById('match-pill-score');
+            if ($matchScore) animateScoreCountUp($matchScore, dondeScore);
+          }
+          haptic(HAPTICS.reveal);
+          break;
+        }
+
+        // Queue exhausted — fall back to API call
         const MAX_EXCLUDES = 15;
         const currentExcludes = getState().excludeIds.length;
         if (currentExcludes >= MAX_EXCLUDES) {
-          // Exhausted — don't submit, show guidance
           showToast("You've seen all top picks for this search. Try starting over with different cravings!", false);
           break;
         }
@@ -1708,8 +1744,10 @@ async function handleSubmit() {
       price_level: s.priceLevel,
     }, cuisine.icon);
 
+    // V7: Store ranked queue for instant "Try Again"
+    const rankedQueue = Array.isArray(data.ranked_queue) ? data.ranked_queue : [];
     // Set result — triggers orchestrateReveal() via subscription
-    setState({ result: data, loading: false, history: hist });
+    setState({ result: data, loading: false, history: hist, rankedQueue, rankedQueueIndex: 0 });
     renderSmartChips(); // Refresh chips with new history
     renderTasteMemory(); // Refresh taste memory with new entry
     playChime();
@@ -1948,6 +1986,50 @@ function scheduleEdgeHintReplay() {
 function clearEdgeHintTimers() {
   edgeHintTimers.forEach(clearTimeout);
   edgeHintTimers = [];
+}
+
+/* ---- V7: Score Count-Up Animation (reusable) ---- */
+function animateScoreCountUp($el, targetScore) {
+  const $arcFill = document.getElementById('match-pill-arc-fill');
+  const arcLength = Math.PI * 20;
+  if ($arcFill) {
+    $arcFill.style.strokeDasharray = String(arcLength);
+    $arcFill.style.strokeDashoffset = String(arcLength);
+    $arcFill.style.animation = '';
+  }
+  $el.textContent = '0';
+  const REDUCED_MQ = matchMedia('(prefers-reduced-motion: reduce)');
+  if (!REDUCED_MQ.matches) {
+    const duration = 1000; // Slightly faster for Try Again
+    const start = performance.now();
+    const animate = (now) => {
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const current = Math.round(eased * targetScore);
+      $el.textContent = current;
+      const thresholdColor = getScoreThresholdColor(current);
+      $el.style.color = thresholdColor;
+      if ($arcFill) {
+        $arcFill.style.strokeDashoffset = String(arcLength - (current / 100) * arcLength);
+        $arcFill.style.stroke = thresholdColor;
+      }
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else if ($arcFill) {
+        $arcFill.style.animation = 'arcSettle 400ms var(--spring)';
+      }
+    };
+    requestAnimationFrame(animate);
+  } else {
+    $el.textContent = targetScore;
+    const finalColor = getScoreThresholdColor(targetScore);
+    $el.style.color = finalColor;
+    if ($arcFill) {
+      $arcFill.style.strokeDashoffset = String(arcLength - (targetScore / 100) * arcLength);
+      $arcFill.style.stroke = finalColor;
+    }
+  }
 }
 
 /* ---- Result Rendering ---- */
@@ -2283,7 +2365,8 @@ function prepareTier2(data, cuisine) {
     data.scores || {},
     data.scoring || data.scoring_v5 || null,
     null,
-    []
+    [],
+    data.match_narrative || null
   );
 
   // Recommendation is now rendered in Tier 1 (Glance) via donde-blurb
@@ -2387,7 +2470,8 @@ function renderTier2Animations() {
     data.scores || {},
     data.scoring || data.scoring_v5 || null,
     null,
-    animationTimers
+    animationTimers,
+    data.match_narrative || null
   );
 }
 

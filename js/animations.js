@@ -319,11 +319,11 @@ export function renderPetalRadar(scores, timers = []) {
 
 let heroData = null;
 
-export function renderScoreHero(dondeMatch, scores, scoringV2, sentiment, timers = []) {
+export function renderScoreHero(dondeMatch, scores, scoringV2, sentiment, timers = [], matchNarrative = null) {
   const $hero = document.getElementById('score-hero');
   if (!$hero) return;
 
-  heroData = { dondeMatch, scores, scoringV2, sentiment };
+  heroData = { dondeMatch, scores, scoringV2, sentiment, matchNarrative };
 
   // ---- Semicircular Arc Gauge ----
   const pct = Math.round(parseFloat(dondeMatch) || 80);
@@ -398,17 +398,78 @@ export function renderScoreHero(dondeMatch, scores, scoringV2, sentiment, timers
 
   // (Sentiment arc removed — sentiment now lives in reviews-row inline bar)
 
-  // ---- V3: "Strongest" Callout (replaces "Best for") ----
+  // ---- V7: Factor Constellation Rings ----
+  if (scoringV2) {
+    const sv7 = normalizeScoringKeys(scoringV2);
+    const rings = $hero.querySelectorAll('.score-hero__factor-ring');
+    const ringFactors = ['food', 'vibe', 'service', 'reputation', 'convenience'];
+
+    rings.forEach((ring, i) => {
+      const factorKey = ringFactors[i];
+      const score = parseFloat(sv7[factorKey]) || 0;
+      const r = parseFloat(ring.getAttribute('r'));
+      // Semicircle = half circumference
+      const circumference = Math.PI * r;
+      const fillPct = Math.min(score / 10, 1);
+      const targetOffset = circumference * (1 - fillPct);
+
+      // Color tier: green ≥7, neutral 5-6.9, amber <5
+      const tier = score >= 7 ? 'strong' : score >= 5 ? 'mid' : 'weak';
+      ring.setAttribute('data-ring-tier', tier);
+
+      // Set up stroke-dasharray for semicircle
+      ring.style.strokeDasharray = `${circumference} ${circumference}`;
+
+      if (REDUCED.matches) {
+        ring.style.strokeDashoffset = String(targetOffset);
+        ring.style.opacity = '1';
+      } else {
+        // Start fully hidden
+        ring.style.strokeDashoffset = String(circumference);
+        ring.style.opacity = '0';
+        ring.style.setProperty('--ring-circumference', String(circumference));
+        ring.style.setProperty('--ring-target', String(targetOffset));
+
+        // Staggered reveal: 400ms base + 100ms per ring, 800ms each
+        timers.push(setTimeout(() => {
+          ring.style.transition = 'stroke-dashoffset 800ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 400ms ease-out';
+          ring.style.strokeDashoffset = String(targetOffset);
+          ring.style.opacity = '1';
+          // Add subtle pulse after fill completes
+          setTimeout(() => ring.classList.add('score-hero__factor-ring--alive'), 900);
+        }, 400 + i * 100));
+      }
+    });
+  }
+
+  // ---- V7: Match Narrative Callout ----
+  const $narrative = document.getElementById('score-hero-narrative');
+  const matchNarrative = heroData?.matchNarrative || heroData?.scoringV2?.match_narrative;
+  let narrativeShown = false;
+
+  if ($narrative && matchNarrative?.summary) {
+    $narrative.textContent = matchNarrative.summary;
+    $narrative.style.display = '';
+    narrativeShown = true;
+    if (!REDUCED.matches) {
+      timers.push(setTimeout(() => {
+        $narrative.classList.add('score-hero__narrative--visible');
+      }, 1400));
+    } else {
+      $narrative.classList.add('score-hero__narrative--visible');
+    }
+  }
+
+  // ---- V3/V7: "Strongest" Callout (fallback when no narrative) ----
   const $callout = document.getElementById('score-hero-callout');
   const $calloutValue = document.getElementById('score-hero-callout-value');
 
-  if ($callout && $calloutValue && scoringV2) {
+  if ($callout && $calloutValue && scoringV2 && !narrativeShown) {
     // Normalize V3 keys so FACTOR_DIMS always matches
     const sv3 = normalizeScoringKeys(scoringV2);
     const factorEntries = FACTOR_DIMS.filter(d => sv3[d.key] != null);
     if (factorEntries.length > 0) {
       // V6.1: Pick factor with highest weighted contribution (score × weight)
-      // instead of highest raw score — shows what's actually driving the recommendation
       const weights = sv3.weights_used || {};
       const best = factorEntries.reduce((a, b) => {
         const aContrib = (sv3[a.key] || 0) * (parseFloat(weights[a.key]) || 0.2);
@@ -516,13 +577,40 @@ export function renderFactorBars(scoringData, timers = [], restaurantData = null
       : slot.confidence === 'medium' ? '<span class="factor-row__conf factor-row__conf--med" title="Partial data">~</span>'
       : '';
 
+    // V7: Weight badge — compact "28%" next to label
+    const weightBadge = slot.weight != null
+      ? `<span class="factor-row__weight-badge type-data--sm">${slot.weight}%</span>` : '';
+
     row.innerHTML = `
       <span class="factor-row__icon">${svgIcon(slot.icon, 16)}</span>
-      <span class="factor-row__label type-structural">${slot.label}</span>
+      <span class="factor-row__label type-structural">${slot.label}${weightBadge}</span>
       <span class="factor-row__bar">
         <span class="factor-row__bar-fill ${scoreTierClass}" data-width="${pct}"></span>
       </span>
       <span class="factor-row__score type-data--sm">${Math.round(slot.val)}${confIndicator}</span>`;
+
+    // V7: Signal chips — 1-2 key signals from factor_details below the bar
+    const factorDetails = scoring.factor_details?.[slot.key];
+    let signalChipsHtml = '';
+    if (factorDetails && typeof factorDetails === 'object') {
+      const topSignals = Object.entries(factorDetails)
+        .filter(([, sub]) => sub && typeof sub === 'object' && sub.signal)
+        .map(([, sub]) => ({
+          signal: humanizeSignal(sub.signal),
+          pct: sub.max > 0 ? (sub.score / sub.max) * 100 : 0,
+        }))
+        .sort((a, b) => b.pct - a.pct)
+        .slice(0, 2);
+
+      if (topSignals.length > 0) {
+        signalChipsHtml = '<div class="factor-row__signals">' +
+          topSignals.map(s => {
+            const chipClass = s.pct >= 65 ? 'factor-row__signal-chip--strong'
+              : s.pct < 30 ? 'factor-row__signal-chip--weak' : '';
+            return `<span class="factor-row__signal-chip ${chipClass}">${s.signal}</span>`;
+          }).join('') + '</div>';
+      }
+    }
 
     // Drill-down panel (hidden by default)
     const detail = document.createElement('div');
@@ -535,6 +623,12 @@ export function renderFactorBars(scoringData, timers = [], restaurantData = null
     wrapper.className = 'factor-row-wrapper';
     wrapper.setAttribute('role', 'listitem');
     wrapper.appendChild(row);
+    // Append signal chips between bar and drill-down
+    if (signalChipsHtml) {
+      const chipsDiv = document.createElement('div');
+      chipsDiv.innerHTML = signalChipsHtml;
+      wrapper.appendChild(chipsDiv.firstElementChild);
+    }
     wrapper.appendChild(detail);
 
     $list.appendChild(wrapper);
