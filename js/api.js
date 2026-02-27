@@ -145,8 +145,10 @@ export async function fetchRecommendation({ special_request, occasion, neighborh
       throw new Error(data.recommendation || 'Something went wrong. Please try again.');
     }
 
-    // V5: Normalize scoring — prefer scoring_v5, fall back to v4/v3
-    if (data.scoring_v5) {
+    // V7: Normalize scoring — prefer scoring_v7, fall back to v5/v4/v3
+    if (data.scoring_v7) {
+      data.scoring = data.scoring_v7;
+    } else if (data.scoring_v5) {
       data.scoring = data.scoring_v5;
     } else if (data.scoring_v4) {
       data.scoring = data.scoring_v4;
@@ -154,14 +156,23 @@ export async function fetchRecommendation({ special_request, occasion, neighborh
       data.scoring = data.scoring_v3;
     }
 
-    // V5: Parse intent_boost (default to inactive)
+    // V7: Parse intent_boost (default to inactive)
     if (!data.intent_boost) {
       data.intent_boost = { active: false };
     }
 
-    // V5: Parse relaxation_applied (default to empty)
+    // V7: Parse relaxation_applied (default to empty)
     if (!data.relaxation_applied) {
       data.relaxation_applied = null;
+    }
+
+    // V7: Extract ranked queue for instant "Try Again"
+    if (data.ranked_queue && Array.isArray(data.ranked_queue)) {
+      // Normalize scoring for each queue item
+      for (const item of data.ranked_queue) {
+        if (item.scoring_v7) item.scoring = item.scoring_v7;
+        else if (item.scoring_v5) item.scoring = item.scoring_v5;
+      }
     }
 
     return data;

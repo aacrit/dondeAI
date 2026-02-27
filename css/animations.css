@@ -513,6 +513,30 @@
   }
 }
 
+/* ---- V7: Factor Ring Fill (stroke-dashoffset → 0 for semicircle) ---- */
+@keyframes factorRingFill {
+  from { stroke-dashoffset: var(--ring-circumference, 289); opacity: 0.3; }
+  to   { stroke-dashoffset: var(--ring-target, 144); opacity: 1; }
+}
+
+/* ---- V7: Ring Pulse (subtle alive breathing on factor rings) ---- */
+@keyframes ringPulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.7; }
+}
+
+/* ---- V7: Card Swap Out (Try Again instant queue transition) ---- */
+@keyframes cardSwapOut {
+  from { opacity: 1; transform: translateX(0) scale(1); }
+  to   { opacity: 0; transform: translateX(-20px) scale(0.97); }
+}
+
+/* ---- V7: Card Swap In (new result from queue) ---- */
+@keyframes cardSwapIn {
+  from { opacity: 0; transform: translateX(20px) scale(0.97); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+
 /* ---- Reduced Motion: Gentle fallback (100ms linear, not 0ms) ---- */
 @media (prefers-reduced-motion: reduce) {
   .stagger-in > *,
@@ -627,6 +651,22 @@
   .relaxation-notice--dismissing {
     animation: none !important;
     opacity: 0;
+  }
+
+  /* V7: Factor rings + card swap — instant */
+  .score-hero__factor-ring,
+  .score-hero__factor-ring--alive {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+  .score-hero__narrative {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+  .result-card--swapping-out,
+  .result-card--swapping-in {
+    animation-duration: 0ms !important;
   }
 }
 
