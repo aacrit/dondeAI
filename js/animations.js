@@ -407,9 +407,14 @@ export function renderScoreHero(dondeMatch, scores, scoringV2, sentiment, timers
     const sv3 = normalizeScoringKeys(scoringV2);
     const factorEntries = FACTOR_DIMS.filter(d => sv3[d.key] != null);
     if (factorEntries.length > 0) {
-      const best = factorEntries.reduce((a, b) =>
-        (sv3[a.key] || 0) > (sv3[b.key] || 0) ? a : b
-      );
+      // V6.1: Pick factor with highest weighted contribution (score × weight)
+      // instead of highest raw score — shows what's actually driving the recommendation
+      const weights = sv3.weights_used || {};
+      const best = factorEntries.reduce((a, b) => {
+        const aContrib = (sv3[a.key] || 0) * (parseFloat(weights[a.key]) || 0.2);
+        const bContrib = (sv3[b.key] || 0) * (parseFloat(weights[b.key]) || 0.2);
+        return aContrib > bContrib ? a : b;
+      });
       const bestScore = (sv3[best.key] || 0).toFixed(1);
       $calloutValue.textContent = `${best.label} (${bestScore})`;
       $callout.style.display = '';
@@ -506,13 +511,18 @@ export function renderFactorBars(scoringData, timers = [], restaurantData = null
       : slot.val >= 5 ? 'bar-fill--mid'
       : 'bar-fill--weak';
 
+    // V6: Confidence indicator — subtle visual cue when data is incomplete
+    const confIndicator = slot.confidence === 'low' ? '<span class="factor-row__conf factor-row__conf--low" title="Limited data">?</span>'
+      : slot.confidence === 'medium' ? '<span class="factor-row__conf factor-row__conf--med" title="Partial data">~</span>'
+      : '';
+
     row.innerHTML = `
       <span class="factor-row__icon">${svgIcon(slot.icon, 16)}</span>
       <span class="factor-row__label type-structural">${slot.label}</span>
       <span class="factor-row__bar">
         <span class="factor-row__bar-fill ${scoreTierClass}" data-width="${pct}"></span>
       </span>
-      <span class="factor-row__score type-data--sm">${Math.round(slot.val)}</span>`;
+      <span class="factor-row__score type-data--sm">${Math.round(slot.val)}${confIndicator}</span>`;
 
     // Drill-down panel (hidden by default)
     const detail = document.createElement('div');
@@ -583,6 +593,48 @@ export function renderFactorBars(scoringData, timers = [], restaurantData = null
 }
 
 const FACTOR_LABELS = { food: 'Food', vibe: 'Vibe', service: 'Service', reputation: 'Reputation', convenience: 'Convenience' };
+
+/* ---- V6.1: Factor narrative sentence generator ---- */
+function buildFactorNarrative(factorKey, scoring) {
+  const details = scoring.factor_details?.[factorKey];
+  if (!details || typeof details !== 'object') return '';
+
+  const score = parseFloat(scoring[factorKey]) || 0;
+  const conf = scoring.confidence?.[factorKey] || 'high';
+
+  const entries = Object.entries(details)
+    .filter(([, sub]) => sub && typeof sub === 'object' && sub.max > 0)
+    .map(([key, sub]) => ({ key, signal: sub.signal || '', pct: (sub.score / sub.max) * 100 }))
+    .sort((a, b) => b.pct - a.pct);
+
+  if (entries.length === 0) return '';
+
+  const top = entries[0];
+  const topClean = humanizeSignal(top.signal);
+  const strength = score >= 8 ? 'Strong' : score >= 6 ? 'Good' : score >= 4 ? 'Moderate' : 'Limited';
+
+  let text = '';
+  if (factorKey === 'food') {
+    if (topClean.toLowerCase().includes('exact dish')) text = `Exact match on your requested dish, plus solid cuisine alignment.`;
+    else if (topClean.toLowerCase().includes('exact cuisine')) text = `${strength} cuisine fit${entries.length > 1 ? ' with flavor profile alignment' : ''}.`;
+    else text = `${strength} food match based on available menu data.`;
+  } else if (factorKey === 'vibe') {
+    const confNote = conf !== 'high' ? ' (limited atmosphere data)' : '';
+    text = `${strength} atmosphere alignment for your occasion${confNote}.`;
+  } else if (factorKey === 'service') {
+    text = `${strength} service indicators from reviews and profile data.`;
+  } else if (factorKey === 'reputation') {
+    const gSignal = details.google_rating?.signal || details.google?.signal || '';
+    text = gSignal ? `Reputation backed by ${humanizeSignal(gSignal).toLowerCase()}.` : `${strength} reputation score.`;
+  } else if (factorKey === 'convenience') {
+    const dSignal = details.distance?.signal || details.timing?.signal || '';
+    if (dSignal) text = `${humanizeSignal(dSignal)}. ${score >= 7 ? 'Easy to get to.' : 'Worth the trip.'}`;
+    else text = `${strength} convenience for your location.`;
+  }
+
+  if (!text) return '';
+  return `<p class="factor-detail__narrative type-structural">${text}</p>`;
+}
 
 /** Build drill-down HTML for a factor — weight header + rank-based color-coded sub-factor list */
 function buildFactorDetail(factorKey, scoring, slotWeight) {
@@ -660,7 +712,10 @@ function buildFactorDetail(factorKey, scoring, slotWeight) {
     </div>`;
   }
 
-  return `<div class="factor-detail__items">${weightHeader}${items}</div>`;
+  // V6.1: Narrative sentence above sub-factor bars
+  const narrative = buildFactorNarrative(factorKey, scoring);
+
+  return `<div class="factor-detail__items">${weightHeader}${narrative}${items}</div>`;
 }
 
 // Legacy export for backward compat — vibe bars removed in V5

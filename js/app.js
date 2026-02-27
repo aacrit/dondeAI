@@ -2173,6 +2173,12 @@ function renderResult(data) {
   // V5: Relaxation notice — shown above result card when filters were expanded
   renderRelaxationNotice(data);
 
+  // V6.1: Match Reason Headline — WHY this restaurant
+  renderMatchHeadline(data);
+
+  // V6.1: Signal Chips — top matching signals as semantic badges
+  renderSignalChips(data);
+
   // DondeAI Recommendation blurb — the editorial voice in Tier 1
   const $rec = document.getElementById('result-recommendation');
   const $blurb = document.getElementById('donde-blurb');
@@ -2185,6 +2191,8 @@ function renderResult(data) {
       $blurb.classList.toggle('donde-blurb--boosted', !!data.intent_boost?.active);
     }
   }
+
+  // V6.1: Dish match now shown via signal chips — standalone chip removed
 
   // "Why This Spot" removed — user feedback: not accurate, no value
 
@@ -2805,6 +2813,99 @@ function closeLightbox() {
 
 
 /* ---- F2: Open Now badge in quick tags (interactive with hours popout) ---- */
+/* ---- V6: Dish Match Chip ---- */
+function renderDishMatchChip(data) {
+  // Remove any previous chip
+  document.getElementById('dish-match-chip')?.remove();
+
+  // Check if the scoring details indicate a dish match
+  const menuSignal = data.scoring_v5?.factor_details?.food?.menu?.signal;
+  if (!menuSignal || menuSignal === 'No dish match' || menuSignal === 'No menu data' || menuSignal === 'No tag match') return;
+
+  // Only show for positive dish matches
+  if (!menuSignal.includes('match') && !menuSignal.includes('Match')) return;
+
+  // Extract the dish name from the user's request if possible
+  const request = data.user_request || data.special_request || '';
+  const chipText = request.length > 2 ? `Serves ${request}` : menuSignal;
+
+  const chip = document.createElement('span');
+  chip.id = 'dish-match-chip';
+  chip.className = 'dish-match-chip type-data--sm';
+  chip.textContent = chipText;
+  chip.setAttribute('aria-label', `This restaurant matches your request: ${chipText}`);
+
+  // Insert after the blurb
+  const $blurb = document.getElementById('donde-blurb');
+  if ($blurb) {
+    $blurb.insertAdjacentElement('afterend', chip);
+  }
+}
+
+/* ---- V6.1: Match Reason Headline ---- */
+function renderMatchHeadline(data) {
+  const $headline = document.getElementById('match-headline');
+  if (!$headline) return;
+  const headlineText = data.match_headline || '';
+  $headline.textContent = headlineText;
+  $headline.style.display = headlineText ? '' : 'none';
+}
+
+/* ---- V6.1: Signal Chips — top matching signals as semantic badges ---- */
+function renderSignalChips(data) {
+  const $chips = document.getElementById('signal-chips');
+  if (!$chips) return;
+  $chips.innerHTML = '';
+
+  const chips = [];
+  const sv5 = data.scoring_v5 || data.scoring || null;
+  const r = data.restaurant;
+
+  // 1. Cuisine match
+  const foodDetails = sv5?.factor_details?.food;
+  if (foodDetails?.cuisine?.signal && !foodDetails.cuisine.signal.startsWith('No ')) {
+    const cuisineLabel = r.cuisine_type || 'Cuisine';
+    chips.push({ text: foodDetails.cuisine.signal.includes('Exact')
+      ? cuisineLabel + ' \u2713' : cuisineLabel, priority: 10 });
+  }
+
+  // 2. Dish match (V6)
+  const menuSignal = foodDetails?.menu?.signal;
+  if (menuSignal && menuSignal.toLowerCase().includes('match') && !menuSignal.startsWith('No ')) {
+    chips.push({ text: 'Dish Match \u2713', priority: 12 });
+  }
+
+  // 3. Google rating
+  if (r.google_rating && parseFloat(r.google_rating) >= 4.0) {
+    chips.push({ text: parseFloat(r.google_rating).toFixed(1) + '\u2605', priority: 8 });
+  }
+
+  // 4. Open now
+  if (r.opening_hours?.open_now === true) {
+    chips.push({ text: 'Open Now', priority: 6 });
+  }
+
+  // 5. High vibe match — removed: "Great Vibe" chip was redundant with scoring;
+  //    vibe signal is already reflected in the donde match score.
+
+  // Sort by priority (highest first), take top 4
+  chips.sort((a, b) => b.priority - a.priority);
+  const topChips = chips.slice(0, 4);
+
+  if (topChips.length === 0) {
+    $chips.style.display = 'none';
+    return;
+  }
+
+  topChips.forEach(c => {
+    const span = document.createElement('span');
+    span.className = 'signal-chip type-data--sm';
+    span.textContent = c.text;
+    $chips.appendChild(span);
+  });
+  $chips.style.display = '';
+}
+
 /* ---- V5: Intent Boost Badge ---- */
 function renderIntentBoostBadge(data) {
   // Remove any previous boost badge
