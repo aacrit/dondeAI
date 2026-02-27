@@ -4917,3 +4917,134 @@
   }
 }
 
+/* ============================================
+   V6.1: Match Reason Headline
+   ============================================ */
+.match-headline {
+  font-family: var(--font-emotional, 'Playfair Display', serif);
+  font-size: var(--text-base);
+  font-style: italic;
+  font-weight: 400;
+  color: var(--fg2);
+  margin: var(--space-xs) 0 0;
+  padding: 0;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+}
+
+/* V6.1: Progressive reveal for headline */
+.result-card--revealing .match-headline {
+  opacity: 0;
+  transform: translateY(6px);
+  animation: resultSectionIn 300ms var(--ease-out) 350ms forwards;
+}
+
+/* ============================================
+   V6.1: Signal Chips — semantic match badges
+   ============================================ */
+.signal-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs);
+  align-items: center;
+  margin: var(--space-2xs) 0;
+}
+
+.signal-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill, 100px);
+  background: var(--bg3);
+  color: var(--fg2);
+  border: 1px solid var(--border);
+  font-size: 0.7rem;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+/* V6.1: Progressive reveal for signal chips */
+.result-card--revealing .signal-chips {
+  opacity: 0;
+  transform: translateY(6px);
+  animation: resultSectionIn 250ms var(--ease-out) 400ms forwards;
+}
+
+/* ============================================
+   V6.1: Floating Sticky CTA Bar
+   ============================================ */
+.sticky-cta {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 90;
+  display: flex;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  padding-bottom: max(var(--space-sm), env(safe-area-inset-bottom, 0px));
+  background: color-mix(in srgb, var(--bg) 85%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid var(--border);
+  transform: translateY(100%);
+  opacity: 0;
+  transition: transform 350ms var(--ease-out), opacity 350ms var(--ease-out);
+}
+
+.sticky-cta--visible {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.sticky-cta__going {
+  flex: 1.2;
+  padding: var(--space-xs) var(--space-md);
+  font-size: var(--text-sm);
+  gap: var(--space-2xs);
+}
+
+.sticky-cta__again {
+  flex: 0.8;
+  padding: var(--space-xs) var(--space-md);
+  font-size: var(--text-sm);
+}
+
+/* Hide in-card footer CTAs when sticky bar is active */
+body.sticky-cta-active .card-footer__actions,
+body.sticky-cta-active .card-footer__secondary-row {
+  display: none;
+}
+
+/* Pad result card bottom so content isn't hidden behind sticky bar */
+body.sticky-cta-active .result-card {
+  padding-bottom: 80px;
+}
+
+/* ============================================
+   V6.1: Factor Narrative Sentence
+   ============================================ */
+.factor-detail__narrative {
+  font-family: var(--font-structural, 'Inter', sans-serif);
+  font-size: var(--text-xs);
+  font-weight: 400;
+  color: var(--fg2);
+  line-height: 1.5;
+  padding: var(--space-2xs) 0;
+  margin: 0 0 var(--space-2xs);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 30%, transparent);
+  font-style: italic;
+}
+
+/* ============================================
+   V6.1: Visual Cohesion — Tier 1 spacing
+   ============================================ */
+.match-headline + .signal-chips { margin-top: 2px; }
+.signal-chips + .donde-blurb { margin-top: var(--space-xs); }
+.match-headline + .donde-blurb { margin-top: var(--space-xs); }
+
+@media (prefers-reduced-motion: reduce) {
+  .sticky-cta { transition-duration: 0ms; }
+}
+

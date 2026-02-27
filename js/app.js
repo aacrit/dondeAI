@@ -552,6 +552,7 @@ function wireEvents() {
 
     switch (action) {
       case 'reset':
+        hideStickyCta(); // V6.1: Hide sticky CTA before transition
         resetState();
         if ($cravingInput) {
           $cravingInput.value = '';
@@ -580,6 +581,7 @@ function wireEvents() {
         break;
 
       case 'back':
+        hideStickyCta(); // V6.1
         if (currentAbort) currentAbort.abort();
         if (getState().loading) {
           toggleLoading(false);
@@ -2173,6 +2175,12 @@ function renderResult(data) {
   // V5: Relaxation notice — shown above result card when filters were expanded
   renderRelaxationNotice(data);
 
+  // V6.1: Match Reason Headline — WHY this restaurant
+  renderMatchHeadline(data);
+
+  // V6.1: Signal Chips — top matching signals as semantic badges
+  renderSignalChips(data);
+
   // DondeAI Recommendation blurb — the editorial voice in Tier 1
   const $rec = document.getElementById('result-recommendation');
   const $blurb = document.getElementById('donde-blurb');
@@ -2186,8 +2194,7 @@ function renderResult(data) {
     }
   }
 
-  // V6: Dish match chip — confirms the system matched the user's specific dish request
-  renderDishMatchChip(data);
+  // V6.1: Dish match now shown via signal chips — standalone chip removed
 
   // "Why This Spot" removed — user feedback: not accurate, no value
 
@@ -2234,6 +2241,9 @@ function renderResult(data) {
       }
     }, 1100);
   }
+
+  // V6.1: Show floating sticky CTA bar
+  showStickyCta();
 }
 
 /* ---- Pending result data for lazy tier rendering ---- */
@@ -2837,6 +2847,95 @@ function renderDishMatchChip(data) {
   }
 }
 
+/* ---- V6.1: Match Reason Headline ---- */
+function renderMatchHeadline(data) {
+  const $headline = document.getElementById('match-headline');
+  if (!$headline) return;
+  const headlineText = data.match_headline || '';
+  $headline.textContent = headlineText;
+  $headline.style.display = headlineText ? '' : 'none';
+}
+
+/* ---- V6.1: Signal Chips — top matching signals as semantic badges ---- */
+function renderSignalChips(data) {
+  const $chips = document.getElementById('signal-chips');
+  if (!$chips) return;
+  $chips.innerHTML = '';
+
+  const chips = [];
+  const sv5 = data.scoring_v5 || data.scoring || null;
+  const r = data.restaurant;
+
+  // 1. Cuisine match
+  const foodDetails = sv5?.factor_details?.food;
+  if (foodDetails?.cuisine?.signal && !foodDetails.cuisine.signal.startsWith('No ')) {
+    const cuisineLabel = r.cuisine_type || 'Cuisine';
+    chips.push({ text: foodDetails.cuisine.signal.includes('Exact')
+      ? cuisineLabel + ' \u2713' : cuisineLabel, priority: 10 });
+  }
+
+  // 2. Dish match (V6)
+  const menuSignal = foodDetails?.menu?.signal;
+  if (menuSignal && menuSignal.toLowerCase().includes('match') && !menuSignal.startsWith('No ')) {
+    chips.push({ text: 'Dish Match \u2713', priority: 12 });
+  }
+
+  // 3. Google rating
+  if (r.google_rating && parseFloat(r.google_rating) >= 4.0) {
+    chips.push({ text: parseFloat(r.google_rating).toFixed(1) + '\u2605', priority: 8 });
+  }
+
+  // 4. Open now
+  if (r.opening_hours?.open_now === true) {
+    chips.push({ text: 'Open Now', priority: 6 });
+  }
+
+  // 5. High vibe match
+  if (sv5?.vibe != null && parseFloat(sv5.vibe) >= 8) {
+    chips.push({ text: 'Great Vibe', priority: 5 });
+  }
+
+  // Sort by priority (highest first), take top 4
+  chips.sort((a, b) => b.priority - a.priority);
+  const topChips = chips.slice(0, 4);
+
+  if (topChips.length === 0) {
+    $chips.style.display = 'none';
+    return;
+  }
+
+  topChips.forEach(c => {
+    const span = document.createElement('span');
+    span.className = 'signal-chip type-data--sm';
+    span.textContent = c.text;
+    $chips.appendChild(span);
+  });
+  $chips.style.display = '';
+}
+
+/* ---- V6.1: Sticky CTA Bar ---- */
+function showStickyCta() {
+  const $stickyCta = document.getElementById('sticky-cta');
+  if (!$stickyCta) return;
+  $stickyCta.style.display = '';
+  document.body.classList.add('sticky-cta-active');
+  requestAnimationFrame(() => {
+    setTimeout(() => $stickyCta.classList.add('sticky-cta--visible'), 400);
+  });
+}
+
+function hideStickyCta() {
+  const $stickyCta = document.getElementById('sticky-cta');
+  if (!$stickyCta) return;
+  $stickyCta.classList.remove('sticky-cta--visible');
+  document.body.classList.remove('sticky-cta-active');
+  setTimeout(() => {
+    if (!$stickyCta.classList.contains('sticky-cta--visible')) {
+      $stickyCta.style.display = 'none';
+    }
+  }, 350);
+}
+
 /* ---- V5: Intent Boost Badge ---- */
 function renderIntentBoostBadge(data) {
   // Remove any previous boost badge
@@ -3053,6 +3152,18 @@ function updateGoingBtn(restaurantId) {
     $btn.classList.remove('going-btn--done');
     if ($text) $text.textContent = labels.goingHere || "I'm Going Here!";
     $btn.setAttribute('aria-label', labels.goingHere || "I'm Going Here!");
+  }
+  // V6.1: Sync sticky CTA Going button state
+  const $stickyGoing = document.getElementById('sticky-going-btn');
+  if ($stickyGoing) {
+    const $stickyText = $stickyGoing.querySelector('.going-btn__text');
+    if (visited) {
+      $stickyGoing.classList.add('going-btn--done');
+      if ($stickyText) $stickyText.textContent = labels.goingDone || "You're Going!";
+    } else {
+      $stickyGoing.classList.remove('going-btn--done');
+      if ($stickyText) $stickyText.textContent = 'Going Here';
+    }
   }
 }
 
@@ -3442,6 +3553,7 @@ function wireSwipe() {
     // Only allow swipe-right on result to go back to canvas
     if (dx > 0 && step === 1 && (dx > COMPLETE_THRESHOLD || velocity > VELOCITY_THRESHOLD)) {
       haptic(HAPTICS.swipe);
+      hideStickyCta(); // V6.1
       goToStep(0);
       syncFilterPillsToState();
     }
