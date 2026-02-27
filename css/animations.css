@@ -436,11 +436,7 @@
 
 /* ---- Score Bloom Keyframes ---- */
 
-/* Dominant petal breathing — subtle scale pulse */
-@keyframes petal-breathe {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.04); }
-}
+/* V8: petal-breathe removed (petal radar removed) */
 
 /* Arc draw-in — stroke-dashoffset animation */
 @keyframes arcDrawIn {
@@ -513,17 +509,7 @@
   }
 }
 
-/* ---- V7: Factor Ring Fill (stroke-dashoffset → 0 for semicircle) ---- */
-@keyframes factorRingFill {
-  from { stroke-dashoffset: var(--ring-circumference, 289); opacity: 0.3; }
-  to   { stroke-dashoffset: var(--ring-target, 144); opacity: 1; }
-}
-
-/* ---- V7: Ring Pulse (subtle alive breathing on factor rings) ---- */
-@keyframes ringPulse {
-  0%, 100% { opacity: 1; }
-  50%      { opacity: 0.7; }
-}
+/* (V7 factorRingFill + ringPulse keyframes removed — simplified Score Hero) */
 
 /* ---- V7: Card Swap Out (Try Again instant queue transition) ---- */
 @keyframes cardSwapOut {
@@ -653,12 +639,7 @@
     opacity: 0;
   }
 
-  /* V7: Factor rings + card swap — instant */
-  .score-hero__factor-ring,
-  .score-hero__factor-ring--alive {
-    animation: none !important;
-    opacity: 1 !important;
-  }
+  /* V8: Removed constellation rings (no longer in DOM) */
   .score-hero__narrative {
     opacity: 1 !important;
     transform: none !important;

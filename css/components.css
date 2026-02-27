@@ -694,7 +694,7 @@
 }
 
 .tier--leanin.tier--expanded {
-  max-height: 3000px;
+  max-height: none;
   opacity: 1;
   pointer-events: auto;
   padding-top: var(--space-md);
@@ -873,7 +873,7 @@
   -webkit-backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  z-index: var(--z-modal);
+  z-index: var(--z-popout);
   opacity: 0;
   transform: scale(0.95);
   transform-origin: top left;
@@ -1550,36 +1550,7 @@
 
 /* (Sentiment arc removed — sentiment now in reviews-row inline bar) */
 
-/* V7: Factor Constellation Rings — thin concentric semicircular arcs */
-.score-hero__factor-ring {
-  fill: none;
-  stroke: var(--border);
-  stroke-width: 1.5;
-  stroke-linecap: round;
-  opacity: 0;
-  /* Each ring is a semicircle: half of circumference visible */
-  stroke-dasharray: 0;
-  stroke-dashoffset: 0;
-  transform-origin: 100px 110px;
-  /* Clip to upper semicircle (180°) */
-  transform: rotate(180deg);
-}
-
-/* Factor ring color tiers — set by JS via data-ring-tier attribute */
-.score-hero__factor-ring[data-ring-tier="strong"] {
-  stroke: var(--rag-green, hsl(152 60% 42%));
-}
-.score-hero__factor-ring[data-ring-tier="mid"] {
-  stroke: var(--fg3);
-}
-.score-hero__factor-ring[data-ring-tier="weak"] {
-  stroke: var(--rag-amber, hsl(38 95% 60%));
-}
-
-/* Subtle pulse on rings when visible */
-.score-hero__factor-ring--alive {
-  animation: ringPulse 3s ease-in-out infinite;
-}
+/* (V7 Factor Constellation Rings removed — simplified Score Hero) */
 
 /* V7: Match Narrative — one-line "why this match" below verdict */
 .score-hero__narrative {
@@ -4485,141 +4456,7 @@
   padding-top: 1px;
 }
 
-/* ---- Known For: Signature Dishes + Menu Highlights (tertiary, Tier 2) ---- */
-.known-for__toggle {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2xs);
-  padding: 0;
-  margin: 0;
-  border: none;
-  background: none;
-  cursor: pointer;
-  color: var(--fg3);
-  transition: color var(--dur-fast) var(--ease-out);
-}
-
-.known-for__toggle:hover,
-.known-for__toggle:focus-visible {
-  color: var(--fg2);
-}
-
-.known-for__toggle:focus-visible {
-  outline: 2px solid var(--ac);
-  outline-offset: 2px;
-  border-radius: 2px;
-}
-
-.known-for__label {
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.known-for__arrow {
-  display: inline-block;
-  font-size: var(--text-sm);
-  opacity: 0.5;
-  transition: transform var(--dur-fast) var(--ease-out),
-              opacity var(--dur-fast) var(--ease-out);
-}
-
-.known-for__toggle:hover .known-for__arrow {
-  transform: translateX(2px);
-  opacity: 0.7;
-}
-
-.known-for__toggle[aria-expanded="true"] .known-for__arrow {
-  transform: rotate(90deg);
-  opacity: 0.7;
-}
-
-.known-for__detail {
-  padding-top: var(--space-sm);
-  animation: detailSlideIn var(--dur-normal) var(--ease-out);
-}
-
-.known-for__detail[hidden] {
-  display: none;
-}
-
-.known-for__sub-label {
-  display: block;
-  font-size: var(--text-xs);
-  color: var(--fg3);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin-bottom: var(--space-xs);
-}
-
-.known-for__signatures {
-  padding: var(--space-sm) var(--space-md);
-  background: var(--glass-tip, var(--bg2));
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  border: 1px solid var(--border);
-  border-left: 3px solid var(--fg3);
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-}
-
-.known-for__dish {
-  padding: var(--space-2xs) 0;
-}
-
-.known-for__dish + .known-for__dish {
-  border-top: 1px solid var(--border);
-}
-
-.known-for__dish-name {
-  display: block;
-  font-family: var(--font-structural);
-  font-weight: 500;
-  font-size: var(--text-sm);
-  color: var(--fg);
-  line-height: 1.4;
-}
-
-.known-for__dish-why {
-  display: block;
-  font-family: var(--font-structural);
-  font-size: var(--text-xs);
-  color: var(--fg2);
-  line-height: 1.5;
-  margin-top: 1px;
-}
-
-.known-for__menu {
-  margin-top: var(--space-sm);
-}
-
-.known-for__pills {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2xs);
-}
-
-.known-for__pill {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px var(--space-xs);
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-xs);
-  color: var(--fg2);
-  line-height: 1.3;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .known-for__detail { animation: none; }
-  .known-for__arrow { transition: none; }
-  .known-for__toggle { transition: none; }
-}
-
-@media (max-width: 767px) {
-  .known-for__signatures {
-    padding: var(--space-xs) var(--space-sm);
-  }
-}
+/* V8: Known For section removed — merged into cuisine drawer */
 
 /* ---- 1D: Origin Story ---- */
 .origin-story {
