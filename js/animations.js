@@ -506,13 +506,18 @@ export function renderFactorBars(scoringData, timers = [], restaurantData = null
       : slot.val >= 5 ? 'bar-fill--mid'
       : 'bar-fill--weak';
 
+    // V6: Confidence indicator — subtle visual cue when data is incomplete
+    const confIndicator = slot.confidence === 'low' ? '<span class="factor-row__conf factor-row__conf--low" title="Limited data">?</span>'
+      : slot.confidence === 'medium' ? '<span class="factor-row__conf factor-row__conf--med" title="Partial data">~</span>'
+      : '';
+
     row.innerHTML = `
       <span class="factor-row__icon">${svgIcon(slot.icon, 16)}</span>
       <span class="factor-row__label type-structural">${slot.label}</span>
       <span class="factor-row__bar">
         <span class="factor-row__bar-fill ${scoreTierClass}" data-width="${pct}"></span>
       </span>
-      <span class="factor-row__score type-data--sm">${Math.round(slot.val)}</span>`;
+      <span class="factor-row__score type-data--sm">${Math.round(slot.val)}${confIndicator}</span>`;
 
     // Drill-down panel (hidden by default)
     const detail = document.createElement('div');

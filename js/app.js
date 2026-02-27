@@ -2186,6 +2186,9 @@ function renderResult(data) {
     }
   }
 
+  // V6: Dish match chip — confirms the system matched the user's specific dish request
+  renderDishMatchChip(data);
+
   // "Why This Spot" removed — user feedback: not accurate, no value
 
   // F3: Enhanced map navigation tile
@@ -2805,6 +2808,35 @@ function closeLightbox() {
 
 
 /* ---- F2: Open Now badge in quick tags (interactive with hours popout) ---- */
+/* ---- V6: Dish Match Chip ---- */
+function renderDishMatchChip(data) {
+  // Remove any previous chip
+  document.getElementById('dish-match-chip')?.remove();
+
+  // Check if the scoring details indicate a dish match
+  const menuSignal = data.scoring_v5?.factor_details?.food?.menu?.signal;
+  if (!menuSignal || menuSignal === 'No dish match' || menuSignal === 'No menu data' || menuSignal === 'No tag match') return;
+
+  // Only show for positive dish matches
+  if (!menuSignal.includes('match') && !menuSignal.includes('Match')) return;
+
+  // Extract the dish name from the user's request if possible
+  const request = data.user_request || data.special_request || '';
+  const chipText = request.length > 2 ? `Serves ${request}` : menuSignal;
+
+  const chip = document.createElement('span');
+  chip.id = 'dish-match-chip';
+  chip.className = 'dish-match-chip type-data--sm';
+  chip.textContent = chipText;
+  chip.setAttribute('aria-label', `This restaurant matches your request: ${chipText}`);
+
+  // Insert after the blurb
+  const $blurb = document.getElementById('donde-blurb');
+  if ($blurb) {
+    $blurb.insertAdjacentElement('afterend', chip);
+  }
+}
+
 /* ---- V5: Intent Boost Badge ---- */
 function renderIntentBoostBadge(data) {
   // Remove any previous boost badge
