@@ -552,7 +552,6 @@ function wireEvents() {
 
     switch (action) {
       case 'reset':
-        hideStickyCta(); // V6.1: Hide sticky CTA before transition
         resetState();
         if ($cravingInput) {
           $cravingInput.value = '';
@@ -581,7 +580,6 @@ function wireEvents() {
         break;
 
       case 'back':
-        hideStickyCta(); // V6.1
         if (currentAbort) currentAbort.abort();
         if (getState().loading) {
           toggleLoading(false);
@@ -2241,9 +2239,6 @@ function renderResult(data) {
       }
     }, 1100);
   }
-
-  // V6.1: Show floating sticky CTA bar
-  showStickyCta();
 }
 
 /* ---- Pending result data for lazy tier rendering ---- */
@@ -2913,29 +2908,6 @@ function renderSignalChips(data) {
   $chips.style.display = '';
 }
 
-/* ---- V6.1: Sticky CTA Bar ---- */
-function showStickyCta() {
-  const $stickyCta = document.getElementById('sticky-cta');
-  if (!$stickyCta) return;
-  $stickyCta.style.display = '';
-  document.body.classList.add('sticky-cta-active');
-  requestAnimationFrame(() => {
-    setTimeout(() => $stickyCta.classList.add('sticky-cta--visible'), 400);
-  });
-}
-
-function hideStickyCta() {
-  const $stickyCta = document.getElementById('sticky-cta');
-  if (!$stickyCta) return;
-  $stickyCta.classList.remove('sticky-cta--visible');
-  document.body.classList.remove('sticky-cta-active');
-  setTimeout(() => {
-    if (!$stickyCta.classList.contains('sticky-cta--visible')) {
-      $stickyCta.style.display = 'none';
-    }
-  }, 350);
-}
-
 /* ---- V5: Intent Boost Badge ---- */
 function renderIntentBoostBadge(data) {
   // Remove any previous boost badge
@@ -3152,18 +3124,6 @@ function updateGoingBtn(restaurantId) {
     $btn.classList.remove('going-btn--done');
     if ($text) $text.textContent = labels.goingHere || "I'm Going Here!";
     $btn.setAttribute('aria-label', labels.goingHere || "I'm Going Here!");
-  }
-  // V6.1: Sync sticky CTA Going button state
-  const $stickyGoing = document.getElementById('sticky-going-btn');
-  if ($stickyGoing) {
-    const $stickyText = $stickyGoing.querySelector('.going-btn__text');
-    if (visited) {
-      $stickyGoing.classList.add('going-btn--done');
-      if ($stickyText) $stickyText.textContent = labels.goingDone || "You're Going!";
-    } else {
-      $stickyGoing.classList.remove('going-btn--done');
-      if ($stickyText) $stickyText.textContent = 'Going Here';
-    }
   }
 }
 
@@ -3553,7 +3513,6 @@ function wireSwipe() {
     // Only allow swipe-right on result to go back to canvas
     if (dx > 0 && step === 1 && (dx > COMPLETE_THRESHOLD || velocity > VELOCITY_THRESHOLD)) {
       haptic(HAPTICS.swipe);
-      hideStickyCta(); // V6.1
       goToStep(0);
       syncFilterPillsToState();
     }

@@ -381,7 +381,11 @@
                     <div class="result-header">
                       <h2 class="result-name type-emotional--md" id="result-name"></h2>
                       <div class="quick-tags" id="quick-tags"></div>
+                      <!-- V6.1: Signal Chips — inline with tags -->
+                      <div class="signal-chips" id="signal-chips" style="display: none;"></div>
                     </div>
+                    <!-- V6.1: Match Reason Headline — close to name -->
+                    <p class="match-headline type-emotional" id="match-headline" style="display: none;"></p>
                     <p class="result-oneliner type-structural" id="result-oneliner"></p>
                     <div class="quick-actions" id="quick-actions"></div>
                   </div>
@@ -393,12 +397,6 @@
                 <div class="cuisine-mismatch-notice" id="cuisine-mismatch-notice" style="display: none;">
                   <p class="cuisine-mismatch-notice__text type-structural"></p>
                 </div>
-
-                <!-- V6.1: Match Reason Headline -->
-                <p class="match-headline type-emotional" id="match-headline" style="display: none;"></p>
-
-                <!-- V6.1: Signal Chips -->
-                <div class="signal-chips" id="signal-chips" style="display: none;"></div>
 
                 <!-- DondeAI Recommendation — THE editorial voice -->
                 <div class="donde-blurb" id="donde-blurb">
@@ -558,19 +556,6 @@
           <div class="skel-block skel-block--scores"></div>
           <div class="skel-block skel-block--actions"></div>
         </div>
-      </div>
-
-      <!-- V6.1: Floating Sticky CTA Bar -->
-      <div class="sticky-cta" id="sticky-cta" style="display: none;" role="toolbar" aria-label="Quick actions">
-        <button class="sticky-cta__going going-btn type-structural" id="sticky-going-btn" data-action="going" aria-label="I'm going here">
-          <svg class="going-btn__icon" viewBox="0 0 256 256" width="18" height="18" aria-hidden="true">
-            <path fill="currentColor" d="M128,16a88.1,88.1,0,0,0-88,88c0,75.3,80,132.17,83.41,134.55a8,8,0,0,0,9.18,0C136,236.17,216,179.3,216,104A88.1,88.1,0,0,0,128,16Zm0,56a32,32,0,1,1-32,32A32,32,0,0,1,128,72Z"/>
-          </svg>
-          <span class="going-btn__text" data-label="goingHere">Going Here</span>
-        </button>
-        <button class="sticky-cta__again cta-btn cta-btn--secondary type-structural" data-action="try-again" data-label="again">
-          <span class="cta-btn__text">Try Another</span>
-        </button>
       </div>
     </main>
 
