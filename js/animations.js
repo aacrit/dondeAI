@@ -444,11 +444,11 @@ export function renderScoreHero(dondeMatch, scores, scoringV2, sentiment, timers
 
   // ---- V7: Match Narrative Callout ----
   const $narrative = document.getElementById('score-hero-narrative');
-  const matchNarrative = heroData?.matchNarrative || heroData?.scoringV2?.match_narrative;
+  const resolvedNarrative = matchNarrative || heroData?.scoringV2?.match_narrative;
   let narrativeShown = false;
 
-  if ($narrative && matchNarrative?.summary) {
-    $narrative.textContent = matchNarrative.summary;
+  if ($narrative && resolvedNarrative?.summary) {
+    $narrative.textContent = resolvedNarrative.summary;
     $narrative.style.display = '';
     narrativeShown = true;
     if (!REDUCED.matches) {
