@@ -34,6 +34,19 @@ const $toastText = document.getElementById('toast-text');
 const $cursorGlow = document.querySelector('.cursor-glow');
 const $suggestions = document.getElementById('craving-suggestions');
 
+/* ---- Sub-factor labels for score breakdown (6D: score transparency) ---- */
+const SUBFACTOR_LABELS = {
+  cuisine: 'Cuisine Match', menu: 'Menu Match', dietary: 'Dietary Fit',
+  flavor: 'Flavor Match', dish: 'Dish Match',
+  noise: 'Noise Level', lighting: 'Lighting', dress: 'Dress Code',
+  energy: 'Energy Level', music: 'Music', social: 'Conversation',
+  vibeTagMatch: 'Vibe Match',
+  google: 'Google Rating', sentiment: 'Sentiment', awards: 'Awards',
+  community: 'Community',
+  timing: 'Open/Timing', reservation: 'Reservation', wait_time: 'Wait Time',
+  byob: 'BYOB', parking: 'Parking',
+};
+
 /* ---- Haptic Feedback Library ---- */
 function haptic(pattern) {
   if (navigator.vibrate) navigator.vibrate(pattern);
@@ -989,7 +1002,7 @@ function wireEvents() {
       case 'randomize': {
         // Pick random occasion, neighborhood, budget
         const occasions = ['Date Night', 'Group Hangout', 'Family Dinner', 'Business Lunch', 'Solo Dining', 'Special Occasion', 'Treat Myself', 'Adventure', 'Chill Hangout'];
-        const hoods = ['Pilsen', 'Wicker Park', 'Logan Square', 'Lincoln Park', 'West Loop', 'Bucktown', 'Hyde Park', 'Chinatown', 'Little Italy', 'Andersonville', 'River North', 'Old Town', 'Lakeview', 'Fulton Market'];
+        const hoods = ['Pilsen', 'Wicker Park', 'Logan Square', 'Lincoln Park', 'West Loop', 'Bucktown', 'Hyde Park', 'Chinatown', 'Little Italy', 'Andersonville', 'River North', 'Old Town', 'Lakeview', 'Fulton Market', 'Avondale', 'Back of the Yards', 'Bridgeport', 'Bronzeville', 'Edgewater', 'Gold Coast', 'Greektown', 'Humboldt Park', 'Irving Park', 'Lincoln Square', 'Loop', 'North Center', 'Ravenswood', 'Rogers Park', 'South Loop', 'Streeterville', 'Ukrainian Village', 'Uptown', 'Woodlawn'];
         const budgets = ['$', '$$', '$$$', '$$$$'];
         setState({
           occasion: occasions[Math.floor(Math.random() * occasions.length)],
@@ -2619,15 +2632,47 @@ function openTileExpand(tileEl) {
           const googleInline = (d.key === 'reputation' && data.restaurant?.google_rating)
             ? ` <span class="factor-row__google-star" style="color:var(--star-gold)">${svgIcon('starFull', 10)} ${parseFloat(data.restaurant.google_rating).toFixed(1)}</span>`
             : '';
-          return `
-            <div class="tile-expand__dim">
+          // 6D: Check for expandable sub-factor details
+          const details = sv4.factor_details?.[d.key];
+          const hasDetails = details && Object.keys(details).length > 0;
+          const expandCls = hasDetails ? ' tile-expand__dim--expandable' : '';
+          const expandAttr = hasDetails
+            ? ` role="button" tabindex="0" aria-expanded="false" onclick="this.classList.toggle('is-expanded');this.setAttribute('aria-expanded',this.classList.contains('is-expanded'));this.nextElementSibling.hidden=!this.nextElementSibling.hidden" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"`
+            : '';
+          const chevron = hasDetails ? ` <span class="tile-expand__dim-chevron">${svgIcon('chevronRight', 10)}</span>` : '';
+
+          let html = `
+            <div class="tile-expand__dim${expandCls}"${expandAttr}>
               <span class="tile-expand__dim-icon">${svgIcon(d.icon, 14)}</span>
               <span class="tile-expand__dim-label type-data--sm">${d.label}${googleInline}</span>
               <div class="tile-expand__dim-bar">
                 <div class="tile-expand__dim-fill" style="width: ${pctVal}%; background: ${color}"></div>
               </div>
-              <span class="tile-expand__dim-value type-data--sm">${val.toFixed(1)}</span>
+              <span class="tile-expand__dim-value type-data--sm">${val.toFixed(1)}${chevron}</span>
             </div>`;
+
+          // 6D: Render sub-factor rows (hidden by default, revealed on click)
+          if (hasDetails) {
+            const subHtml = Object.entries(details).map(([subKey, sub]) => {
+              const subLabel = SUBFACTOR_LABELS[subKey] || humanizeSnake(subKey);
+              const subScore = Math.min(sub.score || 0, sub.max || 10);
+              const subMax = sub.max || 10;
+              const subPct = subMax > 0 ? (subScore / subMax) * 100 : 0;
+              const subColor = getFactorColor(subMax > 0 ? (subScore / subMax) * 10 : 0);
+              return `
+              <div class="tile-expand__subfactor">
+                <span class="tile-expand__subfactor-label type-data--xs">${subLabel}</span>
+                <div class="tile-expand__subfactor-bar">
+                  <div class="tile-expand__subfactor-fill" style="width: ${subPct}%; background: ${subColor}"></div>
+                </div>
+                <span class="tile-expand__subfactor-score type-data--xs">${subScore}/${subMax}</span>
+                ${sub.signal ? `<span class="tile-expand__subfactor-signal type-data--xs">${sub.signal}</span>` : ''}
+              </div>`;
+            }).join('');
+            html += `<div class="tile-expand__subfactors" hidden>${subHtml}</div>`;
+          }
+
+          return html;
         }).join('');
 
         // V4: Show weight shift reasons if available
@@ -2890,10 +2935,8 @@ function renderSignalChips(data) {
     chips.push({ text: 'Dish Match \u2713', priority: 12 });
   }
 
-  // 3. Google rating
-  if (r.google_rating && parseFloat(r.google_rating) >= 4.0) {
-    chips.push({ text: parseFloat(r.google_rating).toFixed(1) + '\u2605', priority: 8 });
-  }
+  // 3. Google rating — removed: already shown in quick-tags badge + reputation factor inline
+  // (was duplicating rating in 3 places)
 
   // 4. Open now
   if (r.opening_hours?.open_now === true) {
