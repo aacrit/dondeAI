@@ -474,11 +474,11 @@ const QUICK_PICKS = {
 
 /* ---- Match System V5 (0-99 range, weighted factors) ---- */
 const MATCH_WORDS = {
-  88: 'Perfect Match',
-  75: 'Strong Pick',
-  60: 'Solid Option',
+  88: 'Outstanding',
+  75: 'Excellent',
+  60: 'Solid Pick',
   45: 'Worth a Try',
-  0: 'Best Available',
+  0: 'Adventurous',
 };
 const MATCH_THRESHOLDS = [88, 75, 60, 45, 0];
 
