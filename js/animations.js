@@ -407,9 +407,14 @@ export function renderScoreHero(dondeMatch, scores, scoringV2, sentiment, timers
     const sv3 = normalizeScoringKeys(scoringV2);
     const factorEntries = FACTOR_DIMS.filter(d => sv3[d.key] != null);
     if (factorEntries.length > 0) {
-      const best = factorEntries.reduce((a, b) =>
-        (sv3[a.key] || 0) > (sv3[b.key] || 0) ? a : b
-      );
+      // V6.1: Pick factor with highest weighted contribution (score × weight)
+      // instead of highest raw score — shows what's actually driving the recommendation
+      const weights = sv3.weights_used || {};
+      const best = factorEntries.reduce((a, b) => {
+        const aContrib = (sv3[a.key] || 0) * (parseFloat(weights[a.key]) || 0.2);
+        const bContrib = (sv3[b.key] || 0) * (parseFloat(weights[b.key]) || 0.2);
+        return aContrib > bContrib ? a : b;
+      });
       const bestScore = (sv3[best.key] || 0).toFixed(1);
       $calloutValue.textContent = `${best.label} (${bestScore})`;
       $callout.style.display = '';
