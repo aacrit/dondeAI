@@ -1033,6 +1033,15 @@ function wireEvents() {
         break;
       }
 
+      case 'toggle-known-for': {
+        const $detail = document.getElementById('known-for-detail');
+        if (!$detail) break;
+        const isExpanded = btn.getAttribute('aria-expanded') === 'true';
+        btn.setAttribute('aria-expanded', String(!isExpanded));
+        $detail.hidden = isExpanded;
+        break;
+      }
+
       case 'expand-tier-2': {
         const $tier2 = document.getElementById('tier-leanin');
         const isExpanded = btn.getAttribute('aria-expanded') === 'true';
@@ -1951,6 +1960,12 @@ function renderResult(data) {
   const $tellMore = document.getElementById('tell-more-btn');
   if ($tier2) { $tier2.classList.remove('tier--expanded'); $tier2.setAttribute('aria-hidden', 'true'); }
   if ($tellMore) { $tellMore.setAttribute('aria-expanded', 'false'); const t = $tellMore.querySelector('.tell-more-btn__text'); if (t) t.textContent = 'Show More'; }
+
+  // Reset known-for expansion
+  const $knownForToggle = document.querySelector('.known-for__toggle');
+  if ($knownForToggle) $knownForToggle.setAttribute('aria-expanded', 'false');
+  const $knownForDetail = document.getElementById('known-for-detail');
+  if ($knownForDetail) $knownForDetail.hidden = true;
 
   // Cuisine detection (for accent color + auto-theme)
   const cuisine = getCuisineFromResult(data);
@@ -3202,6 +3217,9 @@ function renderDeepContextExtras(data) {
   // Quick Stats ribbon — compact deep-context data strip (includes wow factors)
   renderQuickStats(data);
 
+  // Known For — signature dishes + menu highlights (tertiary, expandable)
+  renderKnownFor(data);
+
   // Origin Story
   const $origin = document.getElementById('origin-story');
   const $originText = document.getElementById('origin-story-text');
@@ -3341,7 +3359,84 @@ function renderQuickStats(data) {
   $stats.style.display = '';
 }
 
+/* ---- Known For: Signature Dishes + Menu Highlights (tertiary, Tier 2) ---- */
+function renderKnownFor(data) {
+  const $knownFor = document.getElementById('known-for');
+  if (!$knownFor) return;
 
+  const dc = data.deep_context;
+  const dishes = dc?.signature_dishes;
+  const highlights = dc?.menu_highlights;
+
+  // Reset toggle state
+  const $detail = document.getElementById('known-for-detail');
+  const $toggle = $knownFor.querySelector('.known-for__toggle');
+  if ($detail) $detail.hidden = true;
+  if ($toggle) $toggle.setAttribute('aria-expanded', 'false');
+
+  if ((!dishes || dishes.length === 0) && (!highlights || highlights.length === 0)) {
+    $knownFor.style.display = 'none';
+    return;
+  }
+
+  // Signature dishes
+  const $sigs = document.getElementById('known-for-signatures');
+  if ($sigs) {
+    $sigs.innerHTML = '';
+    if (dishes && dishes.length > 0) {
+      const label = document.createElement('span');
+      label.className = 'known-for__sub-label type-data--sm';
+      label.textContent = 'Signature Dishes';
+      $sigs.appendChild(label);
+
+      dishes.slice(0, 6).forEach(d => {
+        const entry = document.createElement('div');
+        entry.className = 'known-for__dish';
+        const name = document.createElement('span');
+        name.className = 'known-for__dish-name';
+        name.textContent = d.dish;
+        entry.appendChild(name);
+        if (d.why) {
+          const why = document.createElement('span');
+          why.className = 'known-for__dish-why';
+          why.textContent = d.why;
+          entry.appendChild(why);
+        }
+        $sigs.appendChild(entry);
+      });
+      $sigs.style.display = '';
+    } else {
+      $sigs.style.display = 'none';
+    }
+  }
+
+  // Menu highlights
+  const $menu = document.getElementById('known-for-menu');
+  if ($menu) {
+    $menu.innerHTML = '';
+    if (highlights && highlights.length > 0) {
+      const label = document.createElement('span');
+      label.className = 'known-for__sub-label type-data--sm';
+      label.textContent = 'Popular Items';
+      $menu.appendChild(label);
+
+      const pillsWrap = document.createElement('div');
+      pillsWrap.className = 'known-for__pills';
+      highlights.slice(0, 10).forEach(item => {
+        const pill = document.createElement('span');
+        pill.className = 'known-for__pill';
+        pill.textContent = item;
+        pillsWrap.appendChild(pill);
+      });
+      $menu.appendChild(pillsWrap);
+      $menu.style.display = '';
+    } else {
+      $menu.style.display = 'none';
+    }
+  }
+
+  $knownFor.style.display = '';
+}
 
 /* ---- Culture-Aware Toast Strings ---- */
 function toasts() {
