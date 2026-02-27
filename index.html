@@ -471,6 +471,21 @@
                 <!-- Quick Stats ribbon (compact deep-context data, includes wow factors) -->
                 <div class="quick-stats" id="quick-stats" style="display: none;"></div>
 
+                <!-- What They're Known For: signature dishes + menu highlights (tertiary) -->
+                <div class="known-for" id="known-for" style="display: none;">
+                  <button class="known-for__toggle"
+                          data-action="toggle-known-for"
+                          aria-expanded="false"
+                          aria-controls="known-for-detail">
+                    <span class="known-for__label type-data--sm">What They're Known For</span>
+                    <span class="known-for__arrow" aria-hidden="true">&#8250;</span>
+                  </button>
+                  <div class="known-for__detail" id="known-for-detail" hidden>
+                    <div class="known-for__signatures" id="known-for-signatures"></div>
+                    <div class="known-for__menu" id="known-for-menu"></div>
+                  </div>
+                </div>
+
               </div>
 
               <!-- Show More / Show Less — above the action divider line -->
