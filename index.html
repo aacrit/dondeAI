@@ -447,18 +447,7 @@
                      aria-label="DondeAI Match score detail">
                   <div class="score-hero__gauge">
                     <svg class="score-hero__svg" viewBox="0 0 200 130" aria-hidden="true">
-                      <!-- V7: Factor constellation rings (concentric arcs behind main arc) -->
-                      <circle class="score-hero__factor-ring" data-factor="food"
-                              cx="100" cy="110" r="92" />
-                      <circle class="score-hero__factor-ring" data-factor="vibe"
-                              cx="100" cy="110" r="86" />
-                      <circle class="score-hero__factor-ring" data-factor="service"
-                              cx="100" cy="110" r="80" />
-                      <circle class="score-hero__factor-ring" data-factor="reputation"
-                              cx="100" cy="110" r="74" />
-                      <circle class="score-hero__factor-ring" data-factor="convenience"
-                              cx="100" cy="110" r="68" />
-                      <!-- Main score arc (on top of rings) -->
+                      <!-- Main score arc -->
                       <path class="score-hero__arc-bg" d="M 20 110 A 80 80 0 0 1 180 110" />
                       <path class="score-hero__arc-fill" id="score-hero-arc-fill" d="M 20 110 A 80 80 0 0 1 180 110" />
                     </svg>
@@ -514,21 +503,6 @@
                 <!-- Quick Stats ribbon (compact deep-context data, includes wow factors) -->
                 <div class="quick-stats" id="quick-stats" style="display: none;"></div>
 
-                <!-- What They're Known For: signature dishes + menu highlights (tertiary) -->
-                <div class="known-for" id="known-for" style="display: none;">
-                  <button class="known-for__toggle"
-                          data-action="toggle-known-for"
-                          aria-expanded="false"
-                          aria-controls="known-for-detail">
-                    <span class="known-for__label type-data--sm">What They're Known For</span>
-                    <span class="known-for__arrow" aria-hidden="true">&#8250;</span>
-                  </button>
-                  <div class="known-for__detail" id="known-for-detail" hidden>
-                    <div class="known-for__signatures" id="known-for-signatures"></div>
-                    <div class="known-for__menu" id="known-for-menu"></div>
-                  </div>
-                </div>
-
               </div>
 
               <!-- Show More / Show Less — above the action divider line -->
@@ -582,6 +556,29 @@
               </div>
             </div>
           </div>
+
+          <!-- V8: Cuisine Drawer — bottom sheet (mobile) / anchored panel (desktop) -->
+          <div class="cuisine-drawer" id="cuisine-drawer" role="dialog" aria-label="What they're known for" aria-hidden="true">
+            <div class="cuisine-drawer__header">
+              <span class="cuisine-drawer__cuisine-label type-structural" id="cuisine-drawer-label"></span>
+              <button class="cuisine-drawer__close" data-action="close-cuisine-drawer" aria-label="Close">
+                <svg viewBox="0 0 24 24" width="20" height="20"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              </button>
+            </div>
+            <div class="cuisine-drawer__section" id="cuisine-drawer-dishes" style="display: none;">
+              <span class="cuisine-drawer__section-label type-data--sm">What to Order</span>
+              <div class="cuisine-drawer__dishes"></div>
+            </div>
+            <div class="cuisine-drawer__section" id="cuisine-drawer-highlights" style="display: none;">
+              <span class="cuisine-drawer__section-label type-data--sm">Popular Items</span>
+              <div class="cuisine-drawer__pills"></div>
+            </div>
+            <div class="cuisine-drawer__section" id="cuisine-drawer-flavor" style="display: none;">
+              <span class="cuisine-drawer__section-label type-data--sm">Flavor Profile</span>
+              <div class="cuisine-drawer__flavors"></div>
+            </div>
+          </div>
+          <div class="cuisine-drawer__backdrop" id="cuisine-drawer-backdrop" style="display: none;"></div>
         </section>
 
       </div><!-- /step-track -->

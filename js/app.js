@@ -977,6 +977,26 @@ function wireEvents() {
         break;
       }
 
+      // V8: Cuisine drawer open/close
+      case 'open-cuisine-drawer': {
+        const $drawer = document.getElementById('cuisine-drawer');
+        const $backdrop = document.getElementById('cuisine-drawer-backdrop');
+        if ($drawer && _pendingResultData) {
+          renderCuisineDrawer(_pendingResultData);
+          $drawer.classList.add('cuisine-drawer--open');
+          $drawer.setAttribute('aria-hidden', 'false');
+          if ($backdrop) {
+            $backdrop.style.display = '';
+            requestAnimationFrame(() => $backdrop.classList.add('cuisine-drawer__backdrop--visible'));
+          }
+        }
+        break;
+      }
+      case 'close-cuisine-drawer': {
+        closeCuisineDrawer();
+        break;
+      }
+
       case 'share':
         shareResult();
         break;
@@ -1082,15 +1102,6 @@ function wireEvents() {
         break;
       }
 
-      case 'toggle-known-for': {
-        const $detail = document.getElementById('known-for-detail');
-        if (!$detail) break;
-        const isExpanded = btn.getAttribute('aria-expanded') === 'true';
-        btn.setAttribute('aria-expanded', String(!isExpanded));
-        $detail.hidden = isExpanded;
-        break;
-      }
-
       case 'expand-tier-2': {
         const $tier2 = document.getElementById('tier-leanin');
         const isExpanded = btn.getAttribute('aria-expanded') === 'true';
@@ -1098,6 +1109,18 @@ function wireEvents() {
         if ($tier2) {
           $tier2.classList.toggle('tier--expanded');
           $tier2.setAttribute('aria-hidden', String(isExpanded));
+          // V8: JS-driven height for smooth expand/collapse
+          requestAnimationFrame(() => {
+            if ($tier2.classList.contains('tier--expanded')) {
+              $tier2.style.maxHeight = $tier2.scrollHeight + 'px';
+              $tier2.addEventListener('transitionend', function onEnd() {
+                $tier2.style.maxHeight = 'none';
+                $tier2.removeEventListener('transitionend', onEnd);
+              }, { once: true });
+            } else {
+              $tier2.style.maxHeight = '';
+            }
+          });
         }
         const $btnText = btn.querySelector('.tell-more-btn__text');
         if ($btnText) $btnText.textContent = isExpanded ? 'Show More' : 'Show Less';
@@ -1110,7 +1133,7 @@ function wireEvents() {
           announce('Showing more details');
         } else {
           // Collapsing
-          resetBloomState();
+          if (typeof resetBloomState === 'function') resetBloomState();
         }
         break;
       }
@@ -2047,7 +2070,7 @@ function renderResult(data) {
   const $storyTipEl = document.getElementById('story-tip-text');
   if ($storyTipEl) $storyTipEl._hasRevealed = false;
 
-  // Reset bloom state (petal radar overlay)
+  // Reset bloom state (factor bars)
   resetBloomState();
 
   // Reset tier expansion state — always start at Tier 1 (Glance)
@@ -2055,12 +2078,6 @@ function renderResult(data) {
   const $tellMore = document.getElementById('tell-more-btn');
   if ($tier2) { $tier2.classList.remove('tier--expanded'); $tier2.setAttribute('aria-hidden', 'true'); }
   if ($tellMore) { $tellMore.setAttribute('aria-expanded', 'false'); const t = $tellMore.querySelector('.tell-more-btn__text'); if (t) t.textContent = 'Show More'; }
-
-  // Reset known-for expansion
-  const $knownForToggle = document.querySelector('.known-for__toggle');
-  if ($knownForToggle) $knownForToggle.setAttribute('aria-expanded', 'false');
-  const $knownForDetail = document.getElementById('known-for-detail');
-  if ($knownForDetail) $knownForDetail.hidden = true;
 
   // Cuisine detection (for accent color + auto-theme)
   const cuisine = getCuisineFromResult(data);
@@ -2160,7 +2177,7 @@ function renderResult(data) {
   if ($quickTags) {
     $quickTags.innerHTML = '';
 
-    // Cuisine tag — interactive with "What to Order" popout
+    // V8: Cuisine tag — opens cuisine drawer (replaces badge popout)
     const cuisineLabel = data.deep_context?.cuisine_subcategory || r.cuisine_type;
     if (cuisineLabel) {
       const tag = document.createElement('span');
@@ -2168,30 +2185,9 @@ function renderResult(data) {
       tag.setAttribute('role', 'button');
       tag.setAttribute('tabindex', '0');
       tag.setAttribute('aria-expanded', 'false');
-      tag.setAttribute('aria-haspopup', 'true');
-      tag.setAttribute('data-action', 'toggle-badge-popout');
+      tag.setAttribute('aria-haspopup', 'dialog');
+      tag.setAttribute('data-action', 'open-cuisine-drawer');
       tag.innerHTML = `${svgIcon(cuisine.icon || 'plate', 12)} ${shortenBadgeValue(cuisineLabel)}`;
-      const dishes = data.deep_context?.signature_dishes;
-      if (dishes?.length) {
-        const popout = document.createElement('div');
-        popout.className = 'badge-popout';
-        popout.setAttribute('role', 'tooltip');
-        const title = document.createElement('span');
-        title.className = 'badge-popout__title';
-        title.textContent = 'What to Order';
-        popout.appendChild(title);
-        const pillsWrap = document.createElement('div');
-        pillsWrap.className = 'badge-popout__pills';
-        dishes.slice(0, 4).forEach(d => {
-          const pill = document.createElement('span');
-          pill.className = 'badge-popout__pill badge-popout__pill--dish';
-          pill.textContent = d.dish;
-          if (d.description) pill.title = d.description;
-          pillsWrap.appendChild(pill);
-        });
-        popout.appendChild(pillsWrap);
-        tag.appendChild(popout);
-      }
       $quickTags.appendChild(tag);
     }
 
@@ -2293,7 +2289,14 @@ function renderResult(data) {
   const $rec = document.getElementById('result-recommendation');
   const $blurb = document.getElementById('donde-blurb');
   if ($rec) {
-    const recText = (data.recommendation || '').replace(/\u2014/g, ', ').replace(/ , /g, ', ').replace(/,\s*,/g, ',');
+    let recText = (data.recommendation || '').replace(/\u2014/g, ', ').replace(/ , /g, ', ').replace(/,\s*,/g, ',');
+    // V8: Fallback to match_narrative summary if recommendation is too short (queue item without blurb)
+    if (recText.length < 40 && data.match_narrative?.summary) {
+      recText = data.match_narrative.summary;
+      if (data.match_narrative.key_signals?.length > 0) {
+        recText += ' ' + data.match_narrative.key_signals.join('. ') + '.';
+      }
+    }
     $rec.textContent = recText;
     if ($blurb) {
       $blurb.style.display = recText ? '' : 'none';
@@ -2473,6 +2476,18 @@ function renderTier2Animations() {
     animationTimers,
     data.match_narrative || null
   );
+
+  // V8: Auto-expand factor bars when Tier 2 opens (no separate toggle needed)
+  setTimeout(() => {
+    if (typeof toggleBloom === 'function') {
+      const $hero = document.getElementById('score-hero');
+      if ($hero && !$hero.classList.contains('score-hero--factors-expanded')) {
+        toggleBloom();
+      }
+    } else if (typeof renderFactorBars === 'function') {
+      renderFactorBars(data.scoring || data.scoring_v5, animationTimers, data);
+    }
+  }, 600);
 }
 
 
@@ -2520,6 +2535,10 @@ function positionPopout(badgeEl, popout) {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
   const gap = 6;
+
+  // V8: Account for scroll position of result container
+  const scrollContainer = document.querySelector('.step[data-step="1"]');
+  const scrollOffset = scrollContainer?.scrollTop || 0;
 
   // Horizontal: left-align with badge, then clamp
   let left = br.left;
@@ -3344,8 +3363,8 @@ function renderDeepContextExtras(data) {
   // Quick Stats ribbon — compact deep-context data strip (includes wow factors)
   renderQuickStats(data);
 
-  // Known For — signature dishes + menu highlights (tertiary, expandable)
-  renderKnownFor(data);
+  // V8: Cuisine drawer — signature dishes + menu highlights + flavor (replaces Known For)
+  renderCuisineDrawer(data);
 
   // Origin Story
   const $origin = document.getElementById('origin-story');
@@ -3486,84 +3505,74 @@ function renderQuickStats(data) {
   $stats.style.display = '';
 }
 
-/* ---- Known For: Signature Dishes + Menu Highlights (tertiary, Tier 2) ---- */
-function renderKnownFor(data) {
-  const $knownFor = document.getElementById('known-for');
-  if (!$knownFor) return;
+/* ---- V8: Cuisine Drawer — populates bottom-sheet / anchored panel ---- */
+function renderCuisineDrawer(data) {
+  const dp = data.deep_context || {};
+  const $drawer = document.getElementById('cuisine-drawer');
+  if (!$drawer) return;
 
-  const dc = data.deep_context;
-  const dishes = dc?.signature_dishes;
-  const highlights = dc?.menu_highlights;
-
-  // Reset toggle state
-  const $detail = document.getElementById('known-for-detail');
-  const $toggle = $knownFor.querySelector('.known-for__toggle');
-  if ($detail) $detail.hidden = true;
-  if ($toggle) $toggle.setAttribute('aria-expanded', 'false');
-
-  if ((!dishes || dishes.length === 0) && (!highlights || highlights.length === 0)) {
-    $knownFor.style.display = 'none';
-    return;
-  }
+  // Set cuisine label
+  const $label = document.getElementById('cuisine-drawer-label');
+  if ($label) $label.textContent = data.restaurant?.cuisine_type || 'Cuisine';
 
   // Signature dishes
-  const $sigs = document.getElementById('known-for-signatures');
-  if ($sigs) {
-    $sigs.innerHTML = '';
-    if (dishes && dishes.length > 0) {
-      const label = document.createElement('span');
-      label.className = 'known-for__sub-label type-data--sm';
-      label.textContent = 'Signature Dishes';
-      $sigs.appendChild(label);
-
-      dishes.slice(0, 6).forEach(d => {
-        const entry = document.createElement('div');
-        entry.className = 'known-for__dish';
-        const name = document.createElement('span');
-        name.className = 'known-for__dish-name';
-        name.textContent = d.dish;
-        entry.appendChild(name);
-        if (d.why) {
-          const why = document.createElement('span');
-          why.className = 'known-for__dish-why';
-          why.textContent = d.why;
-          entry.appendChild(why);
-        }
-        $sigs.appendChild(entry);
-      });
-      $sigs.style.display = '';
-    } else {
-      $sigs.style.display = 'none';
-    }
+  const $dishesSection = document.getElementById('cuisine-drawer-dishes');
+  const $dishes = $dishesSection?.querySelector('.cuisine-drawer__dishes');
+  if ($dishes && dp.signature_dishes?.length) {
+    $dishes.innerHTML = dp.signature_dishes.slice(0, 4).map(d =>
+      `<div class="cuisine-drawer__dish">
+        <span class="cuisine-drawer__dish-name type-structural">${d.dish}</span>
+        <span class="cuisine-drawer__dish-why type-data--sm">${d.why || ''}</span>
+      </div>`
+    ).join('');
+    $dishesSection.style.display = '';
+  } else if ($dishesSection) {
+    $dishesSection.style.display = 'none';
   }
 
   // Menu highlights
-  const $menu = document.getElementById('known-for-menu');
-  if ($menu) {
-    $menu.innerHTML = '';
-    if (highlights && highlights.length > 0) {
-      const label = document.createElement('span');
-      label.className = 'known-for__sub-label type-data--sm';
-      label.textContent = 'Popular Items';
-      $menu.appendChild(label);
-
-      const pillsWrap = document.createElement('div');
-      pillsWrap.className = 'known-for__pills';
-      highlights.slice(0, 10).forEach(item => {
-        const pill = document.createElement('span');
-        pill.className = 'known-for__pill';
-        pill.textContent = item;
-        pillsWrap.appendChild(pill);
-      });
-      $menu.appendChild(pillsWrap);
-      $menu.style.display = '';
-    } else {
-      $menu.style.display = 'none';
-    }
+  const $highlightsSection = document.getElementById('cuisine-drawer-highlights');
+  const $pills = $highlightsSection?.querySelector('.cuisine-drawer__pills');
+  if ($pills && dp.menu_highlights?.length) {
+    $pills.innerHTML = dp.menu_highlights.map(item =>
+      `<span class="cuisine-drawer__pill type-data--sm">${item}</span>`
+    ).join('');
+    $highlightsSection.style.display = '';
+  } else if ($highlightsSection) {
+    $highlightsSection.style.display = 'none';
   }
 
-  $knownFor.style.display = '';
+  // Flavor profiles
+  const $flavorSection = document.getElementById('cuisine-drawer-flavor');
+  const $flavors = $flavorSection?.querySelector('.cuisine-drawer__flavors');
+  if ($flavors && dp.flavor_profiles?.length) {
+    $flavors.innerHTML = dp.flavor_profiles.map(f =>
+      `<span class="cuisine-drawer__flavor-tag type-data--sm">${f}</span>`
+    ).join('');
+    $flavorSection.style.display = '';
+  } else if ($flavorSection) {
+    $flavorSection.style.display = 'none';
+  }
 }
+
+/* ---- V8: Close Cuisine Drawer ---- */
+function closeCuisineDrawer() {
+  const $drawer = document.getElementById('cuisine-drawer');
+  const $backdrop = document.getElementById('cuisine-drawer-backdrop');
+  if ($drawer) {
+    $drawer.classList.remove('cuisine-drawer--open');
+    $drawer.setAttribute('aria-hidden', 'true');
+  }
+  if ($backdrop) {
+    $backdrop.classList.remove('cuisine-drawer__backdrop--visible');
+    setTimeout(() => { $backdrop.style.display = 'none'; }, 300);
+  }
+}
+
+// V8: Cuisine drawer backdrop click-to-close
+document.addEventListener('click', (e) => {
+  if (e.target?.id === 'cuisine-drawer-backdrop') closeCuisineDrawer();
+});
 
 /* ---- Culture-Aware Toast Strings ---- */
 function toasts() {

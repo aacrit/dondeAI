@@ -84,17 +84,8 @@ export function animateScoreRing(rawScore) {
   }
 }
 
-/* ---- Petal Radar Chart (Ink Blossom — 6-axis vibe profile) ---- */
+/* ---- Imports ---- */
 import { svgIcon, buildVibeSummary, getScoreThresholdColor, getScoreTier, getFactorColor, humanizeSnake, humanizeSignal } from './utils.js';
-
-const RADAR_DIMS = [
-  { key: 'date_friendly_score',    label: 'Date',     icon: 'heart' },
-  { key: 'group_friendly_score',   label: 'Group',    icon: 'usersThree' },
-  { key: 'family_friendly_score',  label: 'Family',   icon: 'home' },
-  { key: 'business_lunch_score',   label: 'Business', icon: 'briefcase' },
-  { key: 'solo_dining_score',      label: 'Solo',     icon: 'user' },
-  { key: 'hole_in_wall_factor',    label: 'Gem',      icon: 'diamond' },
-];
 
 /** V5 Factor dimensions */
 const FACTOR_DIMS = [
@@ -155,165 +146,8 @@ function normalizeScoringKeys(scoring) {
   return normalized;
 }
 
-function svgEl(tag) {
-  return document.createElementNS('http://www.w3.org/2000/svg', tag);
-}
-
-function buildTeardropPath(cx, cy, angle, length) {
-  const bulbW = Math.max(length * 0.32, 5);
-  const perp = angle + Math.PI / 2;
-  const tipX = cx + length * Math.cos(angle);
-  const tipY = cy + length * Math.sin(angle);
-  const cp1X = cx + length * 0.55 * Math.cos(angle) + bulbW * Math.cos(perp);
-  const cp1Y = cy + length * 0.55 * Math.sin(angle) + bulbW * Math.sin(perp);
-  const cp2X = cx + length * 0.55 * Math.cos(angle) - bulbW * Math.cos(perp);
-  const cp2Y = cy + length * 0.55 * Math.sin(angle) - bulbW * Math.sin(perp);
-  return `M ${cx} ${cy} Q ${cp1X} ${cp1Y} ${tipX} ${tipY} Q ${cp2X} ${cp2Y} ${cx} ${cy} Z`;
-}
-
-export function renderPetalRadar(scores, timers = []) {
-  const $tile = document.getElementById('score-tile-radar');
-  if (!$tile) return;
-
-  const available = RADAR_DIMS.filter(d => {
-    const v = scores[d.key];
-    return v != null && v !== '' && !isNaN(parseFloat(v));
-  });
-
-  if (available.length < 3) {
-    $tile.style.display = 'none';
-    return;
-  }
-  $tile.style.display = '';
-
-  const $svg = document.getElementById('petal-radar');
-  if (!$svg) return;
-
-  const cx = 120, cy = 120;
-  const maxR = 62;
-  const minR = 8;
-  const angleStep = (2 * Math.PI) / 6;
-  const startAngle = -Math.PI / 2;
-
-  // Build slots — all 6 positions, fill data where available
-  const slots = RADAR_DIMS.map(dim => {
-    const found = available.find(a => a.key === dim.key);
-    const val = found ? Math.min(parseFloat(scores[dim.key]) || 0, 10) : 0;
-    return { ...dim, val, hasData: !!found };
-  });
-
-  // Build aria-label with values
-  const ariaDesc = slots.filter(s => s.hasData)
-    .map(s => `${s.label} ${humanizeVibeScore(s.val)}`).join(', ');
-  $tile.setAttribute('aria-label', `Donde Vibe: ${ariaDesc}`);
-
-  // Get SVG groups
-  const gridG = $svg.querySelector('.petal-radar__grid');
-  const axesG = $svg.querySelector('.petal-radar__axes');
-  const petalsG = document.getElementById('petal-radar-petals');
-  const iconsG = document.getElementById('petal-radar-icons');
-  gridG.innerHTML = '';
-  axesG.innerHTML = '';
-  petalsG.innerHTML = '';
-  iconsG.innerHTML = '';
-
-  // Concentric hexagonal guides at 33% and 66%
-  [0.33, 0.66].forEach(pct => {
-    const r = maxR * pct;
-    const pts = [];
-    for (let i = 0; i < 6; i++) {
-      const a = startAngle + i * angleStep;
-      pts.push(`${cx + r * Math.cos(a)},${cy + r * Math.sin(a)}`);
-    }
-    const poly = svgEl('polygon');
-    poly.setAttribute('points', pts.join(' '));
-    poly.classList.add('petal-radar__guide');
-    gridG.appendChild(poly);
-  });
-
-  // Axis lines from center to each vertex
-  for (let i = 0; i < 6; i++) {
-    const a = startAngle + i * angleStep;
-    const line = svgEl('line');
-    line.setAttribute('x1', cx);
-    line.setAttribute('y1', cy);
-    line.setAttribute('x2', cx + maxR * Math.cos(a));
-    line.setAttribute('y2', cy + maxR * Math.sin(a));
-    line.classList.add('petal-radar__axis');
-    axesG.appendChild(line);
-  }
-
-  // Petals
-  slots.forEach((slot, i) => {
-    if (!slot.hasData) return;
-    const angle = startAngle + i * angleStep;
-    const r = minR + (slot.val / 10) * (maxR - minR);
-    const path = svgEl('path');
-    path.setAttribute('d', buildTeardropPath(cx, cy, angle, r));
-    path.classList.add('petal-radar__petal');
-    path.setAttribute('data-dim', slot.key);
-    path.setAttribute('data-value', slot.val.toFixed(1));
-
-    if (!REDUCED.matches) {
-      path.style.transformOrigin = `${cx}px ${cy}px`;
-      path.style.transform = 'scale(0)';
-      path.style.opacity = '0';
-      const delay = 400 + i * 80;
-      timers.push(setTimeout(() => {
-        path.style.transition = 'transform 500ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 300ms ease-out';
-        path.style.transform = 'scale(1)';
-        path.style.opacity = '1';
-      }, delay));
-    }
-    petalsG.appendChild(path);
-  });
-
-  // Icons + labels at axis tips
-  slots.forEach((slot, i) => {
-    if (!slot.hasData) return;
-    const angle = startAngle + i * angleStep;
-    const iconR = maxR + 22;
-    const ix = cx + iconR * Math.cos(angle);
-    const iy = cy + iconR * Math.sin(angle);
-
-    // Icon via foreignObject
-    const fo = svgEl('foreignObject');
-    fo.setAttribute('x', ix - 10);
-    fo.setAttribute('y', iy - 10);
-    fo.setAttribute('width', 20);
-    fo.setAttribute('height', 20);
-    fo.setAttribute('class', 'petal-radar__icon-fo');
-    const div = document.createElement('div');
-    div.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml');
-    div.className = 'petal-radar__icon';
-    div.innerHTML = svgIcon(slot.icon, 16);
-    fo.appendChild(div);
-    iconsG.appendChild(fo);
-
-    // Label text
-    const labelR = maxR + 40;
-    const lx = cx + labelR * Math.cos(angle);
-    const ly = cy + labelR * Math.sin(angle);
-    const text = svgEl('text');
-    text.setAttribute('x', lx);
-    text.setAttribute('y', ly + 3);
-    text.classList.add('petal-radar__label');
-    text.textContent = slot.label;
-    iconsG.appendChild(text);
-  });
-
-  // Creative vibe summary below radar
-  const vibeSummary = buildVibeSummary(scores);
-  if (vibeSummary) {
-    let $topVibe = $tile.querySelector('.score-tile__top-vibe');
-    if (!$topVibe) {
-      $topVibe = document.createElement('span');
-      $topVibe.className = 'score-tile__top-vibe type-structural';
-      $tile.appendChild($topVibe);
-    }
-    $topVibe.textContent = vibeSummary;
-  }
-}
+/* V8: Petal radar removed — occasion scores still available in API response */
+export function renderPetalRadar() {}
 
 /* ---- Score Hero (Semicircular arc gauge) ---- */
 
@@ -398,49 +232,7 @@ export function renderScoreHero(dondeMatch, scores, scoringV2, sentiment, timers
 
   // (Sentiment arc removed — sentiment now lives in reviews-row inline bar)
 
-  // ---- V7: Factor Constellation Rings ----
-  if (scoringV2) {
-    const sv7 = normalizeScoringKeys(scoringV2);
-    const rings = $hero.querySelectorAll('.score-hero__factor-ring');
-    const ringFactors = ['food', 'vibe', 'service', 'reputation', 'convenience'];
-
-    rings.forEach((ring, i) => {
-      const factorKey = ringFactors[i];
-      const score = parseFloat(sv7[factorKey]) || 0;
-      const r = parseFloat(ring.getAttribute('r'));
-      // Semicircle = half circumference
-      const circumference = Math.PI * r;
-      const fillPct = Math.min(score / 10, 1);
-      const targetOffset = circumference * (1 - fillPct);
-
-      // Color tier: green ≥7, neutral 5-6.9, amber <5
-      const tier = score >= 7 ? 'strong' : score >= 5 ? 'mid' : 'weak';
-      ring.setAttribute('data-ring-tier', tier);
-
-      // Set up stroke-dasharray for semicircle
-      ring.style.strokeDasharray = `${circumference} ${circumference}`;
-
-      if (REDUCED.matches) {
-        ring.style.strokeDashoffset = String(targetOffset);
-        ring.style.opacity = '1';
-      } else {
-        // Start fully hidden
-        ring.style.strokeDashoffset = String(circumference);
-        ring.style.opacity = '0';
-        ring.style.setProperty('--ring-circumference', String(circumference));
-        ring.style.setProperty('--ring-target', String(targetOffset));
-
-        // Staggered reveal: 400ms base + 100ms per ring, 800ms each
-        timers.push(setTimeout(() => {
-          ring.style.transition = 'stroke-dashoffset 800ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity 400ms ease-out';
-          ring.style.strokeDashoffset = String(targetOffset);
-          ring.style.opacity = '1';
-          // Add subtle pulse after fill completes
-          setTimeout(() => ring.classList.add('score-hero__factor-ring--alive'), 900);
-        }, 400 + i * 100));
-      }
-    });
-  }
+  // (V7 Factor Constellation Rings removed — simplified Score Hero)
 
   // ---- V7: Match Narrative Callout ----
   const $narrative = document.getElementById('score-hero-narrative');
@@ -923,15 +715,6 @@ export function renderSentimentInline(pos, neu, neg, timers = []) {
 // Keep renderSentimentBar as alias for backward compatibility
 export function renderSentimentBar(pos, neu, neg, timers = []) {
   return renderSentimentInline(pos, neu, neg, timers);
-}
-
-// Humanize vibe score (0-10 scale) — used for vibe dimensions
-function humanizeVibeScore(val) {
-  if (val >= 9) return 'Outstanding';
-  if (val >= 7.5) return 'Strong';
-  if (val >= 5.5) return 'Good';
-  if (val >= 3.5) return 'Moderate';
-  return 'Low';
 }
 
 // Humanize V2 score (0-100 scale) — used for scoring breakdown
