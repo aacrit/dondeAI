@@ -85,7 +85,7 @@ export function animateScoreRing(rawScore) {
 }
 
 /* ---- Imports ---- */
-import { svgIcon, buildVibeSummary, getScoreThresholdColor, getScoreTier, getFactorColor, humanizeSnake, humanizeSignal } from './utils.js';
+import { svgIcon, buildVibeSummary, getScoreThresholdColor, getScoreTier, getFactorColor, humanizeSnake, humanizeSignal, getFactorLabel, strengthDots } from './utils.js';
 
 /** V5 Factor dimensions */
 const FACTOR_DIMS = [
@@ -162,7 +162,8 @@ export function renderScoreHero(dondeMatch, scores, scoringV2, sentiment, timers
   const pct = Math.round(parseFloat(dondeMatch) || 80);
   const $ringFill = document.getElementById('score-hero-ring-fill');
   const $number = document.getElementById('score-hero-number');
-  const $verdict = document.getElementById('score-hero-verdict');
+  const $verdictText = document.getElementById('score-hero-verdict-text');
+  const $signals = document.getElementById('score-hero-signals');
 
   // Full circle: circumference = 2πr where r=52
   const circumference = 2 * Math.PI * 52; // ~326.7
@@ -179,7 +180,7 @@ export function renderScoreHero(dondeMatch, scores, scoringV2, sentiment, timers
       // Start empty
       $ringFill.style.strokeDashoffset = String(circumference);
 
-      const duration = 1200;
+      const duration = 600;
       timers.push(setTimeout(() => {
         const startTime = performance.now();
         function tick(now) {
@@ -202,17 +203,17 @@ export function renderScoreHero(dondeMatch, scores, scoringV2, sentiment, timers
     }
   }
 
-  // Verdict label — fade in after number settles
-  if ($verdict) {
-    const tier = getScoreTier(pct);
-    $verdict.textContent = tier.verdict;
-    $verdict.setAttribute('data-tier', tier.tier);
+  // Verdict text — appears FIRST (above ring) at 100ms
+  const tier = getScoreTier(pct);
+  if ($verdictText) {
+    $verdictText.textContent = tier.verdict;
+    $verdictText.setAttribute('data-tier', tier.tier);
     if (!REDUCED.matches) {
-      $verdict.style.opacity = '0';
       timers.push(setTimeout(() => {
-        $verdict.style.transition = 'opacity 300ms ease-out';
-        $verdict.style.opacity = '1';
-      }, 600));
+        $verdictText.classList.add('score-hero__verdict-text--visible');
+      }, 100));
+    } else {
+      $verdictText.classList.add('score-hero__verdict-text--visible');
     }
   }
 
@@ -243,7 +244,7 @@ export function renderScoreHero(dondeMatch, scores, scoringV2, sentiment, timers
     });
   }
 
-  // Narrative — single line below ring
+  // Narrative — typewriter-reveals after ring completes (300ms delay after ring)
   const $narrative = document.getElementById('score-hero-narrative');
   const resolvedNarrative = matchNarrative || heroData?.scoringV2?.match_narrative;
 
@@ -270,15 +271,38 @@ export function renderScoreHero(dondeMatch, scores, scoringV2, sentiment, timers
       $narrative.textContent = narrativeText;
       $narrative.style.display = '';
       if (!REDUCED.matches) {
+        // 100ms start + 600ms ring + 300ms delay = 1000ms
         timers.push(setTimeout(() => {
           $narrative.classList.add('score-hero__narrative--visible');
-        }, 800));
+        }, 1000));
       } else {
         $narrative.classList.add('score-hero__narrative--visible');
       }
     } else {
       $narrative.style.display = 'none';
     }
+  }
+
+  // Signal pills — stagger in after narrative (max 3)
+  if ($signals && resolvedNarrative?.key_signals) {
+    $signals.innerHTML = '';
+    const signals = resolvedNarrative.key_signals.slice(0, 3);
+    signals.forEach((sig, idx) => {
+      const pill = document.createElement('span');
+      pill.className = 'score-hero__signal-pill';
+      pill.setAttribute('data-idx', String(idx));
+      pill.textContent = sig;
+      $signals.appendChild(pill);
+
+      if (!REDUCED.matches) {
+        // 1000ms (narrative) + 300ms base + 100ms stagger per pill
+        timers.push(setTimeout(() => {
+          pill.classList.add('score-hero__signal-pill--visible');
+        }, 1300 + idx * 100));
+      } else {
+        pill.classList.add('score-hero__signal-pill--visible');
+      }
+    });
   }
 
   // Auto-render factor bars (always visible, no toggle)
@@ -291,8 +315,20 @@ export function renderScoreHero(dondeMatch, scores, scoringV2, sentiment, timers
     }, 900));
   }
 
-  // Celebration glow for exceptional matches (88+)
-  if (!REDUCED.matches && pct >= 88) {
+  // Ring glow halo — scales with score (70+)
+  if (!REDUCED.matches && pct >= 70) {
+    timers.push(setTimeout(() => {
+      const ringWrap = $hero.querySelector('.score-hero__ring-wrap');
+      if (ringWrap) {
+        const glowOpacity = Math.min((pct - 60) / 40, 1) * 0.3;
+        ringWrap.style.boxShadow = `0 0 ${12 + pct * 0.2}px color-mix(in srgb, var(--ac) ${Math.round(glowOpacity * 100)}%, transparent)`;
+        ringWrap.style.borderRadius = '50%';
+      }
+    }, 700));
+  }
+
+  // Celebration glow for exceptional matches (85+)
+  if (!REDUCED.matches && pct >= 85) {
     timers.push(setTimeout(() => {
       const ringWrap = $hero.querySelector('.score-hero__ring-wrap');
       if (ringWrap) {
@@ -363,14 +399,16 @@ export function renderFactorBars(scoringData, timers = [], restaurantData = null
       : slot.val >= 5 ? 'bar-fill--mid'
       : 'bar-fill--weak';
 
-    // Clean: icon | label | bar | score (no badges, no chips)
+    // Clean: icon | label | bar | contextual label | signal sentence
+    const signalText = buildFactorNarrativeText(slot.key, scoring);
     row.innerHTML = `
       <span class="factor-row__icon">${svgIcon(slot.icon, 16)}</span>
       <span class="factor-row__label type-structural">${slot.label}</span>
       <span class="factor-row__bar">
         <span class="factor-row__bar-fill ${scoreTierClass}" data-width="${pct}"></span>
       </span>
-      <span class="factor-row__score type-data--sm">${slot.val.toFixed(1)}</span>`;
+      <span class="factor-row__label-tag">${getFactorLabel(slot.val)}</span>
+      ${signalText ? `<span class="factor-row__signal">${signalText}</span>` : ''}`;
 
     // Drill-down panel (hidden by default, populated on tap)
     const detail = document.createElement('div');
@@ -388,6 +426,8 @@ export function renderFactorBars(scoringData, timers = [], restaurantData = null
 
     // Tap handler: accordion drill-down (Monzo-style)
     row.addEventListener('click', () => {
+      // V9: haptic feedback on factor expand
+      if (navigator.vibrate) navigator.vibrate([15, 10, 15]);
       const isOpen = row.getAttribute('aria-expanded') === 'true';
       // Close all panels first (accordion)
       $list.querySelectorAll('.factor-row').forEach(r => r.setAttribute('aria-expanded', 'false'));
@@ -481,6 +521,14 @@ function buildFactorNarrative(factorKey, scoring) {
   return `<p class="factor-detail__narrative type-structural">${text}</p>`;
 }
 
+/** Extract plain text from factor narrative (no HTML wrapper) */
+function buildFactorNarrativeText(factorKey, scoring) {
+  const html = buildFactorNarrative(factorKey, scoring);
+  if (!html) return '';
+  // Strip the <p> wrapper to get plain text
+  return html.replace(/<p[^>]*>/, '').replace(/<\/p>/, '').trim();
+}
+
 /** Build drill-down HTML for a factor — narrative + rank-based sub-factor list */
 function buildFactorDetail(factorKey, scoring) {
   const details = scoring.factor_details?.[factorKey] || null;
@@ -528,21 +576,86 @@ function buildFactorDetail(factorKey, scoring) {
   let items = '';
   for (const { subKey, sub, pct } of entries) {
     const meta = SUB_META[subKey] || { icon: 'plate', label: humanizeSnake(subKey) };
-    let tierClass = 'factor-detail__row--neutral';
+    let tierClassName = 'neutral';
     if (pct === maxPct && pct >= 65 && entries.length > 1) {
-      tierClass = 'factor-detail__row--helper';
+      tierClassName = 'helper';
     } else if (pct === minPct && pct < detractorThreshold && entries.length > 1) {
-      tierClass = 'factor-detail__row--detractor';
+      tierClassName = 'detractor';
     }
     const cleanSignal = humanizeSignal(sub.signal);
-    items += `<div class="factor-detail__row ${tierClass}">
-      <span class="factor-detail__row-icon">${svgIcon(meta.icon, 12)}</span>
-      <span class="factor-detail__row-label type-structural">${meta.label}</span>
-      <span class="factor-detail__mini-bar">
-        <span class="factor-detail__mini-bar-fill" style="width:${pct.toFixed(0)}%"></span>
-      </span>
-      <span class="factor-detail__row-signal type-structural">${cleanSignal}</span>
+    items += `<div class="factor-detail__signal-row factor-detail__signal-row--${tierClassName}">
+      ${strengthDots(sub.score, sub.max)}
+      <span class="factor-detail__signal-label">${cleanSignal}</span>
     </div>`;
+  }
+
+  // Confidence note when data is limited
+  const conf = scoring.confidence?.[factorKey];
+  if (conf === 'low') {
+    items += '<div class="factor-detail__confidence">Based on limited data</div>';
+  }
+
+  // V9: Deep context integration
+  const dc = _lastRestaurantData?.deep_context;
+  if (dc) {
+    let contextHtml = '';
+
+    if (factorKey === 'food') {
+      // Signature dishes
+      if (dc.signature_dishes?.length > 0) {
+        contextHtml += '<div class="factor-detail__context"><div class="factor-detail__context-header">Known For</div>';
+        dc.signature_dishes.slice(0, 3).forEach(dish => {
+          contextHtml += `<div class="factor-detail__context-item">${dish.dish}${dish.why ? ' — ' + dish.why : ''}</div>`;
+        });
+        contextHtml += '</div>';
+      }
+      // Flavor profiles
+      if (dc.flavor_profiles?.length > 0) {
+        contextHtml += `<div class="factor-detail__context-item">Flavors: ${dc.flavor_profiles.join(', ')}</div>`;
+      }
+    }
+
+    if (factorKey === 'vibe') {
+      if (dc.decor_style) {
+        contextHtml += `<div class="factor-detail__context-item">Décor: ${dc.decor_style}</div>`;
+      }
+      if (dc.music_vibe) {
+        contextHtml += `<div class="factor-detail__context-item">Music: ${dc.music_vibe}</div>`;
+      }
+      if (dc.energy_level != null) {
+        const energyLabel = dc.energy_level >= 7 ? 'Buzzing' : dc.energy_level >= 4 ? 'Lively' : 'Chill';
+        contextHtml += `<div class="factor-detail__context-item">Energy: ${energyLabel}</div>`;
+      }
+      if (dc.conversation_friendliness >= 7) {
+        contextHtml += `<div class="factor-detail__context-item">Great for conversation</div>`;
+      }
+    }
+
+    if (factorKey === 'reputation') {
+      if (dc.awards_recognition?.length > 0) {
+        contextHtml += '<div class="factor-detail__context">';
+        dc.awards_recognition.slice(0, 2).forEach(award => {
+          contextHtml += `<div class="factor-detail__context-item">🏆 ${award}</div>`;
+        });
+        contextHtml += '</div>';
+      }
+      if (dc.chef_notable) {
+        contextHtml += `<div class="factor-detail__context-item">Notable chef</div>`;
+      }
+    }
+
+    if (factorKey === 'convenience') {
+      if (dc.typical_wait_minutes) {
+        contextHtml += `<div class="factor-detail__context-item">Typical wait: ~${dc.typical_wait_minutes} min</div>`;
+      }
+      if (dc.transit_accessibility) {
+        contextHtml += `<div class="factor-detail__context-item">Transit: ${dc.transit_accessibility}</div>`;
+      }
+    }
+
+    if (contextHtml) {
+      items += contextHtml;
+    }
   }
 
   const narrative = buildFactorNarrative(factorKey, scoring);

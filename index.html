@@ -145,7 +145,7 @@
       <div class="step-track">
 
         <!-- ========== VIEW 0: The Canvas ========== -->
-        <section class="step" data-step="0" aria-label="What are you craving?">
+        <section class="step canvas-layout canvas-layout--minimal" data-step="0" aria-label="What are you craving?">
           <div class="canvas-layout">
             <h1 class="step__title type-emotional--xl" data-label="greeting">
               Good evening, what sounds good?
@@ -174,12 +174,12 @@
               <div class="craving-suggestions" id="craving-suggestions" role="listbox" aria-label="Search suggestions" hidden></div>
             </div>
 
-            <div class="smart-chips" aria-label="Quick suggestions">
+            <div class="smart-chips" data-reveal="engaged" aria-label="Quick suggestions">
               <!-- Rendered dynamically by renderSmartChips() -->
             </div>
 
             <!-- F14: Surprise Me shortcut -->
-            <button class="surprise-btn type-structural" data-action="surprise-me" aria-label="Surprise me with a recommendation">
+            <button class="surprise-btn type-structural" data-reveal="engaged" data-action="surprise-me" aria-label="Surprise me with a recommendation">
               <svg class="surprise-btn__icon" viewBox="0 0 256 256" width="18" height="18" aria-hidden="true">
                 <path fill="currentColor" d="M196.2,132.81l-53.36-19.65L123.19,59.8a11.93,11.93,0,0,0-22.38,0L81.16,113.16,27.8,132.81a11.93,11.93,0,0,0,0,22.38l53.36,19.65,19.65,53.36a11.93,11.93,0,0,0,22.38,0l19.65-53.36,53.36-19.65a11.93,11.93,0,0,0,0-22.38Zm-2.77,14.87L138.35,168a4,4,0,0,0-2.37,2.37l-20.3,55.08a3.92,3.92,0,0,1-7.36,0L88,170.35A4,4,0,0,0,85.65,168l-55.08-20.3a3.92,3.92,0,0,1,0-7.36L85.65,120A4,4,0,0,0,88,117.65l20.3-55.08a3.92,3.92,0,0,1,7.36,0L136,117.65a4,4,0,0,0,2.37,2.37l55.08,20.3a3.92,3.92,0,0,1,0,7.36Z"/>
               </svg>
@@ -187,7 +187,7 @@
             </button>
 
             <!-- Collapsible Filter Drawer -->
-            <div class="filter-drawer">
+            <div class="filter-drawer" data-reveal="engaged">
               <button class="filter-drawer__toggle type-structural" data-action="toggle-filters" aria-expanded="false" aria-controls="filter-content">
                 <svg viewBox="0 0 256 256" width="18" height="18">
                   <path fill="currentColor" d="M40,84H76.29a28,28,0,0,0,55.42,0H216a4,4,0,0,0,0-8H131.71a28,28,0,0,0-55.42,0H40a4,4,0,0,0,0,8Zm64-24A20,20,0,1,1,84,80,20,20,0,0,1,104,60Z"/>
@@ -348,7 +348,7 @@
             </div>
 
             <!-- Taste Memory (recent searches) -->
-            <div class="taste-memory" id="taste-memory" aria-label="Recent searches">
+            <div class="taste-memory" id="taste-memory" data-reveal="returning" aria-label="Recent searches">
               <span class="taste-memory__label type-data--sm">Recent</span>
               <div class="taste-memory__list" id="taste-memory-list">
                 <!-- Populated by renderTasteMemory() -->
@@ -356,13 +356,13 @@
             </div>
 
             <!-- F4: Saved Spots (bookmarks) -->
-            <div class="saved-spots" id="saved-spots" aria-label="Saved restaurants" style="display: none;">
+            <div class="saved-spots" id="saved-spots" data-reveal="returning" aria-label="Saved restaurants" style="display: none;">
               <span class="saved-spots__label type-data--sm">Saved Spots</span>
               <div class="saved-spots__list" id="saved-spots-list"></div>
             </div>
 
             <!-- Visited Spots ("Been Here") -->
-            <div class="visited-spots" id="visited-spots" aria-label="Places you've been" style="display: none;">
+            <div class="visited-spots" id="visited-spots" data-reveal="returning" aria-label="Places you've been" style="display: none;">
               <span class="visited-spots__label type-data--sm">Been Here</span>
               <div class="visited-spots__list" id="visited-spots-list"></div>
             </div>
@@ -441,7 +441,7 @@
               <!-- ══════ TIER 2: LEAN-IN — "Tell me more / Should I go?" ══════ -->
               <div class="tier tier--leanin" id="tier-leanin" aria-hidden="true">
 
-                <!-- Score Hero: Confidence Ring + Factor Bars -->
+                <!-- Score Hero: Verdict-First + Ring Accent + Narrative + Factor Bars -->
                 <div class="score-hero" id="score-hero"
                      role="figure" tabindex="0"
                      aria-label="DondeAI Match score detail">
@@ -454,6 +454,8 @@
                     </svg>
                     <span class="score-hero__tm type-data--sm">Match<sup>™</sup></span>
                   </span>
+                  <!-- V9: Verdict-first — emotional hook before data -->
+                  <span class="score-hero__verdict-text type-emotional" id="score-hero-verdict-text"></span>
                   <div class="score-hero__ring-wrap">
                     <svg class="score-hero__svg" viewBox="0 0 120 120" aria-hidden="true">
                       <circle class="score-hero__ring-bg" cx="60" cy="60" r="52" />
@@ -461,11 +463,13 @@
                     </svg>
                     <div class="score-hero__center">
                       <span class="score-hero__number type-data" id="score-hero-number">0</span>
-                      <span class="score-hero__verdict type-structural" id="score-hero-verdict"></span>
                       <div class="score-hero__dots" id="score-hero-dots" aria-hidden="true"></div>
                     </div>
                   </div>
-                  <p class="score-hero__narrative type-structural" id="score-hero-narrative"></p>
+                  <!-- V9: Narrative — editorial voice below ring -->
+                  <p class="score-hero__narrative type-emotional" id="score-hero-narrative"></p>
+                  <!-- V9: Signal pills — key match reasons -->
+                  <div class="score-hero__signals" id="score-hero-signals"></div>
                   <div class="score-hero__factors" id="factor-bars">
                     <div class="factor-bars__list" id="factor-bars-list" role="list"></div>
                   </div>
@@ -541,6 +545,22 @@
                 </div>
               </div>
             </div>
+          </div>
+
+          <!-- V9: Floating Action Bar — persistent quick actions on scroll -->
+          <div class="floating-bar" id="floating-bar" aria-label="Quick actions" hidden>
+            <a class="floating-bar__action" id="fab-directions" data-action="fab-directions" aria-label="Get directions">
+              <svg viewBox="0 0 256 256" width="20" height="20"><path fill="currentColor" d="M228.64,113.36l-96-96a8,8,0,0,0-11.32,0l-96,96a8,8,0,0,0,0,11.32l96,96a8,8,0,0,0,11.32,0l96-96A8,8,0,0,0,228.64,113.36ZM128,220.69,35.31,128,128,35.31,220.69,128Z"/></svg>
+              <span class="floating-bar__label">Directions</span>
+            </a>
+            <a class="floating-bar__action" id="fab-call" data-action="fab-call" aria-label="Call restaurant" hidden>
+              <svg viewBox="0 0 256 256" width="20" height="20"><path fill="currentColor" d="M222.37,158.46l-47.11-21.11-.13-.06a16,16,0,0,0-15.17,1.4,8.12,8.12,0,0,0-.75.56L134.87,160c-15.42-7.49-31.34-23.29-38.83-38.51l20.78-24.71c.2-.25.39-.5.57-.77a16,16,0,0,0,1.32-15.06l0-.12L97.54,33.64a16,16,0,0,0-16.62-9.52A56.26,56.26,0,0,0,32,80c0,79.4,64.6,144,144,144a56.26,56.26,0,0,0,55.88-48.92A16,16,0,0,0,222.37,158.46Z"/></svg>
+              <span class="floating-bar__label">Call</span>
+            </a>
+            <a class="floating-bar__action" id="fab-reserve" data-action="fab-reserve" aria-label="Make reservation" hidden>
+              <svg viewBox="0 0 256 256" width="20" height="20"><path fill="currentColor" d="M208,32H184V24a8,8,0,0,0-16,0v8H88V24a8,8,0,0,0-16,0v8H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32Zm0,176H48V48H72v8a8,8,0,0,0,16,0V48h80v8a8,8,0,0,0,16,0V48h24Z"/></svg>
+              <span class="floating-bar__label">Reserve</span>
+            </a>
           </div>
 
           <!-- V8: Cuisine Drawer — bottom sheet (mobile) / anchored panel (desktop) -->

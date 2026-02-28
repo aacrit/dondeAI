@@ -1685,10 +1685,36 @@
   border-radius: var(--radius);
 }
 
-/* Confidence Ring container */
+/* V9: Verdict-first — large emotional text ABOVE the ring */
+.score-hero__verdict-text {
+  font-family: var(--font-emotional);
+  font-size: var(--text-xl);
+  color: var(--ac);
+  text-align: center;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 300ms var(--ease-out), transform 300ms var(--ease-out);
+}
+
+.score-hero__verdict-text--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.score-hero__verdict-text[data-tier="mid"] {
+  color: var(--fg2);
+}
+
+.score-hero__verdict-text[data-tier="low"] {
+  color: var(--fg3);
+}
+
+/* Confidence Ring container — V9: smaller, accent role */
 .score-hero__ring-wrap {
   position: relative;
-  width: clamp(120px, 35vw, 160px);
+  width: clamp(80px, 22vw, 100px);
   aspect-ratio: 1;
 }
 
@@ -1728,28 +1754,11 @@
 }
 
 .score-hero__number {
-  font-size: clamp(2rem, 7vw, 2.75rem);
+  font-size: clamp(1.5rem, 5vw, 2rem);
   font-weight: 700;
   color: var(--fg);
   line-height: 1;
   letter-spacing: -0.02em;
-}
-
-.score-hero__verdict {
-  font-size: var(--text-xs);
-  font-weight: 600;
-  color: var(--ac);
-  line-height: 1;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.score-hero__verdict[data-tier="mid"] {
-  color: var(--fg2);
-}
-
-.score-hero__verdict[data-tier="low"] {
-  color: var(--fg3);
 }
 
 /* Factor strength dots — 5 dots below verdict inside ring */
@@ -1775,21 +1784,51 @@
   background: var(--fg3);
 }
 
-/* Narrative — one-line summary below ring */
+/* V9: Narrative — editorial voice below ring, more prominent */
 .score-hero__narrative {
-  font-family: var(--font-structural);
-  font-size: var(--text-xs);
-  color: var(--fg3);
+  font-family: var(--font-emotional);
+  font-size: var(--text-sm);
+  color: var(--fg2);
   text-align: center;
-  max-width: 320px;
-  line-height: 1.4;
+  max-width: 360px;
+  line-height: 1.5;
   opacity: 0;
   transform: translateY(4px);
   transition: opacity 400ms var(--ease-out), transform 400ms var(--ease-out);
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* V9: Signal pills — key match reasons below narrative */
+.score-hero__signals {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  max-width: 360px;
+}
+
+.score-hero__signal-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  font-family: var(--font-structural);
+  font-size: var(--text-xs);
+  color: var(--fg2);
+  background: var(--glass);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill, 100px);
+  opacity: 0;
+  transform: translateY(4px) scale(0.95);
+  transition: opacity 250ms var(--ease-out), transform 250ms var(--spring);
+}
+
+.score-hero__signal-pill--visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
 }
 
 .score-hero__narrative--visible {
@@ -1968,15 +2007,17 @@
 .factor-row-wrapper {
   display: flex;
   flex-direction: column;
+  gap: 2px;
 }
 
-/* Individual factor row — tappable button */
+/* Individual factor row — tappable button — V9: more breathing room */
 .factor-row {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: var(--space-2xs);
-  min-height: 28px;
-  padding: var(--space-2xs) 0;
+  min-height: 32px;
+  padding: var(--space-xs) 0 var(--space-2xs);
   border: none;
   background: none;
   width: 100%;
@@ -2017,9 +2058,9 @@
 
 .factor-row__bar {
   flex: 1;
-  height: 4px;
+  height: 6px;
   background: color-mix(in srgb, var(--bg3) 40%, transparent);
-  border-radius: 2px;
+  border-radius: 3px;
   overflow: hidden;
   min-width: 40px;
 }
@@ -2027,8 +2068,9 @@
 .factor-row__bar-fill {
   display: block;
   height: 100%;
-  border-radius: 2px;
+  border-radius: 3px;
   width: 0%;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--ac) 70%, transparent), var(--ac));
   transition: width 400ms cubic-bezier(.34, 1.56, .64, 1);
 }
 
@@ -2051,13 +2093,19 @@
 .factor-row--weight-mid  .factor-row__icon { color: var(--fg2); }
 .factor-row--weight-low  .factor-row__icon { color: var(--fg3); }
 
-/* Variable bar height (thicker = more important) */
-.factor-row--weight-high .factor-row__bar { height: 6px; border-radius: 3px; }
-.factor-row--weight-mid  .factor-row__bar { height: 4px; border-radius: 2px; }
-.factor-row--weight-low  .factor-row__bar { height: 3px; border-radius: 1.5px; }
-.factor-row--weight-high .factor-row__bar-fill { border-radius: 3px; }
-.factor-row--weight-mid  .factor-row__bar-fill { border-radius: 2px; }
-.factor-row--weight-low  .factor-row__bar-fill { border-radius: 1.5px; }
+/* Variable bar height (thicker = more important) — V9: increased baseline */
+.factor-row--weight-high .factor-row__bar { height: 8px; border-radius: 4px; }
+.factor-row--weight-mid  .factor-row__bar { height: 6px; border-radius: 3px; }
+.factor-row--weight-low  .factor-row__bar { height: 4px; border-radius: 2px; }
+.factor-row--weight-high .factor-row__bar-fill { border-radius: 4px; }
+.factor-row--weight-mid  .factor-row__bar-fill { border-radius: 3px; }
+.factor-row--weight-low  .factor-row__bar-fill { border-radius: 2px; }
+
+/* V9: Highest-weight factor gets subtle left accent */
+.factor-row--weight-high {
+  border-left: 2px solid var(--ac);
+  padding-left: var(--space-2xs);
+}
 
 /* Label + score opacity hierarchy */
 .factor-row--weight-high .factor-row__label { font-weight: 700; }
@@ -2206,6 +2254,133 @@
 }
 [data-mode="dark"] .factor-detail__row--detractor {
   border-left-color: hsl(355, 55%, 60%);
+}
+
+/* V9: Signal pill layout — replaces mini-bars */
+.factor-detail__signal-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 4px 0;
+}
+
+.factor-detail__signal-label {
+  font-family: var(--font-structural);
+  font-size: var(--text-xs);
+  color: var(--fg2);
+  flex: 1;
+  min-width: 0;
+}
+
+.factor-detail__signal-row--helper .factor-detail__signal-label {
+  color: hsl(152, 45%, 38%);
+}
+.factor-detail__signal-row--detractor .factor-detail__signal-label {
+  color: hsl(355, 50%, 45%);
+}
+[data-mode="dark"] .factor-detail__signal-row--helper .factor-detail__signal-label {
+  color: hsl(152, 50%, 55%);
+}
+[data-mode="dark"] .factor-detail__signal-row--detractor .factor-detail__signal-label {
+  color: hsl(355, 55%, 60%);
+}
+
+/* V9: Strength dots — 3-dot score indicator */
+.strength-dots {
+  display: inline-flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.sdot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.sdot--fill { background: var(--ac); }
+.sdot--half { background: linear-gradient(90deg, var(--ac) 50%, var(--border) 50%); }
+.sdot--empty { background: var(--border); }
+
+.sdot--green.sdot--fill { background: hsl(152, 45%, 38%); }
+.sdot--green.sdot--half { background: linear-gradient(90deg, hsl(152, 45%, 38%) 50%, var(--border) 50%); }
+.sdot--amber.sdot--fill { background: hsl(40, 70%, 45%); }
+.sdot--amber.sdot--half { background: linear-gradient(90deg, hsl(40, 70%, 45%) 50%, var(--border) 50%); }
+.sdot--red.sdot--fill { background: hsl(355, 50%, 45%); }
+.sdot--red.sdot--half { background: linear-gradient(90deg, hsl(355, 50%, 45%) 50%, var(--border) 50%); }
+
+[data-mode="dark"] .sdot--green.sdot--fill { background: hsl(152, 50%, 55%); }
+[data-mode="dark"] .sdot--green.sdot--half { background: linear-gradient(90deg, hsl(152, 50%, 55%) 50%, var(--border) 50%); }
+[data-mode="dark"] .sdot--amber.sdot--fill { background: hsl(40, 70%, 55%); }
+[data-mode="dark"] .sdot--amber.sdot--half { background: linear-gradient(90deg, hsl(40, 70%, 55%) 50%, var(--border) 50%); }
+[data-mode="dark"] .sdot--red.sdot--fill { background: hsl(355, 55%, 60%); }
+[data-mode="dark"] .sdot--red.sdot--half { background: linear-gradient(90deg, hsl(355, 55%, 60%) 50%, var(--border) 50%); }
+
+/* V9: Factor narrative — promoted, larger */
+.factor-detail__narrative {
+  font-family: var(--font-structural);
+  font-size: var(--text-sm);
+  color: var(--fg);
+  line-height: 1.5;
+  padding: var(--space-xs) 0 var(--space-sm);
+}
+
+/* V9: Confidence note */
+.factor-detail__confidence {
+  font-family: var(--font-structural);
+  font-size: var(--text-2xs, 10px);
+  color: var(--fg4);
+  font-style: italic;
+  padding-top: var(--space-2xs);
+}
+
+/* V9: Deep context curator notes */
+.factor-detail__context {
+  padding-top: var(--space-xs);
+  border-top: 1px solid color-mix(in srgb, var(--border) 40%, transparent);
+  margin-top: var(--space-xs);
+}
+
+.factor-detail__context-header {
+  font-family: var(--font-structural);
+  font-size: var(--text-2xs, 10px);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--fg4);
+  padding-bottom: 2px;
+}
+
+.factor-detail__context-item {
+  font-family: var(--font-emotional);
+  font-size: var(--text-xs);
+  font-style: italic;
+  color: var(--fg3);
+  padding: 2px 0;
+  line-height: 1.4;
+}
+
+/* V9: Factor bar signal sentence */
+.factor-row__signal {
+  grid-column: 2 / -1;
+  font-family: var(--font-structural);
+  font-size: var(--text-2xs, 10px);
+  color: var(--fg3);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  padding-top: 1px;
+}
+
+/* V9: Factor bar label replaces numeric score */
+.factor-row__label-tag {
+  font-family: var(--font-structural);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--fg2);
+  min-width: 52px;
+  text-align: right;
 }
 
 .factor-detail__weight {
@@ -5069,6 +5244,15 @@
   line-height: 1.3;
 }
 
+/* V9: Caveat signal chip — transparency note for weak spots */
+.signal-chip--caveat {
+  background: transparent;
+  border-color: transparent;
+  color: var(--fg4);
+  font-style: italic;
+  font-size: 0.6rem;
+}
+
 
 /* ============================================
    V6.1: Factor Narrative Sentence
@@ -5089,4 +5273,103 @@
    V6.1: Visual Cohesion — Tier 1 spacing
    ============================================ */
 
+/* ============================================
+   V9: Canvas Progressive Disclosure
+   ============================================ */
+.canvas-layout--minimal [data-reveal="engaged"],
+.canvas-layout--minimal [data-reveal="returning"] {
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+  transition: opacity 400ms var(--ease-out), transform 400ms var(--ease-out);
+}
 
+.canvas-layout--engaged [data-reveal="engaged"] {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.canvas-layout--engaged [data-reveal="returning"] {
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+}
+
+.canvas-layout--returning [data-reveal="engaged"],
+.canvas-layout--returning [data-reveal="returning"] {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .canvas-layout--minimal [data-reveal],
+  .canvas-layout--engaged [data-reveal],
+  .canvas-layout--returning [data-reveal] {
+    transition-duration: 0ms;
+  }
+}
+
+/* ============================================
+   V9: Floating Action Bar
+   ============================================ */
+.floating-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: var(--space-lg);
+  padding: var(--space-sm) var(--space-md);
+  padding-bottom: max(var(--space-sm), env(safe-area-inset-bottom));
+  background: var(--glass);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border-top: 1px solid var(--border);
+  z-index: var(--z-nav, 100);
+  transform: translateY(100%);
+  transition: transform 300ms var(--ease-out);
+}
+
+.floating-bar--visible {
+  transform: translateY(0);
+}
+
+.floating-bar[hidden] {
+  display: none;
+}
+
+.floating-bar__action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: var(--space-xs) var(--space-md);
+  color: var(--fg2);
+  text-decoration: none;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.floating-bar__action:hover {
+  color: var(--ac);
+  background: var(--ac-soft);
+}
+
+.floating-bar__action[hidden] {
+  display: none;
+}
+
+.floating-bar__action svg {
+  flex-shrink: 0;
+}
+
+.floating-bar__label {
+  font-family: var(--font-structural);
+  font-size: var(--text-2xs, 10px);
+  letter-spacing: 0.03em;
+}

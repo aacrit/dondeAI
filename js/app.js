@@ -57,6 +57,8 @@ const HAPTICS = {
   reveal:      [50, 30, 50],           // result reveal
   celebration: [50, 30, 80, 30, 50],   // 90%+ score
   swipe:       [40],                   // swipe completion
+  factorTap:   [15, 10, 15],           // V9: double-tap feel on factor expand
+  signalPop:   [8],                    // V9: micro-tick on signal pill appear
 };
 
 /* ---- AbortController for fetch cancellation ---- */
@@ -107,6 +109,9 @@ function init() {
 
   // Render dynamic smart chips (theme + history aware)
   renderSmartChips();
+
+  // V9: Canvas progressive disclosure — start minimal, reveal on engagement
+  startCanvasDisclosure();
 
   // Render taste memory (recent searches)
   renderTasteMemory();
@@ -190,6 +195,44 @@ function setupLanding() {
     typewriterReveal($greeting, getGreeting(culture));
   }
   startGreetingRotation();
+}
+
+/* ---- V9: Canvas Progressive Disclosure ---- */
+let _canvasPhase = 'minimal';
+let _canvasRevealTimer = null;
+
+function startCanvasDisclosure() {
+  const $step0 = document.querySelector('.step[data-step="0"]');
+  if (!$step0) return;
+
+  _canvasPhase = 'minimal';
+  $step0.classList.add('canvas-layout--minimal');
+  $step0.classList.remove('canvas-layout--engaged', 'canvas-layout--returning');
+
+  // Check if returning user (has history)
+  const { history } = getState();
+  const isReturning = history && history.length > 0;
+
+  // Auto-reveal engaged phase after 2s idle
+  _canvasRevealTimer = setTimeout(() => {
+    setCanvasPhase(isReturning ? 'returning' : 'engaged');
+  }, 2000);
+}
+
+function setCanvasPhase(phase) {
+  const $step0 = document.querySelector('.step[data-step="0"]');
+  if (!$step0 || _canvasPhase === phase) return;
+
+  _canvasPhase = phase;
+  $step0.classList.remove('canvas-layout--minimal', 'canvas-layout--engaged', 'canvas-layout--returning');
+  $step0.classList.add(`canvas-layout--${phase}`);
+}
+
+function onCanvasEngaged() {
+  if (_canvasPhase !== 'minimal') return;
+  if (_canvasRevealTimer) clearTimeout(_canvasRevealTimer);
+  const { history } = getState();
+  setCanvasPhase(history && history.length > 0 ? 'returning' : 'engaged');
 }
 
 /* ---- Typewriter Reveal (handwritten entrance) ---- */
@@ -583,6 +626,7 @@ function wireEvents() {
         renderTasteMemory();
         renderSavedSpots();
         goToStep(0);
+        startCanvasDisclosure(); // V9: Reset canvas phases
         updateCtaState();
         updateFilterSummary();
         // Collapse filter drawer
@@ -590,6 +634,7 @@ function wireEvents() {
         // Revert auto-theme and re-enable auto-detection
         revertAutoTheme();
         setManualOverride(false);
+        hideFloatingBar(); // V9: Hide floating bar on reset
         break;
 
       case 'back':
@@ -1103,37 +1148,11 @@ function wireEvents() {
       }
 
       case 'expand-tier-2': {
-        const $tier2 = document.getElementById('tier-leanin');
-        const isExpanded = btn.getAttribute('aria-expanded') === 'true';
-        btn.setAttribute('aria-expanded', String(!isExpanded));
-        if ($tier2) {
-          $tier2.classList.toggle('tier--expanded');
-          $tier2.setAttribute('aria-hidden', String(isExpanded));
-          // V8: JS-driven height for smooth expand/collapse
-          requestAnimationFrame(() => {
-            if ($tier2.classList.contains('tier--expanded')) {
-              $tier2.style.maxHeight = $tier2.scrollHeight + 'px';
-              $tier2.addEventListener('transitionend', function onEnd() {
-                $tier2.style.maxHeight = 'none';
-                $tier2.removeEventListener('transitionend', onEnd);
-              }, { once: true });
-            } else {
-              $tier2.style.maxHeight = '';
-            }
-          });
-        }
-        const $btnText = btn.querySelector('.tell-more-btn__text');
-        if ($btnText) $btnText.textContent = isExpanded ? 'Show More' : 'Show Less';
-        if (!isExpanded) {
-          renderTier2Animations();
-          // Scroll to Score Hero (same behavior as Match Mini tap)
-          setTimeout(() => {
-            document.getElementById('score-hero')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          }, 200);
-          announce('Showing more details');
-        } else {
-          // Collapsing
-          if (typeof resetBloomState === 'function') resetBloomState();
+        // V9: Scroll-based reveal — scroll to Tier 2, IntersectionObserver handles visibility
+        const $scoreHero = document.getElementById('score-hero');
+        if ($scoreHero) {
+          $scoreHero.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          announce('Showing score breakdown');
         }
         break;
       }
@@ -1148,17 +1167,12 @@ function wireEvents() {
     }
   });
 
-  // Match Mini tap → toggle Tier 2 and scroll to Score Hero
+  // V9: Match Mini tap → scroll to Score Hero (Tier 2 reveals via IntersectionObserver)
   document.getElementById('match-pill')?.addEventListener('click', () => {
-    const $tellMore = document.getElementById('tell-more-btn');
-    if ($tellMore) {
-      $tellMore.click(); // Always toggle — expand-tier-2 handler manages state
-    }
-    // Only scroll to Score Hero when expanding (after the click has toggled state)
-    if ($tellMore && $tellMore.getAttribute('aria-expanded') === 'true') {
-      setTimeout(() => {
-        document.getElementById('score-hero')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }, 200);
+    const $scoreHero = document.getElementById('score-hero');
+    if ($scoreHero) {
+      $scoreHero.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
     }
     haptic(HAPTICS.tick);
   });
@@ -1422,6 +1436,8 @@ function wireCravingInput() {
   if (!$cravingInput) return;
 
   $cravingInput.addEventListener('input', () => {
+    // V9: Engagement trigger for canvas disclosure
+    onCanvasEngaged();
     setState({ craving: $cravingInput.value });
     updateCtaState();
     clearEmptyState();
@@ -2303,6 +2319,9 @@ function renderResult(data) {
   // F3: Enhanced map navigation tile
   renderMapPreview(data);
 
+  // V9: Floating Action Bar — populate and wire
+  renderFloatingBar(data);
+
   // Inject icons into glance action buttons
   const $tryAgainIcon = document.getElementById('try-again-icon');
   if ($tryAgainIcon) $tryAgainIcon.innerHTML = svgIcon('refresh', 18);
@@ -2322,10 +2341,15 @@ function renderResult(data) {
   _pendingResultData = data;
   _pendingCuisine = cuisine;
 
-  // Pre-populate Tier 2 content (DOM ready, just hidden)
+  // Pre-populate Tier 2 content (DOM ready, revealed on scroll)
   prepareTier2(data, cuisine);
 
-  // Apply progressive reveal (Tier 1 only — Tier 2 animates on expand)
+  // V9: Set up scroll-based Tier 2 reveal
+  setupTier2ScrollReveal();
+  // V9: Photo parallax depth effect
+  setupPhotoParallax();
+
+  // Apply progressive reveal (Tier 1 only — Tier 2 animates on scroll)
   if ($resultCard) {
     $resultCard.classList.remove('card-enter', 'result-card--revealing');
     void $resultCard.offsetWidth;
@@ -2345,6 +2369,85 @@ function renderResult(data) {
   }
 }
 
+/* ---- V9: Tier 2 Scroll-Based Reveal (IntersectionObserver) ---- */
+let _tier2Observer = null;
+
+function setupTier2ScrollReveal() {
+  // Disconnect previous observer
+  if (_tier2Observer) _tier2Observer.disconnect();
+
+  const $tier2 = document.getElementById('tier-leanin');
+  if (!$tier2) return;
+
+  // V9: Make Tier 2 visible (no longer hidden/toggled)
+  $tier2.setAttribute('aria-hidden', 'false');
+  $tier2.classList.add('tier--expanded');
+  $tier2.style.maxHeight = 'none';
+
+  // Observe direct children for scroll-based fade-in
+  const children = $tier2.querySelectorAll(':scope > *');
+  if (children.length === 0) return;
+
+  // Mark all children as pending reveal
+  children.forEach(child => {
+    child.classList.remove('tier-revealed');
+    child.style.opacity = '0';
+    child.style.transform = 'translateY(16px)';
+    child.style.transition = 'opacity 500ms var(--ease-out, ease-out), transform 500ms var(--ease-out, ease-out)';
+  });
+
+  let revealedCount = 0;
+  _tier2Observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry, idx) => {
+      if (entry.isIntersecting && !entry.target.classList.contains('tier-revealed')) {
+        // Stagger reveal
+        const delay = revealedCount * 100;
+        revealedCount++;
+        setTimeout(() => {
+          entry.target.classList.add('tier-revealed');
+          entry.target.style.opacity = '1';
+          entry.target.style.transform = 'translateY(0)';
+          // Trigger Score Hero animations if this is the score-hero element
+          if (entry.target.id === 'score-hero') {
+            renderTier2Animations();
+          }
+        }, delay);
+        _tier2Observer.unobserve(entry.target);
+      }
+    });
+  }, {
+    threshold: 0.1,
+    rootMargin: '0px 0px -30px 0px'
+  });
+
+  children.forEach(child => _tier2Observer.observe(child));
+}
+
+/* ---- V9: Photo Parallax on Scroll ---- */
+let _parallaxRaf = null;
+function setupPhotoParallax() {
+  if (_parallaxRaf) cancelAnimationFrame(_parallaxRaf);
+  const $photos = document.getElementById('result-photos');
+  if (!$photos) return;
+  // Respect reduced-motion preference
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  $photos.classList.add('result-photos--parallax');
+  const handler = () => {
+    _parallaxRaf = requestAnimationFrame(() => {
+      const rect = $photos.getBoundingClientRect();
+      if (rect.bottom < 0 || rect.top > window.innerHeight) return;
+      const shift = Math.round(rect.top * -0.15);
+      $photos.style.setProperty('--parallax-y', `${shift}px`);
+    });
+  };
+  window.addEventListener('scroll', handler, { passive: true });
+  // Store cleanup reference
+  $photos._parallaxCleanup = () => {
+    window.removeEventListener('scroll', handler);
+    if (_parallaxRaf) cancelAnimationFrame(_parallaxRaf);
+  };
+}
+
 /* ---- Pending result data for lazy tier rendering ---- */
 let _pendingResultData = null;
 let _pendingCuisine = null;
@@ -2353,7 +2456,7 @@ let _pendingCuisine = null;
 function prepareTier2(data, cuisine) {
   const r = data.restaurant;
 
-  // Score Hero arc — populate but don't animate yet (animations triggered on expand)
+  // Score Hero arc — populate but don't animate yet (animations triggered on scroll reveal)
   renderScoreHero(
     data.donde_match,
     data.scores || {},
@@ -2993,7 +3096,7 @@ function renderMatchHeadline(data) {
   $headline.style.display = headlineText ? '' : 'none';
 }
 
-/* ---- V6.1: Signal Chips — top matching signals as semantic badges ---- */
+/* ---- V9: Signal Chips — match narrative + scoring signals as semantic badges ---- */
 function renderSignalChips(data) {
   const $chips = document.getElementById('signal-chips');
   if (!$chips) return;
@@ -3002,27 +3105,47 @@ function renderSignalChips(data) {
   const chips = [];
   const sv5 = data.scoring_v5 || data.scoring || null;
   const r = data.restaurant;
+  const narrative = data.match_narrative;
 
-  // 1. Cuisine match
+  // V9: Primary source — match_narrative.key_signals (most relevant)
+  if (narrative?.key_signals?.length > 0) {
+    narrative.key_signals.slice(0, 3).forEach((signal, i) => {
+      chips.push({ text: signal, priority: 15 - i });
+    });
+  }
+
+  // Supplementary signals from scoring data (lower priority, fills gaps)
   const foodDetails = sv5?.factor_details?.food;
+
+  // Cuisine match (if not already in key_signals)
   if (foodDetails?.cuisine?.signal && !foodDetails.cuisine.signal.startsWith('No ')) {
     const cuisineLabel = r.cuisine_type || 'Cuisine';
-    chips.push({ text: foodDetails.cuisine.signal.includes('Exact')
-      ? cuisineLabel + ' \u2713' : cuisineLabel, priority: 10 });
+    const cuisineText = foodDetails.cuisine.signal.includes('Exact')
+      ? cuisineLabel + ' \u2713' : cuisineLabel;
+    if (!chips.some(c => c.text.toLowerCase().includes('cuisine'))) {
+      chips.push({ text: cuisineText, priority: 10 });
+    }
   }
 
-  // 2. Dish match (V6)
+  // Dish match
   const menuSignal = foodDetails?.menu?.signal;
   if (menuSignal && menuSignal.toLowerCase().includes('match') && !menuSignal.startsWith('No ')) {
-    chips.push({ text: 'Dish Match \u2713', priority: 12 });
+    if (!chips.some(c => c.text.toLowerCase().includes('dish'))) {
+      chips.push({ text: 'Dish Match \u2713', priority: 12 });
+    }
   }
 
-  // 3. Google rating — removed: already shown in quick-tags badge + reputation factor inline
-  // (was duplicating rating in 3 places)
-
-  // 4. Open now
+  // Open now
   if (r.opening_hours?.open_now === true) {
-    chips.push({ text: 'Open Now', priority: 6 });
+    if (!chips.some(c => c.text.toLowerCase().includes('open'))) {
+      chips.push({ text: 'Open Now', priority: 6 });
+    }
+  }
+
+  // V9: Awards (from deep_context — promote top award)
+  const topAward = data.deep_context?.awards_recognition?.[0];
+  if (topAward && !chips.some(c => c.text === topAward)) {
+    chips.push({ text: topAward, priority: 8 });
   }
 
   // 5. High vibe match — removed: "Great Vibe" chip was redundant with scoring;
@@ -3043,6 +3166,15 @@ function renderSignalChips(data) {
     span.textContent = c.text;
     $chips.appendChild(span);
   });
+
+  // V9: Weak spots — subtle transparency note
+  if (narrative?.weak_spots?.length > 0) {
+    const note = document.createElement('span');
+    note.className = 'signal-chip signal-chip--caveat type-data--sm';
+    note.textContent = narrative.weak_spots[0];
+    $chips.appendChild(note);
+  }
+
   $chips.style.display = '';
 }
 
@@ -3195,6 +3327,83 @@ function renderMapPreview(data) {
       <span class="glance-nav__cta type-structural">Directions ${svgIcon('chevronRight', 16)}</span>
     </a>`;
   $glanceNav.style.display = '';
+}
+
+/* ---- V9: Floating Action Bar ---- */
+let _fabObserver = null;
+
+function renderFloatingBar(data) {
+  const $fab = document.getElementById('floating-bar');
+  if (!$fab) return;
+
+  const r = data.restaurant;
+
+  // Populate directions link
+  const $directions = document.getElementById('fab-directions');
+  if ($directions && r.address) {
+    const mapsUrl = r.google_place_id
+      ? `https://www.google.com/maps/place/?q=place_id:${r.google_place_id}`
+      : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.name + ' ' + r.address)}`;
+    $directions.href = mapsUrl;
+    $directions.target = '_blank';
+    $directions.rel = 'noopener noreferrer';
+    $directions.hidden = false;
+  }
+
+  // Populate call link
+  const $call = document.getElementById('fab-call');
+  if ($call) {
+    if (r.phone) {
+      $call.href = `tel:${r.phone}`;
+      $call.hidden = false;
+    } else {
+      $call.hidden = true;
+    }
+  }
+
+  // Populate reserve link
+  const $reserve = document.getElementById('fab-reserve');
+  if ($reserve) {
+    if (r.website) {
+      $reserve.href = r.website;
+      $reserve.target = '_blank';
+      $reserve.rel = 'noopener noreferrer';
+      $reserve.hidden = false;
+    } else {
+      $reserve.hidden = true;
+    }
+  }
+
+  // Show the bar
+  $fab.hidden = false;
+
+  // Observe the glance actions to show/hide floating bar on scroll
+  if (_fabObserver) _fabObserver.disconnect();
+  const $glanceActions = document.querySelector('.card-footer');
+  if ($glanceActions) {
+    _fabObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          $fab.classList.remove('floating-bar--visible');
+        } else {
+          $fab.classList.add('floating-bar--visible');
+        }
+      });
+    }, { threshold: 0 });
+    _fabObserver.observe($glanceActions);
+  } else {
+    // If no glance actions, show immediately
+    $fab.classList.add('floating-bar--visible');
+  }
+}
+
+function hideFloatingBar() {
+  const $fab = document.getElementById('floating-bar');
+  if ($fab) {
+    $fab.classList.remove('floating-bar--visible');
+    $fab.hidden = true;
+  }
+  if (_fabObserver) _fabObserver.disconnect();
 }
 
 /* ---- F4: Update Bookmark Button State ---- */

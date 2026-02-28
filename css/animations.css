@@ -717,3 +717,115 @@
     overflow: hidden;
   }
 }
+
+/* ============================================
+   V9: Factor Icon Micro-Animations
+   Per-factor entrance: food wobble, vibe bounce, etc.
+   ============================================ */
+@keyframes factorWobble {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(5deg); }
+  75% { transform: rotate(-5deg); }
+}
+
+@keyframes factorBounce {
+  0%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-3px); }
+  60% { transform: translateY(-1px); }
+}
+
+@keyframes factorSparkle {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.8; }
+}
+
+@keyframes factorTwinkle {
+  0%, 100% { opacity: 1; }
+  30% { opacity: 0.3; }
+  60% { opacity: 1; }
+}
+
+@keyframes factorTick {
+  0% { transform: rotate(0deg); }
+  50% { transform: rotate(15deg); }
+  100% { transform: rotate(0deg); }
+}
+
+/* Applied via data-factor attribute on .factor-row__icon */
+.factor-row-wrapper.tier-revealed .factor-row[data-factor="food"] .factor-row__icon {
+  animation: factorWobble 400ms ease-out;
+}
+.factor-row-wrapper.tier-revealed .factor-row[data-factor="vibe"] .factor-row__icon {
+  animation: factorBounce 300ms cubic-bezier(.34, 1.56, .64, 1);
+}
+.factor-row-wrapper.tier-revealed .factor-row[data-factor="service"] .factor-row__icon {
+  animation: factorSparkle 350ms ease-out;
+}
+.factor-row-wrapper.tier-revealed .factor-row[data-factor="reputation"] .factor-row__icon {
+  animation: factorTwinkle 250ms ease-out;
+}
+.factor-row-wrapper.tier-revealed .factor-row[data-factor="convenience"] .factor-row__icon {
+  animation: factorTick 300ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .factor-row-wrapper.tier-revealed .factor-row .factor-row__icon {
+    animation: none;
+  }
+}
+
+/* ============================================
+   V9: Score Ring Ink Trail
+   A bright dot that leads the ring stroke fill
+   ============================================ */
+.score-hero__ink-dot {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ac);
+  box-shadow: 0 0 6px var(--ac);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 3;
+  transition: opacity 200ms ease-out;
+}
+
+.score-hero__ink-dot--active {
+  opacity: 1;
+}
+
+/* ============================================
+   V9: Photo Parallax
+   ============================================ */
+.result-photos--parallax {
+  transform: translateY(var(--parallax-y, 0));
+  will-change: transform;
+}
+
+/* ============================================
+   V9: Tiered Celebration Glow
+   Ring glow scales with score
+   ============================================ */
+.score-hero__ring-wrap--glow {
+  border-radius: 50%;
+  transition: box-shadow 600ms ease-out;
+}
+
+/* ============================================
+   V9: Verdict-text entrance
+   ============================================ */
+@keyframes verdictReveal {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.score-hero__verdict-text--animating {
+  animation: verdictReveal 400ms cubic-bezier(.34, 1.56, .64, 1) forwards;
+}
