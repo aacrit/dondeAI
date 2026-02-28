@@ -734,38 +734,41 @@
   cursor: pointer;
 }
 
-/* Score-wrap: arc + number stacked vertically */
-.match-mini__score-wrap {
+/* Ring-wrap: mini confidence ring + number centered */
+.match-mini__ring-wrap {
   position: relative;
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  line-height: 1;
+  width: 64px;
+  aspect-ratio: 1;
 }
 
-.match-mini__arc {
-  width: 62px;
-  height: 36px;
+.match-mini__ring-svg {
+  width: 100%;
+  height: 100%;
   overflow: visible;
+  transform: rotate(-90deg);
 }
 
-.match-mini__arc-bg {
+.match-mini__ring-bg {
   fill: none;
   stroke: var(--border);
-  stroke-width: 3;
-  stroke-linecap: round;
+  stroke-width: 5;
+  opacity: 0.5;
 }
 
-.match-mini__arc-fill {
+.match-mini__ring-fill {
   fill: none;
-  stroke: var(--rag-red);
-  stroke-width: 3;
+  stroke: var(--ac);
+  stroke-width: 5;
   stroke-linecap: round;
-  transform-origin: center bottom;
 }
 
 .match-mini__score {
-  font-size: clamp(1.5rem, 5vw, 2rem);
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(1.25rem, 4vw, 1.5rem);
   font-weight: 700;
   color: var(--fg);
   line-height: 1;
@@ -1015,6 +1018,170 @@
 
 @media (prefers-reduced-motion: reduce) {
   .badge-popout { transition: none; }
+}
+
+/* ══════════════════════════════════════════
+   Cuisine Drawer — bottom sheet (mobile) / glass panel (desktop)
+   ══════════════════════════════════════════ */
+.cuisine-drawer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: var(--z-modal);
+  max-height: 70vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  background: var(--glass);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border-top: 1px solid var(--border);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  padding: var(--space-md);
+  transform: translateY(100%);
+  transition: transform var(--dur-normal) var(--spring);
+  box-shadow: 0 -4px 24px hsl(0 0% 0% / 0.1);
+}
+
+.cuisine-drawer--open {
+  transform: translateY(0);
+}
+
+.cuisine-drawer__backdrop {
+  position: fixed;
+  inset: 0;
+  background: hsl(0 0% 0% / 0.3);
+  z-index: calc(var(--z-modal) - 1);
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+
+.cuisine-drawer__backdrop--visible {
+  opacity: 1;
+}
+
+/* Header — cuisine label + close button */
+.cuisine-drawer__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: var(--space-xs);
+}
+
+.cuisine-drawer__cuisine-label {
+  font-weight: 600;
+  color: var(--fg);
+  font-size: var(--text-base);
+}
+
+.cuisine-drawer__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--fg2);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out);
+}
+
+.cuisine-drawer__close:hover {
+  background: var(--bg2);
+}
+
+/* Sections — consistent spacing */
+.cuisine-drawer__section {
+  padding: var(--space-sm) 0;
+}
+
+.cuisine-drawer__section + .cuisine-drawer__section {
+  border-top: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+}
+
+.cuisine-drawer__section-label {
+  display: block;
+  font-family: var(--font-data);
+  font-size: var(--text-2xs);
+  color: var(--fg3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: var(--space-xs);
+  line-height: 1;
+}
+
+/* What to Order — dish cards */
+.cuisine-drawer__dishes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.cuisine-drawer__dish {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-2xs) 0;
+}
+
+.cuisine-drawer__dish-name {
+  font-weight: 500;
+  color: var(--fg);
+  font-size: var(--text-sm);
+}
+
+.cuisine-drawer__dish-why {
+  color: var(--fg3);
+  font-size: var(--text-xs);
+  line-height: 1.4;
+}
+
+/* Popular Items + Flavor Profile — pill wrap */
+.cuisine-drawer__pills,
+.cuisine-drawer__flavors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs);
+}
+
+.cuisine-drawer__pill,
+.cuisine-drawer__flavor-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  background: var(--bg2);
+  color: var(--fg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-xs);
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+/* Desktop: centered panel instead of full-width bottom sheet */
+@media (min-width: 768px) {
+  .cuisine-drawer {
+    max-width: 400px;
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%) translateY(100%);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+  .cuisine-drawer--open {
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cuisine-drawer { transition: none; }
+  .cuisine-drawer__backdrop { transition: none; }
 }
 
 /* ── Action Quick Tags (Reserve, Share) ── */
@@ -1628,6 +1795,33 @@
 .score-hero__narrative--visible {
   opacity: 1;
   transform: translateY(0);
+}
+
+/* Score Hero Brand (logo + Match™) — mirrors match-mini brand */
+.score-hero__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  line-height: 1;
+}
+
+.score-hero__brand-logo {
+  color: var(--ac);
+  flex-shrink: 0;
+  display: block;
+}
+
+.score-hero__tm {
+  font-family: var(--font-data);
+  font-size: 0.625rem;
+  color: var(--fg3);
+  letter-spacing: 0.04em;
+  margin-left: 1px;
+}
+
+.score-hero__tm sup {
+  font-size: 0.6em;
+  vertical-align: super;
 }
 
 /* V7: Intent alignment indicator */

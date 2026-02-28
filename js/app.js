@@ -1998,17 +1998,17 @@ function clearEdgeHintTimers() {
 
 /* ---- V7: Score Count-Up Animation (reusable) ---- */
 function animateScoreCountUp($el, targetScore) {
-  const $arcFill = document.getElementById('match-pill-arc-fill');
-  const arcLength = Math.PI * 20;
-  if ($arcFill) {
-    $arcFill.style.strokeDasharray = String(arcLength);
-    $arcFill.style.strokeDashoffset = String(arcLength);
-    $arcFill.style.animation = '';
+  const $ringFill = document.getElementById('match-pill-ring-fill');
+  const circumference = 2 * Math.PI * 52; // ~326.7 (full circle, r=52)
+  if ($ringFill) {
+    $ringFill.style.transition = 'none';
+    $ringFill.style.strokeDasharray = String(circumference);
+    $ringFill.style.strokeDashoffset = String(circumference);
   }
   $el.textContent = '0';
   const REDUCED_MQ = matchMedia('(prefers-reduced-motion: reduce)');
   if (!REDUCED_MQ.matches) {
-    const duration = 1000; // Slightly faster for Try Again
+    const duration = 1000;
     const start = performance.now();
     const animate = (now) => {
       const elapsed = now - start;
@@ -2018,14 +2018,12 @@ function animateScoreCountUp($el, targetScore) {
       $el.textContent = current;
       const thresholdColor = getScoreThresholdColor(current);
       $el.style.color = thresholdColor;
-      if ($arcFill) {
-        $arcFill.style.strokeDashoffset = String(arcLength - (current / 100) * arcLength);
-        $arcFill.style.stroke = thresholdColor;
+      if ($ringFill) {
+        $ringFill.style.strokeDashoffset = String(circumference - (current / 100) * circumference);
+        $ringFill.style.stroke = thresholdColor;
       }
       if (progress < 1) {
         requestAnimationFrame(animate);
-      } else if ($arcFill) {
-        $arcFill.style.animation = 'arcSettle 400ms var(--spring)';
       }
     };
     requestAnimationFrame(animate);
@@ -2033,9 +2031,9 @@ function animateScoreCountUp($el, targetScore) {
     $el.textContent = targetScore;
     const finalColor = getScoreThresholdColor(targetScore);
     $el.style.color = finalColor;
-    if ($arcFill) {
-      $arcFill.style.strokeDashoffset = String(arcLength - (targetScore / 100) * arcLength);
-      $arcFill.style.stroke = finalColor;
+    if ($ringFill) {
+      $ringFill.style.strokeDashoffset = String(circumference - (targetScore / 100) * circumference);
+      $ringFill.style.stroke = finalColor;
     }
   }
 }
@@ -2104,15 +2102,16 @@ function renderResult(data) {
     $matchVerdict.setAttribute('data-tier', tier.tier);
   }
 
-  // Micro arc setup
-  const $arcFill = document.getElementById('match-pill-arc-fill');
-  const arcLength = Math.PI * 20; // ~62.83 (r=20 semicircle)
-  if ($arcFill) {
-    $arcFill.style.strokeDasharray = String(arcLength);
-    $arcFill.style.strokeDashoffset = String(arcLength); // Start empty
+  // Mini confidence ring setup
+  const $ringFill = document.getElementById('match-pill-ring-fill');
+  const circumference = 2 * Math.PI * 52; // ~326.7 (full circle, r=52)
+  if ($ringFill) {
+    $ringFill.style.transition = 'none';
+    $ringFill.style.strokeDasharray = String(circumference);
+    $ringFill.style.strokeDashoffset = String(circumference); // Start empty
   }
 
-  // Animate score count-up + arc fill + progressive color coding
+  // Animate score count-up + ring fill + progressive color coding
   const REDUCED_MQ = matchMedia('(prefers-reduced-motion: reduce)');
   if ($matchScore && !REDUCED_MQ.matches) {
     animationTimers.push(setTimeout(() => {
@@ -2126,9 +2125,9 @@ function renderResult(data) {
         $matchScore.textContent = current;
         const thresholdColor = getScoreThresholdColor(current);
         $matchScore.style.color = thresholdColor;
-        if ($arcFill) {
-          $arcFill.style.strokeDashoffset = String(arcLength - (current / 100) * arcLength);
-          $arcFill.style.stroke = thresholdColor;
+        if ($ringFill) {
+          $ringFill.style.strokeDashoffset = String(circumference - (current / 100) * circumference);
+          $ringFill.style.stroke = thresholdColor;
         }
         if (progress < 1) {
           requestAnimationFrame(animate);
@@ -2142,9 +2141,6 @@ function renderResult(data) {
               $pill.style.transform = 'scale(1)';
             }, 120);
           }
-          if ($arcFill) {
-            $arcFill.style.animation = 'arcSettle 400ms var(--spring)';
-          }
         }
       };
       requestAnimationFrame(animate);
@@ -2153,9 +2149,9 @@ function renderResult(data) {
     $matchScore.textContent = dondeScore;
     const finalColor = getScoreThresholdColor(dondeScore);
     $matchScore.style.color = finalColor;
-    if ($arcFill) {
-      $arcFill.style.strokeDashoffset = String(arcLength - (dondeScore / 100) * arcLength);
-      $arcFill.style.stroke = finalColor;
+    if ($ringFill) {
+      $ringFill.style.strokeDashoffset = String(circumference - (dondeScore / 100) * circumference);
+      $ringFill.style.stroke = finalColor;
     }
   }
 

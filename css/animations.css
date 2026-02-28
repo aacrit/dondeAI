@@ -629,10 +629,19 @@
     transition: none !important;
   }
 
-  /* Score Hero — instant transitions for reduced motion */
+  /* Score Hero + Match Mini — instant transitions for reduced motion */
   .score-hero__ring-fill,
+  .match-mini__ring-fill,
   .factor-row__bar-fill,
   .sentiment-inline__seg {
+    transition: none !important;
+  }
+
+  /* Cuisine Drawer — instant open/close */
+  .cuisine-drawer {
+    transition: none !important;
+  }
+  .cuisine-drawer__backdrop {
     transition: none !important;
   }
 
