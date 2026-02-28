@@ -441,47 +441,24 @@
               <!-- ══════ TIER 2: LEAN-IN — "Tell me more / Should I go?" ══════ -->
               <div class="tier tier--leanin" id="tier-leanin" aria-hidden="true">
 
-                <!-- Score Hero: Full arc gauge + V7 factor constellation -->
+                <!-- Score Hero: Confidence Ring + Factor Bars -->
                 <div class="score-hero" id="score-hero"
                      role="figure" tabindex="0"
                      aria-label="DondeAI Match score detail">
-                  <div class="score-hero__gauge">
-                    <svg class="score-hero__svg" viewBox="0 0 200 130" aria-hidden="true">
-                      <!-- Main score arc -->
-                      <path class="score-hero__arc-bg" d="M 20 110 A 80 80 0 0 1 180 110" />
-                      <path class="score-hero__arc-fill" id="score-hero-arc-fill" d="M 20 110 A 80 80 0 0 1 180 110" />
+                  <div class="score-hero__ring-wrap">
+                    <svg class="score-hero__svg" viewBox="0 0 120 120" aria-hidden="true">
+                      <circle class="score-hero__ring-bg" cx="60" cy="60" r="52" />
+                      <circle class="score-hero__ring-fill" id="score-hero-ring-fill" cx="60" cy="60" r="52" />
                     </svg>
                     <div class="score-hero__center">
-                      <span class="score-hero__brand">
-                        <svg class="score-hero__brand-logo" viewBox="0 0 32 44" width="10" height="14" aria-hidden="true">
-                          <path d="M10.5 1C10.5 1 10 8.5 12.5 11.5Q14 13 14.5 13.5"
-                                fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-                          <path d="M21.5 1C21.5 1 22 8.5 19.5 11.5Q18 13 17.5 13.5"
-                                fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-                          <path d="M16 13.5C22 11 29 14 28 21C27 27 19 29 16 31L16 34"
-                                fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>
-                          <circle cx="16" cy="40" r="2.8" fill="var(--ac)"/>
-                        </svg>
-                        <span class="score-hero__brand-match type-data--sm">Match<sup>™</sup></span>
-                      </span>
-                      <span class="score-hero__number type-data" id="score-hero-number">0%</span>
+                      <span class="score-hero__number type-data" id="score-hero-number">0</span>
                       <span class="score-hero__verdict type-structural" id="score-hero-verdict"></span>
-                      <!-- V7: Match narrative callout — replaces generic "Strongest" -->
-                      <span class="score-hero__narrative type-structural" id="score-hero-narrative" style="display: none;"></span>
-                      <!-- Strongest factor callout — fallback when no narrative -->
-                      <button class="score-hero__callout type-data--sm" id="score-hero-callout"
-                              data-action="toggle-factors" style="display: none;"
-                              aria-label="Toggle score factors">
-                        <span class="score-hero__callout-prefix type-structural">Strongest</span>
-                        <span class="score-hero__callout-value" id="score-hero-callout-value"></span>
-                        <span class="score-hero__callout-arrow">&#8595;</span>
-                      </button>
+                      <div class="score-hero__dots" id="score-hero-dots" aria-hidden="true"></div>
                     </div>
                   </div>
-                  <div class="score-hero__meta">
-                    <div class="score-hero__factors" id="factor-bars" aria-hidden="true">
-                      <div class="factor-bars__list" id="factor-bars-list" role="list"></div>
-                    </div>
+                  <p class="score-hero__narrative type-structural" id="score-hero-narrative"></p>
+                  <div class="score-hero__factors" id="factor-bars">
+                    <div class="factor-bars__list" id="factor-bars-list" role="list"></div>
                   </div>
                 </div>
 

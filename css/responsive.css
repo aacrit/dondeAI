@@ -72,15 +72,9 @@
     margin: calc(-1 * var(--space-xl)) calc(-1 * var(--space-xl)) var(--space-sm);
   }
 
-  /* Score Hero: tablet sizing */
-  .score-hero__gauge {
-    width: min(65vw, 340px);
-  }
-
-  /* Score Hero bloom: tablet */
-  .score-hero--bloomed .score-hero__gauge,
-  .score-hero--breakdown .score-hero__gauge {
-    width: min(70vw, 420px);
+  /* Score Hero: tablet ring sizing */
+  .score-hero__ring-wrap {
+    width: clamp(140px, 30vw, 180px);
   }
 
   /* Match mini: larger on tablet */
@@ -128,15 +122,9 @@
     max-height: 450px;
   }
 
-  /* Score Hero: desktop sizing */
-  .score-hero__gauge {
-    width: min(50vw, 380px);
-  }
-
-  /* Score Hero bloom: desktop */
-  .score-hero--bloomed .score-hero__gauge,
-  .score-hero--breakdown .score-hero__gauge {
-    width: min(45vw, 460px);
+  /* Score Hero: desktop ring sizing */
+  .score-hero__ring-wrap {
+    width: clamp(150px, 20vw, 180px);
   }
 
   .score-tile .score-ring-wrap {

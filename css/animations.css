@@ -509,7 +509,16 @@
   }
 }
 
-/* (V7 factorRingFill + ringPulse keyframes removed — simplified Score Hero) */
+/* Confidence Ring celebration pulse (88%+ scores) */
+@keyframes ringCelebrate {
+  0%   { filter: drop-shadow(0 0 0 transparent); }
+  40%  { filter: drop-shadow(0 0 12px color-mix(in srgb, var(--ac) 40%, transparent)); }
+  100% { filter: drop-shadow(0 0 0 transparent); }
+}
+
+.score-hero__ring-wrap--celebrating {
+  animation: ringCelebrate 800ms ease-out;
+}
 
 /* ---- V7: Card Swap Out (Try Again instant queue transition) ---- */
 @keyframes cardSwapOut {
@@ -621,10 +630,16 @@
   }
 
   /* Score Hero — instant transitions for reduced motion */
-  .score-hero__arc-fill,
+  .score-hero__ring-fill,
   .factor-row__bar-fill,
   .sentiment-inline__seg {
     transition: none !important;
+  }
+
+  .score-hero__dot {
+    transition: none !important;
+    opacity: 1 !important;
+    transform: none !important;
   }
 
   /* V5: Disable boost and relaxation animations */
@@ -648,6 +663,9 @@
   .result-card--swapping-out,
   .result-card--swapping-in {
     animation-duration: 0ms !important;
+  }
+  .score-hero__ring-wrap--celebrating {
+    animation: none !important;
   }
 }
 

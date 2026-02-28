@@ -149,7 +149,7 @@ function normalizeScoringKeys(scoring) {
 /* V8: Petal radar removed — occasion scores still available in API response */
 export function renderPetalRadar() {}
 
-/* ---- Score Hero (Semicircular arc gauge) ---- */
+/* ---- Score Hero (Confidence Ring — full circle gauge) ---- */
 
 let heroData = null;
 
@@ -159,64 +159,50 @@ export function renderScoreHero(dondeMatch, scores, scoringV2, sentiment, timers
 
   heroData = { dondeMatch, scores, scoringV2, sentiment, matchNarrative };
 
-  // ---- Semicircular Arc Gauge ----
   const pct = Math.round(parseFloat(dondeMatch) || 80);
-  const $arcFill = document.getElementById('score-hero-arc-fill');
+  const $ringFill = document.getElementById('score-hero-ring-fill');
   const $number = document.getElementById('score-hero-number');
   const $verdict = document.getElementById('score-hero-verdict');
 
-  // Calculate arc length for 180° semicircle (r=80, from M 20 110 A 80 80 0 0 1 180 110)
-  const arcLength = Math.PI * 80; // ~251.3
-  const target = arcLength - (pct / 100) * arcLength;
+  // Full circle: circumference = 2πr where r=52
+  const circumference = 2 * Math.PI * 52; // ~326.7
+  const target = circumference - (pct / 100) * circumference;
 
-  if ($arcFill) {
-    $arcFill.style.transition = 'none';
-    $arcFill.style.strokeDasharray = String(arcLength);
+  if ($ringFill) {
+    $ringFill.style.transition = 'none';
+    $ringFill.style.strokeDasharray = String(circumference);
 
     if (REDUCED.matches) {
-      // Instant — no animation
-      $arcFill.style.strokeDashoffset = String(target);
-      $arcFill.style.stroke = getScoreThresholdColor(pct);
-      if ($number) {
-        $number.textContent = pct + '%';
-        $number.style.color = getScoreThresholdColor(pct);
-      }
+      $ringFill.style.strokeDashoffset = String(target);
+      if ($number) $number.textContent = pct;
     } else {
-      // JS-driven frame-by-frame animation: arc fill + color + number synced
-      $arcFill.style.strokeDashoffset = String(arcLength);
-      $arcFill.style.stroke = getScoreThresholdColor(0);
+      // Start empty
+      $ringFill.style.strokeDashoffset = String(circumference);
 
-      const duration = 1800;
+      const duration = 1200;
       timers.push(setTimeout(() => {
         const startTime = performance.now();
         function tick(now) {
           const elapsed = now - startTime;
           const progress = Math.min(elapsed / duration, 1);
+          // Spring-like ease-out curve
           const eased = 1 - Math.pow(1 - progress, 3);
 
           const currentPct = Math.round(pct * eased);
-          const currentOffset = arcLength - (currentPct / 100) * arcLength;
+          const currentOffset = circumference - (currentPct / 100) * circumference;
 
-          $arcFill.style.strokeDashoffset = String(currentOffset);
-          $arcFill.style.stroke = getScoreThresholdColor(currentPct);
-
-          if ($number) {
-            $number.textContent = currentPct + '%';
-            $number.style.color = getScoreThresholdColor(currentPct);
-          }
+          $ringFill.style.strokeDashoffset = String(currentOffset);
+          if ($number) $number.textContent = currentPct;
 
           if (progress < 1) requestAnimationFrame(tick);
-          else if ($number) {
-            $number.textContent = pct + '%';
-            $number.style.color = getScoreThresholdColor(pct);
-          }
+          else if ($number) $number.textContent = pct;
         }
         requestAnimationFrame(tick);
-      }, 300));
+      }, 100));
     }
   }
 
-  // Verdict label — V3.3 (DV5): unified with getScoreTier() instead of inline duplicate
+  // Verdict label — fade in after number settles
   if ($verdict) {
     const tier = getScoreTier(pct);
     $verdict.textContent = tier.verdict;
@@ -224,72 +210,100 @@ export function renderScoreHero(dondeMatch, scores, scoringV2, sentiment, timers
     if (!REDUCED.matches) {
       $verdict.style.opacity = '0';
       timers.push(setTimeout(() => {
-        $verdict.style.transition = 'opacity 400ms ease-out';
+        $verdict.style.transition = 'opacity 300ms ease-out';
         $verdict.style.opacity = '1';
-      }, 1200));
+      }, 600));
     }
   }
 
-  // (Sentiment arc removed — sentiment now lives in reviews-row inline bar)
+  // Factor strength dots (5 dots — filled/mid/outline based on factor scores)
+  const $dots = document.getElementById('score-hero-dots');
+  if ($dots && scoringV2) {
+    const sv = normalizeScoringKeys(scoringV2);
+    $dots.innerHTML = '';
+    FACTOR_DIMS.forEach((dim, i) => {
+      const val = parseFloat(sv[dim.key]) || 0;
+      const dot = document.createElement('span');
+      dot.className = 'score-hero__dot';
+      if (val >= 7.5) dot.classList.add('score-hero__dot--strong');
+      else if (val >= 5) dot.classList.add('score-hero__dot--mid');
+      dot.setAttribute('title', `${dim.label}: ${val.toFixed(1)}`);
 
-  // (V7 Factor Constellation Rings removed — simplified Score Hero)
+      if (!REDUCED.matches) {
+        dot.style.transform = 'scale(0)';
+        dot.style.opacity = '0';
+        timers.push(setTimeout(() => {
+          dot.style.transition = 'transform 300ms var(--spring, cubic-bezier(.34, 1.56, .64, 1)), opacity 200ms ease-out';
+          dot.style.transform = 'scale(1)';
+          dot.style.opacity = '1';
+        }, 700 + i * 50));
+      }
 
-  // ---- V7: Match Narrative Callout ----
+      $dots.appendChild(dot);
+    });
+  }
+
+  // Narrative — single line below ring
   const $narrative = document.getElementById('score-hero-narrative');
   const resolvedNarrative = matchNarrative || heroData?.scoringV2?.match_narrative;
-  let narrativeShown = false;
 
-  if ($narrative && resolvedNarrative?.summary) {
-    $narrative.textContent = resolvedNarrative.summary;
-    $narrative.style.display = '';
-    narrativeShown = true;
-    if (!REDUCED.matches) {
-      timers.push(setTimeout(() => {
-        $narrative.classList.add('score-hero__narrative--visible');
-      }, 1400));
-    } else {
-      $narrative.classList.add('score-hero__narrative--visible');
-    }
-  }
-
-  // ---- V3/V7: "Strongest" Callout (fallback when no narrative) ----
-  const $callout = document.getElementById('score-hero-callout');
-  const $calloutValue = document.getElementById('score-hero-callout-value');
-
-  if ($callout && $calloutValue && scoringV2 && !narrativeShown) {
-    // Normalize V3 keys so FACTOR_DIMS always matches
-    const sv3 = normalizeScoringKeys(scoringV2);
-    const factorEntries = FACTOR_DIMS.filter(d => sv3[d.key] != null);
-    if (factorEntries.length > 0) {
-      // V6.1: Pick factor with highest weighted contribution (score × weight)
-      const weights = sv3.weights_used || {};
-      const best = factorEntries.reduce((a, b) => {
-        const aContrib = (sv3[a.key] || 0) * (parseFloat(weights[a.key]) || 0.2);
-        const bContrib = (sv3[b.key] || 0) * (parseFloat(weights[b.key]) || 0.2);
-        return aContrib > bContrib ? a : b;
-      });
-      const bestScore = (sv3[best.key] || 0).toFixed(1);
-      $calloutValue.textContent = `${best.label} (${bestScore})`;
-      $callout.style.display = '';
-      if (!REDUCED.matches) {
-        timers.push(setTimeout(() => {
-          $callout.classList.add('score-hero__callout--visible');
-        }, 900));
-      } else {
-        $callout.classList.add('score-hero__callout--visible');
+  if ($narrative) {
+    let narrativeText = '';
+    if (resolvedNarrative?.summary) {
+      narrativeText = resolvedNarrative.summary;
+    } else if (scoringV2) {
+      // Fallback: generate from strongest factor
+      const sv = normalizeScoringKeys(scoringV2);
+      const weights = sv.weights_used || {};
+      const factorEntries = FACTOR_DIMS.filter(d => sv[d.key] != null);
+      if (factorEntries.length > 0) {
+        const best = factorEntries.reduce((a, b) => {
+          const aContrib = (sv[a.key] || 0) * (parseFloat(weights[a.key]) || 0.2);
+          const bContrib = (sv[b.key] || 0) * (parseFloat(weights[b.key]) || 0.2);
+          return aContrib > bContrib ? a : b;
+        });
+        narrativeText = `Strongest in ${best.label.toLowerCase()} (${(sv[best.key] || 0).toFixed(1)}/10)`;
       }
     }
-  }
-  // V5: Vibe score fallback removed — only factor bars exist
 
-  // V5: Auto-expand factor bars when score < 75 (Strong Pick threshold)
-  if (scoringV2 && pct < 75) {
+    if (narrativeText) {
+      $narrative.textContent = narrativeText;
+      $narrative.style.display = '';
+      if (!REDUCED.matches) {
+        timers.push(setTimeout(() => {
+          $narrative.classList.add('score-hero__narrative--visible');
+        }, 800));
+      } else {
+        $narrative.classList.add('score-hero__narrative--visible');
+      }
+    } else {
+      $narrative.style.display = 'none';
+    }
+  }
+
+  // Auto-render factor bars (always visible, no toggle)
+  if (scoringV2) {
     timers.push(setTimeout(() => {
-      autoExpandFactors(scoringV2, timers);
+      if (!_factorBarsRendered) {
+        renderFactorBars(scoringV2, timers, _lastRestaurantData);
+        _factorBarsRendered = true;
+      }
+    }, 900));
+  }
+
+  // Celebration glow for exceptional matches (88+)
+  if (!REDUCED.matches && pct >= 88) {
+    timers.push(setTimeout(() => {
+      const ringWrap = $hero.querySelector('.score-hero__ring-wrap');
+      if (ringWrap) {
+        ringWrap.classList.add('score-hero__ring-wrap--celebrating');
+        ringWrap.addEventListener('animationend',
+          () => ringWrap.classList.remove('score-hero__ring-wrap--celebrating'), { once: true });
+      }
     }, 1400));
   }
 
-  // Build aria-label (normalize keys for V5 compat)
+  // Build aria-label
   if (scoringV2) {
     const normalizedForAria = normalizeScoringKeys(scoringV2);
     const ariaDesc = FACTOR_DIMS
@@ -309,123 +323,70 @@ export function renderFactorBars(scoringData, timers = [], restaurantData = null
   const $list = document.getElementById('factor-bars-list');
   if (!$container || !$list) return;
 
-  // V5: Accept scoring_v5/v4/v3 format — normalize keys for backward compat
   const scoring = normalizeScoringKeys(scoringData);
   if (!scoring) return;
 
   $list.innerHTML = '';
 
-  // V5: Extract dynamic weights for display
   const weightsUsed = scoring.weights_used || {};
-
-  // Find dominant factor (highest weight)
-  let dominantKey = null;
-  let maxWeight = 0;
-  for (const [k, w] of Object.entries(weightsUsed)) {
-    if (parseFloat(w) > maxWeight) { maxWeight = parseFloat(w); dominantKey = k; }
-  }
 
   const slots = FACTOR_DIMS
     .map(dim => ({
       ...dim,
       val: scoring[dim.key] != null ? Math.min(parseFloat(scoring[dim.key]) || 0, 10) : null,
       weight: weightsUsed[dim.key] != null ? Math.round(parseFloat(weightsUsed[dim.key]) * 100) : null,
-      confidence: scoring.confidence?.[dim.key] || null,
     }))
     .filter(s => s.val !== null);
 
   if (slots.length < 2) return;
 
-  // Google rating for reputation bar inline display
-  const googleRating = restaurantData?.restaurant?.google_rating;
-
   slots.forEach((slot, i) => {
-    const isDominant = dominantKey && slot.key === dominantKey;
     const row = document.createElement('button');
-    row.className = 'factor-row' + (isDominant ? ' factor-row--dominant' : '');
-    if (slot.val < 5) row.className += ' factor-row--weak';
+    row.className = 'factor-row';
     row.setAttribute('role', 'meter');
     row.setAttribute('aria-valuenow', slot.val.toFixed(1));
     row.setAttribute('aria-valuemin', '0');
     row.setAttribute('aria-valuemax', '10');
-    row.setAttribute('aria-label', `${slot.label}, ${slot.val.toFixed(1)} out of 10${slot.weight ? `, weight ${slot.weight}%` : ''}${slot.confidence ? `, confidence ${slot.confidence}` : ''}. Tap to see details.`);
+    row.setAttribute('aria-label', `${slot.label}, ${slot.val.toFixed(1)} out of 10. Tap for details.`);
     row.setAttribute('aria-expanded', 'false');
     row.setAttribute('data-factor', slot.key);
 
     const pct = Math.min(slot.val / 10, 1) * 100;
 
-    // Weight-tier color coding: high=accent, mid=structural, low=muted
+    // Weight-tier: bar height + icon color (subtle, no labels)
     const weightTier = slot.weight >= 30 ? 'weight-high'
       : slot.weight >= 18 ? 'weight-mid' : 'weight-low';
     row.className += ` factor-row--${weightTier}`;
 
-    // Score-based fill color so all bars are visible regardless of weight tier
+    // Score-based fill color
     const scoreTierClass = slot.val >= 7.5 ? 'bar-fill--strong'
       : slot.val >= 5 ? 'bar-fill--mid'
       : 'bar-fill--weak';
 
-    // V6: Confidence indicator — subtle visual cue when data is incomplete
-    const confIndicator = slot.confidence === 'low' ? '<span class="factor-row__conf factor-row__conf--low" title="Limited data">?</span>'
-      : slot.confidence === 'medium' ? '<span class="factor-row__conf factor-row__conf--med" title="Partial data">~</span>'
-      : '';
-
-    // V7: Weight badge — compact "28%" next to label
-    const weightBadge = slot.weight != null
-      ? `<span class="factor-row__weight-badge type-data--sm">${slot.weight}%</span>` : '';
-
+    // Clean: icon | label | bar | score (no badges, no chips)
     row.innerHTML = `
       <span class="factor-row__icon">${svgIcon(slot.icon, 16)}</span>
-      <span class="factor-row__label type-structural">${slot.label}${weightBadge}</span>
+      <span class="factor-row__label type-structural">${slot.label}</span>
       <span class="factor-row__bar">
         <span class="factor-row__bar-fill ${scoreTierClass}" data-width="${pct}"></span>
       </span>
-      <span class="factor-row__score type-data--sm">${Math.round(slot.val)}${confIndicator}</span>`;
+      <span class="factor-row__score type-data--sm">${slot.val.toFixed(1)}</span>`;
 
-    // V7: Signal chips — 1-2 key signals from factor_details below the bar
-    const factorDetails = scoring.factor_details?.[slot.key];
-    let signalChipsHtml = '';
-    if (factorDetails && typeof factorDetails === 'object') {
-      const topSignals = Object.entries(factorDetails)
-        .filter(([, sub]) => sub && typeof sub === 'object' && sub.signal)
-        .map(([, sub]) => ({
-          signal: humanizeSignal(sub.signal),
-          pct: sub.max > 0 ? (sub.score / sub.max) * 100 : 0,
-        }))
-        .sort((a, b) => b.pct - a.pct)
-        .slice(0, 2);
-
-      if (topSignals.length > 0) {
-        signalChipsHtml = '<div class="factor-row__signals">' +
-          topSignals.map(s => {
-            const chipClass = s.pct >= 65 ? 'factor-row__signal-chip--strong'
-              : s.pct < 30 ? 'factor-row__signal-chip--weak' : '';
-            return `<span class="factor-row__signal-chip ${chipClass}">${s.signal}</span>`;
-          }).join('') + '</div>';
-      }
-    }
-
-    // Drill-down panel (hidden by default)
+    // Drill-down panel (hidden by default, populated on tap)
     const detail = document.createElement('div');
     detail.className = 'factor-detail';
     detail.id = `factor-detail-${slot.key}`;
     detail.setAttribute('aria-hidden', 'true');
-    detail.innerHTML = ''; // Populated on tap
 
     const wrapper = document.createElement('div');
     wrapper.className = 'factor-row-wrapper';
     wrapper.setAttribute('role', 'listitem');
     wrapper.appendChild(row);
-    // Append signal chips between bar and drill-down
-    if (signalChipsHtml) {
-      const chipsDiv = document.createElement('div');
-      chipsDiv.innerHTML = signalChipsHtml;
-      wrapper.appendChild(chipsDiv.firstElementChild);
-    }
     wrapper.appendChild(detail);
 
     $list.appendChild(wrapper);
 
-    // Tap handler: accordion drill-down
+    // Tap handler: accordion drill-down (Monzo-style)
     row.addEventListener('click', () => {
       const isOpen = row.getAttribute('aria-expanded') === 'true';
       // Close all panels first (accordion)
@@ -437,12 +398,10 @@ export function renderFactorBars(scoringData, timers = [], restaurantData = null
       });
       if (!isOpen) {
         row.setAttribute('aria-expanded', 'true');
-        // Populate detail if empty
         if (!detail.innerHTML.trim()) {
-          detail.innerHTML = buildFactorDetail(slot.key, scoring, slot.weight);
+          detail.innerHTML = buildFactorDetail(slot.key, scoring);
         }
         detail.setAttribute('aria-hidden', 'false');
-        // Measure, then animate with spring easing
         detail.style.height = 'auto';
         const measuredHeight = detail.scrollHeight;
         detail.style.height = '0';
@@ -457,7 +416,7 @@ export function renderFactorBars(scoringData, timers = [], restaurantData = null
       }
     });
 
-    // Staggered fade-in + bar fill animation
+    // Staggered fade-in + bar fill
     const fill = row.querySelector('.factor-row__bar-fill');
     if (!REDUCED.matches) {
       wrapper.style.opacity = '0';
@@ -471,7 +430,7 @@ export function renderFactorBars(scoringData, timers = [], restaurantData = null
             fill.style.width = fill.dataset.width + '%';
           });
         }
-      }, 400 + i * 60));
+      }, i * 60));
     } else if (fill) {
       fill.style.width = fill.dataset.width + '%';
     }
@@ -522,11 +481,10 @@ function buildFactorNarrative(factorKey, scoring) {
   return `<p class="factor-detail__narrative type-structural">${text}</p>`;
 }
 
-/** Build drill-down HTML for a factor — weight header + rank-based color-coded sub-factor list */
-function buildFactorDetail(factorKey, scoring, slotWeight) {
+/** Build drill-down HTML for a factor — narrative + rank-based sub-factor list */
+function buildFactorDetail(factorKey, scoring) {
   const details = scoring.factor_details?.[factorKey] || null;
 
-  // Sub-component icons + labels
   const SUB_META = {
     cuisine:     { icon: 'plate',      label: 'Cuisine' },
     flavor:      { icon: 'fire',       label: 'Flavor' },
@@ -549,17 +507,8 @@ function buildFactorDetail(factorKey, scoring, slotWeight) {
     practical:   { icon: 'briefcase',  label: 'Practical' },
   };
 
-  // Weight header shown at top of drill-down
-  const weightHeader = slotWeight != null
-    ? `<div class="factor-detail__header">
-         <span class="factor-detail__header-label type-structural">${FACTOR_LABELS[factorKey] || factorKey}</span>
-         <span class="factor-detail__header-weight type-data--sm">${slotWeight}% of score</span>
-       </div>`
-    : '';
+  if (!details || typeof details !== 'object') return '<div class="factor-detail__items"></div>';
 
-  if (!details || typeof details !== 'object') return `<div class="factor-detail__items">${weightHeader}</div>`;
-
-  // Collect entries with percentages for rank-based coloring
   const entries = Object.entries(details)
     .filter(([, sub]) => sub && typeof sub === 'object')
     .map(([subKey, sub]) => ({
@@ -567,14 +516,12 @@ function buildFactorDetail(factorKey, scoring, slotWeight) {
       pct: sub.max > 0 ? Math.min((sub.score / sub.max) * 100, 100) : 0,
     }));
 
-  if (entries.length === 0) return `<div class="factor-detail__items">${weightHeader}</div>`;
+  if (entries.length === 0) return '<div class="factor-detail__items"></div>';
 
-  // Parent-score-aware detractor threshold: excellent parent → only flag genuinely terrible sub-factors
   const parentScore = typeof scoring[factorKey] === 'number'
     ? Math.min(parseFloat(scoring[factorKey]) || 0, 10) : 0;
   const detractorThreshold = parentScore >= 7.5 ? 25 : parentScore >= 5 ? 35 : 40;
 
-  // Rank-based coloring: only top driver (≥65%) = green, only bottom (below threshold) = red, rest neutral
   const maxPct = Math.max(...entries.map(e => e.pct));
   const minPct = Math.min(...entries.map(e => e.pct));
 
@@ -598,10 +545,9 @@ function buildFactorDetail(factorKey, scoring, slotWeight) {
     </div>`;
   }
 
-  // V6.1: Narrative sentence above sub-factor bars
   const narrative = buildFactorNarrative(factorKey, scoring);
 
-  return `<div class="factor-detail__items">${weightHeader}${narrative}${items}</div>`;
+  return `<div class="factor-detail__items">${narrative}${items}</div>`;
 }
 
 // Legacy export for backward compat — vibe bars removed in V5
@@ -613,71 +559,37 @@ export function toggleScoreBreakdown() {
   // V2 breakdown removed
 }
 
-/* ---- V5 Factor Profile: Compact bars inside Score Hero ---- */
+/* ---- Factor state management ---- */
 
-let _vibeState = 'compact'; // 'compact' | 'expanded'
 let _factorBarsRendered = false;
-let _lastRestaurantData = null; // V5: cache for re-render
+let _lastRestaurantData = null;
 
-export function getBloomState() { return _vibeState; }
+export function getBloomState() { return 'expanded'; }
 
 export function resetBloomState() {
-  _vibeState = 'compact';
   _factorBarsRendered = false;
   _lastRestaurantData = null;
-  const $hero = document.getElementById('score-hero');
-  if ($hero) {
-    $hero.classList.remove('score-hero--factors-expanded');
-  }
   const $list = document.getElementById('factor-bars-list');
   if ($list) $list.innerHTML = '';
-  const $factorBars = document.getElementById('factor-bars');
-  if ($factorBars) $factorBars.setAttribute('aria-hidden', 'true');
+  // Reset narrative
+  const $narrative = document.getElementById('score-hero-narrative');
+  if ($narrative) {
+    $narrative.classList.remove('score-hero__narrative--visible');
+    $narrative.style.display = 'none';
+  }
+  // Reset dots
+  const $dots = document.getElementById('score-hero-dots');
+  if ($dots) $dots.innerHTML = '';
 }
 
-/** V5: Auto-expand factor bars when score < 75 (Strong Pick threshold) */
-function autoExpandFactors(scoringData, timers = []) {
-  const $hero = document.getElementById('score-hero');
-  if (!$hero || _vibeState === 'expanded') return;
-
-  $hero.classList.add('score-hero--factors-expanded');
-  if (!_factorBarsRendered) {
-    renderFactorBars(scoringData, timers, _lastRestaurantData);
+export function toggleBloom(scores, scoringData, timers = [], restaurantData = null) {
+  if (restaurantData) _lastRestaurantData = restaurantData;
+  // Factors are always visible now — just ensure they're rendered
+  if (!_factorBarsRendered && scoringData) {
+    renderFactorBars(normalizeScoringKeys(scoringData) || {}, timers, _lastRestaurantData);
     _factorBarsRendered = true;
   }
-  const $factorBars = document.getElementById('factor-bars');
-  if ($factorBars) $factorBars.setAttribute('aria-hidden', 'false');
-  _vibeState = 'expanded';
-}
-
-/**
- * V5: 2-state toggle: compact <-> factors-expanded
- */
-export function toggleBloom(scores, scoringData, timers = [], restaurantData = null) {
-  const $hero = document.getElementById('score-hero');
-  if (!$hero) return _vibeState;
-
-  if (restaurantData) _lastRestaurantData = restaurantData;
-
-  if (_vibeState === 'compact') {
-    // -> expanded: show V5 factor bars
-    $hero.classList.add('score-hero--factors-expanded');
-    if (!_factorBarsRendered) {
-      renderFactorBars(scoringData || {}, timers, _lastRestaurantData);
-      _factorBarsRendered = true;
-    }
-    const $factorBars = document.getElementById('factor-bars');
-    if ($factorBars) $factorBars.setAttribute('aria-hidden', 'false');
-    _vibeState = 'expanded';
-    return 'expanded';
-  } else {
-    // -> compact: collapse factor bars
-    $hero.classList.remove('score-hero--factors-expanded');
-    const $factorBars = document.getElementById('factor-bars');
-    if ($factorBars) $factorBars.setAttribute('aria-hidden', 'true');
-    _vibeState = 'compact';
-    return 'compact';
-  }
+  return 'expanded';
 }
 
 export function handlePetalTap() {}
