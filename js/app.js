@@ -1140,22 +1140,7 @@ function wireEvents() {
 
       case 'toggle-factors':
       case 'show-vibe-profile': {
-        // Toggle factor bars (2-state: compact <-> expanded)
-        const data = _pendingResultData;
-        if (!data) break;
-        const newState = toggleBloom(
-          data.scores || {},
-          data.scoring || data.scoring_v5 || null,
-          animationTimers,
-          data
-        );
-        // Update callout arrow direction
-        const $calloutArrow = document.getElementById('score-hero-callout')
-          ?.querySelector('.score-hero__callout-arrow');
-        if ($calloutArrow) {
-          $calloutArrow.textContent = newState === 'compact' ? '\u2193' : '\u2191';
-        }
-        announce(newState === 'expanded' ? 'Showing score factors' : 'Collapsed score factors');
+        // Factors are always visible — no-op
         break;
       }
 
@@ -2131,7 +2116,7 @@ function renderResult(data) {
   const REDUCED_MQ = matchMedia('(prefers-reduced-motion: reduce)');
   if ($matchScore && !REDUCED_MQ.matches) {
     animationTimers.push(setTimeout(() => {
-      const duration = 1400;
+      const duration = 1000;
       const start = performance.now();
       const animate = (now) => {
         const elapsed = now - start;
@@ -2141,15 +2126,25 @@ function renderResult(data) {
         $matchScore.textContent = current;
         const thresholdColor = getScoreThresholdColor(current);
         $matchScore.style.color = thresholdColor;
-        // Update arc fill + color
         if ($arcFill) {
           $arcFill.style.strokeDashoffset = String(arcLength - (current / 100) * arcLength);
           $arcFill.style.stroke = thresholdColor;
         }
         if (progress < 1) {
           requestAnimationFrame(animate);
-        } else if ($arcFill) {
-          $arcFill.style.animation = 'arcSettle 400ms var(--spring)';
+        } else {
+          // Settle pulse — subtle scale emphasis on completion
+          const $pill = document.getElementById('match-pill');
+          if ($pill) {
+            $pill.style.transition = 'transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1)';
+            $pill.style.transform = 'scale(1.03)';
+            setTimeout(() => {
+              $pill.style.transform = 'scale(1)';
+            }, 120);
+          }
+          if ($arcFill) {
+            $arcFill.style.animation = 'arcSettle 400ms var(--spring)';
+          }
         }
       };
       requestAnimationFrame(animate);
@@ -2467,7 +2462,7 @@ function renderTier2Animations() {
   const data = _pendingResultData;
   if (!data) return;
 
-  // Animate Score Hero arc (re-render with animation timers)
+  // Animate Confidence Ring + factor bars (renderScoreHero auto-triggers factor bars)
   renderScoreHero(
     data.donde_match,
     data.scores || {},
@@ -2476,18 +2471,6 @@ function renderTier2Animations() {
     animationTimers,
     data.match_narrative || null
   );
-
-  // V8: Auto-expand factor bars when Tier 2 opens (no separate toggle needed)
-  setTimeout(() => {
-    if (typeof toggleBloom === 'function') {
-      const $hero = document.getElementById('score-hero');
-      if ($hero && !$hero.classList.contains('score-hero--factors-expanded')) {
-        toggleBloom();
-      }
-    } else if (typeof renderFactorBars === 'function') {
-      renderFactorBars(data.scoring || data.scoring_v5, animationTimers, data);
-    }
-  }, 600);
 }
 
 
