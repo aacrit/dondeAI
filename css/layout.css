@@ -214,6 +214,7 @@
 .step {
   flex: 0 0 100vw;
   width: 100vw;
+  max-width: none;
   height: 100%;
   display: flex;
   flex-direction: column;
