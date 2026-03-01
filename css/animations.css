@@ -289,6 +289,18 @@
   }
 }
 
+/* ---- Canvas Restore (elements fade back in from below) ---- */
+@keyframes inkRestore {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* ---- Ink Write Utility Class ---- */
 .ink-write {
   clip-path: inset(0 100% 0 0);
@@ -369,6 +381,23 @@
     opacity: 1;
     transform: translateY(0) scaleY(1);
   }
+}
+
+/* ---- Filter Drawer Close ---- */
+@keyframes drawerClose {
+  from {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-8px) scaleY(0.95);
+  }
+}
+
+.filter-content--closing {
+  animation: drawerClose 250ms var(--ease-out) forwards;
+  pointer-events: none;
 }
 
 /* ---- Ink Ripple (filter pill selection) ---- */
@@ -589,8 +618,9 @@
 
 /* ---- V7: Card Swap In (new result from queue) ---- */
 @keyframes cardSwapIn {
-  from { opacity: 0; transform: translateX(20px) scale(0.97); }
-  to   { opacity: 1; transform: translateX(0) scale(1); }
+  0%   { opacity: 0; transform: translateX(20px) scale(0.97); }
+  70%  { opacity: 1; transform: translateX(-2px) scale(1.01); }
+  100% { opacity: 1; transform: translateX(0) scale(1); }
 }
 
 /* ---- Reduced Motion: Gentle fallback (100ms linear, not 0ms) ---- */
@@ -601,6 +631,7 @@
   .shimmer,
   .smart-chip,
   .filter-section,
+  .filter-content--closing,
   .logo-mark--loading .logo-mark__tine--draw,
   .logo-mark--loading .logo-mark__curve--draw,
   .logo-mark--loading .logo-mark__dot--draw,
@@ -690,6 +721,30 @@
   .canvas-layout--morphing .craving-wrap {
     animation: none !important;
     opacity: 0;
+  }
+
+  .result-card--unfolding .card-footer,
+  .result-card--unfolding .tell-more-btn,
+  .result-card--unfolding .donde-blurb,
+  .result-card--unfolding .glance-nav,
+  .result-card--unfolding .glance-hero,
+  .result-card--unfolding .result-photos {
+    animation: none !important;
+    opacity: 0;
+  }
+
+  .canvas-layout--restoring .craving-wrap,
+  .canvas-layout--restoring .filter-drawer,
+  .canvas-layout--restoring .smart-chips,
+  .canvas-layout--restoring .taste-memory,
+  .canvas-layout--restoring .cta-hint,
+  .canvas-layout--restoring .surprise-btn,
+  .canvas-layout--restoring .saved-spots,
+  .canvas-layout--restoring .step__title,
+  .canvas-layout--restoring .empty-state,
+  .canvas-layout--restoring .cta-btn {
+    animation: none !important;
+    opacity: 1;
   }
 
   .result-card--scaffold .scaffold-block {

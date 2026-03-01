@@ -687,10 +687,11 @@
   padding: 0;
   margin: 0;
   pointer-events: none;
-  transition: max-height 500ms var(--ease-out),
-              opacity 400ms var(--ease-out),
-              padding 400ms var(--ease-out),
-              margin 400ms var(--ease-out);
+  will-change: max-height, opacity;
+  transition: max-height 450ms var(--ease-out),
+              opacity 400ms var(--ease-out) 50ms,
+              padding 450ms var(--ease-out),
+              margin 450ms var(--ease-out);
 }
 
 .tier--leanin.tier--expanded {
@@ -3316,19 +3317,33 @@
   border-radius: 1px;
 }
 
-/* ---- Theme Wash (subtle crossfade) ---- */
+/* ---- Theme Wash (radial clip-path ink spread) ---- */
 .theme-wash {
   position: fixed;
   inset: 0;
   z-index: var(--z-overlay);
   pointer-events: none;
   background: var(--bg);
-  opacity: 0;
-  transition: opacity 200ms var(--ease-out);
+  --wash-x: 50vw;
+  --wash-y: 50vh;
+  clip-path: circle(0% at var(--wash-x) var(--wash-y));
+  transition: clip-path 400ms var(--ease-out);
 }
 
 .theme-wash--active {
-  opacity: 1;
+  clip-path: circle(150% at var(--wash-x) var(--wash-y));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-wash {
+    transition: none;
+    clip-path: none;
+    opacity: 0;
+  }
+  .theme-wash--active {
+    clip-path: none;
+    opacity: 1;
+  }
 }
 
 /* ---- Navigation Tile ---- */
@@ -5801,4 +5816,52 @@
 
 .word-group--visible {
   opacity: 1;
+}
+
+/* ---- Phase: Result Card Unfold (back navigation) ---- */
+.result-card--unfolding .card-footer {
+  animation: inkDissolve 200ms var(--ease-out) 0ms forwards;
+}
+
+.result-card--unfolding .tell-more-btn {
+  animation: inkDissolve 200ms var(--ease-out) 30ms forwards;
+}
+
+.result-card--unfolding .donde-blurb {
+  animation: inkDissolve 200ms var(--ease-out) 60ms forwards;
+}
+
+.result-card--unfolding .glance-nav {
+  animation: inkDissolve 200ms var(--ease-out) 60ms forwards;
+}
+
+.result-card--unfolding .glance-hero {
+  animation: inkDissolve 250ms var(--ease-out) 100ms forwards;
+}
+
+.result-card--unfolding .result-photos {
+  animation: inkDissolve 200ms var(--ease-out) 0ms forwards;
+}
+
+/* ---- Phase: Canvas Restore (elements animate back in) ---- */
+.canvas-layout--restoring .craving-wrap,
+.canvas-layout--restoring .filter-drawer,
+.canvas-layout--restoring .smart-chips,
+.canvas-layout--restoring .taste-memory,
+.canvas-layout--restoring .cta-hint,
+.canvas-layout--restoring .surprise-btn,
+.canvas-layout--restoring .saved-spots,
+.canvas-layout--restoring .step__title,
+.canvas-layout--restoring .empty-state {
+  opacity: 0;
+  animation: inkRestore var(--dur-morph) var(--ease-out) forwards;
+}
+
+.canvas-layout--restoring .craving-wrap {
+  animation-delay: 50ms;
+}
+
+.canvas-layout--restoring .cta-btn {
+  opacity: 0;
+  animation: inkRestore var(--dur-morph) var(--ease-out) 100ms forwards;
 }

@@ -6,7 +6,7 @@
 import { getState, setState, subscribe, resetState } from './state.js';
 import { initRouter, goToStep, goToStepInstant } from './router.js';
 import { loadTheme, loadSound, loadHistory, addToHistory, saveTheme, loadColorMode, loadBookmarks, addBookmark, removeBookmark, isBookmarked, loadVisits, addVisit, isVisited, getOrCreateUserId, saveFeedback, loadFeedback, clearFeedback, hasGuestDismissed, setGuestDismissed, hasSeenOnboarding, setOnboardingSeen } from './persistence.js';
-import { initTheme, setTheme, setThemeInstant, setThemeVisualOnly, revertAutoTheme, setManualOverride, isManualOverride, setColorMode, getColorMode, getLabels, CULTURES, CULTURE_DISPLAY_NAMES } from './theme.js';
+import { initTheme, setTheme, setThemeInstant, setThemeVisualOnly, revertAutoTheme, setManualOverride, isManualOverride, setColorMode, getColorMode, getLabels, CULTURES, CULTURE_DISPLAY_NAMES, setWashOrigin } from './theme.js';
 import { initAudio, toggleSound, playChime, playCelebrationChime } from './audio.js';
 import { initVoice, startVoice } from './voice.js';
 import { initShare, shareResult, closeShareSheet, handleShareChannel } from './share.js';
@@ -657,10 +657,13 @@ function wireEvents() {
         renderSmartChips();
         renderTasteMemory();
         renderSavedSpots();
-        // Clean up any ink-manifests state
+        // Clean up ink-manifests state and hide result
         settleResult();
+        if ($resultCard) { $resultCard.classList.remove('result-card--unfolding'); $resultCard.style.display = 'none'; }
         const $scaffold = document.getElementById('result-scaffold');
         if ($scaffold) { $scaffold.style.display = 'none'; $scaffold.querySelectorAll('.scaffold-block').forEach(b => b.classList.remove('scaffold-block--visible')); }
+        const $canvasReset = document.querySelector('.canvas-layout');
+        if ($canvasReset) $canvasReset.classList.remove('canvas-layout--restoring', 'canvas-layout--morphing');
         goToStep(0);
         startCanvasDisclosure(); // V9: Reset canvas phases
         updateCtaState();
@@ -679,7 +682,8 @@ function wireEvents() {
           reverseCanvasFold();
           setState({ loading: false });
         } else {
-          goToStep(0);
+          // Animated reverse fold from result to canvas
+          unfoldResultToCanvas();
         }
         syncFilterPillsToState();
         // Revert any result-page auto-theme back to persisted
@@ -743,7 +747,14 @@ function wireEvents() {
         const content = document.getElementById('filter-content');
         const isExpanded = btn.getAttribute('aria-expanded') === 'true';
         btn.setAttribute('aria-expanded', String(!isExpanded));
-        if (content) content.hidden = isExpanded;
+        if (content) {
+          if (isExpanded) {
+            // Smooth close: animate out, then hide
+            _animateDrawerClose(content);
+          } else {
+            content.hidden = false;
+          }
+        }
         break;
       }
 
@@ -951,6 +962,9 @@ function wireEvents() {
         break;
 
       case 'try-again': {
+        // Debounce: block rapid taps while swap is in-flight
+        if (_swapInFlight) break;
+
         // Track current restaurant ID so backend can exclude it
         const prevId = getState().result?.restaurant?.id;
         if (prevId) {
@@ -973,16 +987,22 @@ function wireEvents() {
           animationTimers = [];
 
           if ($resultCard && !REDUCED_MOTION.matches) {
+            _swapInFlight = true;
             $resultCard.classList.add('result-card--swapping-out');
             setTimeout(() => {
               $resultCard.classList.remove('result-card--swapping-out');
               renderResult(nextResult);
               $resultCard.classList.add('result-card--swapping-in');
-              // Re-trigger score animation for the new result
-              const dondeScore = Math.round(parseFloat(nextResult.donde_match) || 80);
-              const $matchScore = document.getElementById('match-pill-score');
-              if ($matchScore) animateScoreCountUp($matchScore, dondeScore);
-              setTimeout(() => $resultCard.classList.remove('result-card--swapping-in'), 350);
+              // Delay score animation until card-swap-in settles
+              setTimeout(() => {
+                const dondeScore = Math.round(parseFloat(nextResult.donde_match) || 80);
+                const $matchScore = document.getElementById('match-pill-score');
+                if ($matchScore) animateScoreCountUp($matchScore, dondeScore);
+              }, 250);
+              setTimeout(() => {
+                $resultCard.classList.remove('result-card--swapping-in');
+                _swapInFlight = false;
+              }, 350);
             }, 250);
           } else {
             renderResult(nextResult);
@@ -1081,6 +1101,9 @@ function wireEvents() {
           setManualOverride(false);
           revertAutoTheme();
         } else {
+          // Radial wash from dot position
+          const dotRect = btn.getBoundingClientRect();
+          setWashOrigin(dotRect.left + dotRect.width / 2, dotRect.top + dotRect.height / 2);
           setManualOverride(true);
           setTheme(culture, getState().theme.mode);
         }
@@ -1262,13 +1285,16 @@ function wireEvents() {
         if (!isExpanded) {
           haptic(HAPTICS.tierExpand);
           renderTier2Animations();
-          // Scroll to Score Hero
+          // Scroll to Score Hero (300ms delay lets expansion settle)
           setTimeout(() => {
             document.getElementById('score-hero')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          }, 200);
+          }, 300);
           announce('Showing more details');
         } else {
-          // Collapsing
+          // Collapsing — remove will-change after transition
+          $tier2?.addEventListener('transitionend', () => {
+            $tier2.style.willChange = '';
+          }, { once: true });
           if (typeof resetBloomState === 'function') resetBloomState();
         }
         break;
@@ -1290,11 +1316,11 @@ function wireEvents() {
     if ($tellMore) {
       $tellMore.click(); // expand-tier-2 handler manages state
     }
-    // Scroll to Score Hero when expanding
+    // Scroll to Score Hero when expanding (300ms lets expansion settle)
     if ($tellMore && $tellMore.getAttribute('aria-expanded') === 'true') {
       setTimeout(() => {
         document.getElementById('score-hero')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }, 200);
+      }, 300);
     }
     haptic(HAPTICS.tick);
   });
@@ -1783,7 +1809,20 @@ function collapseFilters() {
   const toggle = document.querySelector('[data-action="toggle-filters"]');
   const content = document.getElementById('filter-content');
   if (toggle) toggle.setAttribute('aria-expanded', 'false');
-  if (content) content.hidden = true;
+  if (content && !content.hidden) _animateDrawerClose(content);
+}
+
+/* ---- Smooth filter drawer close ---- */
+function _animateDrawerClose(content) {
+  if (REDUCED_MOTION.matches) {
+    content.hidden = true;
+    return;
+  }
+  content.classList.add('filter-content--closing');
+  content.addEventListener('animationend', () => {
+    content.classList.remove('filter-content--closing');
+    content.hidden = true;
+  }, { once: true });
 }
 
 /* ---- Filter Summary ---- */
@@ -1929,6 +1968,7 @@ async function handleSubmit() {
 let _scaffoldTimers = [];
 let _phraseInterval = null;
 let _morphStartTime = 0;
+let _swapInFlight = false;
 
 /* ---- Phase 1: Canvas Fold ---- */
 function beginCanvasFold() {
@@ -2226,6 +2266,47 @@ function reverseCanvasFold() {
   goToStep(0);
 }
 
+/* ---- Unfold Result to Canvas (animated back navigation) ---- */
+function unfoldResultToCanvas() {
+  const $canvas = document.querySelector('.canvas-layout');
+
+  if (REDUCED_MOTION.matches) {
+    // Instant: just clean up and go back
+    settleResult();
+    if ($resultCard) $resultCard.style.display = 'none';
+    goToStep(0);
+    return;
+  }
+
+  // Phase A: Result card content fades down (staggered reverse)
+  if ($resultCard) {
+    $resultCard.classList.add('result-card--unfolding');
+  }
+
+  // Phase B: After content fades, slide step-track back and restore canvas
+  setTimeout(() => {
+    // Remove morphing so canvas elements are ready to restore
+    if ($canvas) {
+      $canvas.classList.remove('canvas-layout--morphing');
+      $canvas.classList.add('canvas-layout--restoring');
+    }
+
+    goToStep(0);
+
+    // Phase C: After slide completes, clean up result card
+    setTimeout(() => {
+      if ($resultCard) {
+        $resultCard.classList.remove('result-card--unfolding');
+        $resultCard.style.display = 'none';
+      }
+      // Clean restore class after animations complete
+      setTimeout(() => {
+        if ($canvas) $canvas.classList.remove('canvas-layout--restoring');
+      }, 400);
+    }, 350);
+  }, 250);
+}
+
 /* ---- Word-Group Reveal (recommendation blurb "writes itself") ---- */
 function wordGroupReveal($el, text) {
   if (!text || REDUCED_MOTION.matches) {
@@ -2363,9 +2444,14 @@ function renderResult(data) {
   // Cuisine detection (for accent color + auto-theme)
   const cuisine = getCuisineFromResult(data);
 
-  // Auto-theme on result
+  // Auto-theme on result — wash spreads from match pill
   if (getColorMode() === 'auto') {
     if (cuisine.culture) {
+      const $pill = document.getElementById('match-pill');
+      if ($pill) {
+        const pillRect = $pill.getBoundingClientRect();
+        setWashOrigin(pillRect.left + pillRect.width / 2, pillRect.top + pillRect.height / 2);
+      }
       setTheme(cuisine.culture, getState().theme.mode);
     } else {
       revertAutoTheme();
@@ -4187,8 +4273,9 @@ function wireSwipe() {
     // Only allow swipe-right on result to go back to canvas
     if (dx > 0 && step === 1 && (dx > COMPLETE_THRESHOLD || velocity > VELOCITY_THRESHOLD)) {
       haptic(HAPTICS.swipe);
-      goToStep(0);
+      unfoldResultToCanvas();
       syncFilterPillsToState();
+      revertAutoTheme();
     }
   }, { passive: true });
 }
