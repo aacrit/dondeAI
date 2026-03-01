@@ -375,6 +375,25 @@
             <!-- Result Card (populated by JS) — 3-Tier Progressive Disclosure -->
             <div class="result-card card-enter" id="result-card" style="display: none;">
 
+              <!-- Ink Manifests: Progress ink line -->
+              <div class="progress-ink" id="progress-ink"></div>
+
+              <!-- Ink Manifests: Scaffold skeleton (visible during loading) -->
+              <div class="result-scaffold" id="result-scaffold" style="display: none;" aria-hidden="true">
+                <div class="scaffold-block scaffold-block--name" id="scaffold-name"></div>
+                <div class="scaffold-block scaffold-block--tags">
+                  <div class="scaffold-block scaffold-block--tag"></div>
+                  <div class="scaffold-block scaffold-block--tag"></div>
+                </div>
+                <div class="scaffold-blurb">
+                  <div class="scaffold-block scaffold-block--blurb"></div>
+                  <div class="scaffold-block scaffold-block--blurb"></div>
+                  <div class="scaffold-block scaffold-block--blurb"></div>
+                  <div class="scaffold-block scaffold-block--blurb"></div>
+                </div>
+                <p class="scaffold-status type-structural" id="scaffold-status"></p>
+              </div>
+
               <!-- V5: Relaxation Notice — rendered dynamically by JS -->
 
               <!-- F1: Restaurant Photos (horizontal scroll strip) -->

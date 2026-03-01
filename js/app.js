@@ -159,8 +159,11 @@ function init() {
   let _resultCount = 0;
   subscribe((state, prev) => {
     if (state.result !== prev.result && state.result) {
-      // Result arrived — orchestrate the reveal transition (Act 3)
-      orchestrateReveal(state.result);
+      // Result arrived — only ink-manifest if we were in loading/scaffold state
+      // (Try Again queue swap handles its own card-swap animation)
+      if (prev.loading || $resultCard?.classList.contains('result-card--scaffold')) {
+        manifestResult(state.result);
+      }
       // SSO: Deferred auth — show popup after second successful result
       _resultCount++;
       if (_resultCount >= 2 && !isAuthAuthenticated() && !hasGuestDismissed()) {
@@ -168,8 +171,8 @@ function init() {
       }
     }
     if (state.loading !== prev.loading && state.loading) {
-      // Only handle loading=true here; loading=false is handled by orchestrateReveal
-      toggleLoading(true);
+      // Canvas fold + scaffold (Phases 1-3) — replaces old overlay
+      beginCanvasFold();
     }
     if (state.error !== prev.error && state.error) {
       showToast(state.error, true);
@@ -648,6 +651,10 @@ function wireEvents() {
         renderSmartChips();
         renderTasteMemory();
         renderSavedSpots();
+        // Clean up any ink-manifests state
+        settleResult();
+        const $scaffold = document.getElementById('result-scaffold');
+        if ($scaffold) { $scaffold.style.display = 'none'; $scaffold.querySelectorAll('.scaffold-block').forEach(b => b.classList.remove('scaffold-block--visible')); }
         goToStep(0);
         startCanvasDisclosure(); // V9: Reset canvas phases
         updateCtaState();
@@ -663,10 +670,11 @@ function wireEvents() {
       case 'back':
         if (currentAbort) currentAbort.abort();
         if (getState().loading) {
-          toggleLoading(false);
+          reverseCanvasFold();
           setState({ loading: false });
+        } else {
+          goToStep(0);
         }
-        goToStep(getState().step - 1);
         syncFilterPillsToState();
         // Revert any result-page auto-theme back to persisted
         revertAutoTheme();
@@ -1787,8 +1795,8 @@ async function handleSubmit() {
 
   setState({ loading: true, error: null, result: null });
   clearEmptyState();
-  // Don't goToStep(1) — the loading overlay covers everything;
-  // step-track positioning happens in orchestrateReveal()
+  // Ink Manifests: canvas fold + scaffold starts via subscriber (beginCanvasFold)
+  // Step-track slide happens during Phase 1
 
   // Ambient blob pulse on submit (canvas responds to user)
   pulseAmbient();
@@ -1834,10 +1842,9 @@ async function handleSubmit() {
     announce(`Recommendation: ${data.restaurant?.name || 'found'}`);
   } catch (err) {
     if (err.name === 'AbortError') return; // user navigated away
-    // Error: clean up loading state and return to input
-    toggleLoading(false);
+    // Error: reverse the canvas fold and return to input
+    reverseCanvasFold();
     setState({ loading: false });
-    goToStep(0);
     // Show persistent inline feedback on canvas + toast with retry
     showEmptyState(err.message || toasts().noResults);
     showToast(err.message || toasts().genericError, true, {
@@ -1855,190 +1862,351 @@ async function handleSubmit() {
   }
 }
 
-/* ---- Skip Loading on Tap ---- */
-function _skipLoading() {
-  const state = getState();
-  if (state.result) {
-    // Result already arrived — skip directly to reveal
-    resolveLogoToFound();
-    setTimeout(() => orchestrateReveal(state.result), 100);
-  }
-}
+/* ============================================
+   "Ink Manifests" — Canvas → Result Transition
+   No overlay. Canvas folds into scaffold,
+   data ink-writes into existence.
+   ============================================ */
 
-/* ---- Loading Toggle (3-Act Focus Pull Transition) ---- */
-let searchingDotsInterval = null;
+let _scaffoldTimers = [];
+let _phraseInterval = null;
+let _morphStartTime = 0;
 
-function toggleLoading(loading) {
-  const $header = document.querySelector('.header');
-  const $step0 = document.querySelector('.step[data-step="0"]');
-  const $loadingStatus = document.getElementById('loading-status');
+/* ---- Phase 1: Canvas Fold ---- */
+function beginCanvasFold() {
+  const $canvas = document.querySelector('.canvas-layout');
+  const $scaffold = document.getElementById('result-scaffold');
+  const $progressInk = document.getElementById('progress-ink');
+  const $matchPill = document.getElementById('match-pill');
 
-  if (loading) {
-    // === ACT 1: DEFOCUS ===
-    // Blur the input page behind the overlay
-    if ($step0) $step0.classList.add('step--defocused');
-    // Hide header
-    if ($header) $header.style.opacity = '0';
+  _morphStartTime = performance.now();
 
-    // Show loading overlay
-    if ($loadingState) {
-      $loadingState.style.display = 'flex';
-      $loadingState.style.opacity = '1';
-      $loadingState.classList.remove('loading-state--fading');
-      // Tap-to-skip: if result arrives during animation, user can skip
-      $loadingState.addEventListener('click', _skipLoading, { once: true });
-    }
-    // Hide result card
-    if ($resultCard) $resultCard.style.display = 'none';
+  // Cancel any previous scaffold timers
+  _scaffoldTimers.forEach(clearTimeout);
+  _scaffoldTimers = [];
 
-    // === ACT 2: SEARCH ===
-    // Start particle drift
-    if ($particleCanvas) startParticles($particleCanvas);
-    // Question Pin SVG stroke draw-in
-    initLogoAnimation();
-    // Start search pulse (sonar ring + dot pulse) after draw-in completes
-    setTimeout(() => startSearchPulse(), 800);
-
-    // Show result skeleton preview after logo draw-in
-    const $skeleton = document.getElementById('result-skeleton');
-    if ($skeleton) {
-      setTimeout(() => {
-        $skeleton.classList.add('result-skeleton--visible');
-      }, 800);
-    }
-
-    // Animated searching dots with culture-specific phrases
-    if ($loadingStatus) {
-      const labels = getLabels(getState().theme.culture);
-      const phrases = labels.loadingPhrases || ['Searching'];
-      let phraseIndex = 0;
-      let dotCount = 0;
-      $loadingStatus.textContent = phrases[0];
-      $loadingStatus.style.opacity = '';
-      searchingDotsInterval = setInterval(() => {
-        dotCount = (dotCount + 1) % 4;
-        if (dotCount === 0) {
-          phraseIndex = (phraseIndex + 1) % phrases.length;
-          $loadingStatus.style.transition = 'opacity 150ms ease';
-          $loadingStatus.style.opacity = '0';
-          setTimeout(() => {
-            $loadingStatus.textContent = phrases[phraseIndex];
-            $loadingStatus.style.opacity = '1';
-          }, 150);
-        } else {
-          $loadingStatus.textContent = phrases[phraseIndex] + '.'.repeat(dotCount);
-        }
-      }, 500);
-    }
-  } else {
-    // === CLEANUP (called after reveal orchestration completes) ===
-    // Hide skeleton
-    const $skeleton = document.getElementById('result-skeleton');
-    if ($skeleton) $skeleton.classList.remove('result-skeleton--visible');
-
-    // Stop animations
-    clearSearchingDots();
-    stopParticles();
-    cleanupLoadingLogo();
-
-    // Remove defocus from input page
-    if ($step0) $step0.classList.remove('step--defocused');
-
-    // Hide loading overlay and remove skip handler
-    if ($loadingState) {
-      $loadingState.removeEventListener('click', _skipLoading);
-      $loadingState.style.display = 'none';
-      $loadingState.classList.remove('loading-state--fading');
-    }
-
-    // Restore header
-    if ($header) $header.style.opacity = '';
-  }
-}
-
-function clearSearchingDots() {
-  if (searchingDotsInterval) {
-    clearInterval(searchingDotsInterval);
-    searchingDotsInterval = null;
-  }
-}
-
-/* ---- Result Reveal Orchestrator (Act 3) ---- */
-async function orchestrateReveal(data) {
-  const $header = document.querySelector('.header');
-
-  // 1. Resolve logo "found" confirmation pulse
-  clearSearchingDots();
-  await resolveLogoToFound();
-
-  // 2. Render the result card (still hidden)
-  renderResult(data);
-
-  // 3. Position step-track to result view instantly (under the overlay)
-  goToStepInstant(1);
-
-  // 4. Show result card with scale-in animation
+  // Show result card in scaffold state (skeleton visible, content hidden)
   if ($resultCard) {
     $resultCard.style.display = '';
-    $resultCard.style.opacity = '0';
-    $resultCard.style.transform = 'scale(0.95)';
-  }
-
-  // 5. Crossfade: fade out overlay while fading in result
-  if ($loadingState) {
-    $loadingState.classList.add('loading-state--fading');
-  }
-
-  // Small delay for crossfade to begin, then animate result in
-  await new Promise(r => setTimeout(r, 50));
-
-  if ($resultCard) {
-    $resultCard.style.transition = 'opacity 500ms cubic-bezier(0.4, 0, 0.2, 1), transform 500ms cubic-bezier(0.34, 1.56, 0.64, 1)';
     $resultCard.style.opacity = '1';
-    $resultCard.style.transform = 'scale(1)';
+    $resultCard.style.transform = '';
+    $resultCard.style.transition = '';
+    $resultCard.classList.add('result-card--scaffold');
+    $resultCard.classList.remove('result-card--manifesting', 'result-card--revealing');
   }
 
-  // 6. Restore header
-  if ($header) $header.style.opacity = '';
+  // Show scaffold skeleton
+  if ($scaffold) {
+    $scaffold.style.display = 'flex';
+    $scaffold.setAttribute('aria-hidden', 'true');
+  }
 
-  // F18: Haptic feedback on reveal (mobile only, graceful degrade)
+  if (REDUCED_MOTION.matches) {
+    // Reduced motion: instant transition
+    if ($canvas) $canvas.classList.add('canvas-layout--morphing');
+    goToStepInstant(1);
+    renderScaffold();
+    return;
+  }
+
+  // Start canvas dissolve (Phase 1)
+  if ($canvas) $canvas.classList.add('canvas-layout--morphing');
+
+  // Slide step-track during fold — overlapping animation
+  _scaffoldTimers.push(setTimeout(() => {
+    goToStep(1);
+  }, 200));
+
+  // Phase 2: Render scaffold skeleton after slide begins
+  _scaffoldTimers.push(setTimeout(() => {
+    renderScaffold();
+  }, 350));
+
+  // Phase 3: Start scaffold pulse after scaffold appears
+  _scaffoldTimers.push(setTimeout(() => {
+    startScaffoldPulse();
+  }, 600));
+}
+
+/* ---- Phase 2: Scaffold Skeleton ---- */
+function renderScaffold() {
+  const $scaffold = document.getElementById('result-scaffold');
+  const $progressInk = document.getElementById('progress-ink');
+  const $matchPill = document.getElementById('match-pill');
+
+  // Stagger scaffold blocks appearance
+  if ($scaffold) {
+    const blocks = $scaffold.querySelectorAll('.scaffold-block');
+    blocks.forEach((block, i) => {
+      _scaffoldTimers.push(setTimeout(() => {
+        block.classList.add('scaffold-block--visible');
+      }, i * 50));
+    });
+  }
+
+  // Show match pill in scaffold state (ring outline, no score)
+  if ($matchPill) {
+    $matchPill.classList.add('match-mini--scaffold');
+  }
+
+  // Start progress ink line
+  if ($progressInk) {
+    $progressInk.classList.remove('progress-ink--complete', 'progress-ink--fading');
+    requestAnimationFrame(() => {
+      $progressInk.classList.add('progress-ink--active');
+    });
+  }
+}
+
+/* ---- Phase 3: Scaffold Pulse (waiting state) ---- */
+function startScaffoldPulse() {
+  const $matchPill = document.getElementById('match-pill');
+  const $scaffoldStatus = document.getElementById('scaffold-status');
+
+  if (REDUCED_MOTION.matches) return;
+
+  // Score ring indeterminate oscillation
+  if ($matchPill) {
+    $matchPill.classList.add('match-mini--oscillating');
+  }
+
+  // Ghost headline phrase carousel
+  const $resultName = document.getElementById('result-name');
+  startPhraseCarousel($resultName);
+
+  // Show status caption
+  if ($scaffoldStatus) {
+    $scaffoldStatus.classList.add('scaffold-status--visible');
+  }
+}
+
+/* ---- Ghost Headline Carousel ---- */
+function startPhraseCarousel($el) {
+  if (!$el) return;
+  stopPhraseCarousel();
+
+  const labels = getLabels(getState().theme.culture);
+  const phrases = labels.loadingPhrases || ['Finding your spot'];
+  let idx = 0;
+
+  $el.textContent = phrases[0];
+  $el.classList.add('ghost-headline');
+  $el.style.display = '';
+
+  _phraseInterval = setInterval(() => {
+    idx = (idx + 1) % phrases.length;
+    $el.style.transition = 'opacity 200ms ease-out';
+    $el.style.opacity = '0';
+    _scaffoldTimers.push(setTimeout(() => {
+      if (!_phraseInterval) return; // carousel was stopped
+      $el.textContent = phrases[idx];
+      $el.style.opacity = '0.5';
+    }, 200));
+  }, 2500);
+}
+
+function stopPhraseCarousel() {
+  if (_phraseInterval) {
+    clearInterval(_phraseInterval);
+    _phraseInterval = null;
+  }
+}
+
+/* ---- Phase 4: Manifest Result (data arrives) ---- */
+async function manifestResult(data) {
+  const elapsed = performance.now() - _morphStartTime;
+  const MIN_MORPH = 500; // minimum ms before reveal to prevent jarring flash
+
+  // Ensure scaffold had time to appear
+  if (elapsed < MIN_MORPH && !REDUCED_MOTION.matches) {
+    await new Promise(r => setTimeout(r, MIN_MORPH - elapsed));
+  }
+
+  // Stop scaffold animations
+  stopPhraseCarousel();
+  _scaffoldTimers.forEach(clearTimeout);
+  _scaffoldTimers = [];
+
+  const $scaffold = document.getElementById('result-scaffold');
+  const $progressInk = document.getElementById('progress-ink');
+  const $matchPill = document.getElementById('match-pill');
+  const $resultName = document.getElementById('result-name');
+  const $scaffoldStatus = document.getElementById('scaffold-status');
+
+  // Complete progress ink line
+  if ($progressInk) {
+    $progressInk.classList.remove('progress-ink--active');
+    $progressInk.classList.add('progress-ink--complete');
+    _scaffoldTimers.push(setTimeout(() => {
+      $progressInk.classList.add('progress-ink--fading');
+    }, 300));
+  }
+
+  // Remove scaffold states
+  if ($matchPill) {
+    $matchPill.classList.remove('match-mini--scaffold', 'match-mini--oscillating');
+  }
+  if ($resultName) {
+    $resultName.classList.remove('ghost-headline');
+    $resultName.style.transition = '';
+    $resultName.style.opacity = '';
+  }
+  if ($scaffoldStatus) {
+    $scaffoldStatus.classList.remove('scaffold-status--visible');
+  }
+
+  // Render all DOM content (hidden by manifesting class)
+  renderResult(data);
+
+  // Hide scaffold, show real content with ink-write reveals
+  if ($scaffold) {
+    $scaffold.style.display = 'none';
+    const blocks = $scaffold.querySelectorAll('.scaffold-block');
+    blocks.forEach(b => b.classList.remove('scaffold-block--visible'));
+  }
+
+  // Switch from scaffold to manifesting state
+  if ($resultCard) {
+    $resultCard.classList.remove('result-card--scaffold');
+    $resultCard.classList.add('result-card--manifesting');
+  }
+
+  // Haptic on reveal
   haptic(HAPTICS.reveal);
 
-  // V5: Score celebration for 88%+ matches (Perfect Match tier)
-  const celebScore = Math.round(parseFloat(data.donde_match) || 0);
-  if (celebScore >= 88) {
-    // Delay slightly so the score ring animation finishes first
-    animationTimers.push(setTimeout(() => {
+  // Score ring animation (reuse existing)
+  const dondeScore = Math.round(parseFloat(data.donde_match) || 0);
+  _scaffoldTimers.push(setTimeout(() => {
+    animateScoreCountUp(
+      document.getElementById('match-pill-score'),
+      dondeScore
+    );
+  }, 0));
+
+  // Word-group reveal for recommendation blurb
+  const $blurb = document.getElementById('result-recommendation');
+  if ($blurb && data.recommendation && !REDUCED_MOTION.matches) {
+    wordGroupReveal($blurb, data.recommendation);
+  }
+
+  // Celebration for 88%+ scores
+  if (dondeScore >= 88) {
+    _scaffoldTimers.push(setTimeout(() => {
       fireCelebration();
       playCelebrationChime();
       haptic(HAPTICS.celebration);
     }, 1600));
   }
 
-  // 7. After transitions complete, clean up
-  await new Promise(r => setTimeout(r, 550));
+  // Phase 5: Settle — clean up after animations complete
+  _scaffoldTimers.push(setTimeout(() => {
+    settleResult();
+  }, 1200));
 
-  // Stop particles, remove overlay, clean up
-  stopParticles();
-  cleanupLoadingLogo();
-
-  const $step0 = document.querySelector('.step[data-step="0"]');
-  if ($step0) $step0.classList.remove('step--defocused');
-
-  if ($loadingState) {
-    $loadingState.style.display = 'none';
-    $loadingState.classList.remove('loading-state--fading');
-    $loadingState.style.opacity = '';
-  }
-
-  // Clean up result card inline transitions
-  if ($resultCard) {
-    $resultCard.style.transition = '';
-    $resultCard.style.transform = '';
-  }
-
-  // Schedule edge-hint replays (remind user they can swipe back)
+  // Schedule edge-hint replays
   scheduleEdgeHintReplay();
+}
+
+/* ---- Phase 5: Settle (cleanup) ---- */
+function settleResult() {
+  if ($resultCard) {
+    $resultCard.classList.remove('result-card--manifesting');
+  }
+
+  // Clean up progress ink
+  const $progressInk = document.getElementById('progress-ink');
+  if ($progressInk) {
+    $progressInk.classList.remove('progress-ink--active', 'progress-ink--complete', 'progress-ink--fading');
+    $progressInk.style.width = '';
+  }
+
+  // Clean canvas morph class (so returning to canvas is clean)
+  const $canvas = document.querySelector('.canvas-layout');
+  if ($canvas) $canvas.classList.remove('canvas-layout--morphing');
+}
+
+/* ---- Reverse Canvas Fold (error/back during loading) ---- */
+function reverseCanvasFold() {
+  // Cancel all scaffold animations
+  stopPhraseCarousel();
+  _scaffoldTimers.forEach(clearTimeout);
+  _scaffoldTimers = [];
+
+  const $canvas = document.querySelector('.canvas-layout');
+  const $scaffold = document.getElementById('result-scaffold');
+  const $progressInk = document.getElementById('progress-ink');
+  const $matchPill = document.getElementById('match-pill');
+  const $resultName = document.getElementById('result-name');
+  const $scaffoldStatus = document.getElementById('scaffold-status');
+
+  // Remove all scaffold/morph classes
+  if ($canvas) $canvas.classList.remove('canvas-layout--morphing');
+  if ($resultCard) {
+    $resultCard.classList.remove('result-card--scaffold', 'result-card--manifesting');
+    $resultCard.style.display = 'none';
+  }
+  if ($scaffold) {
+    $scaffold.style.display = 'none';
+    $scaffold.querySelectorAll('.scaffold-block').forEach(b => b.classList.remove('scaffold-block--visible'));
+  }
+  if ($progressInk) {
+    $progressInk.classList.remove('progress-ink--active', 'progress-ink--complete', 'progress-ink--fading');
+  }
+  if ($matchPill) {
+    $matchPill.classList.remove('match-mini--scaffold', 'match-mini--oscillating');
+  }
+  if ($resultName) {
+    $resultName.classList.remove('ghost-headline');
+    $resultName.style.transition = '';
+    $resultName.style.opacity = '';
+  }
+  if ($scaffoldStatus) {
+    $scaffoldStatus.classList.remove('scaffold-status--visible');
+  }
+
+  // Navigate back to canvas
+  goToStep(0);
+}
+
+/* ---- Word-Group Reveal (recommendation blurb "writes itself") ---- */
+function wordGroupReveal($el, text) {
+  if (!text || REDUCED_MOTION.matches) {
+    $el.textContent = text || '';
+    return;
+  }
+
+  const words = text.split(/\s+/);
+  $el.innerHTML = '';
+
+  const groupSize = 4;
+  const groups = [];
+  for (let i = 0; i < words.length; i += groupSize) {
+    groups.push(words.slice(i, i + groupSize).join(' '));
+  }
+
+  const spans = groups.map((group, i) => {
+    const span = document.createElement('span');
+    span.className = 'word-group';
+    span.textContent = group + ' ';
+    $el.appendChild(span);
+    return span;
+  });
+
+  // Stagger reveal: each group becomes visible with 30ms delay
+  spans.forEach((span, i) => {
+    _scaffoldTimers.push(setTimeout(() => {
+      span.classList.add('word-group--visible');
+    }, 400 + i * 30)); // 400ms base delay (after card manifests)
+  });
+}
+
+/* ---- Legacy compatibility: toggleLoading fallback ---- */
+function toggleLoading(loading) {
+  if (loading) {
+    beginCanvasFold();
+  } else {
+    reverseCanvasFold();
+  }
 }
 
 /* ---- Edge Hint Replay ---- */
@@ -2333,7 +2501,8 @@ function renderResult(data) {
   setupPhotoParallax();
 
   // Apply progressive reveal (Tier 1 only — Tier 2 animates on scroll)
-  if ($resultCard) {
+  // Skip old reveal if ink-manifesting is active (new transition handles its own stagger)
+  if ($resultCard && !$resultCard.classList.contains('result-card--manifesting')) {
     $resultCard.classList.remove('card-enter', 'result-card--revealing');
     void $resultCard.offsetWidth;
     $resultCard.classList.add('result-card--revealing');

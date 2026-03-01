@@ -5548,3 +5548,257 @@
   font-weight: 600;
   color: var(--fg);
 }
+
+/* ============================================
+   "Ink Manifests" — Canvas → Result Morph
+   No overlay. Canvas folds, scaffold appears,
+   data ink-writes into existence.
+   ============================================ */
+
+/* ---- Phase 1: Canvas Morph-Out ---- */
+.canvas-layout--morphing .filter-drawer,
+.canvas-layout--morphing .smart-chips,
+.canvas-layout--morphing .taste-memory,
+.canvas-layout--morphing .cta-hint,
+.canvas-layout--morphing .surprise-btn,
+.canvas-layout--morphing .saved-spots,
+.canvas-layout--morphing .step__title,
+.canvas-layout--morphing .empty-state {
+  animation: inkDissolve var(--dur-morph) var(--ease-out) forwards;
+  pointer-events: none;
+}
+
+.canvas-layout--morphing .craving-wrap {
+  transition: opacity var(--dur-morph) var(--ease-out),
+              transform var(--dur-morph) var(--ease-out),
+              font-size var(--dur-morph) var(--ease-out);
+  opacity: 0;
+  transform: translateY(-12px) scale(0.92);
+  pointer-events: none;
+}
+
+.canvas-layout--morphing .cta-btn {
+  transition: opacity 200ms var(--ease-out),
+              transform 200ms var(--ease-out);
+  opacity: 0;
+  transform: scale(0.5);
+  pointer-events: none;
+}
+
+/* ---- Phase 2–3: Result Card Scaffold ---- */
+.result-card--scaffold {
+  position: relative;
+}
+
+.result-card--scaffold .tier--glance > *,
+.result-card--scaffold .tell-more-btn,
+.result-card--scaffold .card-footer,
+.result-card--scaffold .result-photos {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Scaffold container */
+.result-scaffold {
+  display: none;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-xs) 0;
+}
+
+.result-card--scaffold .result-scaffold {
+  display: flex;
+}
+
+/* Scaffold skeleton blocks — ink-wash shimmer */
+.scaffold-block {
+  border-radius: var(--radius, 8px);
+  overflow: hidden;
+  position: relative;
+  background: linear-gradient(
+    90deg,
+    var(--bg3) 25%,
+    var(--bg2) 50%,
+    var(--bg3) 75%
+  );
+  background-size: 200% 100%;
+  animation: inkWash 2s ease-in-out infinite;
+  opacity: 0;
+}
+
+.scaffold-block--visible {
+  animation: inkFadeUp 300ms var(--ease-out) forwards, inkWash 2s ease-in-out infinite;
+}
+
+.scaffold-block--name {
+  height: 22px;
+  width: 55%;
+}
+
+.scaffold-block--tags {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.scaffold-block--tag {
+  height: 20px;
+  width: 60px;
+  border-radius: 12px;
+}
+
+.scaffold-block--blurb {
+  height: 14px;
+  width: 100%;
+  border-radius: 4px;
+}
+
+.scaffold-block--blurb:nth-child(2) { width: 92%; }
+.scaffold-block--blurb:nth-child(3) { width: 85%; }
+.scaffold-block--blurb:nth-child(4) { width: 40%; }
+
+/* Progress ink line at card top */
+.progress-ink {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 2px;
+  width: 0%;
+  background: var(--ac);
+  opacity: 0.6;
+  border-radius: 0 1px 1px 0;
+  transition: width 2s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 2;
+}
+
+.progress-ink--active {
+  width: 70%;
+}
+
+.progress-ink--complete {
+  width: 100%;
+  transition: width 300ms var(--ease-out);
+}
+
+.progress-ink--fading {
+  opacity: 0;
+  transition: opacity 300ms var(--ease-out);
+}
+
+/* Ghost headline (loading phrases in name slot) */
+.ghost-headline {
+  color: var(--fg3) !important;
+  opacity: 0.5;
+  transition: opacity 200ms var(--ease-out);
+  font-style: italic;
+}
+
+/* Match mini oscillation state */
+.match-mini--oscillating .match-mini__ring-fill {
+  --ring-circ: 326.73;
+  animation: scoreOscillate 2.5s ease-in-out infinite;
+}
+
+/* Score ring during scaffold — ring outline visible but empty */
+.match-mini--scaffold {
+  opacity: 1 !important;
+}
+
+.match-mini--scaffold .match-mini__ring-bg {
+  opacity: 0.3;
+}
+
+.match-mini--scaffold .match-mini__score {
+  opacity: 0;
+}
+
+.match-mini--scaffold .match-mini__brand {
+  opacity: 0.4;
+}
+
+/* Loading status caption (positioned inside scaffold) */
+.scaffold-status {
+  font-family: var(--font-structural);
+  font-size: var(--text-sm);
+  color: var(--fg3);
+  text-align: center;
+  margin-top: var(--space-xs);
+  opacity: 0;
+  transition: opacity 200ms var(--ease-out);
+}
+
+.scaffold-status--visible {
+  opacity: 0.5;
+}
+
+/* ---- CTA-to-Dot FLIP element ---- */
+.inkwell-dot {
+  position: fixed;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--ac);
+  z-index: var(--z-overlay);
+  pointer-events: none;
+  transition: left 500ms var(--spring),
+              top 500ms var(--spring),
+              transform 500ms var(--spring),
+              opacity 300ms var(--ease-out);
+}
+
+/* ---- Phase 4: Ink Manifest Reveal ---- */
+
+/* Ink-write children: visible but clipped (clip-path reveal) */
+.result-card--manifesting .glance-hero {
+  clip-path: inset(0 100% 0 0);
+  animation: inkReveal var(--dur-ink) cubic-bezier(0.2, 1, 0.4, 1) 80ms forwards;
+}
+
+.result-card--manifesting .match-headline {
+  clip-path: inset(0 100% 0 0);
+  animation: inkReveal var(--dur-ink) cubic-bezier(0.2, 1, 0.4, 1) 200ms forwards;
+}
+
+/* Blurb uses word-group reveal (JS-driven), so just fade the container in */
+.result-card--manifesting .donde-blurb {
+  opacity: 0;
+  animation: fadeInUp 400ms var(--ease-out) 300ms forwards;
+}
+
+.result-card--manifesting .glance-nav {
+  clip-path: inset(0 100% 0 0);
+  animation: inkReveal 400ms cubic-bezier(0.2, 1, 0.4, 1) 500ms forwards;
+}
+
+/* Fade-up children: invisible, opacity + transform reveal */
+.result-card--manifesting .tell-more-btn {
+  opacity: 0;
+  animation: fadeInUp 300ms var(--ease-out) 600ms forwards;
+}
+
+.result-card--manifesting .card-footer {
+  opacity: 0;
+  animation: fadeInUp 300ms var(--spring) 700ms forwards;
+}
+
+.result-card--manifesting .quick-actions {
+  opacity: 0;
+  animation: fadeInUp 300ms var(--spring) 500ms forwards;
+}
+
+/* Cuisine mismatch, signal chips — fade in late */
+.result-card--manifesting .cuisine-mismatch-notice,
+.result-card--manifesting .signal-chips {
+  opacity: 0;
+  animation: fadeInUp 300ms var(--ease-out) 400ms forwards;
+}
+
+/* ---- Word-group reveal for recommendation blurb ---- */
+.word-group {
+  display: inline;
+  opacity: 0;
+  transition: opacity 200ms var(--ease-out);
+}
+
+.word-group--visible {
+  opacity: 1;
+}

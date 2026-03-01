@@ -235,6 +235,67 @@
   50%      { transform: scale(1.02) translateY(-1px); }
 }
 
+/* ============================================
+   "Ink Manifests" Transition Keyframes
+   Canvas → Result morph, scaffold, reveal
+   ============================================ */
+
+/* ---- Canvas Dissolve (elements fade downward on submit) ---- */
+@keyframes inkDissolve {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+}
+
+/* ---- Ink Wash Shimmer (theme-aware skeleton pulse) ---- */
+@keyframes inkWash {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* ---- Ink Reveal (clip-path left-to-right write) ---- */
+@keyframes inkReveal {
+  from { clip-path: inset(0 100% 0 0); }
+  to   { clip-path: inset(0 0% 0 0); }
+}
+
+/* ---- Score Oscillate (indeterminate ring pendulum) ---- */
+@keyframes scoreOscillate {
+  0%   { stroke-dashoffset: var(--ring-circ); }
+  50%  { stroke-dashoffset: calc(var(--ring-circ) * 0.7); }
+  100% { stroke-dashoffset: var(--ring-circ); }
+}
+
+/* ---- Progress Ink Line (accent stroke across card top) ---- */
+@keyframes progressInk {
+  from { width: 0%; }
+  to   { width: 70%; }
+}
+
+/* ---- Ink Fade Up (scaffold elements appearing) ---- */
+@keyframes inkFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ---- Ink Write Utility Class ---- */
+.ink-write {
+  clip-path: inset(0 100% 0 0);
+  animation: inkReveal var(--dur-ink) cubic-bezier(0.2, 1, 0.4, 1) forwards;
+  animation-delay: var(--ink-delay, 0ms);
+}
+
 /* ---- Match Pill Arc Settle (micro-pulse on landing) ---- */
 @keyframes arcSettle {
   0%   { transform: scale(1); }
@@ -562,7 +623,15 @@
   .coach-mark,
   .craving-input--surprising,
   .boost-badge--visible,
-  .relaxation-notice {
+  .relaxation-notice,
+  .ink-write,
+  .canvas-layout--morphing .filter-drawer,
+  .canvas-layout--morphing .smart-chips,
+  .canvas-layout--morphing .taste-memory,
+  .canvas-layout--morphing .cta-hint,
+  .canvas-layout--morphing .step__title,
+  .canvas-layout--morphing .surprise-btn,
+  .scaffold-block {
     animation-duration: 100ms !important;
     animation-timing-function: linear !important;
     opacity: 1;
@@ -609,6 +678,58 @@
   .loading-state,
   .loading-state--fading {
     transition: none !important;
+  }
+
+  /* Ink Manifests — instant transitions */
+  .ink-write {
+    clip-path: none !important;
+    animation: none !important;
+    opacity: 1;
+  }
+
+  .canvas-layout--morphing .craving-wrap {
+    animation: none !important;
+    opacity: 0;
+  }
+
+  .result-card--scaffold .scaffold-block {
+    animation: none !important;
+    opacity: 0.06;
+  }
+
+  .result-card--scaffold .progress-ink {
+    display: none !important;
+  }
+
+  .match-mini--oscillating .match-mini__ring-fill {
+    animation: none !important;
+  }
+
+  .inkwell-dot {
+    transition: none !important;
+  }
+
+  /* Ink Manifests Phase 4 — instant reveal, no clip-path */
+  .result-card--manifesting .glance-hero,
+  .result-card--manifesting .match-headline,
+  .result-card--manifesting .glance-nav {
+    clip-path: none !important;
+    animation: none !important;
+  }
+
+  .result-card--manifesting .donde-blurb,
+  .result-card--manifesting .tell-more-btn,
+  .result-card--manifesting .card-footer,
+  .result-card--manifesting .quick-actions,
+  .result-card--manifesting .cuisine-mismatch-notice,
+  .result-card--manifesting .signal-chips {
+    animation: none !important;
+    opacity: 1;
+    transform: none;
+  }
+
+  .word-group {
+    opacity: 1 !important;
   }
 
   /* Tile expand modal — instant open/close, no spring */
