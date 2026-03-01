@@ -1108,9 +1108,9 @@
   word-break: break-word;
   padding-left: 0;
   min-width: 0;
-  /* V5: Accommodate 100-120 word blurbs */
-  max-height: 14em;
-  overflow-y: auto;
+  /* V8.8: Let blurb grow naturally for 100-120 word recommendations */
+  /* V8.8: Smooth transition for lazy blurb swap on Try Again */
+  transition: opacity 200ms var(--ease-out);
 }
 
 @media (max-width: 767px) {
