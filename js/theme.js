@@ -728,24 +728,42 @@ export function getAutoThemeCulture() {
 }
 
 let isFirstApply = true;
+let _washOrigin = null; // { x, y } for radial clip-path wash origin
+
+/** Set the origin point for the next theme wash animation.
+ *  Call before setTheme() — consumed once by applyTheme(). */
+export function setWashOrigin(x, y) {
+  _washOrigin = { x, y };
+}
 
 function applyTheme(culture, mode) {
   const root = document.documentElement;
   const wash = document.getElementById('theme-wash');
 
-  // Subtle crossfade wash transition (skip on first load, skip during instant swaps)
+  // Consume wash origin (one-shot)
+  const origin = _washOrigin;
+  _washOrigin = null;
+
+  // Radial clip-path wash transition (skip on first load, skip during instant swaps)
   if (!isFirstApply && !skipWash && wash && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    // Apply new theme to wash div first, then crossfade
+    // Apply new theme to wash div first
     wash.setAttribute('data-theme', culture);
     wash.setAttribute('data-mode', mode);
+
+    // Set wash origin coordinates (default to center if no origin provided)
+    const ox = origin ? origin.x : window.innerWidth / 2;
+    const oy = origin ? origin.y : window.innerHeight / 2;
+    wash.style.setProperty('--wash-x', `${ox}px`);
+    wash.style.setProperty('--wash-y', `${oy}px`);
+
     wash.classList.add('theme-wash--active');
 
-    // After crossfade completes, apply to root and hide wash
+    // After wash transition completes, apply to root and reset
     setTimeout(() => {
       root.setAttribute('data-theme', culture);
       root.setAttribute('data-mode', mode);
       wash.classList.remove('theme-wash--active');
-    }, 160);
+    }, 450);
   } else {
     root.setAttribute('data-theme', culture);
     root.setAttribute('data-mode', mode);
