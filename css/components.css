@@ -775,10 +775,8 @@
   letter-spacing: -0.02em;
 }
 
-/* Score-tier coloring — only the number is colored */
-.match-mini[data-tier="high"] .match-mini__score { color: var(--rag-green); }
-.match-mini[data-tier="mid"]  .match-mini__score { color: var(--rag-amber); }
-.match-mini[data-tier="low"]  .match-mini__score { color: var(--rag-red); }
+/* V9.1: Score uses accent color (no RAG) */
+.match-mini__score { color: var(--ac); }
 
 /* ── Match Mini Brand (multi-voice wordmark) ── */
 .match-mini__brand {
@@ -1761,28 +1759,6 @@
   letter-spacing: -0.02em;
 }
 
-/* Factor strength dots — 5 dots below verdict inside ring */
-.score-hero__dots {
-  display: flex;
-  gap: 5px;
-  margin-top: 4px;
-}
-
-.score-hero__dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--border);
-  transition: background 300ms var(--ease-out), transform 300ms var(--spring);
-}
-
-.score-hero__dot--strong {
-  background: var(--ac);
-}
-
-.score-hero__dot--mid {
-  background: var(--fg3);
-}
 
 /* V9: Narrative — editorial voice below ring, more prominent */
 .score-hero__narrative {
@@ -1818,7 +1794,7 @@
   font-family: var(--font-structural);
   font-size: var(--text-xs);
   color: var(--fg2);
-  background: var(--glass);
+  background: var(--bg2);
   border: 1px solid var(--border);
   border-radius: var(--radius-pill, 100px);
   opacity: 0;
@@ -5325,9 +5301,10 @@
   padding: var(--space-sm) var(--space-md);
   padding-bottom: max(var(--space-sm), env(safe-area-inset-bottom));
   background: var(--glass);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border-top: 1px solid var(--border);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
   z-index: var(--z-nav, 100);
   transform: translateY(100%);
   transition: transform 300ms var(--ease-out);
@@ -5372,4 +5349,202 @@
   font-family: var(--font-structural);
   font-size: var(--text-2xs, 10px);
   letter-spacing: 0.03em;
+}
+
+/* ── V9.1: Signature Dishes Showcase — horizontal scroll strip ── */
+.known-for {
+  padding: 0 var(--space-sm);
+}
+
+.known-for__label {
+  font-size: var(--text-xs);
+  color: var(--fg3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: var(--space-2xs);
+}
+
+.known-for__strip {
+  display: flex;
+  gap: var(--space-xs);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: var(--space-2xs);
+}
+
+.known-for__strip::-webkit-scrollbar { display: none; }
+
+.known-for__card {
+  flex: 0 0 auto;
+  min-width: 120px;
+  max-width: 160px;
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--bg2);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  scroll-snap-align: start;
+  transition: transform 150ms var(--ease-out), box-shadow 150ms var(--ease-out);
+}
+
+.known-for__card:active {
+  transform: scale(0.97);
+}
+
+.known-for__dish-name {
+  font-family: var(--font-structural);
+  font-weight: 600;
+  font-size: var(--text-sm);
+  color: var(--fg);
+  line-height: 1.3;
+}
+
+.known-for__dish-why {
+  font-family: var(--font-emotional);
+  font-style: italic;
+  font-size: var(--text-xs);
+  color: var(--fg3);
+  line-height: 1.3;
+  margin-top: 2px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Fallback: menu highlights as simple pills */
+.known-for__pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs);
+}
+
+.known-for__pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  background: var(--bg2);
+  color: var(--fg2);
+  border-radius: var(--radius-pill);
+  font-family: var(--font-structural);
+  font-size: var(--text-xs);
+  border: 1px solid var(--border);
+}
+
+/* ── V9.1: Photo Hero Layout ── */
+.result-photos--hero {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  overflow: visible;
+}
+
+.result-photos__hero-wrap {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+}
+
+.result-photos__hero-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Ken Burns effect */
+@media (prefers-reduced-motion: no-preference) {
+  .result-photos__hero-img {
+    animation: kenBurns 8s ease-in-out infinite alternate;
+  }
+}
+
+.result-photos__hero-scrim {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60%;
+  background: linear-gradient(to top, rgba(0,0,0,0.45), transparent);
+  pointer-events: none;
+}
+
+.result-photos__thumb-strip {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding: 4px 0;
+}
+
+.result-photos__thumb-strip::-webkit-scrollbar { display: none; }
+
+.result-photos__thumb {
+  flex: 0 0 auto;
+  width: 64px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  scroll-snap-align: start;
+  opacity: 0.7;
+  transition: opacity 150ms var(--ease-out);
+  cursor: pointer;
+}
+
+.result-photos__thumb:hover,
+.result-photos__thumb--active {
+  opacity: 1;
+}
+
+/* ── V9.1: Factor Tooltip Spotlight ── */
+.factor-tooltip {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translate(-50%, -100%);
+  background: var(--glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2xs) var(--space-xs);
+  font-family: var(--font-structural);
+  font-size: var(--text-xs);
+  color: var(--fg2);
+  white-space: nowrap;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  opacity: 0;
+  animation: tooltipIn 200ms var(--ease-out) forwards;
+  z-index: var(--z-tooltip, 100);
+}
+
+.factor-tooltip::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: 8px;
+  height: 8px;
+  background: var(--glass);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+/* Factor row needs relative positioning for tooltip */
+.factor-row__wrap {
+  position: relative;
+}
+
+/* ── V9.1: Narrative keyword highlight ── */
+.narrative-highlight {
+  font-weight: 600;
+  color: var(--fg);
 }

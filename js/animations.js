@@ -149,6 +149,35 @@ function normalizeScoringKeys(scoring) {
 /* V8: Petal radar removed — occasion scores still available in API response */
 export function renderPetalRadar() {}
 
+/* ---- V9.1: Narrative Keyword Highlighting ---- */
+function highlightNarrativeKeywords($el, restaurantData) {
+  if (!$el || !restaurantData) return;
+  const text = $el.textContent;
+  if (!text) return;
+
+  // Collect keywords to highlight
+  const keywords = new Set();
+  const r = restaurantData.restaurant || restaurantData;
+  if (r.cuisine_type) keywords.add(r.cuisine_type.toLowerCase());
+  if (r.name) keywords.add(r.name.toLowerCase());
+
+  const dc = restaurantData.deep_context || {};
+  if (dc.signature_dishes) {
+    dc.signature_dishes.slice(0, 3).forEach(d => {
+      if (d.dish) keywords.add(d.dish.toLowerCase());
+    });
+  }
+
+  // Build regex from keywords (escape special chars, sort longest first)
+  const escaped = [...keywords].filter(k => k.length > 2)
+    .sort((a, b) => b.length - a.length)
+    .map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  if (escaped.length === 0) return;
+
+  const regex = new RegExp(`\\b(${escaped.join('|')})\\b`, 'gi');
+  $el.innerHTML = text.replace(regex, '<strong class="narrative-highlight">$1</strong>');
+}
+
 /* ---- Score Hero (Confidence Ring — full circle gauge) ---- */
 
 let heroData = null;
@@ -217,32 +246,7 @@ export function renderScoreHero(dondeMatch, scores, scoringV2, sentiment, timers
     }
   }
 
-  // Factor strength dots (5 dots — filled/mid/outline based on factor scores)
-  const $dots = document.getElementById('score-hero-dots');
-  if ($dots && scoringV2) {
-    const sv = normalizeScoringKeys(scoringV2);
-    $dots.innerHTML = '';
-    FACTOR_DIMS.forEach((dim, i) => {
-      const val = parseFloat(sv[dim.key]) || 0;
-      const dot = document.createElement('span');
-      dot.className = 'score-hero__dot';
-      if (val >= 7.5) dot.classList.add('score-hero__dot--strong');
-      else if (val >= 5) dot.classList.add('score-hero__dot--mid');
-      dot.setAttribute('title', `${dim.label}: ${val.toFixed(1)}`);
-
-      if (!REDUCED.matches) {
-        dot.style.transform = 'scale(0)';
-        dot.style.opacity = '0';
-        timers.push(setTimeout(() => {
-          dot.style.transition = 'transform 300ms var(--spring, cubic-bezier(.34, 1.56, .64, 1)), opacity 200ms ease-out';
-          dot.style.transform = 'scale(1)';
-          dot.style.opacity = '1';
-        }, 700 + i * 50));
-      }
-
-      $dots.appendChild(dot);
-    });
-  }
+  // V9.1: Factor dots removed (CEO feedback: not intuitive) — factor bars serve this purpose
 
   // Narrative — typewriter-reveals after ring completes (300ms delay after ring)
   const $narrative = document.getElementById('score-hero-narrative');
@@ -269,6 +273,7 @@ export function renderScoreHero(dondeMatch, scores, scoringV2, sentiment, timers
 
     if (narrativeText) {
       $narrative.textContent = narrativeText;
+      highlightNarrativeKeywords($narrative, _lastRestaurantData);
       $narrative.style.display = '';
       if (!REDUCED.matches) {
         // 100ms start + 600ms ring + 300ms delay = 1000ms
@@ -428,6 +433,22 @@ export function renderFactorBars(scoringData, timers = [], restaurantData = null
     row.addEventListener('click', () => {
       // V9: haptic feedback on factor expand
       if (navigator.vibrate) navigator.vibrate([15, 10, 15]);
+
+      // V9.1: Factor tooltip spotlight (first-tap only)
+      if (!wrapper.dataset.tooltipShown) {
+        const signalEl = row.querySelector('.factor-row__signal');
+        const tipText = signalEl ? signalEl.textContent.trim() : '';
+        if (tipText) {
+          const tooltip = document.createElement('div');
+          tooltip.className = 'factor-tooltip';
+          tooltip.textContent = tipText;
+          wrapper.style.position = 'relative';
+          wrapper.appendChild(tooltip);
+          setTimeout(() => tooltip.remove(), 2000);
+        }
+        wrapper.dataset.tooltipShown = 'true';
+      }
+
       const isOpen = row.getAttribute('aria-expanded') === 'true';
       // Close all panels first (accordion)
       $list.querySelectorAll('.factor-row').forEach(r => r.setAttribute('aria-expanded', 'false'));
@@ -690,9 +711,7 @@ export function resetBloomState() {
     $narrative.classList.remove('score-hero__narrative--visible');
     $narrative.style.display = 'none';
   }
-  // Reset dots
-  const $dots = document.getElementById('score-hero-dots');
-  if ($dots) $dots.innerHTML = '';
+  // V9.1: Factor dots removed — no reset needed
 }
 
 export function toggleBloom(scores, scoringData, timers = [], restaurantData = null) {
