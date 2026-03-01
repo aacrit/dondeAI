@@ -215,8 +215,11 @@ function startCanvasDisclosure() {
   if (!$step0) return;
 
   _canvasPhase = 'minimal';
-  $step0.classList.add('canvas-layout--minimal');
-  $step0.classList.remove('canvas-layout--engaged', 'canvas-layout--returning');
+  const $canvasInner = $step0.querySelector('.canvas-layout');
+  if ($canvasInner) {
+    $canvasInner.classList.add('canvas-layout--minimal');
+    $canvasInner.classList.remove('canvas-layout--engaged', 'canvas-layout--returning');
+  }
 
   // Check if returning user (has history)
   const { history } = getState();
@@ -234,8 +237,11 @@ function setCanvasPhase(phase) {
 
   const wasMinimal = _canvasPhase === 'minimal';
   _canvasPhase = phase;
-  $step0.classList.remove('canvas-layout--minimal', 'canvas-layout--engaged', 'canvas-layout--returning');
-  $step0.classList.add(`canvas-layout--${phase}`);
+  const $canvasInner = $step0.querySelector('.canvas-layout');
+  if ($canvasInner) {
+    $canvasInner.classList.remove('canvas-layout--minimal', 'canvas-layout--engaged', 'canvas-layout--returning');
+    $canvasInner.classList.add(`canvas-layout--${phase}`);
+  }
 
   // V9.1 Enhancement 5: Smart chip cascade entrance on first reveal
   if (wasMinimal && (phase === 'engaged' || phase === 'returning')) {
