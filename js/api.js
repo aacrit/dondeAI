@@ -188,3 +188,48 @@ export async function fetchRecommendation({ special_request, occasion, neighborh
     throw err;
   }
 }
+
+/**
+ * V8.8: Fetch a fresh Claude blurb for a Try Again queue item.
+ * Lazy API call — fires on Try Again click, ~500ms response time.
+ */
+const BLURB_ENDPOINT = ENDPOINT + '/blurb';
+const BLURB_TIMEOUT_MS = 8000;
+
+export async function fetchBlurb({ restaurant_data, context }) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), BLURB_TIMEOUT_MS);
+
+  let authToken = null;
+  try { authToken = await getAccessToken(); } catch { /* auth module not loaded yet */ }
+  const bearerToken = authToken || ANON_KEY;
+
+  try {
+    const res = await fetch(BLURB_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${bearerToken}`,
+        'apikey': ANON_KEY,
+      },
+      body: JSON.stringify({ restaurant_data, context }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timer);
+
+    if (!res.ok) {
+      throw new Error(`Blurb API returned ${res.status}`);
+    }
+
+    const data = await res.json();
+    if (!data.success) {
+      throw new Error(data.error || 'Blurb generation failed');
+    }
+
+    return data;
+  } catch (err) {
+    clearTimeout(timer);
+    throw err;
+  }
+}

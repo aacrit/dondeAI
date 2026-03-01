@@ -12,7 +12,7 @@ import { initVoice, startVoice } from './voice.js';
 import { initShare, shareResult, closeShareSheet, handleShareChannel } from './share.js';
 import { initOffline, isOnline } from './offline.js';
 import { initAccessibility, announce } from './accessibility.js';
-import { fetchRecommendation, sendFeedback, sendVisit, sendAppFeedback } from './api.js';
+import { fetchRecommendation, fetchBlurb, sendFeedback, sendVisit, sendAppFeedback } from './api.js';
 import { initAuth, signIn as signInWith, signOut as authSignOut, isAuthenticated as isAuthAuthenticated, getUser as getAuthUser, addFavoriteToServer, removeFavoriteFromServer, addVisitToServer } from './auth.js';
 import { animateScoreRing, renderPetalRadar, renderSentimentBar, renderScoreBloom, renderScoreHero, renderFactorBars, toggleBloom, resetBloomState, handlePetalTap, handleBloomRingTap, toggleScoreBreakdown, getBloomState, animateBadge, startParticles, stopParticles, chaosToOrderReveal, initLogoAnimation, startSearchPulse, stopSearchPulse, resolveLogoToFound, cleanupLoadingLogo, fireCelebration } from './animations.js';
 import {
@@ -949,7 +949,7 @@ function wireEvents() {
         const queue = getState().rankedQueue;
         const qIdx = getState().rankedQueueIndex;
         if (queue.length > 0 && qIdx < queue.length) {
-          // Serve next result from pre-computed queue — no API call needed
+          // Serve next result from pre-computed queue — render instantly with template blurb
           const nextResult = queue[qIdx];
           setState({ rankedQueueIndex: qIdx + 1, result: nextResult });
 
@@ -977,6 +977,58 @@ function wireEvents() {
             if ($matchScore) animateScoreCountUp($matchScore, dondeScore);
           }
           haptic(HAPTICS.reveal);
+
+          // V8.8: Fire background API call for fresh Claude blurb
+          const blurbRestaurant = nextResult.restaurant || {};
+          const blurbPayload = {
+            restaurant_data: {
+              name: blurbRestaurant.name,
+              cuisine_type: blurbRestaurant.cuisine_type,
+              price_level: blurbRestaurant.price_level,
+              neighborhood_name: blurbRestaurant.neighborhood_name,
+              noise_level: blurbRestaurant.noise_level,
+              lighting_ambiance: blurbRestaurant.lighting_ambiance,
+              outdoor_seating: blurbRestaurant.outdoor_seating,
+              tags: nextResult.tags || [],
+              deep_context: nextResult.deep_context || {},
+            },
+            context: {
+              special_request: getState().craving,
+              occasion: getState().occasion,
+              neighborhood: getState().neighborhood,
+              score_tier: nextResult.scoring_v7?.score_tier || nextResult.scoring?.score_tier || 'good',
+              match_narrative: nextResult.match_narrative || null,
+            },
+          };
+          fetchBlurb(blurbPayload).then((blurbData) => {
+            // Swap in the fresh Claude blurb with a subtle fade
+            const $rec = document.getElementById('result-recommendation');
+            if ($rec && blurbData.recommendation) {
+              $rec.style.opacity = '0.4';
+              setTimeout(() => {
+                let recText = blurbData.recommendation
+                  .replace(/\u2014/g, ', ')
+                  .replace(/ , /g, ', ')
+                  .replace(/,\s*,/g, ',');
+                $rec.textContent = recText;
+                $rec.style.opacity = '1';
+
+                // Also update match headline and insider tip if available
+                const $headline = document.getElementById('match-headline');
+                if ($headline && blurbData.match_headline) {
+                  $headline.textContent = blurbData.match_headline;
+                }
+                const $tip = document.getElementById('story-tip-text');
+                if ($tip && blurbData.insider_tip) {
+                  $tip.textContent = blurbData.insider_tip.replace(/\u2014/g, ', ').replace(/ , /g, ', ');
+                }
+              }, 200);
+            }
+          }).catch((err) => {
+            // Silent failure — template blurb stays
+            console.warn('[Try Again] Fresh blurb fetch failed:', err.message);
+          });
+
           break;
         }
 
