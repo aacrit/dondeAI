@@ -5,7 +5,7 @@
 /* ---- App Shell ---- */
 .app {
   position: relative;
-  width: 100vw;
+  width: 100%;
   height: 100vh;
   height: 100dvh;
   overflow: hidden;
@@ -214,6 +214,7 @@
 .step {
   flex: 0 0 100vw;
   width: 100vw;
+  max-width: none;
   height: 100%;
   display: flex;
   flex-direction: column;

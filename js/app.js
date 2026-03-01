@@ -57,6 +57,14 @@ const HAPTICS = {
   reveal:      [50, 30, 50],           // result reveal
   celebration: [50, 30, 80, 30, 50],   // 90%+ score
   swipe:       [40],                   // swipe completion
+  factorTap:   [15, 10, 15],           // V9: double-tap feel on factor expand
+  signalPop:   [8],                    // V9: micro-tick on signal pill appear
+  photoSwipe:  [20],                   // V9.1: photo scroll start
+  scoreReveal: [50, 30, 50],           // V9.1: tier 2 score hero appears
+  goingHere:   [50, 30, 80, 30, 50],   // V9.1: "I'm Going Here" celebration
+  drawerOpen:  [15],                   // V9.1: drawer/sheet opens
+  tierExpand:  [30, 15, 30],           // V9.1: show more tap
+  peekPulse:   [15],                   // V9.1: tier 2 peek affordance
 };
 
 /* ---- AbortController for fetch cancellation ---- */
@@ -107,6 +115,9 @@ function init() {
 
   // Render dynamic smart chips (theme + history aware)
   renderSmartChips();
+
+  // V9: Canvas progressive disclosure — start minimal, reveal on engagement
+  startCanvasDisclosure();
 
   // Render taste memory (recent searches)
   renderTasteMemory();
@@ -190,6 +201,61 @@ function setupLanding() {
     typewriterReveal($greeting, getGreeting(culture));
   }
   startGreetingRotation();
+}
+
+/* ---- V9: Canvas Progressive Disclosure ---- */
+let _canvasPhase = 'minimal';
+let _canvasRevealTimer = null;
+
+function startCanvasDisclosure() {
+  const $step0 = document.querySelector('.step[data-step="0"]');
+  if (!$step0) return;
+
+  _canvasPhase = 'minimal';
+  $step0.classList.add('canvas-layout--minimal');
+  $step0.classList.remove('canvas-layout--engaged', 'canvas-layout--returning');
+
+  // Check if returning user (has history)
+  const { history } = getState();
+  const isReturning = history && history.length > 0;
+
+  // Auto-reveal engaged phase after 2s idle
+  _canvasRevealTimer = setTimeout(() => {
+    setCanvasPhase(isReturning ? 'returning' : 'engaged');
+  }, 2000);
+}
+
+function setCanvasPhase(phase) {
+  const $step0 = document.querySelector('.step[data-step="0"]');
+  if (!$step0 || _canvasPhase === phase) return;
+
+  const wasMinimal = _canvasPhase === 'minimal';
+  _canvasPhase = phase;
+  $step0.classList.remove('canvas-layout--minimal', 'canvas-layout--engaged', 'canvas-layout--returning');
+  $step0.classList.add(`canvas-layout--${phase}`);
+
+  // V9.1 Enhancement 5: Smart chip cascade entrance on first reveal
+  if (wasMinimal && (phase === 'engaged' || phase === 'returning')) {
+    const $chips = $step0.querySelector('.smart-chips');
+    if ($chips && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      $chips.classList.add('smart-chips--cascade');
+      // Haptic micro-tick per chip
+      const chipEls = $chips.querySelectorAll('.smart-chip');
+      chipEls.forEach((_, i) => {
+        const delays = [0, 60, 140, 240, 360];
+        setTimeout(() => haptic(HAPTICS.signalPop), delays[i] || 360);
+      });
+      // Clean up cascade class after animation
+      setTimeout(() => $chips.classList.remove('smart-chips--cascade'), 1200);
+    }
+  }
+}
+
+function onCanvasEngaged() {
+  if (_canvasPhase !== 'minimal') return;
+  if (_canvasRevealTimer) clearTimeout(_canvasRevealTimer);
+  const { history } = getState();
+  setCanvasPhase(history && history.length > 0 ? 'returning' : 'engaged');
 }
 
 /* ---- Typewriter Reveal (handwritten entrance) ---- */
@@ -583,6 +649,7 @@ function wireEvents() {
         renderTasteMemory();
         renderSavedSpots();
         goToStep(0);
+        startCanvasDisclosure(); // V9: Reset canvas phases
         updateCtaState();
         updateFilterSummary();
         // Collapse filter drawer
@@ -590,6 +657,7 @@ function wireEvents() {
         // Revert auto-theme and re-enable auto-detection
         revertAutoTheme();
         setManualOverride(false);
+        hideFloatingBar(); // V9: Hide floating bar on reset
         break;
 
       case 'back':
@@ -814,7 +882,7 @@ function wireEvents() {
 
       // "I'm Going Here!" — strongest engagement signal
       case 'going': {
-        haptic(HAPTICS.celebration);
+        haptic(HAPTICS.goingHere);
         const result = getState().result;
         const restaurant = result?.restaurant;
         if (!restaurant?.id) break;
@@ -982,6 +1050,7 @@ function wireEvents() {
         const $drawer = document.getElementById('cuisine-drawer');
         const $backdrop = document.getElementById('cuisine-drawer-backdrop');
         if ($drawer && _pendingResultData) {
+          haptic(HAPTICS.drawerOpen);
           renderCuisineDrawer(_pendingResultData);
           $drawer.classList.add('cuisine-drawer--open');
           $drawer.setAttribute('aria-hidden', 'false');
@@ -1109,7 +1178,7 @@ function wireEvents() {
         if ($tier2) {
           $tier2.classList.toggle('tier--expanded');
           $tier2.setAttribute('aria-hidden', String(isExpanded));
-          // V8: JS-driven height for smooth expand/collapse
+          // JS-driven height for smooth expand/collapse
           requestAnimationFrame(() => {
             if ($tier2.classList.contains('tier--expanded')) {
               $tier2.style.maxHeight = $tier2.scrollHeight + 'px';
@@ -1125,8 +1194,9 @@ function wireEvents() {
         const $btnText = btn.querySelector('.tell-more-btn__text');
         if ($btnText) $btnText.textContent = isExpanded ? 'Show More' : 'Show Less';
         if (!isExpanded) {
+          haptic(HAPTICS.tierExpand);
           renderTier2Animations();
-          // Scroll to Score Hero (same behavior as Match Mini tap)
+          // Scroll to Score Hero
           setTimeout(() => {
             document.getElementById('score-hero')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
           }, 200);
@@ -1148,13 +1218,13 @@ function wireEvents() {
     }
   });
 
-  // Match Mini tap → toggle Tier 2 and scroll to Score Hero
+  // Match Mini tap → toggle Tier 2 (same as Show More button)
   document.getElementById('match-pill')?.addEventListener('click', () => {
     const $tellMore = document.getElementById('tell-more-btn');
     if ($tellMore) {
-      $tellMore.click(); // Always toggle — expand-tier-2 handler manages state
+      $tellMore.click(); // expand-tier-2 handler manages state
     }
-    // Only scroll to Score Hero when expanding (after the click has toggled state)
+    // Scroll to Score Hero when expanding
     if ($tellMore && $tellMore.getAttribute('aria-expanded') === 'true') {
       setTimeout(() => {
         document.getElementById('score-hero')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1422,6 +1492,8 @@ function wireCravingInput() {
   if (!$cravingInput) return;
 
   $cravingInput.addEventListener('input', () => {
+    // V9: Engagement trigger for canvas disclosure
+    onCanvasEngaged();
     setState({ craving: $cravingInput.value });
     updateCtaState();
     clearEmptyState();
@@ -2111,7 +2183,8 @@ function renderResult(data) {
     $ringFill.style.strokeDashoffset = String(circumference); // Start empty
   }
 
-  // Animate score count-up + ring fill + progressive color coding
+  // V9.1: Match-mini uses accent color (var(--ac)) to match Tier 2 ring
+  const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--ac').trim() || '#383838';
   const REDUCED_MQ = matchMedia('(prefers-reduced-motion: reduce)');
   if ($matchScore && !REDUCED_MQ.matches) {
     animationTimers.push(setTimeout(() => {
@@ -2123,11 +2196,8 @@ function renderResult(data) {
         const eased = 1 - Math.pow(1 - progress, 3);
         const current = Math.round(eased * dondeScore);
         $matchScore.textContent = current;
-        const thresholdColor = getScoreThresholdColor(current);
-        $matchScore.style.color = thresholdColor;
         if ($ringFill) {
           $ringFill.style.strokeDashoffset = String(circumference - (current / 100) * circumference);
-          $ringFill.style.stroke = thresholdColor;
         }
         if (progress < 1) {
           requestAnimationFrame(animate);
@@ -2147,11 +2217,8 @@ function renderResult(data) {
     }, 200));
   } else if ($matchScore) {
     $matchScore.textContent = dondeScore;
-    const finalColor = getScoreThresholdColor(dondeScore);
-    $matchScore.style.color = finalColor;
     if ($ringFill) {
       $ringFill.style.strokeDashoffset = String(circumference - (dondeScore / 100) * circumference);
-      $ringFill.style.stroke = finalColor;
     }
   }
 
@@ -2163,80 +2230,15 @@ function renderResult(data) {
   // One-liner removed from result card (AI blurb replaces it).
   // best_for_oneliner is still used in share canvas rendering.
 
-  // Quick tags: interactive badges with popouts
+  // V9.1: Quick tags removed from Tier 1 — detail metrics moved to Tier 2 score area
   const $quickTags = document.getElementById('quick-tags');
   if ($quickTags) {
     $quickTags.innerHTML = '';
-
-    // V8: Cuisine tag — opens cuisine drawer (replaces badge popout)
-    const cuisineLabel = data.deep_context?.cuisine_subcategory || r.cuisine_type;
-    if (cuisineLabel) {
-      const tag = document.createElement('span');
-      tag.className = 'quick-tag quick-tag--interactive type-data--sm';
-      tag.setAttribute('role', 'button');
-      tag.setAttribute('tabindex', '0');
-      tag.setAttribute('aria-expanded', 'false');
-      tag.setAttribute('aria-haspopup', 'dialog');
-      tag.setAttribute('data-action', 'open-cuisine-drawer');
-      tag.innerHTML = `${svgIcon(cuisine.icon || 'plate', 12)} ${shortenBadgeValue(cuisineLabel)}`;
-      $quickTags.appendChild(tag);
-    }
-
-    // Google Rating tag — interactive with review details + sentiment popout
-    if (r.google_rating) {
-      const tag = document.createElement('span');
-      tag.className = 'quick-tag quick-tag--interactive type-data--sm';
-      tag.setAttribute('role', 'button');
-      tag.setAttribute('tabindex', '0');
-      tag.setAttribute('aria-expanded', 'false');
-      tag.setAttribute('aria-haspopup', 'true');
-      tag.setAttribute('data-action', 'toggle-badge-popout');
-      tag.innerHTML = `${svgIcon('starFull', 12)} ${parseFloat(r.google_rating).toFixed(1)}`;
-      tag.style.color = 'var(--star-gold)';
-
-      const popout = document.createElement('div');
-      popout.className = 'badge-popout';
-      popout.setAttribute('role', 'tooltip');
-
-      const starsRow = document.createElement('div');
-      starsRow.className = 'badge-popout__stars-row';
-      starsRow.innerHTML = buildGoogleStars(r.google_rating);
-      popout.appendChild(starsRow);
-
-      const ratingLine = document.createElement('div');
-      ratingLine.className = 'badge-popout__body';
-      const ratingNum = `<strong>${parseFloat(r.google_rating).toFixed(1)}</strong>`;
-      const googleUrl = r.google_place_id
-        ? `https://www.google.com/maps/place/?q=place_id:${r.google_place_id}`
-        : null;
-      if (r.google_review_count) {
-        const countText = `${Number(r.google_review_count).toLocaleString()} reviews`;
-        if (googleUrl) {
-          ratingLine.innerHTML = `${ratingNum} · <a class="badge-popout__link" href="${googleUrl}" target="_blank" rel="noopener noreferrer">${countText}</a>`;
-        } else {
-          ratingLine.innerHTML = `${ratingNum} · ${countText}`;
-        }
-      } else {
-        ratingLine.innerHTML = ratingNum;
-      }
-      popout.appendChild(ratingLine);
-
-      // "Powered by Google" attribution
-      const attr = document.createElement('span');
-      attr.className = 'badge-popout__google-attr';
-      attr.setAttribute('translate', 'no');
-      attr.textContent = 'Powered by Google';
-      popout.appendChild(attr);
-
-      // Sentiment details moved to Tier 2 — popout stays clean: stars + count + link
-      tag.appendChild(popout);
-      $quickTags.appendChild(tag);
-    }
-
+    $quickTags.style.display = 'none';
   }
-
-  // F2: Open Now / Closed badge in quick tags
-  renderOpenNowTag(data);
+  // V9.1: Open Now badge moved to Tier 2 signal chips
+  const $signalChipsTier1 = document.getElementById('signal-chips');
+  if ($signalChipsTier1) { $signalChipsTier1.innerHTML = ''; $signalChipsTier1.style.display = 'none'; }
 
   // Quick actions row: Reserve, Share, Website, Phone (subtle utility pills)
   renderQuickActions(data);
@@ -2296,12 +2298,14 @@ function renderResult(data) {
     }
   }
 
-  // V6.1: Dish match now shown via signal chips — standalone chip removed
-
-  // "Why This Spot" removed — user feedback: not accurate, no value
+  // V9.1: Signature Dishes Showcase — horizontal scroll in Tier 1
+  renderKnownFor(data);
 
   // F3: Enhanced map navigation tile
   renderMapPreview(data);
+
+  // V9: Floating Action Bar — populate and wire
+  renderFloatingBar(data);
 
   // Inject icons into glance action buttons
   const $tryAgainIcon = document.getElementById('try-again-icon');
@@ -2322,10 +2326,13 @@ function renderResult(data) {
   _pendingResultData = data;
   _pendingCuisine = cuisine;
 
-  // Pre-populate Tier 2 content (DOM ready, just hidden)
+  // Pre-populate Tier 2 content (DOM ready, revealed on scroll)
   prepareTier2(data, cuisine);
 
-  // Apply progressive reveal (Tier 1 only — Tier 2 animates on expand)
+  // V9: Photo parallax depth effect
+  setupPhotoParallax();
+
+  // Apply progressive reveal (Tier 1 only — Tier 2 animates on scroll)
   if ($resultCard) {
     $resultCard.classList.remove('card-enter', 'result-card--revealing');
     void $resultCard.offsetWidth;
@@ -2343,6 +2350,62 @@ function renderResult(data) {
       }
     }, 1100);
   }
+
+  // V9.1 Enhancement 3: Tier 2 Peek Affordance — tease score breakdown
+  if (!_peekShown && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    _peekShown = true;
+    const $tier2 = document.getElementById('tier-leanin');
+    const $tellMore = document.getElementById('tell-more-btn');
+    if ($tier2 && $tellMore && $tellMore.getAttribute('aria-expanded') !== 'true') {
+      animationTimers.push(setTimeout(() => {
+        // Briefly peek Tier 2 content
+        $tier2.classList.add('tier--peeking');
+        $tier2.style.maxHeight = '40px';
+        $tier2.style.overflow = 'hidden';
+        $tier2.style.transition = 'max-height 500ms var(--ease-out, ease-out)';
+        $tier2.classList.add('tier--peek-shimmer');
+        haptic(HAPTICS.peekPulse);
+        // Collapse after 800ms
+        animationTimers.push(setTimeout(() => {
+          $tier2.style.maxHeight = '0';
+          $tier2.style.transition = 'max-height 400ms var(--ease-out, ease-out)';
+          animationTimers.push(setTimeout(() => {
+            $tier2.classList.remove('tier--peeking', 'tier--peek-shimmer');
+            $tier2.style.maxHeight = '';
+            $tier2.style.overflow = '';
+            $tier2.style.transition = '';
+          }, 400));
+        }, 800));
+      }, 1500));
+    }
+  }
+}
+
+let _peekShown = false; // Only peek once per session
+
+/* ---- V9: Photo Parallax on Scroll ---- */
+let _parallaxRaf = null;
+function setupPhotoParallax() {
+  if (_parallaxRaf) cancelAnimationFrame(_parallaxRaf);
+  const $photos = document.getElementById('result-photos');
+  if (!$photos) return;
+  // Respect reduced-motion preference
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  $photos.classList.add('result-photos--parallax');
+  const handler = () => {
+    _parallaxRaf = requestAnimationFrame(() => {
+      const rect = $photos.getBoundingClientRect();
+      if (rect.bottom < 0 || rect.top > window.innerHeight) return;
+      const shift = Math.round(rect.top * -0.15);
+      $photos.style.setProperty('--parallax-y', `${shift}px`);
+    });
+  };
+  window.addEventListener('scroll', handler, { passive: true });
+  // Store cleanup reference
+  $photos._parallaxCleanup = () => {
+    window.removeEventListener('scroll', handler);
+    if (_parallaxRaf) cancelAnimationFrame(_parallaxRaf);
+  };
 }
 
 /* ---- Pending result data for lazy tier rendering ---- */
@@ -2353,7 +2416,7 @@ let _pendingCuisine = null;
 function prepareTier2(data, cuisine) {
   const r = data.restaurant;
 
-  // Score Hero arc — populate but don't animate yet (animations triggered on expand)
+  // Score Hero arc — populate but don't animate yet (animations triggered on scroll reveal)
   renderScoreHero(
     data.donde_match,
     data.scores || {},
@@ -2454,6 +2517,7 @@ let _tier2Animated = false;
 function renderTier2Animations() {
   if (_tier2Animated) return;
   _tier2Animated = true;
+  haptic(HAPTICS.scoreReveal);
 
   const data = _pendingResultData;
   if (!data) return;
@@ -2853,46 +2917,56 @@ function renderPhotos(data) {
     return;
   }
   $photos.innerHTML = '';
-  // Remove previous pagination dots (sibling element) to prevent accumulation on re-render
   document.getElementById('photo-dots')?.remove();
   const urls = photoUrls.slice(0, 5);
-  urls.forEach((url, i) => {
-    const img = document.createElement('img');
-    img.className = 'result-photos__img';
-    img.src = url;
-    img.alt = `${data.restaurant.name} photo ${i + 1}`;
-    img.loading = i === 0 ? 'eager' : 'lazy';
-    img.decoding = 'async';
-    img.dataset.index = i;
-    img.style.cursor = 'zoom-in';
-    img.addEventListener('click', () => openLightbox(urls, i));
-    $photos.appendChild(img);
-  });
 
-  // Pagination dots
+  // V9.1: Photo Hero Layout — first photo as hero, rest as thumbnail strip
+  $photos.classList.add('result-photos--hero');
+
+  // Hero image with gradient scrim
+  const heroWrap = document.createElement('div');
+  heroWrap.className = 'result-photos__hero-wrap';
+  const heroImg = document.createElement('img');
+  heroImg.className = 'result-photos__hero-img';
+  heroImg.src = urls[0];
+  heroImg.alt = `${data.restaurant.name} — featured photo`;
+  heroImg.loading = 'eager';
+  heroImg.decoding = 'async';
+  heroImg.style.cursor = 'zoom-in';
+  heroImg.addEventListener('click', () => openLightbox(urls, 0));
+  heroWrap.appendChild(heroImg);
+  // Gradient scrim for text legibility
+  const scrim = document.createElement('div');
+  scrim.className = 'result-photos__hero-scrim';
+  heroWrap.appendChild(scrim);
+  $photos.appendChild(heroWrap);
+
+  // Thumbnail strip (remaining photos)
   if (urls.length > 1) {
-    const dotsWrap = document.createElement('div');
-    dotsWrap.className = 'photo-dots';
-    dotsWrap.id = 'photo-dots';
-    urls.forEach((_, i) => {
-      const dot = document.createElement('span');
-      dot.className = 'photo-dots__dot' + (i === 0 ? ' photo-dots__dot--active' : '');
-      dotsWrap.appendChild(dot);
+    const thumbStrip = document.createElement('div');
+    thumbStrip.className = 'result-photos__thumb-strip';
+    urls.slice(1).forEach((url, i) => {
+      const thumb = document.createElement('img');
+      thumb.className = 'result-photos__thumb';
+      thumb.src = url;
+      thumb.alt = `${data.restaurant.name} photo ${i + 2}`;
+      thumb.loading = 'lazy';
+      thumb.decoding = 'async';
+      thumb.style.cursor = 'zoom-in';
+      thumb.addEventListener('click', () => openLightbox(urls, i + 1));
+      thumbStrip.appendChild(thumb);
     });
-    $photos.after(dotsWrap);
+    $photos.appendChild(thumbStrip);
 
-    // IntersectionObserver to track active photo
-    const dots = dotsWrap.querySelectorAll('.photo-dots__dot');
-    const imgs = $photos.querySelectorAll('.result-photos__img');
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          const idx = Number(entry.target.dataset.index);
-          dots.forEach((d, di) => d.classList.toggle('photo-dots__dot--active', di === idx));
-        }
-      });
-    }, { root: $photos, threshold: 0.6 });
-    imgs.forEach(img => observer.observe(img));
+    // Haptic on thumb strip scroll
+    let _photoSwipeTriggered = false;
+    thumbStrip.addEventListener('scroll', () => {
+      if (!_photoSwipeTriggered) {
+        _photoSwipeTriggered = true;
+        haptic(HAPTICS.photoSwipe);
+        setTimeout(() => { _photoSwipeTriggered = false; }, 500);
+      }
+    }, { passive: true });
   }
 
   $photos.style.display = '';
@@ -2993,36 +3067,57 @@ function renderMatchHeadline(data) {
   $headline.style.display = headlineText ? '' : 'none';
 }
 
-/* ---- V6.1: Signal Chips — top matching signals as semantic badges ---- */
+/* ---- V9.1: Signal Chips — moved to Tier 2 Score Hero area ---- */
 function renderSignalChips(data) {
-  const $chips = document.getElementById('signal-chips');
+  // V9.1: Output to Tier 2 score-hero__signals (moved from Tier 1 per CEO feedback)
+  const $chips = document.getElementById('score-hero-signals');
   if (!$chips) return;
   $chips.innerHTML = '';
 
   const chips = [];
   const sv5 = data.scoring_v5 || data.scoring || null;
   const r = data.restaurant;
+  const narrative = data.match_narrative;
 
-  // 1. Cuisine match
+  // V9: Primary source — match_narrative.key_signals (most relevant)
+  if (narrative?.key_signals?.length > 0) {
+    narrative.key_signals.slice(0, 3).forEach((signal, i) => {
+      chips.push({ text: signal, priority: 15 - i });
+    });
+  }
+
+  // Supplementary signals from scoring data (lower priority, fills gaps)
   const foodDetails = sv5?.factor_details?.food;
+
+  // Cuisine match (if not already in key_signals)
   if (foodDetails?.cuisine?.signal && !foodDetails.cuisine.signal.startsWith('No ')) {
     const cuisineLabel = r.cuisine_type || 'Cuisine';
-    chips.push({ text: foodDetails.cuisine.signal.includes('Exact')
-      ? cuisineLabel + ' \u2713' : cuisineLabel, priority: 10 });
+    const cuisineText = foodDetails.cuisine.signal.includes('Exact')
+      ? cuisineLabel + ' \u2713' : cuisineLabel;
+    if (!chips.some(c => c.text.toLowerCase().includes('cuisine'))) {
+      chips.push({ text: cuisineText, priority: 10 });
+    }
   }
 
-  // 2. Dish match (V6)
+  // Dish match
   const menuSignal = foodDetails?.menu?.signal;
   if (menuSignal && menuSignal.toLowerCase().includes('match') && !menuSignal.startsWith('No ')) {
-    chips.push({ text: 'Dish Match \u2713', priority: 12 });
+    if (!chips.some(c => c.text.toLowerCase().includes('dish'))) {
+      chips.push({ text: 'Dish Match \u2713', priority: 12 });
+    }
   }
 
-  // 3. Google rating — removed: already shown in quick-tags badge + reputation factor inline
-  // (was duplicating rating in 3 places)
-
-  // 4. Open now
+  // Open now
   if (r.opening_hours?.open_now === true) {
-    chips.push({ text: 'Open Now', priority: 6 });
+    if (!chips.some(c => c.text.toLowerCase().includes('open'))) {
+      chips.push({ text: 'Open Now', priority: 6 });
+    }
+  }
+
+  // V9: Awards (from deep_context — promote top award)
+  const topAward = data.deep_context?.awards_recognition?.[0];
+  if (topAward && !chips.some(c => c.text === topAward)) {
+    chips.push({ text: topAward, priority: 8 });
   }
 
   // 5. High vibe match — removed: "Great Vibe" chip was redundant with scoring;
@@ -3043,6 +3138,15 @@ function renderSignalChips(data) {
     span.textContent = c.text;
     $chips.appendChild(span);
   });
+
+  // V9: Weak spots — subtle transparency note
+  if (narrative?.weak_spots?.length > 0) {
+    const note = document.createElement('span');
+    note.className = 'signal-chip signal-chip--caveat type-data--sm';
+    note.textContent = narrative.weak_spots[0];
+    $chips.appendChild(note);
+  }
+
   $chips.style.display = '';
 }
 
@@ -3195,6 +3299,83 @@ function renderMapPreview(data) {
       <span class="glance-nav__cta type-structural">Directions ${svgIcon('chevronRight', 16)}</span>
     </a>`;
   $glanceNav.style.display = '';
+}
+
+/* ---- V9: Floating Action Bar ---- */
+let _fabObserver = null;
+
+function renderFloatingBar(data) {
+  const $fab = document.getElementById('floating-bar');
+  if (!$fab) return;
+
+  const r = data.restaurant;
+
+  // Populate directions link
+  const $directions = document.getElementById('fab-directions');
+  if ($directions && r.address) {
+    const mapsUrl = r.google_place_id
+      ? `https://www.google.com/maps/place/?q=place_id:${r.google_place_id}`
+      : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.name + ' ' + r.address)}`;
+    $directions.href = mapsUrl;
+    $directions.target = '_blank';
+    $directions.rel = 'noopener noreferrer';
+    $directions.hidden = false;
+  }
+
+  // Populate call link
+  const $call = document.getElementById('fab-call');
+  if ($call) {
+    if (r.phone) {
+      $call.href = `tel:${r.phone}`;
+      $call.hidden = false;
+    } else {
+      $call.hidden = true;
+    }
+  }
+
+  // Populate reserve link
+  const $reserve = document.getElementById('fab-reserve');
+  if ($reserve) {
+    if (r.website) {
+      $reserve.href = r.website;
+      $reserve.target = '_blank';
+      $reserve.rel = 'noopener noreferrer';
+      $reserve.hidden = false;
+    } else {
+      $reserve.hidden = true;
+    }
+  }
+
+  // Show the bar
+  $fab.hidden = false;
+
+  // Observe the glance actions to show/hide floating bar on scroll
+  if (_fabObserver) _fabObserver.disconnect();
+  const $glanceActions = document.querySelector('.card-footer');
+  if ($glanceActions) {
+    _fabObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          $fab.classList.remove('floating-bar--visible');
+        } else {
+          $fab.classList.add('floating-bar--visible');
+        }
+      });
+    }, { threshold: 0 });
+    _fabObserver.observe($glanceActions);
+  } else {
+    // If no glance actions, show immediately
+    $fab.classList.add('floating-bar--visible');
+  }
+}
+
+function hideFloatingBar() {
+  const $fab = document.getElementById('floating-bar');
+  if ($fab) {
+    $fab.classList.remove('floating-bar--visible');
+    $fab.hidden = true;
+  }
+  if (_fabObserver) _fabObserver.disconnect();
 }
 
 /* ---- F4: Update Bookmark Button State ---- */
@@ -3482,6 +3663,64 @@ function renderQuickStats(data) {
   }
 
   $stats.style.display = '';
+}
+
+/* ---- V9.1: Known For — Signature Dishes Showcase in Tier 1 ---- */
+function renderKnownFor(data) {
+  const $section = document.getElementById('known-for');
+  const $strip = document.getElementById('known-for-strip');
+  if (!$section || !$strip) return;
+
+  const dp = data.deep_context || {};
+  const dishes = dp.signature_dishes;
+  const highlights = dp.menu_highlights;
+
+  // Priority: signature dishes → menu highlights → hide
+  if (dishes?.length > 0) {
+    $strip.innerHTML = '';
+    $strip.className = 'known-for__strip';
+    const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    dishes.slice(0, 4).forEach((d, i) => {
+      const card = document.createElement('div');
+      card.className = 'known-for__card';
+      card.innerHTML = `<div class="known-for__dish-name">${d.dish}</div>${d.why ? `<div class="known-for__dish-why">${d.why}</div>` : ''}`;
+      // Stagger entrance
+      if (!REDUCED) {
+        card.style.opacity = '0';
+        card.style.transform = 'translateX(-16px)';
+        animationTimers.push(setTimeout(() => {
+          card.style.transition = 'opacity 350ms var(--ease-out, ease-out), transform 350ms cubic-bezier(0.34, 1.56, 0.64, 1)';
+          card.style.opacity = '1';
+          card.style.transform = 'translateX(0)';
+        }, 400 + i * 80));
+      }
+      $strip.appendChild(card);
+    });
+    $section.style.display = '';
+  } else if (highlights?.length > 0) {
+    // Fallback: pill tags
+    $strip.innerHTML = '';
+    $strip.className = 'known-for__pills';
+    highlights.slice(0, 6).forEach(item => {
+      const pill = document.createElement('span');
+      pill.className = 'known-for__pill type-data--sm';
+      pill.textContent = item;
+      $strip.appendChild(pill);
+    });
+    $section.style.display = '';
+  } else {
+    $section.style.display = 'none';
+  }
+
+  // Haptic on horizontal scroll start
+  let _knownForSwipeTriggered = false;
+  $strip.addEventListener('scroll', () => {
+    if (!_knownForSwipeTriggered) {
+      _knownForSwipeTriggered = true;
+      haptic(HAPTICS.photoSwipe);
+      setTimeout(() => { _knownForSwipeTriggered = false; }, 500);
+    }
+  }, { passive: true });
 }
 
 /* ---- V8: Cuisine Drawer — populates bottom-sheet / anchored panel ---- */

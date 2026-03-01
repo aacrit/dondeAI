@@ -472,15 +472,15 @@ const QUICK_PICKS = {
   ],
 };
 
-/* ---- Match System V5 (0-99 range, weighted factors) ---- */
+/* ---- Match System V9 (0-99 range, verdict-first, emotionally resonant) ---- */
 const MATCH_WORDS = {
-  88: 'Outstanding',
-  75: 'Excellent',
-  60: 'Solid Pick',
-  45: 'Worth a Try',
-  0: 'Adventurous',
+  90: 'Perfect For You',
+  80: 'Excellent Match',
+  70: 'Strong Pick',
+  60: 'Worth Exploring',
+  0: 'An Adventure',
 };
-const MATCH_THRESHOLDS = [88, 75, 60, 45, 0];
+const MATCH_THRESHOLDS = [90, 80, 70, 60, 0];
 
 export function getScoreTier(score, { mismatch = false } = {}) {
   const pct = Math.round(parseFloat(score) || 0);
@@ -488,13 +488,35 @@ export function getScoreTier(score, { mismatch = false } = {}) {
   const matched = MATCH_THRESHOLDS.find(t => clamped >= t) ?? 0;
   let verdict = MATCH_WORDS[matched];
   let tier, cssClass;
-  // V5: Weighted factor scoring — adjusted thresholds
   if (clamped >= 75) { tier = 'high'; cssClass = 'score-verdict--high'; }
   else if (clamped >= 45) { tier = 'mid'; cssClass = 'score-verdict--mid'; }
   else { tier = 'low'; cssClass = 'score-verdict--low'; }
-  // Cuisine mismatch: override verdict to be transparent about the gap
   if (mismatch && tier === 'low') verdict = 'Best Alternative';
   return { tier, verdict, cssClass, integer: clamped };
+}
+
+/* ---- Factor score label (contextual, not numeric) ---- */
+export function getFactorLabel(score) {
+  if (score >= 8.5) return 'Excellent';
+  if (score >= 7) return 'Strong';
+  if (score >= 5.5) return 'Good';
+  if (score >= 4) return 'Fair';
+  return 'Limited';
+}
+
+/* ---- Strength dots: 3-dot visual for subfactor score/max ratio ---- */
+export function strengthDots(score, max) {
+  if (!max || max <= 0) return '<span class="strength-dots"><span class="sdot sdot--empty"></span><span class="sdot sdot--empty"></span><span class="sdot sdot--empty"></span></span>';
+  const ratio = Math.min(score / max, 1);
+  const tierClass = ratio >= 0.7 ? 'sdot--green' : ratio >= 0.4 ? 'sdot--amber' : 'sdot--red';
+  const dots = [];
+  if (ratio >= 0.83) dots.push('fill', 'fill', 'fill');
+  else if (ratio >= 0.67) dots.push('fill', 'fill', 'half');
+  else if (ratio >= 0.50) dots.push('fill', 'fill', 'empty');
+  else if (ratio >= 0.33) dots.push('fill', 'half', 'empty');
+  else if (ratio >= 0.17) dots.push('fill', 'empty', 'empty');
+  else dots.push('empty', 'empty', 'empty');
+  return `<span class="strength-dots">${dots.map(d => `<span class="sdot sdot--${d} ${tierClass}"></span>`).join('')}</span>`;
 }
 
 export function getScoreColor(score) {
