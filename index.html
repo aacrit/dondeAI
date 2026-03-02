@@ -446,18 +446,18 @@
                       </svg>
                       <span class="match-mini__score type-data" id="match-pill-score">0</span>
                     </span>
+                    <span class="match-mini__verdict type-data--sm" id="match-pill-verdict"></span>
                     <span class="match-mini__hint type-data--sm">Details &#8595;</span>
                   </div>
                   <!-- V5: Intent Boost Badge — rendered dynamically by JS -->
                   <div class="glance-hero__info">
                     <div class="result-header">
                       <h2 class="result-name type-emotional--md" id="result-name"></h2>
+                      <!-- Cuisine + Open/Closed pills — inline with name -->
+                      <div class="result-meta" id="result-meta"></div>
                       <div class="quick-tags" id="quick-tags"></div>
-                      <!-- V6.1: Signal Chips — inline with tags -->
                       <div class="signal-chips" id="signal-chips" style="display: none;"></div>
                     </div>
-                    <!-- Restaurant meta: website, cuisine, what to order, open/closed -->
-                    <div class="result-meta" id="result-meta"></div>
                     <p class="result-oneliner type-structural" id="result-oneliner"></p>
                     <div class="quick-actions" id="quick-actions"></div>
                   </div>
@@ -537,11 +537,7 @@
                 <!-- Quick Stats ribbon (compact deep-context data, includes wow factors) -->
                 <div class="quick-stats" id="quick-stats" style="display: none;"></div>
 
-                <!-- V10: Known For — moved to Tier 2 as inline pills -->
-                <div class="known-for" id="known-for" style="display: none;">
-                  <span class="known-for__label type-data--sm">Known For</span>
-                  <div class="known-for__strip" id="known-for-strip"></div>
-                </div>
+                <!-- Known For data merged into cuisine drawer -->
 
               </div>
 

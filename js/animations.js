@@ -382,9 +382,9 @@ export function renderFactorBars(scoringData, timers = [], restaurantData = null
       : slot.weight >= 18 ? 'weight-mid' : 'weight-low';
     row.className += ` factor-row--${weightTier}`;
 
-    // Score-based fill color
-    const scoreTierClass = slot.val >= 7.5 ? 'bar-fill--strong'
-      : slot.val >= 5 ? 'bar-fill--mid'
+    // Score-based fill color — aligned with RAG thresholds (8/6 on 0-10 scale)
+    const scoreTierClass = slot.val >= 8.0 ? 'bar-fill--strong'
+      : slot.val >= 6.0 ? 'bar-fill--mid'
       : 'bar-fill--weak';
 
     // Clean: icon | label | bar | contextual label | signal sentence
@@ -453,7 +453,7 @@ export function renderFactorBars(scoringData, timers = [], restaurantData = null
         requestAnimationFrame(() => {
           detail.style.transition = REDUCED.matches
             ? 'none'
-            : 'height 350ms var(--spring, cubic-bezier(.34, 1.56, .64, 1)), opacity 250ms var(--ease-out, ease-out)';
+            : 'height var(--dur-expand, 350ms) var(--ease-out, ease-out), opacity var(--dur-expand, 350ms) var(--ease-out, ease-out)';
           detail.style.height = measuredHeight + 'px';
           detail.style.opacity = '1';
         });
@@ -474,7 +474,7 @@ export function renderFactorBars(scoringData, timers = [], restaurantData = null
             fill.style.width = fill.dataset.width + '%';
           });
         }
-      }, i * 60));
+      }, i * 50));
     } else if (fill) {
       fill.style.width = fill.dataset.width + '%';
     }
@@ -517,8 +517,10 @@ function buildFactorNarrative(factorKey, scoring) {
     text = gSignal ? `Reputation backed by ${humanizeSignal(gSignal).toLowerCase()}.` : `${strength} reputation score.`;
   } else if (factorKey === 'convenience') {
     const dSignal = details.distance?.signal || details.timing?.signal || '';
-    if (dSignal) text = `${humanizeSignal(dSignal)}. ${score >= 7 ? 'Easy to get to.' : 'Worth the trip.'}`;
-    else text = `${strength} convenience for your location.`;
+    // Filter out generic convenience signals (walk_in_friendly, reasonably_convenient)
+    const filtered = dSignal ? humanizeSignal(dSignal).replace(/walk.in friendly|reasonably convenient/gi, '').trim() : '';
+    if (filtered) text = `${filtered}. ${score >= 7 ? 'Easy to get to.' : 'Worth the trip.'}`;
+    else text = score >= 7 ? 'Easy to get to.' : 'Worth the trip.';
   }
 
   if (!text) return '';

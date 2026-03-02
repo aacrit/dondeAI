@@ -851,6 +851,14 @@
   .score-hero__ring-wrap--celebrating {
     animation: none !important;
   }
+
+  /* Phase 7: New expand/interaction transitions — instant in reduced motion */
+  .factor-row::after,
+  .result-meta__pill--interactive::after,
+  .tell-more-btn__arrow,
+  .glance-nav__pill {
+    transition: none !important;
+  }
 }
 
 /* ============================================
