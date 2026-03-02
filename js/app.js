@@ -2687,8 +2687,7 @@ function prepareTier2(data, cuisine) {
   // 1D: Deep context extras (USP, wow factors)
   renderDeepContextExtras(data);
 
-  // V10: Known For — render as inline pills in Tier 2
-  renderKnownFor(data);
+  // Known For data now merged into cuisine drawer (Phase 3 reorganization)
 
 }
 
@@ -2871,47 +2870,23 @@ function renderResultMeta(data) {
 
   const r = data.restaurant || {};
 
-  // 1. Website link
-  if (r.website) {
-    let hostname = 'Website';
-    try { hostname = new URL(r.website).hostname.replace('www.', ''); } catch { /* fallback */ }
-    const a = document.createElement('a');
-    a.className = 'result-meta__pill type-data--sm';
-    a.href = r.website;
-    a.target = '_blank';
-    a.rel = 'noopener noreferrer';
-    a.innerHTML = `${svgIcon('globe', 11)} ${hostname}`;
-    $meta.appendChild(a);
-  }
-
-  // 2. Cuisine pill → opens cuisine drawer
+  // 1. Cuisine pill → opens cuisine drawer (includes Known For data)
   if (r.cuisine_type) {
     const pill = document.createElement('span');
-    pill.className = 'result-meta__pill type-data--sm';
+    pill.className = 'result-meta__pill result-meta__pill--interactive type-data--sm';
     pill.setAttribute('role', 'button');
     pill.setAttribute('tabindex', '0');
+    pill.setAttribute('aria-expanded', 'false');
     pill.setAttribute('data-action', 'open-cuisine-drawer');
     pill.innerHTML = `${svgIcon('plate', 11)} ${r.cuisine_type}`;
     $meta.appendChild(pill);
   }
 
-  // 3. "What to Order" pill → opens cuisine drawer (dishes section)
-  const dishes = data.deep_context?.signature_dishes;
-  if (dishes?.length > 0) {
-    const pill = document.createElement('span');
-    pill.className = 'result-meta__pill result-meta__pill--accent type-data--sm';
-    pill.setAttribute('role', 'button');
-    pill.setAttribute('tabindex', '0');
-    pill.setAttribute('data-action', 'open-cuisine-drawer');
-    pill.innerHTML = `${svgIcon('forkKnife', 11)} What to Order`;
-    $meta.appendChild(pill);
-  }
-
-  // 4. Open/Closed status pill with hours popout
+  // 2. Open/Closed status pill with hours popout
   const oh = r.opening_hours;
   if (oh?.open_now != null) {
     const pill = document.createElement('span');
-    pill.className = `result-meta__pill ${oh.open_now ? 'result-meta__pill--open' : 'result-meta__pill--closed'} type-data--sm`;
+    pill.className = `result-meta__pill result-meta__pill--interactive ${oh.open_now ? 'result-meta__pill--open' : 'result-meta__pill--closed'} type-data--sm`;
     pill.setAttribute('role', 'button');
     pill.setAttribute('tabindex', '0');
     pill.setAttribute('aria-expanded', 'false');
@@ -3545,14 +3520,16 @@ function renderMapPreview(data) {
   // Filter out generic city-level names from neighborhood display
   const rawHood = r.neighborhood_name || '';
   const neighborhood = /^chicago$/i.test(rawHood.trim()) ? '' : rawHood;
+  // Short address: just street name, no city/state/zip
+  const shortAddr = r.address.split(',')[0] || r.address;
+  const displayText = neighborhood ? `${neighborhood} · ${shortAddr}` : shortAddr;
+
   $glanceNav.innerHTML = `
-    <a class="glance-nav__link glance-nav__link--enhanced" href="${mapsUrl}" target="_blank" rel="noopener noreferrer">
-      <div class="glance-nav__map-icon">${svgIcon('pin', 20)}</div>
-      <div class="glance-nav__info">
-        ${neighborhood ? `<span class="glance-nav__hood type-data--sm">${neighborhood}</span>` : ''}
-        <span class="glance-nav__address type-structural">${r.address}</span>
-      </div>
-      <span class="glance-nav__cta type-structural">${svgIcon('chevronRight', 16)}</span>
+    <a class="glance-nav__pill" href="${mapsUrl}" target="_blank" rel="noopener noreferrer"
+       aria-label="Get directions to ${r.name}">
+      ${svgIcon('pin', 14)}
+      <span class="glance-nav__pill-text type-data--sm">${displayText}</span>
+      ${svgIcon('chevronRight', 12)}
     </a>`;
   $glanceNav.style.display = '';
 }
