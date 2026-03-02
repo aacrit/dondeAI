@@ -1,0 +1,116 @@
+/* ============================================
+   DondeAI — Three-Voice Type System
+   Emotional (serif) · Structural (sans) · Data (mono)
+   ============================================ */
+
+/* ---- Emotional Voice ---- */
+/* Prompts, greetings, headings — confident upright serif */
+.type-emotional {
+  font-family: var(--font-emotional);
+  font-style: normal;
+  font-weight: 400;
+  font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+}
+
+.type-emotional--lg {
+  font-family: var(--font-emotional);
+  font-style: normal;
+  font-weight: 700;
+  font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1;
+  font-size: var(--text-2xl);
+  letter-spacing: -0.04em;
+  line-height: 1.15;
+  text-wrap: balance;
+}
+
+.type-emotional--md {
+  font-family: var(--font-emotional);
+  font-style: normal;
+  font-weight: 700;
+  font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1;
+  font-size: var(--text-xl);
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+  text-wrap: balance;
+}
+
+.type-emotional--xl {
+  font-family: var(--font-emotional);
+  font-style: normal;
+  font-weight: 700;
+  font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1;
+  font-size: var(--text-3xl);
+  letter-spacing: -0.06em;
+  line-height: 1.05;
+  text-wrap: balance;
+}
+
+/* ---- Structural Voice ---- */
+/* Buttons, labels, navigation — geometric authority */
+.type-structural {
+  font-family: var(--font-structural);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  line-height: 1.4;
+}
+
+.type-structural--sm {
+  font-family: var(--font-structural);
+  font-weight: 500;
+  font-size: var(--text-sm);
+  letter-spacing: 0.02em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.type-structural--bold {
+  font-family: var(--font-structural);
+  font-weight: 700;
+  letter-spacing: 0em;
+  line-height: 1.4;
+}
+
+.type-structural--caps {
+  font-family: var(--font-structural);
+  font-weight: 500;
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+/* ---- Data Voice ---- */
+/* Scores, tags, badges — annotated measurement */
+.type-data {
+  font-family: var(--font-data);
+  font-weight: 400;
+  font-size: var(--text-sm);
+  letter-spacing: 0.02em;
+  line-height: 1.5;
+}
+
+.type-data--lg {
+  font-family: var(--font-data);
+  font-weight: 700;
+  font-size: var(--text-2xl);
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+}
+
+.type-data--sm {
+  font-family: var(--font-data);
+  font-weight: 400;
+  font-size: var(--text-xs);
+  letter-spacing: 0.06em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+/* ---- Base Body ---- */
+body {
+  font-family: var(--font-structural);
+  font-size: var(--text-base);
+  color: var(--fg);
+}

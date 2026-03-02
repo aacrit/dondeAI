@@ -3,17 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="description" content="Donde — AI-powered restaurant recommendations for Chicago. Tell us what you're craving.">
-  <meta name="theme-color" content="#383838">
-  <title>Donde — One Pick. Zero Stress.</title>
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 44'%3E%3Cpath d='M10.5 1C10.5 1 10 8.5 12.5 11.5Q14 13 14.5 13.5' fill='none' stroke='%23383838' stroke-width='2.5' stroke-linecap='round'/%3E%3Cpath d='M21.5 1C21.5 1 22 8.5 19.5 11.5Q18 13 17.5 13.5' fill='none' stroke='%23383838' stroke-width='2.5' stroke-linecap='round'/%3E%3Cpath d='M16 13.5C22 11 29 14 28 21C27 27 19 29 16 31L16 34' fill='none' stroke='%23383838' stroke-width='2.8' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='40' r='2.8' fill='%23383838'/%3E%3C/svg%3E">
+  <meta name="theme-color" content="#1a1715">
+  <title>DondeAI — Find Your Spot</title>
 
-  <!-- Web Fonts -->
+  <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&family=Playfair+Display:ital,wght@0,500;0,700;1,500&display=swap" rel="stylesheet">
 
-  <!-- CSS: Load order matters -->
+  <!-- CSS -->
   <link rel="stylesheet" href="css/reset.css">
   <link rel="stylesheet" href="css/tokens.css">
   <link rel="stylesheet" href="css/themes/neutral.css">
@@ -21,844 +19,234 @@
   <link rel="stylesheet" href="css/themes/japanese.css">
   <link rel="stylesheet" href="css/themes/southamerican.css">
   <link rel="stylesheet" href="css/themes/middleeastern.css">
-  <link rel="stylesheet" href="css/layout.css">
-  <link rel="stylesheet" href="css/typography.css">
-  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/app.css">
   <link rel="stylesheet" href="css/animations.css">
-  <link rel="stylesheet" href="css/responsive.css">
 </head>
 <body>
-  <!-- Skip Navigation -->
-  <a href="#main-content" class="skip-nav type-structural">Skip to main content</a>
+  <a class="skip-link" href="#craving-input">Skip to search</a>
 
-  <!-- Offline Banner (text set by JS for culture-awareness) -->
-  <div class="offline-banner" id="offline-banner" role="alert" aria-live="assertive">
-    You're offline — reconnect to get recommendations.
-  </div>
+  <main class="surface" id="surface" data-phase="idle">
 
-  <div class="app">
-    <!-- Ambient Background Layer -->
-    <div class="ambient" aria-hidden="true">
-      <div class="ambient__blob ambient__blob--1"></div>
-      <div class="ambient__blob ambient__blob--2"></div>
-      <div class="ambient__blob ambient__blob--3"></div>
-      <div class="ambient__textile"></div>
-      <div class="ambient__grain"></div>
-    </div>
-
-    <!-- Header -->
-    <header class="header">
-      <button class="header__logo" data-action="reset" aria-label="Donde — start over">
-        <svg class="logo-mark" viewBox="0 0 32 44" width="24" height="33" aria-hidden="true">
-          <!-- Question Pin: fork tines at top merge into question-mark curve, pin dot at base -->
-          <path class="logo-mark__tine logo-mark__tine--left"
-                d="M10.5 1 C10.5 1, 10 8.5, 12.5 11.5 Q14 13, 14.5 13.5"
-                fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-          <path class="logo-mark__tine logo-mark__tine--right"
-                d="M21.5 1 C21.5 1, 22 8.5, 19.5 11.5 Q18 13, 17.5 13.5"
-                fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-          <path class="logo-mark__curve"
-                d="M16 13.5 C22 11, 29 14, 28 21 C27 27, 19 29, 16 31 L16 34"
-                fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>
-          <circle class="logo-mark__dot" cx="16" cy="40" r="2.8" fill="var(--ac)"/>
-        </svg>
-        <span class="logo-wordmark" aria-label="Donde">
-          <span class="logo-wordmark__d" aria-hidden="true">D</span><span
-            class="logo-wordmark__ond" aria-hidden="true">ond</span><span
-            class="logo-wordmark__e" aria-hidden="true">e</span>
-        </span>
-        <span class="logo-tagline type-data--sm" aria-hidden="true">One Pick. Zero Stress.</span>
-      </button>
-      <span class="header__hood type-data--sm" id="header-hood" style="display: none;" aria-label="Neighborhood"></span>
-      <div class="header__actions">
-        <button class="header__btn" data-action="toggle-sound" aria-label="Unmute sound" title="Sound">
-          <!-- Speaker with waves (shown when sound ON) -->
-          <svg class="sound-icon sound-icon--on" viewBox="0 0 256 256" width="20" height="20">
-            <path fill="currentColor" d="M155.51,24.81a8,8,0,0,0-8.42.88L77.25,80H32A16,16,0,0,0,16,96v64a16,16,0,0,0,16,16H77.25l69.84,54.31A8,8,0,0,0,160,224V32A8,8,0,0,0,155.51,24.81ZM144,207.64,84.91,161.69A7.94,7.94,0,0,0,80,160H32V96H80a7.94,7.94,0,0,0,4.91-1.69L144,48.36ZM192,128a24,24,0,0,0-24-24,8,8,0,0,0,0,16,8,8,0,0,1,0,16,8,8,0,0,0,0,16A24,24,0,0,0,192,128Zm40,0a64,64,0,0,0-64-64,8,8,0,0,0,0,16,48,48,0,0,1,0,96,8,8,0,0,0,0,16A64,64,0,0,0,232,128Z"/>
+    <!-- ===== HEADER (morphs between expanded/collapsed) ===== -->
+    <header class="header" id="header">
+      <div class="header__bar">
+        <div class="header__logo" aria-label="DondeAI">
+          <svg class="header__logo-mark" width="28" height="28" viewBox="0 0 28 28" aria-hidden="true">
+            <circle cx="14" cy="14" r="12" fill="none" stroke="var(--fg3)" stroke-width="1.5"/>
+            <circle cx="14" cy="14" r="3" fill="var(--ac)"/>
           </svg>
-          <!-- Speaker muted (shown when sound OFF) -->
-          <svg class="sound-icon sound-icon--off" viewBox="0 0 256 256" width="20" height="20">
-            <path fill="currentColor" d="M155.51,24.81a8,8,0,0,0-8.42.88L77.25,80H32A16,16,0,0,0,16,96v64a16,16,0,0,0,16,16H77.25l69.84,54.31A8,8,0,0,0,160,224V32A8,8,0,0,0,155.51,24.81ZM144,207.64,84.91,161.69A7.94,7.94,0,0,0,80,160H32V96H80a7.94,7.94,0,0,0,4.91-1.69L144,48.36Z"/>
+          <span class="header__logo-text">DondeAI</span>
+        </div>
+        <button class="header__theme-btn" id="theme-toggle" aria-label="Change theme" type="button">
+          <svg width="20" height="20" viewBox="0 0 256 256" aria-hidden="true">
+            <path fill="currentColor" d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,0,1,0-176Z"/>
           </svg>
-        </button>
-        <button class="header__btn header__btn--color" data-action="toggle-color" aria-label="Auto color on" title="Auto color">
-          <!-- Droplet filled (shown when auto-color ON) -->
-          <svg class="color-icon color-icon--on" viewBox="0 0 256 256" width="20" height="20">
-            <path fill="currentColor" d="M174,47.75a254.19,254.19,0,0,0-41.45-38.3,8,8,0,0,0-9.18,0A254.19,254.19,0,0,0,82,47.75C54.51,79.32,40,112.6,40,144a88,88,0,0,0,176,0C216,112.6,201.49,79.32,174,47.75Z"/>
-          </svg>
-          <!-- Droplet with slash (shown when auto-color OFF) -->
-          <svg class="color-icon color-icon--off" viewBox="0 0 256 256" width="20" height="20">
-            <path fill="currentColor" d="M174,47.75a254.19,254.19,0,0,0-41.45-38.3,8,8,0,0,0-9.18,0A254.19,254.19,0,0,0,82,47.75C54.51,79.32,40,112.6,40,144a88,88,0,0,0,176,0C216,112.6,201.49,79.32,174,47.75Z" opacity="0.3"/>
-            <line x1="48" y1="40" x2="208" y2="216" stroke="currentColor" stroke-width="16" stroke-linecap="round"/>
-          </svg>
-        </button>
-        <button class="header__btn" data-action="toggle-mode" aria-label="Toggle dark mode" title="Toggle dark mode">
-          <!-- Sun icon (shown in dark mode) -->
-          <svg class="mode-icon mode-icon--sun" viewBox="0 0 256 256" width="20" height="20">
-            <path fill="currentColor" d="M124,40V16a4,4,0,0,1,8,0V40a4,4,0,0,1-8,0Zm64,88a60,60,0,1,1-60-60A60.07,60.07,0,0,1,188,128Zm-8,0a52,52,0,1,0-52,52A52.06,52.06,0,0,0,180,128ZM61.17,66.83a4,4,0,0,0,5.66-5.66l-16-16a4,4,0,0,0-5.66,5.66Zm0,122.34-16,16a4,4,0,0,0,5.66,5.66l16-16a4,4,0,0,0-5.66-5.66ZM192,68a4,4,0,0,0,2.83-1.17l16-16a4,4,0,1,0-5.66-5.66l-16,16A4,4,0,0,0,192,68Zm2.83,121.17a4,4,0,0,0-5.66,5.66l16,16a4,4,0,0,0,5.66-5.66ZM40,124H16a4,4,0,0,0,0,8H40a4,4,0,0,0,0-8Zm88,88a4,4,0,0,0-4,4v24a4,4,0,0,0,8,0V216A4,4,0,0,0,128,212Zm112-88H216a4,4,0,0,0,0,8h24a4,4,0,0,0,0-8Z"/>
-          </svg>
-          <!-- Moon icon (shown in light mode) -->
-          <svg class="mode-icon mode-icon--moon" viewBox="0 0 256 256" width="20" height="20">
-            <path fill="currentColor" d="M230.72,145.06a4,4,0,0,0-4-1A92.08,92.08,0,0,1,111.94,29.27a4,4,0,0,0-5-5A100.78,100.78,0,0,0,56.08,59.88a100,100,0,0,0,140,140,100.78,100.78,0,0,0,35.59-50.87A4,4,0,0,0,230.72,145.06ZM191.3,193.53A92,92,0,0,1,62.47,64.7a93,93,0,0,1,39.88-30.35,100.09,100.09,0,0,0,119.3,119.3A93,93,0,0,1,191.3,193.53Z"/>
-          </svg>
-        </button>
-        <!-- SSO: Auth avatar / sign-in button -->
-        <button class="header__btn header__btn--auth" id="auth-btn" data-action="toggle-auth" aria-label="Sign in" title="Sign in">
-          <!-- Person icon (shown when signed out) -->
-          <svg class="auth-icon auth-icon--anon" viewBox="0 0 256 256" width="20" height="20">
-            <path fill="currentColor" d="M128,28A100,100,0,1,0,228,128,100.11,100.11,0,0,0,128,28ZM68.87,198.42a68,68,0,0,1,118.26,0,91.8,91.8,0,0,1-118.26,0Zm124.13-5.56a75.61,75.61,0,0,0-44.51-34,44,44,0,1,0-41,0,75.61,75.61,0,0,0-44.51,34,92,92,0,1,1,130,0ZM128,156a36,36,0,1,1,36-36A36,36,0,0,1,128,156Z"/>
-          </svg>
-          <!-- Avatar image (shown when signed in) -->
-          <img class="auth-icon auth-icon--avatar" id="auth-avatar-img" src="" alt="" width="24" height="24" style="display:none;">
         </button>
       </div>
+
+      <h1 class="header__prompt" id="prompt-text">What are you craving?</h1>
+
+      <div class="header__input-wrap" id="input-wrap">
+        <input
+          class="header__input"
+          id="craving-input"
+          type="text"
+          placeholder="Type anything..."
+          autocomplete="off"
+          autocorrect="on"
+          spellcheck="false"
+          enterkeyhint="search"
+          aria-label="What are you craving?"
+        >
+        <button class="header__voice-btn" id="voice-btn" type="button" aria-label="Voice input">
+          <svg width="18" height="18" viewBox="0 0 256 256" aria-hidden="true">
+            <path fill="currentColor" d="M128,176a48.05,48.05,0,0,0,48-48V64a48,48,0,0,0-96,0v64A48.05,48.05,0,0,0,128,176ZM96,64a32,32,0,0,1,64,0v64a32,32,0,0,1-64,0Zm40,143.6V232a8,8,0,0,1-16,0V207.6A80.11,80.11,0,0,1,48,128a8,8,0,0,1,16,0,64,64,0,0,0,128,0,8,8,0,0,1,16,0A80.11,80.11,0,0,1,136,207.6Z"/>
+          </svg>
+        </button>
+        <button class="header__submit-btn" id="submit-btn" type="button" aria-label="Search" hidden>
+          <svg width="18" height="18" viewBox="0 0 256 256" aria-hidden="true">
+            <path fill="currentColor" d="M221.66,133.66l-72,72a8,8,0,0,1-11.32-11.32L196.69,136H40a8,8,0,0,1,0-16H196.69l-58.35-58.34a8,8,0,0,1,11.32-11.32l72,72A8,8,0,0,1,221.66,133.66Z"/>
+          </svg>
+        </button>
+        <button class="header__close-btn" id="close-btn" type="button" aria-label="Start over">
+          <svg width="18" height="18" viewBox="0 0 256 256" aria-hidden="true">
+            <path fill="currentColor" d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="header__collapsed-query" id="collapsed-query">
+        <span class="header__query-text" id="query-text"></span>
+        <div class="header__active-filters" id="active-filters"></div>
+      </div>
+
+      <!-- Filter strip -->
+      <div class="filters" id="filters" hidden>
+        <div class="filters__group" role="radiogroup" aria-label="Occasion">
+          <button class="filters__chip" data-filter="occasion" data-value="Date" role="radio" aria-checked="false">Date</button>
+          <button class="filters__chip" data-filter="occasion" data-value="Group" role="radio" aria-checked="false">Group</button>
+          <button class="filters__chip" data-filter="occasion" data-value="Family" role="radio" aria-checked="false">Family</button>
+          <button class="filters__chip" data-filter="occasion" data-value="Solo" role="radio" aria-checked="false">Solo</button>
+          <button class="filters__chip" data-filter="occasion" data-value="Business" role="radio" aria-checked="false">Business</button>
+        </div>
+        <div class="filters__group" role="radiogroup" aria-label="Price">
+          <button class="filters__chip filters__chip--price" data-filter="priceLevel" data-value="$" role="radio" aria-checked="false">$</button>
+          <button class="filters__chip filters__chip--price" data-filter="priceLevel" data-value="$$" role="radio" aria-checked="false">$$</button>
+          <button class="filters__chip filters__chip--price" data-filter="priceLevel" data-value="$$$" role="radio" aria-checked="false">$$$</button>
+          <button class="filters__chip filters__chip--price" data-filter="priceLevel" data-value="$$$$" role="radio" aria-checked="false">$$$$</button>
+        </div>
+        <div class="filters__group filters__group--inline">
+          <button class="filters__chip" id="filter-hood" data-action="open-hood-sheet" type="button">Neighborhood</button>
+          <button class="filters__chip" id="filter-open" data-filter="openNow" aria-pressed="false" type="button">Open Now</button>
+          <button class="filters__chip" id="filter-dietary" data-action="open-dietary-sheet" type="button">Dietary</button>
+        </div>
+      </div>
+
+      <button class="header__filters-toggle" id="filters-toggle" type="button">
+        <span id="filters-toggle-text">Filters</span>
+        <svg class="header__filters-arrow" width="12" height="12" viewBox="0 0 256 256" aria-hidden="true">
+          <path fill="currentColor" d="M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z"/>
+        </svg>
+      </button>
     </header>
 
-    <!-- SSO: User Menu Dropdown -->
-    <div class="user-menu" id="user-menu" role="dialog" aria-label="Account menu" aria-modal="true">
-      <div class="user-menu__backdrop" data-action="close-user-menu"></div>
-      <div class="user-menu__panel">
-        <div class="user-menu__header">
-          <img class="user-menu__avatar" id="user-menu-avatar" src="" alt="" width="36" height="36">
-          <div class="user-menu__info">
-            <span class="user-menu__name type-structural" id="user-menu-name"></span>
-            <span class="user-menu__email type-data--sm" id="user-menu-email"></span>
-          </div>
-        </div>
-        <div class="user-menu__actions">
-          <button class="user-menu__btn type-structural" data-action="sign-out">Sign Out</button>
-        </div>
-      </div>
+    <!-- ===== LOADING ===== -->
+    <div class="loading" id="loading">
+      <div class="loading__ripple" id="ink-ripple"></div>
+      <p class="loading__text" id="loading-text">Finding your spot...</p>
     </div>
 
-    <!-- Back Button -->
-    <button class="back-btn" data-action="back" aria-label="Go back">
-      <svg viewBox="0 0 256 256" width="20" height="20">
-        <path fill="currentColor" d="M162.83,205.17a4,4,0,0,1-5.66,5.66l-80-80a4,4,0,0,1,0-5.66l80-80a4,4,0,1,1,5.66,5.66L85.66,128Z"/>
-      </svg>
-    </button>
+    <!-- ===== ERROR ===== -->
+    <div class="error" id="error">
+      <p class="error__text" id="error-text"></p>
+      <button class="error__retry" id="retry-btn" type="button">Try again</button>
+    </div>
 
-    <!-- Main Content: Canvas + Result -->
-    <main id="main-content" class="cockpit" role="main">
-      <!-- Screen reader announcements -->
-      <div class="sr-only" aria-live="polite" id="step-announce"></div>
+    <!-- ===== RECENT HISTORY ===== -->
+    <section class="history" id="history" aria-label="Recent searches">
+      <h2 class="history__title">Recent</h2>
+      <ul class="history__list" id="history-list"></ul>
+    </section>
 
-      <div class="step-track">
-
-        <!-- ========== VIEW 0: The Canvas ========== -->
-        <section class="step" data-step="0" aria-label="What are you craving?">
-          <div class="canvas-layout">
-            <h1 class="step__title type-emotional--xl" data-label="greeting">
-              Good evening, what sounds good?
-            </h1>
-
-            <div class="craving-wrap">
-              <textarea
-                class="craving-input"
-                id="craving-input"
-                rows="1"
-                data-label="placeholder"
-                placeholder="cozy ramen with killer sake..."
-                autocomplete="off"
-                role="combobox"
-                aria-label="What are you craving?"
-                aria-autocomplete="list"
-                aria-expanded="false"
-                aria-haspopup="listbox"
-                aria-controls="craving-suggestions"
-              ></textarea>
-              <button class="craving-voice-btn" data-action="voice" aria-label="Voice input" hidden>
-                <svg viewBox="0 0 256 256" width="20" height="20">
-                  <path fill="currentColor" d="M128,172a44.05,44.05,0,0,0,44-44V64a44,44,0,0,0-88,0v64A44.05,44.05,0,0,0,128,172ZM92,64a36,36,0,0,1,72,0v64a36,36,0,0,1-72,0Zm40,139.89V240a4,4,0,0,1-8,0V203.89A76.09,76.09,0,0,1,52,128a4,4,0,0,1,8,0,68,68,0,0,0,136,0,4,4,0,0,1,8,0A76.09,76.09,0,0,1,132,203.89Z"/>
-                </svg>
-              </button>
-              <div class="craving-suggestions" id="craving-suggestions" role="listbox" aria-label="Search suggestions" hidden></div>
-            </div>
-
-            <div class="smart-chips" data-reveal="engaged" aria-label="Quick suggestions">
-              <!-- Rendered dynamically by renderSmartChips() -->
-            </div>
-
-            <!-- F14: Surprise Me shortcut -->
-            <button class="surprise-btn type-structural" data-reveal="engaged" data-action="surprise-me" aria-label="Surprise me with a recommendation">
-              <svg class="surprise-btn__icon" viewBox="0 0 256 256" width="18" height="18" aria-hidden="true">
-                <path fill="currentColor" d="M196.2,132.81l-53.36-19.65L123.19,59.8a11.93,11.93,0,0,0-22.38,0L81.16,113.16,27.8,132.81a11.93,11.93,0,0,0,0,22.38l53.36,19.65,19.65,53.36a11.93,11.93,0,0,0,22.38,0l19.65-53.36,53.36-19.65a11.93,11.93,0,0,0,0-22.38Zm-2.77,14.87L138.35,168a4,4,0,0,0-2.37,2.37l-20.3,55.08a3.92,3.92,0,0,1-7.36,0L88,170.35A4,4,0,0,0,85.65,168l-55.08-20.3a3.92,3.92,0,0,1,0-7.36L85.65,120A4,4,0,0,0,88,117.65l20.3-55.08a3.92,3.92,0,0,1,7.36,0L136,117.65a4,4,0,0,0,2.37,2.37l55.08,20.3a3.92,3.92,0,0,1,0,7.36Z"/>
-              </svg>
-              Surprise Me
-            </button>
-
-            <!-- Collapsible Filter Drawer -->
-            <div class="filter-drawer" data-reveal="engaged">
-              <button class="filter-drawer__toggle type-structural" data-action="toggle-filters" aria-expanded="false" aria-controls="filter-content">
-                <svg viewBox="0 0 256 256" width="18" height="18">
-                  <path fill="currentColor" d="M40,84H76.29a28,28,0,0,0,55.42,0H216a4,4,0,0,0,0-8H131.71a28,28,0,0,0-55.42,0H40a4,4,0,0,0,0,8Zm64-24A20,20,0,1,1,84,80,20,20,0,0,1,104,60Z"/>
-                  <path fill="currentColor" d="M216,172H195.71a28,28,0,0,0-55.42,0H40a4,4,0,0,0,0,8H140.29a28,28,0,0,0,55.42,0H216a4,4,0,0,0,0-8Zm-48,24a20,20,0,1,1,20-20A20,20,0,0,1,168,196Z"/>
-                </svg>
-                <span>Filters</span>
-                <span class="filter-drawer__count" id="filter-count"></span>
-                <span class="filter-drawer__summary type-data--sm" id="filter-summary"></span>
-              </button>
-
-              <div class="filter-content" id="filter-content" hidden>
-                <!-- Occasion -->
-                <div class="filter-section">
-                  <h3 class="filter-section__title type-structural--caps" data-label="vibe">Vibe</h3>
-                  <div class="filter-pills" role="radiogroup" aria-label="Occasion">
-                    <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-occasion" data-value="Date Night">
-                      <svg viewBox="0 0 256 256" width="16" height="16"><path fill="currentColor" d="M178,44c-21.44,0-39.92,10.19-50,27.07C117.92,54.19,99.44,44,78,44a58.07,58.07,0,0,0-58,58c0,28.59,18,58.47,53.4,88.79a333.81,333.81,0,0,0,52.7,36.73,4,4,0,0,0,3.8,0,333.81,333.81,0,0,0,52.7-36.73C218,160.47,236,130.59,236,102A58.07,58.07,0,0,0,178,44ZM128,219.42c-14-8-100-59.35-100-117.42A50.06,50.06,0,0,1,78,52c21.11,0,38.85,11.31,46.3,29.51a4,4,0,0,0,7.4,0C139.15,63.31,156.89,52,178,52a50.06,50.06,0,0,1,50,50C228,160,142,211.46,128,219.42Z"/></svg>
-                      Date Night
-                    </button>
-                    <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-occasion" data-value="Group Hangout">
-                      <svg viewBox="0 0 256 256" width="16" height="16"><path fill="currentColor" d="M237,147.44a4,4,0,0,1-5.48-1.4c-8.33-14-20.93-22-34.56-22a4,4,0,0,1-1.2-.2,36.76,36.76,0,0,1-3.8.2,4,4,0,0,1,0-8,28,28,0,1,0-27.12-35,4,4,0,0,1-7.75-2,36,36,0,1,1,54,39.48c10.81,3.85,20.51,12,27.31,23.48A4,4,0,0,1,237,147.44ZM187.46,214a4,4,0,0,1-1.46,5.46,3.93,3.93,0,0,1-2,.54,4,4,0,0,1-3.46-2,61,61,0,0,0-105.08,0,4,4,0,0,1-6.92-4,68.35,68.35,0,0,1,39.19-31,44,44,0,1,1,40.54,0A68.35,68.35,0,0,1,187.46,214ZM128,180a36,36,0,1,0-36-36A36,36,0,0,0,128,180ZM64,116A28,28,0,1,1,91.12,81a4,4,0,0,0,7.75-2A36,36,0,1,0,45.3,118.75,63.55,63.55,0,0,0,12.8,141.6a4,4,0,0,0,6.4,4.8A55.55,55.55,0,0,1,64,124a4,4,0,0,0,0-8Z"/></svg>
-                      Group
-                    </button>
-                    <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-occasion" data-value="Family Dinner">
-                      <svg viewBox="0 0 256 256" width="16" height="16"><path fill="currentColor" d="M216.49,111.51l-80-80a12,12,0,0,0-17,0l-80,80A12,12,0,0,0,36,120v96a4,4,0,0,0,4,4H216a4,4,0,0,0,4-4V120A12,12,0,0,0,216.49,111.51ZM212,212H44V120a4,4,0,0,1,1.17-2.83l80-80a4,4,0,0,1,5.66,0l80,80A4,4,0,0,1,212,120Z"/></svg>
-                      Family
-                    </button>
-                    <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-occasion" data-value="Business Lunch">
-                      <svg viewBox="0 0 256 256" width="16" height="16"><path fill="currentColor" d="M108,112a4,4,0,0,1,4-4h32a4,4,0,0,1,0,8H112A4,4,0,0,1,108,112ZM228,72V200a12,12,0,0,1-12,12H40a12,12,0,0,1-12-12V72A12,12,0,0,1,40,60H84V48a20,20,0,0,1,20-20h48a20,20,0,0,1,20,20V60h44A12,12,0,0,1,228,72ZM92,60h72V48a12,12,0,0,0-12-12H104A12,12,0,0,0,92,48ZM36,72v44a188,188,0,0,0,92,24,188,188,0,0,0,92-24V72a4,4,0,0,0-4-4H40A4,4,0,0,0,36,72ZM220,200V125.1A196.06,196.06,0,0,1,128,148a196,196,0,0,1-92-22.9V200a4,4,0,0,0,4,4H216A4,4,0,0,0,220,200Z"/></svg>
-                      Business
-                    </button>
-                    <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-occasion" data-value="Solo Dining">
-                      <svg viewBox="0 0 256 256" width="16" height="16"><path fill="currentColor" d="M227.46,214c-16.52-28.56-43-48.06-73.68-55.09a68,68,0,1,0-51.56,0c-30.64,7-57.16,26.53-73.68,55.09a4,4,0,0,0,6.92,4C55,184.19,89.62,164,128,164s73,20.19,92.54,54a4,4,0,0,0,3.46,2,3.93,3.93,0,0,0,2-.54A4,4,0,0,0,227.46,214ZM68,96a60,60,0,1,1,60,60A60.07,60.07,0,0,1,68,96Z"/></svg>
-                      Solo
-                    </button>
-                    <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-occasion" data-value="Special Occasion">
-                      <svg viewBox="0 0 256 256" width="16" height="16"><path fill="currentColor" d="M235.36,98.49A12.21,12.21,0,0,0,224.59,90l-61.47-5L139.44,27.67a12.37,12.37,0,0,0-22.88,0L92.88,85,31.41,90a12.45,12.45,0,0,0-7.07,21.84l46.85,40.41L56.87,212.64a12.35,12.35,0,0,0,18.51,13.49L128,193.77l52.62,32.36a12.12,12.12,0,0,0,13.69-.51,12.28,12.28,0,0,0,4.82-13l-14.32-60.42,46.85-40.41A12.29,12.29,0,0,0,235.36,98.49Zm-8.93,7.26-48.68,42a4,4,0,0,0-1.28,3.95l14.87,62.79a4.37,4.37,0,0,1-1.72,4.65,4.24,4.24,0,0,1-4.81.18L130.1,185.67a4,4,0,0,0-4.2,0L71.19,219.32a4.24,4.24,0,0,1-4.81-.18,4.37,4.37,0,0,1-1.72-4.65L79.53,151.7a4,4,0,0,0-1.28-3.95l-48.68-42A4.37,4.37,0,0,1,28.25,101a4.31,4.31,0,0,1,3.81-3L96,92.79a4,4,0,0,0,3.38-2.46L124,30.73a4.35,4.35,0,0,1,8.08,0l24.62,59.6A4,4,0,0,0,160,92.79l63.9,5.15a4.31,4.31,0,0,1,3.81,3A4.37,4.37,0,0,1,226.43,105.75Z"/></svg>
-                      Special
-                    </button>
-                    <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-occasion" data-value="Treat Myself">
-                      <svg viewBox="0 0 256 256" width="16" height="16"><path fill="currentColor" d="M196.2,132.81l-53.36-19.65L123.19,59.8a11.93,11.93,0,0,0-22.38,0L81.16,113.16,27.8,132.81a11.93,11.93,0,0,0,0,22.38l53.36,19.65,19.65,53.36a11.93,11.93,0,0,0,22.38,0l19.65-53.36,53.36-19.65a11.93,11.93,0,0,0,0-22.38Zm-2.77,14.87L138.35,168a4,4,0,0,0-2.37,2.37l-20.3,55.08a3.92,3.92,0,0,1-7.36,0L88,170.35A4,4,0,0,0,85.65,168l-55.08-20.3a3.92,3.92,0,0,1,0-7.36L85.65,120A4,4,0,0,0,88,117.65l20.3-55.08a3.92,3.92,0,0,1,7.36,0L136,117.65a4,4,0,0,0,2.37,2.37l55.08,20.3a3.92,3.92,0,0,1,0,7.36ZM148,40a4,4,0,0,1,4-4h20V16a4,4,0,0,1,8,0V36h20a4,4,0,0,1,0,8H180V64a4,4,0,0,1-8,0V44H152A4,4,0,0,1,148,40Zm96,48a4,4,0,0,1-4,4H228v12a4,4,0,0,1-8,0V92H208a4,4,0,0,1,0-8h12V72a4,4,0,0,1,8,0V84h12A4,4,0,0,1,244,88Z"/></svg>
-                      Treat Myself
-                    </button>
-                    <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-occasion" data-value="Adventure">
-                      <svg viewBox="0 0 256 256" width="16" height="16"><path fill="currentColor" d="M128,28A100,100,0,1,0,228,128,100.11,100.11,0,0,0,128,28Zm0,192a92,92,0,1,1,92-92A92.1,92.1,0,0,1,128,220Z"/><path fill="currentColor" d="M174.21,76.42l-64,32a4.08,4.08,0,0,0-1.79,1.79l-32,64A4,4,0,0,0,80,180a4.05,4.05,0,0,0,1.79-.42l64-32a4.08,4.08,0,0,0,1.79-1.79l32-64a4,4,0,0,0-5.37-5.37ZM141,141l-52.08,26L115,115l52.08-26Z"/></svg>
-                      Adventure
-                    </button>
-                    <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-occasion" data-value="Chill Hangout">
-                      <svg viewBox="0 0 256 256" width="16" height="16"><path fill="currentColor" d="M219.45,40.31a4,4,0,0,0-3.76-3.76C141.06,32.16,81.46,54.39,56.24,96,39,124.56,39.9,158.37,58.8,191.54L37.17,213.17a4,4,0,0,0,5.66,5.66l21.63-21.64c17.39,9.91,35,14.89,51.83,14.89A83.43,83.43,0,0,0,160,199.76C201.61,174.54,223.84,114.93,219.45,40.31ZM155.82,192.92c-25.37,15.37-55.56,14.75-85.48-1.61l92.5-92.49a4,4,0,0,0-5.66-5.66l-92.49,92.5c-16.36-29.92-17-60.11-1.61-85.48C86.34,61.77,141.72,41,211.66,44.34,215,114.28,194.23,169.66,155.82,192.92Z"/></svg>
-                      Chill
-                    </button>
-                  </div>
-                </div>
-
-                <!-- Neighborhood -->
-                <div class="filter-section">
-                  <h3 class="filter-section__title type-structural--caps" data-label="hood">Hood</h3>
-                  <div class="hood-groups" role="radiogroup" aria-label="Neighborhood">
-                    <button class="filter-pill filter-pill--anywhere type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Anywhere">Anywhere</button>
-                    <details class="hood-group">
-                      <summary class="hood-group__toggle type-data--sm">Downtown <span class="hood-group__arrow">&#9662;</span></summary>
-                      <div class="hood-group__pills">
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Loop">Loop</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="River North">River North</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Gold Coast">Gold Coast</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Streeterville">Streeterville</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="South Loop">South Loop</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Fulton Market">Fulton Market</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="West Loop">West Loop</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Greektown">Greektown</button>
-                      </div>
-                    </details>
-                    <details class="hood-group">
-                      <summary class="hood-group__toggle type-data--sm">Near North <span class="hood-group__arrow">&#9662;</span></summary>
-                      <div class="hood-group__pills">
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Old Town">Old Town</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Lincoln Park">Lincoln Park</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Lakeview">Lakeview</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Wicker Park">Wicker Park</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Bucktown">Bucktown</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Ukrainian Village">Ukrainian Village</button>
-                      </div>
-                    </details>
-                    <details class="hood-group">
-                      <summary class="hood-group__toggle type-data--sm">Northwest <span class="hood-group__arrow">&#9662;</span></summary>
-                      <div class="hood-group__pills">
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Logan Square">Logan Square</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Avondale">Avondale</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Humboldt Park">Humboldt Park</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Irving Park">Irving Park</button>
-                      </div>
-                    </details>
-                    <details class="hood-group">
-                      <summary class="hood-group__toggle type-data--sm">North <span class="hood-group__arrow">&#9662;</span></summary>
-                      <div class="hood-group__pills">
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Andersonville">Andersonville</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Edgewater">Edgewater</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Uptown">Uptown</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Rogers Park">Rogers Park</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Lincoln Square">Lincoln Square</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="North Center">North Center</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Ravenswood">Ravenswood</button>
-                      </div>
-                    </details>
-                    <details class="hood-group">
-                      <summary class="hood-group__toggle type-data--sm">South &amp; West <span class="hood-group__arrow">&#9662;</span></summary>
-                      <div class="hood-group__pills">
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Pilsen">Pilsen</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Little Italy">Little Italy</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Chinatown">Chinatown</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Bridgeport">Bridgeport</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Bronzeville">Bronzeville</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Hyde Park">Hyde Park</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Back of the Yards">Back of the Yards</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Woodlawn">Woodlawn</button>
-                      </div>
-                    </details>
-                  </div>
-                </div>
-
-                <!-- Budget -->
-                <div class="filter-section">
-                  <h3 class="filter-section__title type-structural--caps">Budget</h3>
-                  <div class="filter-pills" role="radiogroup" aria-label="Budget">
-                    <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-budget" data-value="Any">Any</button>
-                    <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-budget" data-value="$">
-                      <svg viewBox="0 0 256 256" width="14" height="14"><path fill="currentColor" d="M152,124H132V52h12a36,36,0,0,1,36,36,4,4,0,0,0,8,0,44.05,44.05,0,0,0-44-44H132V24a4,4,0,0,0-8,0V44H112a44,44,0,0,0,0,88h12v72H104a36,36,0,0,1-36-36,4,4,0,0,0-8,0,44.05,44.05,0,0,0,44,44h20v20a4,4,0,0,0,8,0V212h20a44,44,0,0,0,0-88Zm-40,0a36,36,0,0,1,0-72h12v72Zm40,80H132V132h20a36,36,0,0,1,0,72Z"/></svg>
-                    </button>
-                    <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-budget" data-value="$$">$$</button>
-                    <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-budget" data-value="$$$">$$$</button>
-                    <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-budget" data-value="$$$$">$$$$</button>
-                  </div>
-                </div>
-                <!-- F5: Dietary Preferences -->
-                <div class="filter-section">
-                  <h3 class="filter-section__title type-structural--caps">Dietary</h3>
-                  <div class="filter-pills" role="group" aria-label="Dietary preferences">
-                    <button class="filter-pill filter-pill--toggle type-structural" aria-pressed="false" data-action="toggle-dietary" data-value="vegan">Vegan</button>
-                    <button class="filter-pill filter-pill--toggle type-structural" aria-pressed="false" data-action="toggle-dietary" data-value="vegetarian">Vegetarian</button>
-                    <button class="filter-pill filter-pill--toggle type-structural" aria-pressed="false" data-action="toggle-dietary" data-value="gluten-free">Gluten-Free</button>
-                    <button class="filter-pill filter-pill--toggle type-structural" aria-pressed="false" data-action="toggle-dietary" data-value="halal">Halal</button>
-                  </div>
-                </div>
-                <!-- V5: Open Now Toggle -->
-                <div class="filter-section">
-                  <h3 class="filter-section__title type-structural--caps">Availability</h3>
-                  <div class="filter-pills" role="group" aria-label="Availability">
-                    <button class="filter-pill filter-pill--toggle type-structural" aria-pressed="false" data-action="toggle-open-now" data-value="open_now" id="open-now-pill">
-                      <svg viewBox="0 0 256 256" width="14" height="14"><path fill="currentColor" d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm64-88a8,8,0,0,1-8,8H128a8,8,0,0,1-8-8V72a8,8,0,0,1,16,0v48h48A8,8,0,0,1,192,128Z"/></svg>
-                      Open Now
-                    </button>
-                  </div>
-                </div>
-                <div class="filter-utility-row">
-                  <button class="filter-utility-link filter-utility-link--clear type-structural" data-action="clear-filters">Clear</button>
-                  <button class="filter-utility-link type-structural" data-action="randomize">&#8635; Randomize</button>
-                </div>
-              </div>
-            </div>
-
-            <!-- CTA Button -->
-            <button class="cta-btn type-structural--bold" data-action="submit" data-label="cta" disabled aria-disabled="true">
-              Find My Spot
-            </button>
-            <p class="cta-hint type-data--sm" id="cta-hint" aria-live="polite">
-              Type what you're craving to get started
-            </p>
-
-            <!-- Inline error/empty state (persists until user modifies input) -->
-            <div class="empty-state" id="empty-state" style="display: none;" role="alert" aria-live="polite">
-              <p class="empty-state__text type-structural" id="empty-state-text"></p>
-              <button class="empty-state__btn type-structural" data-action="clear-filters">Adjust Filters</button>
-            </div>
-
-            <!-- V10: Combined "Your Spots" — merges recent + saved + visited -->
-            <div class="your-spots" id="your-spots" data-reveal="returning" aria-label="Your spots" style="display: none;">
-              <span class="your-spots__label type-data--sm">Your Spots</span>
-              <div class="your-spots__list" id="your-spots-list"></div>
-            </div>
-
-            <!-- Legacy containers kept for JS compatibility (hidden) -->
-            <div id="taste-memory" style="display:none;"><div id="taste-memory-list"></div></div>
-            <div id="saved-spots" style="display:none;"><div id="saved-spots-list"></div></div>
-            <div id="visited-spots" style="display:none;"><div id="visited-spots-list"></div></div>
-          </div>
-        </section>
-
-        <!-- ========== VIEW 1: Result ========== -->
-        <section class="step" data-step="1" aria-hidden="true" aria-label="Your recommendation">
-          <div class="step__inner" id="result-container">
-            <!-- Loading Interstitial: Animated Donde logo while API call runs -->
-            <div class="result-loading" id="result-loading" style="display: none;" aria-label="Finding your spot">
-              <svg class="result-loading__mark" viewBox="0 0 32 44" width="48" height="66">
-                <path class="result-loading__tine result-loading__tine--left"
-                      d="M10.5 1 C10.5 1, 10 8.5, 12.5 11.5 Q14 13, 14.5 13.5"
-                      fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-                <path class="result-loading__tine result-loading__tine--right"
-                      d="M21.5 1 C21.5 1, 22 8.5, 19.5 11.5 Q18 13, 17.5 13.5"
-                      fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-                <path class="result-loading__curve"
-                      d="M16 13.5 C22 11, 29 14, 28 21 C27 27, 19 29, 16 31 L16 34"
-                      fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>
-                <circle class="result-loading__dot" cx="16" cy="40" r="2.8" fill="var(--ac)"/>
-              </svg>
-              <p class="result-loading__status type-structural">Finding your spot</p>
-            </div>
-            <!-- Result Card (populated by JS) — 3-Tier Progressive Disclosure -->
-            <div class="result-card card-enter" id="result-card" style="display: none;">
-
-              <!-- Ink Manifests: Progress ink line -->
-              <div class="progress-ink" id="progress-ink"></div>
-
-              <!-- Ink Manifests: Scaffold skeleton (visible during loading) -->
-              <div class="result-scaffold" id="result-scaffold" style="display: none;" aria-hidden="true">
-                <div class="scaffold-block scaffold-block--name" id="scaffold-name"></div>
-                <div class="scaffold-block scaffold-block--tags">
-                  <div class="scaffold-block scaffold-block--tag"></div>
-                  <div class="scaffold-block scaffold-block--tag"></div>
-                </div>
-                <div class="scaffold-blurb">
-                  <div class="scaffold-block scaffold-block--blurb"></div>
-                  <div class="scaffold-block scaffold-block--blurb"></div>
-                  <div class="scaffold-block scaffold-block--blurb"></div>
-                  <div class="scaffold-block scaffold-block--blurb"></div>
-                </div>
-                <p class="scaffold-status type-structural" id="scaffold-status"></p>
-              </div>
-
-              <!-- V5: Relaxation Notice — rendered dynamically by JS -->
-
-              <!-- F1: Restaurant Photos (horizontal scroll strip) -->
-              <div class="result-photos" id="result-photos" style="display: none;" aria-label="Restaurant photos"></div>
-
-              <!-- ══════ TIER 1: GLANCE — "Is this place for me?" ══════ -->
-              <div class="tier tier--glance" id="tier-glance">
-
-                <!-- Glance Hero: match badge left, name+oneliner right -->
-                <div class="glance-hero">
-                  <div class="match-mini" id="match-pill" role="button"
-                       tabindex="0"
-                       aria-label="DondeAI Match score — tap for details">
-                    <span class="match-mini__brand" aria-hidden="true">
-                      <svg class="match-mini__brand-logo" viewBox="0 0 32 44" width="16" height="22" aria-hidden="true">
-                        <path d="M10.5 1C10.5 1 10 8.5 12.5 11.5Q14 13 14.5 13.5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-                        <path d="M21.5 1C21.5 1 22 8.5 19.5 11.5Q18 13 17.5 13.5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-                        <path d="M16 13.5C22 11 29 14 28 21C27 27 19 29 16 31L16 34" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>
-                        <circle cx="16" cy="40" r="2.8" fill="var(--ac)"/>
-                      </svg>
-                      <span class="match-mini__tm type-data--sm">Match<sup>™</sup></span>
-                    </span>
-                    <span class="match-mini__score-wrap">
-                      <svg class="match-mini__arc" viewBox="0 0 50 30" aria-hidden="true">
-                        <path class="match-mini__arc-bg" d="M 5 28 A 20 20 0 0 1 45 28" />
-                        <path class="match-mini__arc-fill" id="match-pill-arc-fill" d="M 5 28 A 20 20 0 0 1 45 28" />
-                      </svg>
-                      <span class="match-mini__score type-data" id="match-pill-score">0</span>
-                    </span>
-                    <span class="match-mini__hint type-data--sm">Details &#8595;</span>
-                  </div>
-                  <!-- V5: Intent Boost Badge — rendered dynamically by JS -->
-                  <div class="glance-hero__info">
-                    <div class="result-header">
-                      <h2 class="result-name type-emotional--md" id="result-name"></h2>
-                      <div class="quick-tags" id="quick-tags"></div>
-                      <!-- V6.1: Signal Chips — inline with tags -->
-                      <div class="signal-chips" id="signal-chips" style="display: none;"></div>
-                    </div>
-                    <!-- Restaurant meta: website, cuisine, what to order, open/closed -->
-                    <div class="result-meta" id="result-meta"></div>
-                    <p class="result-oneliner type-structural" id="result-oneliner"></p>
-                    <div class="quick-actions" id="quick-actions"></div>
-                  </div>
-                </div>
-
-                <!-- V6.1: Match Headline — below score mini, full width -->
-                <p class="match-headline type-structural" id="match-headline" style="display: none;"></p>
-
-                <!-- Match Mini tap → expands Tier 2 to show Score Hero -->
-
-                <!-- Cuisine mismatch notice -->
-                <div class="cuisine-mismatch-notice" id="cuisine-mismatch-notice" style="display: none;">
-                  <p class="cuisine-mismatch-notice__text type-structural"></p>
-                </div>
-
-                <!-- DondeAI Recommendation — THE editorial voice -->
-                <div class="donde-blurb" id="donde-blurb">
-                  <div class="donde-blurb__accent" aria-hidden="true"></div>
-                  <p class="donde-blurb__text type-structural" id="result-recommendation"></p>
-                </div>
-
-                <!-- Compact navigation tile (address → maps) -->
-                <div class="glance-nav" id="glance-nav" style="display: none;"></div>
-              </div>
-
-              <!-- ══════ TIER 2: LEAN-IN — "Tell me more / Should I go?" ══════ -->
-              <div class="tier tier--leanin" id="tier-leanin" aria-hidden="true">
-
-                <!-- Score Hero: Verdict-First + Ring Accent + Narrative + Factor Bars -->
-                <div class="score-hero" id="score-hero"
-                     role="figure" tabindex="0"
-                     aria-label="DondeAI Match score detail">
-                  <!-- V9: Verdict-first — emotional hook before data -->
-                  <span class="score-hero__verdict-text type-emotional" id="score-hero-verdict-text"></span>
-                  <div class="score-hero__ring-wrap">
-                    <svg class="score-hero__svg" viewBox="0 0 120 120" aria-hidden="true">
-                      <circle class="score-hero__ring-bg" cx="60" cy="60" r="52" />
-                      <circle class="score-hero__ring-fill" id="score-hero-ring-fill" cx="60" cy="60" r="52" />
-                    </svg>
-                    <div class="score-hero__center">
-                      <span class="score-hero__brand" aria-hidden="true">
-                        <svg class="score-hero__brand-logo" viewBox="0 0 32 44" width="14" height="19">
-                          <path d="M10.5 1C10.5 1 10 8.5 12.5 11.5Q14 13 14.5 13.5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-                          <path d="M21.5 1C21.5 1 22 8.5 19.5 11.5Q18 13 17.5 13.5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-                          <path d="M16 13.5C22 11 29 14 28 21C27 27 19 29 16 31L16 34" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>
-                          <circle cx="16" cy="40" r="2.8" fill="var(--ac)"/>
-                        </svg>
-                        <span class="score-hero__tm type-data--sm">Match<sup>™</sup></span>
-                      </span>
-                      <span class="score-hero__number type-data" id="score-hero-number">0</span>
-                    </div>
-                  </div>
-                  <!-- V9: Narrative — editorial voice below ring -->
-                  <p class="score-hero__narrative type-emotional" id="score-hero-narrative"></p>
-                  <!-- V9: Signal pills — key match reasons -->
-                  <div class="score-hero__signals" id="score-hero-signals"></div>
-                  <div class="score-hero__factors" id="factor-bars">
-                    <div class="factor-bars__list" id="factor-bars-list" role="list"></div>
-                  </div>
-                </div>
-
-                <!-- The Story: Origin + Insider Tip (dynamic label) -->
-                <div class="restaurant-story" id="restaurant-story" style="display: none;">
-                  <span class="restaurant-story__label type-data--sm" id="story-label">The Story</span>
-                  <div class="restaurant-story__content">
-                    <p class="restaurant-story__origin type-structural" id="story-origin-text"></p>
-                    <div class="restaurant-story__tip-wrap" id="story-tip-wrap" style="display: none;">
-                      <span class="restaurant-story__tip-label type-data--xs">Insider Tip</span>
-                      <p class="restaurant-story__tip type-structural" id="story-tip-text"></p>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Awards badges -->
-                <div class="result-awards" id="result-awards" style="display: none;"></div>
-
-                <!-- Quick Stats ribbon (compact deep-context data, includes wow factors) -->
-                <div class="quick-stats" id="quick-stats" style="display: none;"></div>
-
-                <!-- V10: Known For — moved to Tier 2 as inline pills -->
-                <div class="known-for" id="known-for" style="display: none;">
-                  <span class="known-for__label type-data--sm">Known For</span>
-                  <div class="known-for__strip" id="known-for-strip"></div>
-                </div>
-
-              </div>
-
-              <!-- Show More / Show Less — above the action divider line -->
-              <button class="tell-more-btn type-structural" id="tell-more-btn"
-                      data-action="expand-tier-2"
-                      aria-expanded="false" aria-controls="tier-leanin">
-                <span class="tell-more-btn__text">Show More</span>
-                <span class="tell-more-btn__arrow">&#8595;</span>
-              </button>
-
-              <!-- ══════ V10 CARD FOOTER — Compact 2-Row: Going + Try Another | Feedback + Start Over ══════ -->
-              <div class="card-footer" id="card-footer">
-                <!-- ROW 1: PRIMARY — Going + Try Another side by side -->
-                <div class="card-footer__primary-row">
-                  <button class="going-btn type-structural" id="going-btn" data-action="going" aria-label="I'm going here">
-                    <svg class="going-btn__icon" viewBox="0 0 256 256" width="20" height="20" aria-hidden="true">
-                      <path fill="currentColor" d="M128,16a88.1,88.1,0,0,0-88,88c0,75.3,80,132.17,83.41,134.55a8,8,0,0,0,9.18,0C136,236.17,216,179.3,216,104A88.1,88.1,0,0,0,128,16Zm0,56a32,32,0,1,1-32,32A32,32,0,0,1,128,72Z"/>
-                    </svg>
-                    <span class="going-btn__text" data-label="goingHere">I'm Going Here!</span>
-                  </button>
-                  <button class="cta-btn cta-btn--secondary cta-btn--icon type-structural" data-action="try-again" data-label="again">
-                    <span class="cta-btn__icon" id="try-again-icon"></span>
-                    <span class="cta-btn__text">Try Another</span>
-                  </button>
-                </div>
-
-                <!-- ROW 2: SECONDARY — Feedback icons + Start Over -->
-                <div class="card-footer__secondary-row">
-                  <div class="feedback-row" id="feedback-row">
-                    <button class="feedback-btn feedback-btn--like" data-action="feedback" data-feedback="like" aria-label="I like this recommendation">
-                      <svg viewBox="0 0 256 256" width="16" height="16"><path fill="currentColor" d="M231.82,89.71A8,8,0,0,0,224,84H168V32a8,8,0,0,0-13.66-5.66l-96,96A8,8,0,0,0,56,128v80a8,8,0,0,0,8,8h96a8,8,0,0,0,7.16-4.42l40-80A8,8,0,0,0,231.82,89.71Z"/></svg>
-                    </button>
-                    <button class="feedback-btn feedback-btn--dislike" data-action="feedback" data-feedback="dislike" aria-label="Not for me">
-                      <svg viewBox="0 0 256 256" width="16" height="16" style="transform:rotate(180deg)"><path fill="currentColor" d="M231.82,89.71A8,8,0,0,0,224,84H168V32a8,8,0,0,0-13.66-5.66l-96,96A8,8,0,0,0,56,128v80a8,8,0,0,0,8,8h96a8,8,0,0,0,7.16-4.42l40-80A8,8,0,0,0,231.82,89.71Z"/></svg>
-                    </button>
-                    <button class="feedback-btn feedback-btn--bookmark" data-action="bookmark" aria-label="Save this spot" id="bookmark-btn">
-                      <svg class="bookmark-icon bookmark-icon--outline" viewBox="0 0 256 256" width="16" height="16"><path fill="currentColor" d="M178,44c-21.44,0-39.92,10.19-50,27.07C117.92,54.19,99.44,44,78,44a58.07,58.07,0,0,0-58,58c0,28.59,18,58.47,53.4,88.79a333.81,333.81,0,0,0,52.7,36.73,4,4,0,0,0,3.8,0,333.81,333.81,0,0,0,52.7-36.73C218,160.47,236,130.59,236,102A58.07,58.07,0,0,0,178,44ZM128,219.42c-14-8-100-59.35-100-117.42A50.06,50.06,0,0,1,78,52c21.11,0,38.85,11.31,46.3,29.51a4,4,0,0,0,7.4,0C139.15,63.31,156.89,52,178,52a50.06,50.06,0,0,1,50,50C228,160,142,211.46,128,219.42Z"/></svg>
-                      <svg class="bookmark-icon bookmark-icon--filled" viewBox="0 0 256 256" width="16" height="16" style="display:none"><path fill="currentColor" d="M178,44c-21.44,0-39.92,10.19-50,27.07C117.92,54.19,99.44,44,78,44a58.07,58.07,0,0,0-58,58c0,28.59,18,58.47,53.4,88.79a333.81,333.81,0,0,0,52.7,36.73,4,4,0,0,0,3.8,0,333.81,333.81,0,0,0,52.7-36.73C218,160.47,236,130.59,236,102A58.07,58.07,0,0,0,178,44Z"/></svg>
-                    </button>
-                  </div>
-                  <button class="cta-btn cta-btn--neutral cta-btn--icon type-structural" data-action="reset" id="start-over-btn">
-                    <span class="cta-btn__icon" id="start-over-icon"></span>
-                    <span class="cta-btn__text">Start Over</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- V9: Floating Action Bar — persistent quick actions on scroll -->
-          <div class="floating-bar" id="floating-bar" aria-label="Quick actions" hidden>
-            <a class="floating-bar__action" id="fab-directions" data-action="fab-directions" aria-label="Get directions">
-              <svg viewBox="0 0 256 256" width="20" height="20"><path fill="currentColor" d="M228.64,113.36l-96-96a8,8,0,0,0-11.32,0l-96,96a8,8,0,0,0,0,11.32l96,96a8,8,0,0,0,11.32,0l96-96A8,8,0,0,0,228.64,113.36ZM128,220.69,35.31,128,128,35.31,220.69,128Z"/></svg>
-              <span class="floating-bar__label">Directions</span>
-            </a>
-            <a class="floating-bar__action" id="fab-call" data-action="fab-call" aria-label="Call restaurant" hidden>
-              <svg viewBox="0 0 256 256" width="20" height="20"><path fill="currentColor" d="M222.37,158.46l-47.11-21.11-.13-.06a16,16,0,0,0-15.17,1.4,8.12,8.12,0,0,0-.75.56L134.87,160c-15.42-7.49-31.34-23.29-38.83-38.51l20.78-24.71c.2-.25.39-.5.57-.77a16,16,0,0,0,1.32-15.06l0-.12L97.54,33.64a16,16,0,0,0-16.62-9.52A56.26,56.26,0,0,0,32,80c0,79.4,64.6,144,144,144a56.26,56.26,0,0,0,55.88-48.92A16,16,0,0,0,222.37,158.46Z"/></svg>
-              <span class="floating-bar__label">Call</span>
-            </a>
-            <a class="floating-bar__action" id="fab-reserve" data-action="fab-reserve" aria-label="Make reservation" hidden>
-              <svg viewBox="0 0 256 256" width="20" height="20"><path fill="currentColor" d="M208,32H184V24a8,8,0,0,0-16,0v8H88V24a8,8,0,0,0-16,0v8H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32Zm0,176H48V48H72v8a8,8,0,0,0,16,0V48h80v8a8,8,0,0,0,16,0V48h24Z"/></svg>
-              <span class="floating-bar__label">Reserve</span>
-            </a>
-          </div>
-
-          <!-- V8: Cuisine Drawer — bottom sheet (mobile) / anchored panel (desktop) -->
-          <div class="cuisine-drawer" id="cuisine-drawer" role="dialog" aria-label="What they're known for" aria-hidden="true">
-            <div class="cuisine-drawer__header">
-              <span class="cuisine-drawer__cuisine-label type-structural" id="cuisine-drawer-label"></span>
-              <button class="cuisine-drawer__close" data-action="close-cuisine-drawer" aria-label="Close">
-                <svg viewBox="0 0 24 24" width="20" height="20"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-              </button>
-            </div>
-            <div class="cuisine-drawer__section" id="cuisine-drawer-dishes" style="display: none;">
-              <span class="cuisine-drawer__section-label type-data--sm">What to Order</span>
-              <div class="cuisine-drawer__dishes"></div>
-            </div>
-            <div class="cuisine-drawer__section" id="cuisine-drawer-highlights" style="display: none;">
-              <span class="cuisine-drawer__section-label type-data--sm">Popular Items</span>
-              <div class="cuisine-drawer__pills"></div>
-            </div>
-            <div class="cuisine-drawer__section" id="cuisine-drawer-flavor" style="display: none;">
-              <span class="cuisine-drawer__section-label type-data--sm">Flavor Profile</span>
-              <div class="cuisine-drawer__flavors"></div>
-            </div>
-          </div>
-          <div class="cuisine-drawer__backdrop" id="cuisine-drawer-backdrop" style="display: none;"></div>
-        </section>
-
-      </div><!-- /step-track -->
-
-      <!-- Loading State Overlay: Particle canvas + Donde logo + skeleton -->
-      <div class="loading-state" id="loading-state" style="display: none;" role="status" aria-label="Searching for restaurant">
-        <canvas class="particle-canvas" id="particle-canvas" aria-hidden="true"></canvas>
-        <div class="loading-logo" id="loading-logo" aria-hidden="true">
-          <svg class="logo-mark logo-mark--loading" viewBox="0 0 32 44" width="56" height="77">
-            <path class="logo-mark__tine logo-mark__tine--left logo-mark__tine--draw"
-                  d="M10.5 1 C10.5 1, 10 8.5, 12.5 11.5 Q14 13, 14.5 13.5"
-                  fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-            <path class="logo-mark__tine logo-mark__tine--right logo-mark__tine--draw"
-                  d="M21.5 1 C21.5 1, 22 8.5, 19.5 11.5 Q18 13, 17.5 13.5"
-                  fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-            <path class="logo-mark__curve logo-mark__curve--draw"
-                  d="M16 13.5 C22 11, 29 14, 28 21 C27 27, 19 29, 16 31 L16 34"
-                  fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>
-            <circle class="logo-mark__dot logo-mark__dot--draw" cx="16" cy="40" r="2.8" fill="var(--ac)"/>
-          </svg>
-          <span class="loading-logo__text logo-wordmark" aria-label="Donde">
-            <span class="logo-wordmark__d" aria-hidden="true">D</span><span
-              class="logo-wordmark__ond" aria-hidden="true">ond</span><span
-              class="logo-wordmark__e" aria-hidden="true">e</span>
-          </span>
+    <!-- ===== RESULT CARD ===== -->
+    <article class="result" id="result" aria-label="Recommendation">
+      <div class="result__tier1">
+        <div class="result__photos" id="photos" hidden>
+          <div class="result__photos-track" id="photos-track"></div>
         </div>
-        <p class="loading-status type-structural" id="loading-status">Searching</p>
-        <div class="result-skeleton" id="result-skeleton" aria-hidden="true">
-          <div class="skel-block skel-block--name"></div>
-          <div class="skel-block skel-block--story"></div>
-          <div class="skel-block skel-block--scores"></div>
-          <div class="skel-block skel-block--actions"></div>
-        </div>
-      </div>
-    </main>
 
-    <!-- SSO: Auth Bottom Sheet -->
-    <div class="auth-sheet" id="auth-sheet" role="dialog" aria-label="Sign in to Donde" aria-modal="true">
-      <div class="auth-sheet__backdrop" data-action="close-auth"></div>
-      <div class="auth-sheet__panel">
-        <h3 class="type-structural" style="margin-bottom: var(--space-xs);">Sign In</h3>
-        <p class="type-data--sm" style="color: var(--fg2); margin-bottom: var(--space-lg);">
-          Save unlimited spots, keep your history, get better recommendations.
-        </p>
-        <div class="auth-providers">
-          <button class="auth-provider-btn auth-provider-btn--google" data-action="sign-in" data-provider="google">
-            <svg class="auth-provider-btn__icon" viewBox="0 0 24 24" width="20" height="20">
-              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
-              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+        <div class="result__identity">
+          <div class="result__score" id="score-ring" aria-label="Match score">
+            <svg class="result__score-svg" viewBox="0 0 48 48">
+              <circle cx="24" cy="24" r="21" fill="none" stroke="var(--bg3)" stroke-width="3"/>
+              <circle class="result__score-fill" cx="24" cy="24" r="21" fill="none" stroke-width="3"
+                stroke-dasharray="132" stroke-dashoffset="132" stroke-linecap="round"
+                transform="rotate(-90 24 24)"/>
             </svg>
-            <span class="auth-provider-btn__label type-structural">Continue with Google</span>
-          </button>
-          <button class="auth-provider-btn auth-provider-btn--apple" data-action="sign-in" data-provider="apple" disabled title="Coming soon">
-            <svg class="auth-provider-btn__icon" viewBox="0 0 24 24" width="20" height="20">
-              <path fill="currentColor" d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
-            </svg>
-            <span class="auth-provider-btn__label type-structural">Continue with Apple</span>
-            <span class="auth-provider-btn__badge type-data--sm">Soon</span>
-          </button>
-        </div>
-        <p class="auth-sheet__legal type-data--sm" style="color: var(--fg3); margin-top: var(--space-md); text-align: center;">
-          By signing in you agree to our terms. We only access your name, email, and photo.
-        </p>
-        <button class="auth-guest-btn type-structural" data-action="guest-dismiss">Continue as guest</button>
-      </div>
-    </div>
-
-    <!-- Color Mode Popover — Culture override mini-panel -->
-    <div class="color-popover" id="color-popover" role="dialog" aria-label="Color mode settings" aria-modal="true">
-      <div class="color-popover__backdrop" data-action="close-color-popover"></div>
-      <div class="color-popover__panel">
-        <div class="color-popover__row">
-          <span class="color-popover__label type-data--sm">Auto Color</span>
-          <button class="color-popover__switch" id="color-mode-switch"
-                  data-action="toggle-colormode" role="switch" aria-checked="true"
-                  aria-label="Toggle auto color mode">
-            <span class="color-popover__switch-track">
-              <span class="color-popover__switch-knob"></span>
-            </span>
-          </button>
-        </div>
-        <div class="color-popover__cultures" id="color-popover-cultures"
-             role="radiogroup" aria-label="Manual culture override">
-          <!-- 8 culture dots rendered by JS -->
-        </div>
-      </div>
-    </div>
-
-    <!-- Share Sheet Modal -->
-    <div class="share-sheet" id="share-sheet" role="dialog" aria-label="Share recommendation" aria-modal="true">
-      <div class="share-sheet__backdrop" data-action="close-share"></div>
-      <div class="share-sheet__panel">
-        <h3 class="type-structural" style="margin-bottom: var(--space-md);">Share This Spot</h3>
-        <!-- Canvas Share Preview -->
-        <div class="share-preview" id="share-preview">
-          <canvas id="share-canvas"></canvas>
-        </div>
-        <div class="share-format-toggle">
-          <button class="share-format-btn share-format-btn--active type-structural" data-action="share-format" data-format="post">Post (1:1)</button>
-          <button class="share-format-btn type-structural" data-action="share-format" data-format="story">Story (9:16)</button>
-        </div>
-        <div class="share-grid">
-          <button class="share-btn" data-action="share-channel" data-channel="clipboard">
-            <span class="share-btn__icon" style="background: var(--bg3);">
-              <svg viewBox="0 0 256 256" width="22" height="22"><path fill="currentColor" d="M164,152a4,4,0,0,1-4,4H96a4,4,0,0,1,0-8h64A4,4,0,0,1,164,152Zm-4-36H96a4,4,0,0,0,0,8h64a4,4,0,0,0,0-8Zm52-68V216a12,12,0,0,1-12,12H56a12,12,0,0,1-12-12V48A12,12,0,0,1,56,36H94.08a44,44,0,0,1,67.84,0H200A12,12,0,0,1,212,48ZM92,64v4h72V64a36,36,0,0,0-72,0ZM204,48a4,4,0,0,0-4-4H167.17A43.71,43.71,0,0,1,172,64v8a4,4,0,0,1-4,4H88a4,4,0,0,1-4-4V64a43.71,43.71,0,0,1,4.83-20H56a4,4,0,0,0-4,4V216a4,4,0,0,0,4,4H200a4,4,0,0,0,4-4Z"/></svg>
-            </span>
-            <span class="share-btn__label type-structural">Copy</span>
-          </button>
-          <button class="share-btn" data-action="share-channel" data-channel="whatsapp">
-            <span class="share-btn__icon" style="background: hsl(142 70% 49% / 0.15);">
-              <svg viewBox="0 0 256 256" width="22" height="22"><path fill="currentColor" d="M128,28A100,100,0,0,0,40.53,176.5l-11.9,35.69a12,12,0,0,0,15.18,15.18l35.69-11.9A100,100,0,1,0,128,28Zm0,192a92,92,0,0,1-46.07-12.35,4.05,4.05,0,0,0-2-.54,3.93,3.93,0,0,0-1.27.21L41.28,219.78a4,4,0,0,1-5.06-5.06l12.46-37.38a4,4,0,0,0-.33-3.27A92,92,0,1,1,128,220Z"/></svg>
-            </span>
-            <span class="share-btn__label type-structural">WhatsApp</span>
-          </button>
-          <button class="share-btn" data-action="share-channel" data-channel="sms">
-            <span class="share-btn__icon" style="background: hsl(210 60% 50% / 0.15);">
-              <svg viewBox="0 0 256 256" width="22" height="22"><path fill="currentColor" d="M128,28A100,100,0,0,0,40.53,176.5l-11.9,35.69a12,12,0,0,0,15.18,15.18l35.69-11.9A100,100,0,1,0,128,28Zm0,192a92,92,0,0,1-46.07-12.35,4.05,4.05,0,0,0-2-.54,3.93,3.93,0,0,0-1.27.21L41.28,219.78a4,4,0,0,1-5.06-5.06l12.46-37.38a4,4,0,0,0-.33-3.27A92,92,0,1,1,128,220Z"/></svg>
-            </span>
-            <span class="share-btn__label type-structural">SMS</span>
-          </button>
-          <button class="share-btn" data-action="share-channel" data-channel="x">
-            <span class="share-btn__icon" style="background: var(--bg3);">𝕏</span>
-            <span class="share-btn__label type-structural">X</span>
-          </button>
-          <button class="share-btn" data-action="share-channel" data-channel="email">
-            <span class="share-btn__icon" style="background: hsl(210 50% 50% / 0.15);">
-              <svg viewBox="0 0 256 256" width="22" height="22"><path fill="currentColor" d="M224,52H32a4,4,0,0,0-4,4V192a12,12,0,0,0,12,12H216a12,12,0,0,0,12-12V56A4,4,0,0,0,224,52Zm-96,86.57L42.28,60H213.72ZM104.63,128,36,190.91V65.09Zm5.92,5.43L125.3,147a4,4,0,0,0,5.4,0l14.75-13.52L213.72,196H42.28ZM151.37,128,220,65.09V190.91Z"/></svg>
-            </span>
-            <span class="share-btn__label type-structural">Email</span>
-          </button>
-          <button class="share-btn" data-action="share-channel" data-channel="telegram">
-            <span class="share-btn__icon" style="background: hsl(200 70% 50% / 0.15);">
-              <svg viewBox="0 0 256 256" width="22" height="22"><path fill="currentColor" d="M224.47,31.52a11.87,11.87,0,0,0-11.82-3L20.74,86.67a12,12,0,0,0-1.91,22.38L105,151l41.92,86.15A11.88,11.88,0,0,0,157.74,244c.34,0,.69,0,1,0a11.89,11.89,0,0,0,10.52-8.63l58.21-192,0-.08A11.85,11.85,0,0,0,224.47,31.52Zm-4.62,9.54-58.23,192a4,4,0,0,1-7.48.59l-41.3-84.86,50-50a4,4,0,1,0-5.66-5.66l-50,50-84.9-41.31a3.88,3.88,0,0,1-2.27-4,3.93,3.93,0,0,1,3-3.54L214.9,36.16A3.93,3.93,0,0,1,216,36a4,4,0,0,1,2.79,1.19A3.93,3.93,0,0,1,219.85,41.06Z"/></svg>
-            </span>
-            <span class="share-btn__label type-structural">Telegram</span>
-          </button>
-          <button class="share-btn" data-action="share-channel" data-channel="facebook">
-            <span class="share-btn__icon" style="background: hsl(220 60% 50% / 0.15);">
-              <svg viewBox="0 0 256 256" width="22" height="22"><path fill="currentColor" d="M176,164a36,36,0,0,0-27.92,13.3L96.25,144a35.92,35.92,0,0,0,0-32L148.08,78.7A35.93,35.93,0,1,0,143.75,72L91.92,105.3a36,36,0,1,0,0,45.4L143.75,184A36,36,0,1,0,176,164Zm0-136a28,28,0,1,1-28,28A28,28,0,0,1,176,28ZM64,156a28,28,0,1,1,28-28A28,28,0,0,1,64,156Zm112,72a28,28,0,1,1,28-28A28,28,0,0,1,176,228Z"/></svg>
-            </span>
-            <span class="share-btn__label type-structural">Facebook</span>
-          </button>
-          <button class="share-btn" data-action="share-channel" data-channel="imessage">
-            <span class="share-btn__icon" style="background: hsl(210 70% 50% / 0.15);">
-              <svg viewBox="0 0 256 256" width="22" height="22"><path fill="currentColor" d="M128,28A100,100,0,0,0,40.53,176.5l-11.9,35.69a12,12,0,0,0,15.18,15.18l35.69-11.9A100,100,0,1,0,128,28Zm0,192a92,92,0,0,1-46.07-12.35,4.05,4.05,0,0,0-2-.54,3.93,3.93,0,0,0-1.27.21L41.28,219.78a4,4,0,0,1-5.06-5.06l12.46-37.38a4,4,0,0,0-.33-3.27A92,92,0,1,1,128,220Z"/></svg>
-            </span>
-            <span class="share-btn__label type-structural">iMessage</span>
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- App Feedback Sheet -->
-    <div class="feedback-sheet" id="feedback-sheet" role="dialog" aria-label="Send feedback" aria-modal="true">
-      <div class="feedback-sheet__backdrop" data-action="close-app-feedback"></div>
-      <div class="feedback-sheet__panel">
-        <h3 class="feedback-sheet__title type-structural" id="feedback-sheet-title">Share Your Thoughts</h3>
-        <p class="feedback-sheet__subtitle type-data--sm" id="feedback-sheet-subtitle">Help us make Donde better for everyone.</p>
-        <div class="feedback-sheet__form">
-          <div class="feedback-sheet__categories" id="feedback-categories" role="radiogroup" aria-label="Feedback category">
-            <button class="feedback-cat-pill type-structural" data-action="select-feedback-cat" data-category="recommendation" aria-pressed="false">Recommendations</button>
-            <button class="feedback-cat-pill type-structural" data-action="select-feedback-cat" data-category="experience" aria-pressed="false">Experience</button>
-            <button class="feedback-cat-pill type-structural" data-action="select-feedback-cat" data-category="feature" aria-pressed="false">Feature Request</button>
-            <button class="feedback-cat-pill type-structural" data-action="select-feedback-cat" data-category="restaurant_info" aria-pressed="false">Restaurant Info</button>
-            <button class="feedback-cat-pill type-structural" data-action="select-feedback-cat" data-category="other" aria-pressed="false">Other</button>
+            <span class="result__score-num" id="score-num">0</span>
           </div>
-          <textarea class="feedback-sheet__input" id="feedback-text" rows="3" placeholder="What's on your mind?" maxlength="500"></textarea>
-          <div class="feedback-sheet__footer">
-            <span class="feedback-sheet__count type-data--sm" id="feedback-char-count">0 / 500</span>
-            <button class="feedback-sheet__submit cta-btn type-structural" id="feedback-submit" data-action="submit-app-feedback" disabled>Send</button>
+          <div class="result__name-block">
+            <h2 class="result__name" id="result-name"></h2>
+            <p class="result__meta" id="result-meta"></p>
+            <p class="result__status" id="result-status"></p>
           </div>
         </div>
+
+        <div class="result__blurb" id="result-blurb"></div>
+
+        <div class="result__tip" id="result-tip" hidden>
+          <span class="result__tip-icon" aria-hidden="true"></span>
+          <p class="result__tip-text" id="tip-text"></p>
+        </div>
+
+        <div class="result__actions">
+          <a class="result__cta result__cta--primary" id="cta-navigate" href="#" target="_blank" rel="noopener">
+            <svg width="16" height="16" viewBox="0 0 256 256" aria-hidden="true"><path fill="currentColor" d="M128,16a88.1,88.1,0,0,0-88,88c0,75.3,80,132.17,83.41,134.55a8,8,0,0,0,9.18,0C136,236.17,216,179.3,216,104A88.1,88.1,0,0,0,128,16Zm0,56a32,32,0,1,1-32,32A32,32,0,0,1,128,72Z"/></svg>
+            Take me there
+          </a>
+          <button class="result__cta result__cta--secondary" id="cta-try-another" type="button">
+            <svg width="16" height="16" viewBox="0 0 256 256" aria-hidden="true"><path fill="currentColor" d="M197.67,186.37a8,8,0,0,1,0,11.29C196.58,198.73,170.82,224,128,224c-37.39,0-64-24.36-80-48V200a8,8,0,0,1-16,0V160a8,8,0,0,1,8-8H80a8,8,0,0,1,0,16H54.29C67.84,190.3,90.78,208,128,208c36.27,0,58.13-21.44,58.36-21.68A8,8,0,0,1,197.67,186.37ZM216,40a8,8,0,0,0-8,8V72c-16-23.64-42.61-48-80-48-42.82,0-68.58,25.27-69.66,26.34a8,8,0,0,0,11.3,11.34C69.87,61.44,91.73,40,128,40c37.22,0,60.16,17.7,73.71,40H176a8,8,0,0,0,0,16h40a8,8,0,0,0,8-8V48A8,8,0,0,0,216,40Z"/></svg>
+            Try another
+          </button>
+        </div>
+
+        <div class="result__feedback">
+          <button class="result__feedback-btn" id="feedback-down" type="button" aria-label="Not for me" aria-pressed="false">
+            <svg width="18" height="18" viewBox="0 0 256 256" aria-hidden="true"><path fill="currentColor" d="M239.82,157l-12-96A24,24,0,0,0,204,40H32A16,16,0,0,0,16,56v88a16,16,0,0,0,16,16H75.06l37.78,75.58A8,8,0,0,0,120,240a40,40,0,0,0,40-40V184h56a24,24,0,0,0,23.82-27ZM32,144V56H72v88Zm191.94,15.5a8,8,0,0,1-7.94,8.5H152a8,8,0,0,0-8,8v24a24,24,0,0,1-19.29,23.54L88,150.11V56H204a8,8,0,0,1,7.94,7l12,96A8.08,8.08,0,0,1,223.94,159.5Z"/></svg>
+          </button>
+          <span class="result__queue-pos" id="queue-pos"></span>
+          <button class="result__feedback-btn" id="feedback-up" type="button" aria-label="Love it" aria-pressed="false">
+            <svg width="18" height="18" viewBox="0 0 256 256" aria-hidden="true"><path fill="currentColor" d="M234,80.12A24,24,0,0,0,216,72H160V48a40,40,0,0,0-40-40,8,8,0,0,0-7.16,4.42L75.06,88H32a16,16,0,0,0-16,16v88a16,16,0,0,0,16,16H204a24,24,0,0,0,23.82-21l12-96A24,24,0,0,0,234,80.12ZM32,104H72v88H32ZM223.94,97l-12,96a8,8,0,0,1-7.94,7H88V105.89l36.71-73.43A24,24,0,0,1,144,48V80a8,8,0,0,0,8,8h64a8,8,0,0,1,7.94,9Z"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Tier 2: Deep Dive -->
+      <div class="result__tier2" id="tier2">
+        <div class="result__divider"><span>More about this spot</span></div>
+
+        <div class="result__glyphs" id="glyphs"></div>
+        <div class="result__google" id="google-rating" hidden></div>
+
+        <div class="result__breakdown" id="breakdown">
+          <h3 class="result__section-title">Match Breakdown</h3>
+          <div class="result__factors" id="factors"></div>
+          <p class="result__narrative" id="narrative"></p>
+        </div>
+
+        <div class="result__known" id="known-for" hidden>
+          <h3 class="result__section-title">Known For</h3>
+          <div class="result__pills" id="known-pills"></div>
+        </div>
+
+        <div class="result__details" id="details" hidden>
+          <h3 class="result__section-title">Good to Know</h3>
+          <dl class="result__detail-list" id="detail-list"></dl>
+        </div>
+
+        <div class="result__hours" id="hours" hidden>
+          <h3 class="result__section-title">Hours</h3>
+          <ul class="result__hours-list" id="hours-list"></ul>
+        </div>
+
+        <div class="result__contact" id="contact">
+          <div class="result__contact-row" id="contact-row"></div>
+        </div>
+
+        <div class="result__start-over">
+          <button class="result__start-over-btn" id="start-over-btn" type="button">Start over</button>
+        </div>
+      </div>
+    </article>
+
+    <!-- Bottom Sheets -->
+    <div class="sheet" id="hood-sheet" role="dialog" aria-label="Choose neighborhood" hidden>
+      <div class="sheet__backdrop" data-dismiss="sheet"></div>
+      <div class="sheet__panel">
+        <div class="sheet__header">
+          <h3 class="sheet__title">Neighborhood</h3>
+          <button class="sheet__close" data-dismiss="sheet" type="button" aria-label="Close">&times;</button>
+        </div>
+        <div class="sheet__body" id="hood-list"></div>
       </div>
     </div>
 
-    <!-- Tile Expand Modal (DondeAI Match / Vibe Radar) -->
-    <div class="tile-expand" id="tile-expand" role="dialog" aria-label="Expanded match view" aria-modal="true">
-      <div class="tile-expand__backdrop" data-action="close-tile-expand"></div>
-      <div class="tile-expand__panel" id="tile-expand-panel">
-        <button class="tile-expand__close" data-action="close-tile-expand" aria-label="Close expanded view">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
-        <div class="tile-expand__content" id="tile-expand-content"></div>
+    <div class="sheet" id="dietary-sheet" role="dialog" aria-label="Dietary restrictions" hidden>
+      <div class="sheet__backdrop" data-dismiss="sheet"></div>
+      <div class="sheet__panel">
+        <div class="sheet__header">
+          <h3 class="sheet__title">Dietary</h3>
+          <button class="sheet__close" data-dismiss="sheet" type="button" aria-label="Close">&times;</button>
+        </div>
+        <div class="sheet__body" id="dietary-list"></div>
       </div>
     </div>
+  </main>
 
-    <!-- Photo Lightbox (fullscreen photo viewer) -->
-    <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Photo viewer" style="display: none;">
-      <button class="lightbox__close" data-action="close-lightbox" aria-label="Close">
-        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
-          <line x1="18" y1="6" x2="6" y2="18"></line>
-          <line x1="6" y1="6" x2="18" y2="18"></line>
-        </svg>
-      </button>
-      <div class="lightbox__track" id="lightbox-track"></div>
-      <div class="lightbox__counter type-data--sm" id="lightbox-counter"></div>
-    </div>
-
-    <!-- Coach Marks (first-visit onboarding) -->
-    <div class="coach-mark" id="coach-mark" style="display: none;" role="tooltip">
-      <p class="coach-mark__text type-structural" id="coach-mark-text"></p>
-      <button class="coach-mark__dismiss type-data--sm" data-action="dismiss-coach">Got it</button>
-    </div>
-    <div class="coach-mark__backdrop" id="coach-mark-backdrop" style="display: none;"></div>
-
-    <!-- Theme Wash (radial clip-path transition) -->
-    <div class="theme-wash" id="theme-wash" aria-hidden="true"></div>
-
-    <!-- Toast Notification -->
-    <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true">
-      <span class="toast__text type-structural" id="toast-text"></span>
-      <button class="toast__action type-structural" id="toast-action" style="display: none;"></button>
-      <button class="toast__dismiss" id="toast-dismiss" aria-label="Dismiss notification" style="display: none;">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <line x1="18" y1="6" x2="6" y2="18"></line>
-          <line x1="6" y1="6" x2="18" y2="18"></line>
-        </svg>
-      </button>
-    </div>
-
-    <!-- Cursor Glow (desktop only, hidden on touch) -->
-    <div class="cursor-glow" aria-hidden="true"></div>
-
-  </div><!-- /app -->
+  <div class="sr-only" aria-live="polite" id="announce"></div>
+  <div class="offline-banner" id="offline-banner" role="alert" aria-live="assertive" hidden>
+    You're offline. Results may not load.
+  </div>
 
   <script type="module" src="js/app.js"></script>
 </body>

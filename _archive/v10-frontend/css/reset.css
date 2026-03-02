@@ -15,12 +15,14 @@ html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   scroll-behavior: smooth;
+  overflow: hidden;
 }
 
 body {
   min-height: 100vh;
   min-height: 100dvh;
   line-height: 1.5;
+  overflow: hidden;
   padding:
     env(safe-area-inset-top)
     env(safe-area-inset-right)

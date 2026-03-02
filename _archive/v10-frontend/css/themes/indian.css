@@ -1,0 +1,89 @@
+/* ============================================
+   Desi Theme — Deep marigold, turmeric warmth
+   "Spice, soul, and the warmth of home"
+   ============================================ */
+
+/* ---- Light Mode ---- */
+[data-theme="indian"][data-mode="light"] {
+  --bg:          hsl(30 35% 95%);
+  --bg2:         hsl(30 28% 99%);
+  --bg3:         hsl(30 25% 91%);
+  --fg:          hsl(20 35% 12%);
+  --fg2:         hsl(20 18% 38%);
+  --fg3:         hsl(20 12% 43%);
+  --ac:          hsl(28 88% 36%);
+  --ac2:         hsl(28 88% 28%);
+  --ac-soft:     hsl(28 88% 36% / 0.14);
+  --green:       hsl(150 50% 38%);
+  --green-soft:  hsl(150 50% 38% / 0.12);
+
+  --rose:        hsl(350 70% 50%);
+  --rose-soft:   hsl(350 70% 50% / 0.12);
+  --amber:       hsl(22 90% 48%);
+  --amber-soft:  hsl(22 90% 48% / 0.12);
+  --glass:       hsl(30 28% 99% / 0.78);
+  --glass-blur:  14px;
+  --border:      hsl(30 22% 84%);
+  --shadow:      hsl(25 30% 20% / 0.08);
+  --shadow-lg:   hsl(25 30% 20% / 0.14);
+  --radius:      16px;
+  --radius-sm:   10px;
+  --radius-lg:   24px;
+  --radius-pill: 100px;
+  --blob-1:      hsl(28 85% 50% / 0.1);
+  --blob-2:      hsl(350 70% 50% / 0.07);
+  --blob-3:      hsl(22 90% 50% / 0.06);
+  --grain-opacity: 0.04;
+  --textile-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72' fill='none' stroke='%23000000' stroke-linecap='round'%3E%3Cpath d='M30 10Q35 4 38 10Q40 16 34 18Q30 15 30 10' stroke-width='0.9' opacity='0.15'/%3E%3Ccircle cx='58' cy='12' r='1.1' fill='%23000000' stroke='none' opacity='0.16'/%3E%3Ccircle cx='55' cy='16' r='0.7' fill='%23000000' stroke='none' opacity='0.12'/%3E%3Ccircle cx='61' cy='16' r='0.6' fill='%23000000' stroke='none' opacity='0.10'/%3E%3Cpath d='M8 30Q12 24 16 30Q12 32 8 30' stroke-width='0.8' opacity='0.13'/%3E%3Cpath d='M34 35Q38 30 42 33Q46 36 44 40' stroke-width='0.7' opacity='0.12'/%3E%3Cpath d='M42 33Q44 30 46 32' stroke-width='0.6' opacity='0.10'/%3E%3Cpath d='M15 55Q12 52 15 49Q18 52 15 55' stroke-width='0.8' opacity='0.14'/%3E%3Cpath d='M13 56l4 0' stroke-width='0.6' opacity='0.11'/%3E%3Ccircle cx='10' cy='10' r='0.5' fill='%23000000' stroke='none' opacity='0.09'/%3E%3Cpath d='M55 52Q58 48 60 52Q59 56 55 55' stroke-width='0.7' opacity='0.11'/%3E%3Cpath d='M62 35Q66 31 68 36' stroke-width='0.5' opacity='0.08'/%3E%3C/svg%3E");
+  --textile-opacity: 0.42;
+  --glass-header: hsl(30 28% 99% / 0.7);
+  --glass-toast:  hsl(30 22% 98% / 0.88);
+  --glass-info:   hsl(28 30% 97% / 0.55);
+  --glass-tip:    hsl(22 50% 96% / 0.65);
+  --glass-score:  var(--glass);
+}
+
+/* ---- Dark Mode ---- */
+[data-theme="indian"][data-mode="dark"] {
+  --bg:          hsl(22 22% 8%);
+  --bg2:         hsl(22 18% 12%);
+  --bg3:         hsl(22 15% 16%);
+  --fg:          hsl(30 22% 90%);
+  --fg2:         hsl(30 14% 62%);
+  --fg3:         hsl(30 8% 53%);
+  --ac:          hsl(32 82% 58%);
+  --ac2:         hsl(32 82% 68%);
+  --ac-soft:     hsl(32 82% 58% / 0.18);
+  --green:       hsl(150 45% 50%);
+  --green-soft:  hsl(150 45% 50% / 0.15);
+
+  --rose:        hsl(350 65% 58%);
+  --rose-soft:   hsl(350 65% 58% / 0.15);
+  --amber:       hsl(22 85% 58%);
+  --amber-soft:  hsl(22 85% 58% / 0.15);
+  --glass:       hsl(22 18% 12% / 0.82);
+  --glass-blur:  16px;
+  --border:      hsl(22 15% 22%);
+  --shadow:      transparent;
+  --shadow-lg:   transparent;
+  --radius:      16px;
+  --radius-sm:   10px;
+  --radius-lg:   24px;
+  --radius-pill: 100px;
+  --blob-1:      hsl(28 80% 50% / 0.12);
+  --blob-2:      hsl(350 60% 50% / 0.08);
+  --blob-3:      hsl(22 80% 50% / 0.07);
+  --grain-opacity: 0.05;
+  --textile-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72' fill='none' stroke='%23ffffff' stroke-linecap='round'%3E%3Cpath d='M30 10Q35 4 38 10Q40 16 34 18Q30 15 30 10' stroke-width='0.9' opacity='0.17'/%3E%3Ccircle cx='58' cy='12' r='1.1' fill='%23ffffff' stroke='none' opacity='0.18'/%3E%3Ccircle cx='55' cy='16' r='0.7' fill='%23ffffff' stroke='none' opacity='0.14'/%3E%3Ccircle cx='61' cy='16' r='0.6' fill='%23ffffff' stroke='none' opacity='0.12'/%3E%3Cpath d='M8 30Q12 24 16 30Q12 32 8 30' stroke-width='0.8' opacity='0.15'/%3E%3Cpath d='M34 35Q38 30 42 33Q46 36 44 40' stroke-width='0.7' opacity='0.14'/%3E%3Cpath d='M42 33Q44 30 46 32' stroke-width='0.6' opacity='0.12'/%3E%3Cpath d='M15 55Q12 52 15 49Q18 52 15 55' stroke-width='0.8' opacity='0.16'/%3E%3Cpath d='M13 56l4 0' stroke-width='0.6' opacity='0.13'/%3E%3Ccircle cx='10' cy='10' r='0.5' fill='%23ffffff' stroke='none' opacity='0.11'/%3E%3Cpath d='M55 52Q58 48 60 52Q59 56 55 55' stroke-width='0.7' opacity='0.13'/%3E%3Cpath d='M62 35Q66 31 68 36' stroke-width='0.5' opacity='0.10'/%3E%3C/svg%3E");
+  --textile-opacity: 0.48;
+  --glass-header: hsl(22 18% 12% / 0.75);
+  --glass-toast:  hsl(22 15% 14% / 0.9);
+  --glass-info:   hsl(22 15% 14% / 0.55);
+  --glass-tip:    hsl(22 30% 14% / 0.65);
+  --glass-score:  var(--glass);
+}
+
+/* Desi warmth: warm, moderately vivid blobs */
+[data-theme="indian"] .ambient__blob {
+  filter: blur(80px) saturate(0.7);
+}

@@ -1,0 +1,1104 @@
+/* ============================================
+   DondeAI — Animations & Keyframes
+   Spring physics, stagger reveals, score ring
+   ============================================ */
+
+/* ---- Spring Curves (reference) ---- */
+/* User-initiated: cubic-bezier(0.34, 1.56, 0.64, 1) = var(--spring) */
+/* System reveal:  cubic-bezier(0.4, 0, 0.2, 1) = var(--ease-out) */
+
+/* ---- Fade In Up (stagger children) ---- */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.stagger-in > * {
+  opacity: 0;
+  animation: fadeInUp var(--dur-normal) var(--ease-out) forwards;
+}
+
+.stagger-in > *:nth-child(1) { animation-delay: 0ms; }
+.stagger-in > *:nth-child(2) { animation-delay: 50ms; }
+.stagger-in > *:nth-child(3) { animation-delay: 100ms; }
+.stagger-in > *:nth-child(4) { animation-delay: 150ms; }
+.stagger-in > *:nth-child(5) { animation-delay: 200ms; }
+.stagger-in > *:nth-child(6) { animation-delay: 250ms; }
+.stagger-in > *:nth-child(7) { animation-delay: 300ms; }
+.stagger-in > *:nth-child(8) { animation-delay: 350ms; }
+.stagger-in > *:nth-child(9) { animation-delay: 400ms; }
+.stagger-in > *:nth-child(10) { animation-delay: 450ms; }
+
+/* ---- Chip Pop (selection feedback) ---- */
+@keyframes chipPop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.08); }
+  100% { transform: scale(1.02); }
+}
+
+.chip-pop {
+  animation: chipPop 350ms var(--spring);
+}
+
+/* ---- Pulse (recording indicator) ---- */
+@keyframes pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 var(--rose-soft); }
+  50%      { opacity: 0.8; box-shadow: 0 0 0 12px transparent; }
+}
+
+/* ---- Score Count Up ---- */
+@keyframes countUp {
+  from { opacity: 0; transform: scale(0.8); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* ---- Verdict Fade ---- */
+@keyframes verdictReveal {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ---- Card Entrance (paper-landing settle) ---- */
+@keyframes cardEntrance {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.96) rotate(-0.5deg);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotate(0deg);
+  }
+}
+
+.card-enter {
+  animation: cardEntrance 500ms var(--ease-out) forwards;
+}
+
+/* ---- Slide In from Right (new step content) ---- */
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ---- Slide In from Left (back navigation) ---- */
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ---- Shake (validation error) ---- */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%      { transform: translateX(-6px); }
+  40%      { transform: translateX(6px); }
+  60%      { transform: translateX(-4px); }
+  80%      { transform: translateX(4px); }
+}
+
+.shake {
+  animation: shake 400ms var(--spring);
+}
+
+/* ---- Orbit Dot (score ring) ---- */
+@keyframes orbitPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%      { transform: scale(1.3); opacity: 0.7; }
+}
+
+/* ---- Gradient Shimmer (loading placeholder) ---- */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--bg3) 25%,
+    var(--border) 50%,
+    var(--bg3) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s var(--ease-out) infinite;
+}
+
+/* ---- Chip Reveal (staggered smart chips) ---- */
+@keyframes chipReveal {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ---- Section Reveal (filter drawer stagger) ---- */
+@keyframes sectionReveal {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ---- Progress Slide (CTA loading bar) ---- */
+@keyframes progressSlide {
+  0%   { left: -30%; }
+  100% { left: 100%; }
+}
+
+/* ---- Result Scale In (loading → result crossfade) ---- */
+@keyframes resultScaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* ---- Content Fade In (result name, sections) ---- */
+@keyframes contentFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ---- Tooltip In (V9.1: factor tooltip spotlight) ---- */
+@keyframes tooltipIn {
+  from { opacity: 0; transform: translate(-50%, -100%) translateY(4px); }
+  to { opacity: 1; transform: translate(-50%, -100%) translateY(0); }
+}
+
+/* ---- Toast Entrance ---- */
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
+/* ---- Logo Nod (header hover — single confident nod) ---- */
+@keyframes logoNod {
+  0%   { transform: rotate(0deg); }
+  40%  { transform: rotate(3deg); }
+  100% { transform: rotate(0deg); }
+}
+
+/* ---- Gentle Breathe (ambient life at rest — pin dot) ---- */
+@keyframes gentleBreathe {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.7; transform: scale(1.1); }
+}
+
+/* ---- Stroke Draw (loading — generic path draw-in) ---- */
+@keyframes strokeDraw {
+  to { stroke-dashoffset: 0; }
+}
+
+/* ---- Dot Spring In (loading — scale spring) ---- */
+@keyframes dotSpringIn {
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* ---- Wordmark Fade In (loading — text appears) ---- */
+@keyframes wordmarkFadeIn {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ---- Search Pulse (Act 2 — dot rhythmic pulse during search) ---- */
+@keyframes searchPulse {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+
+/* ---- Sonar Ring (Act 2 — expanding ring from pin dot) ---- */
+@keyframes sonarRing {
+  0%   { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(3); opacity: 0; }
+}
+
+/* ---- Curve Breathe (Act 2 — subtle question curve scale) ---- */
+@keyframes curveBreathe {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.02) translateY(-1px); }
+}
+
+/* ---- Result Loading: Wobbly curve animation ---- */
+@keyframes curveWobble {
+  0%   { transform: scale(1) rotate(0deg); }
+  25%  { transform: scale(1.03) rotate(1.5deg); }
+  50%  { transform: scale(0.98) rotate(-1deg); }
+  75%  { transform: scale(1.02) rotate(0.8deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+@keyframes dotPulseLoop {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%      { transform: scale(1.35); opacity: 0.7; }
+}
+
+@keyframes loadingMarkIn {
+  from { opacity: 0; transform: scale(0.7); }
+  50%  { opacity: 1; transform: scale(1.03); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes loadingMarkOut {
+  from { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
+  to   { opacity: 0; transform: scale(0.95) translateY(-20px); filter: blur(2px); }
+}
+
+/* ---- Gradient shimmer sweep across logo strokes ---- */
+@keyframes shimmerAppear {
+  to { opacity: 1; }
+}
+
+@keyframes shimmerSweep {
+  from { stroke-dashoffset: 80; }
+  to   { stroke-dashoffset: 0; }
+}
+
+/* ---- Logo glow pulse (ambient loop after settle) ---- */
+@keyframes logoGlowPulse {
+  0%, 100% { filter: url(#loading-glow) drop-shadow(0 0 3px var(--ac-a20, rgba(99,102,241,0.15))); }
+  50%      { filter: url(#loading-glow) drop-shadow(0 0 10px var(--ac-a40, rgba(99,102,241,0.3))); }
+}
+
+/* ---- Wordmark reveal (slides up + fades in) ---- */
+@keyframes wordmarkReveal {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ---- Status text reveal (letter-spacing settles) ---- */
+@keyframes statusReveal {
+  from { opacity: 0; letter-spacing: 0.25em; }
+  to   { opacity: 0.7; letter-spacing: 0.12em; }
+}
+
+@keyframes revealUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ============================================
+   "Ink Manifests" Transition Keyframes
+   Canvas → Result morph, scaffold, reveal
+   ============================================ */
+
+/* ---- Canvas Dissolve (elements fade downward on submit) ---- */
+@keyframes inkDissolve {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+}
+
+/* ---- Ink Wash Shimmer (theme-aware skeleton pulse) ---- */
+@keyframes inkWash {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* ---- Ink Reveal (clip-path left-to-right write) ---- */
+@keyframes inkReveal {
+  from { clip-path: inset(0 100% 0 0); }
+  to   { clip-path: inset(0 0% 0 0); }
+}
+
+/* ---- Score Oscillate (indeterminate ring pendulum) ---- */
+@keyframes scoreOscillate {
+  0%   { stroke-dashoffset: var(--ring-circ); }
+  50%  { stroke-dashoffset: calc(var(--ring-circ) * 0.7); }
+  100% { stroke-dashoffset: var(--ring-circ); }
+}
+
+/* ---- Progress Ink Line (accent stroke across card top) ---- */
+@keyframes progressInk {
+  from { width: 0%; }
+  to   { width: 70%; }
+}
+
+/* ---- Ink Fade Up (scaffold elements appearing) ---- */
+@keyframes inkFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ---- Canvas Restore (elements fade back in — mirrors inkDissolve) ---- */
+@keyframes inkRestore {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ---- Ink Write Utility Class ---- */
+.ink-write {
+  clip-path: inset(0 100% 0 0);
+  animation: inkReveal var(--dur-ink) cubic-bezier(0.2, 1, 0.4, 1) forwards;
+  animation-delay: var(--ink-delay, 0ms);
+}
+
+/* ---- Match Pill Arc Settle (micro-pulse on landing) ---- */
+@keyframes arcSettle {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+
+/* ---- Score Ring Celebration Glow (9+ scores) ---- */
+@keyframes scoreGlow {
+  0%   { box-shadow: 0 0 0 0 var(--ac-soft); }
+  50%  { box-shadow: 0 0 20px 4px var(--ac-soft); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+.score-tile--celebrating {
+  animation: scoreGlow 800ms var(--ease-out);
+}
+
+/* ---- Focus Ring Spring-In ---- */
+@keyframes focusRingIn {
+  from {
+    box-shadow: 0 0 0 2px var(--bg), 0 0 0 2px var(--ac);
+  }
+  50% {
+    box-shadow: 0 0 0 2px var(--bg), 0 0 0 6px var(--ac);
+  }
+  to {
+    box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--ac);
+  }
+}
+
+/* ---- CTA Submit Confirmation Glow ---- */
+@keyframes ctaConfirm {
+  0%   { box-shadow: 0 0 0 0 var(--ac); }
+  50%  { box-shadow: 0 0 0 8px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+.cta-btn--confirming {
+  animation: ctaConfirm 400ms var(--spring);
+}
+
+/* ---- CTA Disabled Nudge ---- */
+@keyframes ctaNudge {
+  0%, 100% { transform: translateX(0); }
+  20%      { transform: translateX(-4px); }
+  40%      { transform: translateX(4px); }
+  60%      { transform: translateX(-2px); }
+  80%      { transform: translateX(2px); }
+}
+
+/* ---- Result Section Progressive Reveal ---- */
+@keyframes resultSectionIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ---- Filter Drawer Open ---- */
+@keyframes drawerOpen {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scaleY(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+  }
+}
+
+/* ---- Filter Drawer Close ---- */
+@keyframes drawerClose {
+  from {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-8px) scaleY(0.95);
+  }
+}
+
+.filter-content--closing {
+  animation: drawerClose 300ms var(--ease-out) forwards;
+  pointer-events: none;
+}
+
+/* ---- Ink Ripple (filter pill selection) ---- */
+@keyframes inkRipple {
+  from {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0.4;
+  }
+  to {
+    transform: translate(-50%, -50%) scale(2.5);
+    opacity: 0;
+  }
+}
+
+/* ---- Tile Reveal (score tiles stagger) ---- */
+@keyframes tileRevealIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(-2px) scale(1.01);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* (Duplicate inkReveal removed — defined at line 262) */
+
+/* ---- Slide Settle In (oneliner from right) ---- */
+@keyframes slideSettleIn {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ---- Border Draw Down (insider tip amber border) ---- */
+@keyframes borderDrawDown {
+  from { border-image: linear-gradient(to bottom, var(--amber) 0%, transparent 0%) 1; }
+  to   { border-image: linear-gradient(to bottom, var(--amber) 100%, transparent 100%) 1; }
+}
+
+/* ---- Tip Border Draw (insider tip animated left border) ---- */
+@keyframes tipBorderDraw {
+  from { height: 0; }
+  to   { height: 100%; }
+}
+
+/* ---- (Loading orbit removed — replaced by sonar ring) ---- */
+
+/* ---- Swipe Edge Hint (one-time gesture affordance on result view) ---- */
+@keyframes edgeHint {
+  0%   { opacity: 0; }
+  20%  { opacity: 1; }
+  80%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* ---- CTA Breathing Pulse (enabled state life) ---- */
+@keyframes ctaReady {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+
+@keyframes ctaBreathe {
+  0%, 100% { box-shadow: 0 0 0 0 var(--ac-soft); }
+  50%      { box-shadow: 0 0 0 4px var(--ac-soft); }
+}
+
+.cta-btn--ready {
+  animation: ctaReady 400ms var(--spring);
+}
+
+/* CTA breathing animation removed — infinite ambient animation
+   on the primary CTA violates "animation is seasoning, not the dish."
+   The one-shot ctaReady spring (400ms) on enable is sufficient. */
+
+/* ---- Voice Recording Pulse Ring ---- */
+@keyframes voicePulse {
+  0%   { transform: translateY(-50%) scale(1); opacity: 0.5; }
+  100% { transform: translateY(-50%) scale(1.6); opacity: 0; }
+}
+
+/* ---- Section Heading Ink-Underline Reveal ---- */
+@keyframes inkUnderline {
+  from { width: 0; }
+  to   { width: 100%; }
+}
+
+/* ---- Color Popover Dot Spring-In (staggered) ---- */
+@keyframes colorDotIn {
+  from { opacity: 0; transform: scale(0); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.color-popover--open .color-popover__dot {
+  animation: colorDotIn 250ms var(--spring) backwards;
+}
+
+.color-popover--open .color-popover__dot:nth-child(1) { animation-delay: 30ms; }
+.color-popover--open .color-popover__dot:nth-child(2) { animation-delay: 50ms; }
+.color-popover--open .color-popover__dot:nth-child(3) { animation-delay: 70ms; }
+.color-popover--open .color-popover__dot:nth-child(4) { animation-delay: 90ms; }
+.color-popover--open .color-popover__dot:nth-child(5) { animation-delay: 110ms; }
+.color-popover--open .color-popover__dot:nth-child(6) { animation-delay: 130ms; }
+.color-popover--open .color-popover__dot:nth-child(7) { animation-delay: 150ms; }
+.color-popover--open .color-popover__dot:nth-child(8) { animation-delay: 170ms; }
+
+/* ---- CTA Momentum Boost (after filter selection) ---- */
+@keyframes ctaBoost {
+  0%   { transform: scale(1); box-shadow: 0 0 0 0 var(--ac-soft, rgba(0,0,0,0.08)); }
+  30%  { transform: scale(1.03); box-shadow: 0 0 0 6px var(--ac-soft, rgba(0,0,0,0.08)); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 var(--ac-soft, rgba(0,0,0,0.08)); }
+}
+
+.cta-btn--boosted:not(:disabled) {
+  animation: ctaBoost 500ms var(--spring);
+}
+
+/* ---- Score Bloom Keyframes ---- */
+
+/* V8: petal-breathe removed (petal radar removed) */
+
+/* Arc draw-in — stroke-dashoffset animation */
+@keyframes arcDrawIn {
+  from { stroke-dashoffset: 283; }
+  to { stroke-dashoffset: var(--arc-offset, 0); }
+}
+
+/* Detail strip slide-in */
+@keyframes detailSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ---- Lightbox Entrance ---- */
+@keyframes lightboxIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* ---- Blink Cursor (typewriter insider tip) ---- */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0; }
+}
+
+.story-extras__text--typing::after {
+  content: '|';
+  animation: blink 800ms step-end infinite;
+  color: var(--ac);
+  font-weight: 300;
+  margin-left: 1px;
+}
+
+/* ---- Score Celebration Glow Enhancement (90%+ scores) ---- */
+@keyframes scoreCelebrate {
+  0%   { box-shadow: 0 0 0 0 var(--ac-soft); }
+  25%  { box-shadow: 0 0 24px 8px var(--ac-soft); }
+  50%  { box-shadow: 0 0 32px 12px var(--ac-soft); }
+  75%  { box-shadow: 0 0 24px 8px var(--ac-soft); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+/* V5: Boost badge slide-in */
+@keyframes boostSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-12px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+/* V5: Relaxation notice fade-in */
+@keyframes relaxationFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Confidence Ring celebration pulse (88%+ scores) */
+@keyframes ringCelebrate {
+  0%   { filter: drop-shadow(0 0 0 transparent); }
+  40%  { filter: drop-shadow(0 0 12px color-mix(in srgb, var(--ac) 40%, transparent)); }
+  100% { filter: drop-shadow(0 0 0 transparent); }
+}
+
+.score-hero__ring-wrap--celebrating {
+  animation: ringCelebrate 800ms ease-out;
+}
+
+/* ---- V7: Card Swap Out (Try Again instant queue transition) ---- */
+@keyframes cardSwapOut {
+  from { opacity: 1; transform: translateX(0) scale(1); }
+  to   { opacity: 0; transform: translateX(-20px) scale(0.97); }
+}
+
+/* ---- V7: Card Swap In (new result from queue) ---- */
+@keyframes cardSwapIn {
+  0%   { opacity: 0; transform: translateX(20px) scale(0.97); }
+  70%  { opacity: 1; transform: translateX(-2px) scale(1.01); }
+  100% { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+/* ---- Reduced Motion: Gentle fallback (100ms linear, not 0ms) ---- */
+@media (prefers-reduced-motion: reduce) {
+  .stagger-in > *,
+  .chip-pop,
+  .card-enter,
+  .shimmer,
+  .smart-chip,
+  .filter-section,
+  .filter-content--closing,
+  .logo-mark--loading .logo-mark__tine--draw,
+  .logo-mark--loading .logo-mark__curve--draw,
+  .logo-mark--loading .logo-mark__dot--draw,
+  .logo-mark__dot,
+  .logo-mark__sonar,
+  .logo-mark--searching .logo-mark__dot,
+  .logo-mark--searching .logo-mark__curve,
+  .loading-logo__text,
+  .loading-status,
+  .cta-btn--ready,
+  .cta-btn--alive,
+  .cta-btn--boosted,
+  .lightbox,
+  .coach-mark,
+  .craving-input--surprising,
+  .boost-badge--visible,
+  .relaxation-notice,
+  .ink-write,
+  .canvas-layout--morphing .filter-drawer,
+  .canvas-layout--morphing .smart-chips,
+  .canvas-layout--morphing .taste-memory,
+  .canvas-layout--morphing .cta-hint,
+  .canvas-layout--morphing .step__title,
+  .canvas-layout--morphing .surprise-btn,
+  .scaffold-block,
+  .result-loading__mark,
+  .result-loading__tine,
+  .result-loading__curve,
+  .result-loading__dot,
+  .result-loading__logo-group,
+  .result-loading__shimmer,
+  .result-loading__wordmark,
+  .result-loading__status,
+  .result-loading--exiting,
+  .result-card--revealing .result-photos,
+  .result-card--revealing .glance-hero,
+  .result-card--revealing .donde-blurb,
+  .result-card--revealing .glance-nav,
+  .result-card--revealing .tell-more-btn,
+  .result-card--revealing .card-footer {
+    animation-duration: 100ms !important;
+    animation-timing-function: linear !important;
+    opacity: 1;
+    transform: none;
+  }
+
+  .story-extras__text--typing::after {
+    animation: none !important;
+    content: none;
+  }
+
+  .step--swiping {
+    transition: none !important;
+    transform: none !important;
+  }
+
+  .cta-btn--alive:not(:hover):not(:active):not(:disabled) {
+    animation: none !important;
+  }
+
+  .craving-voice-btn--recording::before,
+  .craving-voice-btn--recording::after {
+    animation: none !important;
+  }
+
+  .back-btn {
+    transform: none;
+    transition: opacity var(--dur-normal) var(--ease-out),
+                background var(--dur-fast) var(--ease-out);
+  }
+
+  .back-btn--visible {
+    transform: none;
+  }
+
+  /* No blur defocus in reduced motion */
+  .step[data-step="0"].step--defocused {
+    filter: none;
+    transform: none;
+    opacity: 0.4;
+  }
+
+  /* No scale transition on loading overlay */
+  .loading-state,
+  .loading-state--fading {
+    transition: none !important;
+  }
+
+  /* Ink Manifests — instant transitions */
+  .ink-write {
+    clip-path: none !important;
+    animation: none !important;
+    opacity: 1;
+  }
+
+  .canvas-layout--morphing .craving-wrap {
+    animation: none !important;
+    opacity: 0;
+  }
+
+  .result-card--unfolding .card-footer,
+  .result-card--unfolding .tell-more-btn,
+  .result-card--unfolding .donde-blurb,
+  .result-card--unfolding .glance-nav,
+  .result-card--unfolding .glance-hero,
+  .result-card--unfolding .result-photos {
+    animation: none !important;
+    opacity: 0;
+  }
+
+  .canvas-layout--restoring .craving-wrap,
+  .canvas-layout--restoring .filter-drawer,
+  .canvas-layout--restoring .smart-chips,
+  .canvas-layout--restoring .taste-memory,
+  .canvas-layout--restoring .cta-hint,
+  .canvas-layout--restoring .surprise-btn,
+  .canvas-layout--restoring .saved-spots,
+  .canvas-layout--restoring .step__title,
+  .canvas-layout--restoring .empty-state,
+  .canvas-layout--restoring .cta-btn {
+    animation: none !important;
+    opacity: 1;
+  }
+
+  /* (V10: scaffold + oscillation reduced-motion rules removed) */
+
+  .inkwell-dot {
+    transition: none !important;
+  }
+
+  /* (V10: manifesting + word-group reduced-motion rules removed) */
+
+  /* Tile expand modal — instant open/close, no spring */
+  .tile-expand__panel {
+    transition: none !important;
+    transform: none !important;
+  }
+  .tile-expand__backdrop {
+    transition: none !important;
+  }
+
+  /* Color popover — instant show */
+  .color-popover--open .color-popover__dot {
+    animation-duration: 0ms !important;
+  }
+
+  .color-popover__panel {
+    transition: none !important;
+  }
+
+  /* Score Hero + Match Mini — instant transitions for reduced motion */
+  .score-hero__ring-fill,
+  .match-mini__ring-fill,
+  .factor-row__bar-fill,
+  .sentiment-inline__seg {
+    transition: none !important;
+  }
+
+  /* Cuisine Drawer — instant open/close */
+  .cuisine-drawer {
+    transition: none !important;
+  }
+  .cuisine-drawer__backdrop {
+    transition: none !important;
+  }
+
+  .score-hero__dot {
+    transition: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  /* V5: Disable boost and relaxation animations */
+  .intent-boost-badge {
+    animation: none !important;
+  }
+  .relaxation-notice {
+    animation: none !important;
+  }
+  .relaxation-notice--dismissing {
+    animation: none !important;
+    opacity: 0;
+  }
+
+  /* V8: Removed constellation rings (no longer in DOM) */
+  .score-hero__narrative {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+  .result-card--swapping-out,
+  .result-card--swapping-in {
+    animation-duration: 0ms !important;
+  }
+  .score-hero__ring-wrap--celebrating {
+    animation: none !important;
+  }
+}
+
+/* ============================================
+   V5: Boost Badge Slide-In
+   Spring entrance from left (300ms)
+   ============================================ */
+@keyframes slideInBoost {
+  from {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+  60% {
+    opacity: 1;
+    transform: translateX(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ============================================
+   V5: Relaxation Notice Auto-Dismiss Fade
+   ============================================ */
+@keyframes fadeOutRelaxation {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+    max-height: 60px;
+    margin-bottom: var(--space-sm);
+    padding: var(--space-xs) var(--space-sm);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-8px);
+    max-height: 0;
+    margin-bottom: 0;
+    padding: 0 var(--space-sm);
+    overflow: hidden;
+  }
+}
+
+/* ============================================
+   V9: Factor Icon Micro-Animations
+   Per-factor entrance: food wobble, vibe bounce, etc.
+   ============================================ */
+@keyframes factorWobble {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(5deg); }
+  75% { transform: rotate(-5deg); }
+}
+
+@keyframes factorBounce {
+  0%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-3px); }
+  60% { transform: translateY(-1px); }
+}
+
+@keyframes factorSparkle {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.8; }
+}
+
+@keyframes factorTwinkle {
+  0%, 100% { opacity: 1; }
+  30% { opacity: 0.3; }
+  60% { opacity: 1; }
+}
+
+@keyframes factorTick {
+  0% { transform: rotate(0deg); }
+  50% { transform: rotate(15deg); }
+  100% { transform: rotate(0deg); }
+}
+
+/* Applied via data-factor attribute on .factor-row__icon */
+.factor-row-wrapper.tier-revealed .factor-row[data-factor="food"] .factor-row__icon {
+  animation: factorWobble 400ms ease-out;
+}
+.factor-row-wrapper.tier-revealed .factor-row[data-factor="vibe"] .factor-row__icon {
+  animation: factorBounce 300ms cubic-bezier(.34, 1.56, .64, 1);
+}
+.factor-row-wrapper.tier-revealed .factor-row[data-factor="service"] .factor-row__icon {
+  animation: factorSparkle 350ms ease-out;
+}
+.factor-row-wrapper.tier-revealed .factor-row[data-factor="reputation"] .factor-row__icon {
+  animation: factorTwinkle 250ms ease-out;
+}
+.factor-row-wrapper.tier-revealed .factor-row[data-factor="convenience"] .factor-row__icon {
+  animation: factorTick 300ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .factor-row-wrapper.tier-revealed .factor-row .factor-row__icon {
+    animation: none;
+  }
+}
+
+/* ============================================
+   V9: Score Ring Ink Trail
+   A bright dot that leads the ring stroke fill
+   ============================================ */
+.score-hero__ink-dot {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ac);
+  box-shadow: 0 0 6px var(--ac);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 3;
+  transition: opacity 200ms ease-out;
+}
+
+.score-hero__ink-dot--active {
+  opacity: 1;
+}
+
+/* ============================================
+   V9: Photo Parallax
+   ============================================ */
+.result-photos--parallax {
+  transform: translateY(var(--parallax-y, 0));
+  will-change: transform;
+}
+
+/* ============================================
+   V9: Tiered Celebration Glow
+   Ring glow scales with score
+   ============================================ */
+.score-hero__ring-wrap--glow {
+  border-radius: 50%;
+  transition: box-shadow 600ms ease-out;
+}
+
+/* ============================================
+   V9: Verdict-text entrance
+   ============================================ */
+@keyframes verdictReveal {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.score-hero__verdict-text--animating {
+  animation: verdictReveal 400ms cubic-bezier(.34, 1.56, .64, 1) forwards;
+}
+
+/* ---- V9.1: Ken Burns (subtle scale for hero images) ---- */
+@keyframes kenBurns {
+  from { transform: scale(1); }
+  to { transform: scale(1.05); }
+}
+
+/* ---- V9.1: Smart Chip Cascade Entrance (Enhancement 5) ---- */
+@keyframes chipCascade {
+  from { opacity: 0; transform: translateX(-20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.smart-chips--cascade .smart-chip {
+  opacity: 0;
+  animation: chipCascade 400ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.smart-chips--cascade .smart-chip:nth-child(1) { animation-delay: 0ms; }
+.smart-chips--cascade .smart-chip:nth-child(2) { animation-delay: 60ms; }
+.smart-chips--cascade .smart-chip:nth-child(3) { animation-delay: 140ms; }
+.smart-chips--cascade .smart-chip:nth-child(4) { animation-delay: 240ms; }
+.smart-chips--cascade .smart-chip:nth-child(5) { animation-delay: 360ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .smart-chips--cascade .smart-chip {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---- V9.1: Peek Shimmer (Enhancement 3) ---- */
+@keyframes peekShimmer {
+  0% { opacity: 0; }
+  50% { opacity: 0.6; }
+  100% { opacity: 0; }
+}
+
+.tier--peeking {
+  overflow: visible;
+}
+
+.tier--peek-shimmer::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 10%;
+  right: 10%;
+  height: 2px;
+  background: var(--ac);
+  border-radius: 1px;
+  animation: peekShimmer 800ms ease-in-out forwards;
+}
+
+/* ---- V9.1: Theme-aware blob morphing (Enhancement 4) ---- */
+[data-theme="neutral"] .ambient__blob { --blob-shape: 40% 60% 55% 45% / 50% 50% 50% 50%; }
+[data-theme="japanese"] .ambient__blob { --blob-shape: 30% 70% 60% 40% / 60% 40% 30% 70%; }
+[data-theme="southamerican"] .ambient__blob { --blob-shape: 65% 35% 40% 60% / 35% 65% 50% 50%; }
+[data-theme="indian"] .ambient__blob { --blob-shape: 50% 50% 45% 55% / 55% 45% 50% 50%; }
+[data-theme="middleeastern"] .ambient__blob { --blob-shape: 35% 65% 50% 50% / 70% 30% 55% 45%; }
+
+.ambient__blob {
+  border-radius: var(--blob-shape, 40% 60% 55% 45% / 50% 50% 50% 50%);
+  transition: border-radius 2s ease;
+}
