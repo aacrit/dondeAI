@@ -865,17 +865,19 @@
   cursor: pointer;
 }
 
-/* Score-wrap: semicircular arc gauge + number */
+/* Score-wrap: full circle ring + centered number (matches Tier 2 ring, smaller) */
 .match-mini__score-wrap {
+  position: relative;
   display: flex;
-  flex-direction: column;
   align-items: center;
+  justify-content: center;
 }
 
 .match-mini__arc {
-  width: 76px;
-  height: 42px;
+  width: 56px;
+  height: 56px;
   overflow: visible;
+  transform: rotate(-90deg); /* fill starts at top, like Tier 2 */
 }
 
 .match-mini__arc-bg {
@@ -890,7 +892,6 @@
   stroke: var(--rag-green);
   stroke-width: 4;
   stroke-linecap: round;
-  transform-origin: center bottom;
 }
 /* RAG coloring on arc fill */
 .match-mini[data-tier="high"] .match-mini__arc-fill { stroke: var(--rag-green); }
@@ -898,7 +899,11 @@
 .match-mini[data-tier="low"]  .match-mini__arc-fill { stroke: var(--rag-red); }
 
 .match-mini__score {
-  font-size: clamp(1.75rem, 6vw, 2.5rem);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: clamp(1rem, 4vw, 1.25rem);
   font-weight: 700;
   color: var(--fg);
   line-height: 1;
@@ -1528,6 +1533,7 @@
 .glance-nav {
   display: flex;
   justify-content: flex-start;
+  margin-top: var(--space-2xs);
 }
 
 .glance-nav__pill {
@@ -1933,13 +1939,14 @@
   border-radius: var(--radius);
 }
 
-/* V9: Verdict-first — large emotional text ABOVE the ring, RAG colored */
+/* Verdict — smaller text BELOW the ring, RAG colored */
 .score-hero__verdict-text {
   font-family: var(--font-emotional);
-  font-size: var(--text-xl);
+  font-size: var(--text-sm);
   color: var(--rag-green);
   text-align: center;
-  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
   line-height: 1.2;
   opacity: 0;
   transform: translateY(4px);
@@ -1963,10 +1970,10 @@
   color: var(--rag-red);
 }
 
-/* Confidence Ring container — V9: smaller, accent role */
+/* Confidence Ring container */
 .score-hero__ring-wrap {
   position: relative;
-  width: clamp(80px, 22vw, 100px);
+  width: clamp(100px, 28vw, 130px);
   aspect-ratio: 1;
 }
 
@@ -2006,7 +2013,7 @@
 }
 
 .score-hero__number {
-  font-size: clamp(2rem, 7vw, 3rem);
+  font-size: clamp(2.5rem, 9vw, 3.5rem);
   font-weight: 700;
   color: var(--fg);
   line-height: 1;
@@ -2070,9 +2077,8 @@
 .score-hero__brand {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: 3px;
   line-height: 1;
-  transform: scale(0.9);
 }
 
 .score-hero__brand-logo {
@@ -2083,7 +2089,7 @@
 
 .score-hero__tm {
   font-family: var(--font-data);
-  font-size: 0.5rem;
+  font-size: 0.625rem;
   color: var(--fg3);
   letter-spacing: 0.04em;
   margin-left: 1px;
@@ -2115,13 +2121,21 @@
   opacity: 1;
 }
 
-/* V7: Card swap transition for Try Again from ranked queue */
-.result-card--swapping-out {
-  animation: cardSwapOut 300ms var(--ease-out) forwards;
+/* Per-element crossfade for Try Again transitions */
+.result-card--crossfading .result-name,
+.result-card--crossfading .result-oneliner,
+.result-card--crossfading .result-meta,
+.result-card--crossfading .quick-tags,
+.result-card--crossfading .quick-actions,
+.result-card--crossfading .glance-nav,
+.result-card--crossfading .donde-blurb__text,
+.result-card--crossfading .result-photos,
+.result-card--crossfading .match-mini__score,
+.result-card--crossfading .match-mini__verdict,
+.result-card--crossfading .match-headline {
+  opacity: 0;
+  transition: opacity 250ms var(--ease-out);
 }
-
-.result-card--swapping-in {
-  animation: cardSwapIn 300ms var(--ease-out) forwards;
 }
 
 /* (Brand, center, callout CSS removed — replaced by ring-wrap layout above) */
@@ -2302,7 +2316,7 @@
   border-radius: 3px;
   width: 0%;
   background: linear-gradient(90deg, color-mix(in srgb, var(--ac) 70%, transparent), var(--ac));
-  transition: width 400ms cubic-bezier(.34, 1.56, .64, 1);
+  transition: width 600ms cubic-bezier(.34, 1.56, .64, 1);
 }
 
 .factor-row__score {
@@ -2580,17 +2594,21 @@
   line-height: 1.4;
 }
 
-/* V9: Factor bar signal sentence — always on second line for consistency */
-.factor-row__signal {
-  flex-basis: 100%;
-  order: 99;
-  font-family: var(--font-structural);
-  font-size: var(--text-2xs, 10px);
+/* Weight-importance pips (●/●●/●●●) next to factor label */
+.factor-row__weight-pips {
+  font-size: 5px;
+  letter-spacing: 2px;
   color: var(--fg3);
-  line-height: 1.3;
-  white-space: normal;
-  padding-top: 1px;
-  padding-left: 28px; /* indent past icon column */
+  opacity: 0.5;
+  align-self: center;
+  margin-left: 2px;
+}
+.factor-row--weight-high .factor-row__weight-pips {
+  color: var(--ac);
+  opacity: 0.8;
+}
+.factor-row--weight-mid .factor-row__weight-pips {
+  opacity: 0.65;
 }
 
 /* V9: Factor bar label replaces numeric score */

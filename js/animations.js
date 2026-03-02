@@ -387,16 +387,17 @@ export function renderFactorBars(scoringData, timers = [], restaurantData = null
       : slot.val >= 6.0 ? 'bar-fill--mid'
       : 'bar-fill--weak';
 
-    // Clean: icon | label | bar | contextual label | signal sentence
-    const signalText = buildFactorNarrativeText(slot.key, scoring);
+    // Clean: icon | label | weight pips | bar | contextual label
+    const pipCount = slot.weight >= 30 ? 3 : slot.weight >= 18 ? 2 : 1;
+    const pips = '\u25CF'.repeat(pipCount);
     row.innerHTML = `
       <span class="factor-row__icon">${svgIcon(slot.icon, 16)}</span>
       <span class="factor-row__label type-structural">${slot.label}</span>
+      <span class="factor-row__weight-pips" aria-label="${slot.weight != null ? slot.weight + '% weight' : ''}">${pips}</span>
       <span class="factor-row__bar">
         <span class="factor-row__bar-fill ${scoreTierClass}" data-width="${pct}"></span>
       </span>
-      <span class="factor-row__label-tag">${getFactorLabel(slot.val)}</span>
-      ${signalText ? `<span class="factor-row__signal">${signalText}</span>` : ''}`;
+      <span class="factor-row__label-tag">${getFactorLabel(slot.val)}</span>`;
 
     // Drill-down panel (hidden by default, populated on tap)
     const detail = document.createElement('div');
@@ -416,21 +417,6 @@ export function renderFactorBars(scoringData, timers = [], restaurantData = null
     row.addEventListener('click', () => {
       // V9: haptic feedback on factor expand
       if (navigator.vibrate) navigator.vibrate([15, 10, 15]);
-
-      // V9.1: Factor tooltip spotlight (first-tap only)
-      if (!wrapper.dataset.tooltipShown) {
-        const signalEl = row.querySelector('.factor-row__signal');
-        const tipText = signalEl ? signalEl.textContent.trim() : '';
-        if (tipText) {
-          const tooltip = document.createElement('div');
-          tooltip.className = 'factor-tooltip';
-          tooltip.textContent = tipText;
-          wrapper.style.position = 'relative';
-          wrapper.appendChild(tooltip);
-          setTimeout(() => tooltip.remove(), 2000);
-        }
-        wrapper.dataset.tooltipShown = 'true';
-      }
 
       const isOpen = row.getAttribute('aria-expanded') === 'true';
       // Close all panels first (accordion)
@@ -465,7 +451,7 @@ export function renderFactorBars(scoringData, timers = [], restaurantData = null
     if (!REDUCED.matches) {
       wrapper.style.opacity = '0';
       wrapper.style.transform = 'translateY(4px)';
-      wrapper.style.transition = 'opacity 300ms ease-out, transform 300ms ease-out';
+      wrapper.style.transition = 'opacity 450ms ease-out, transform 450ms ease-out';
       timers.push(setTimeout(() => {
         wrapper.style.opacity = '1';
         wrapper.style.transform = 'translateY(0)';
@@ -474,7 +460,7 @@ export function renderFactorBars(scoringData, timers = [], restaurantData = null
             fill.style.width = fill.dataset.width + '%';
           });
         }
-      }, i * 50));
+      }, i * 120));
     } else if (fill) {
       fill.style.width = fill.dataset.width + '%';
     }

@@ -988,22 +988,19 @@ function wireEvents() {
 
           if ($resultCard && !REDUCED_MOTION.matches) {
             _swapInFlight = true;
-            $resultCard.classList.add('result-card--swapping-out');
+            // Per-element crossfade: fade out individual elements, update, fade back in
+            $resultCard.classList.add('result-card--crossfading');
             setTimeout(() => {
-              $resultCard.classList.remove('result-card--swapping-out');
               renderResult(nextResult);
-              $resultCard.classList.add('result-card--swapping-in');
-              // Delay score animation until card-swap-in settles
+              $resultCard.classList.remove('result-card--crossfading');
+              // Score animates after content settles
               setTimeout(() => {
                 const dondeScore = Math.round(parseFloat(nextResult.donde_match) || 80);
                 const $matchScore = document.getElementById('match-pill-score');
                 if ($matchScore) animateScoreCountUp($matchScore, dondeScore);
-              }, 300);
-              setTimeout(() => {
-                $resultCard.classList.remove('result-card--swapping-in');
                 _swapInFlight = false;
-              }, 350);
-            }, 300);
+              }, 300);
+            }, 280);
           } else {
             renderResult(nextResult);
             const dondeScore = Math.round(parseFloat(nextResult.donde_match) || 80);
@@ -2261,12 +2258,11 @@ function clearEdgeHintTimers() {
 /* ---- V7: Score Count-Up Animation (reusable) ---- */
 function animateScoreCountUp($el, targetScore) {
   const $arcFill = document.getElementById('match-pill-arc-fill');
-  const arcLength = Math.PI * 20; // ~62.83 (semicircle, r=20)
+  const arcLength = 2 * Math.PI * 25; // ~157.08 (full circle, r=25)
   if ($arcFill) {
     $arcFill.style.transition = 'none';
     $arcFill.style.strokeDasharray = String(arcLength);
     $arcFill.style.strokeDashoffset = String(arcLength);
-    $arcFill.style.animation = '';
   }
   $el.textContent = '0';
   const REDUCED_MQ = matchMedia('(prefers-reduced-motion: reduce)');
@@ -2287,8 +2283,6 @@ function animateScoreCountUp($el, targetScore) {
       }
       if (progress < 1) {
         requestAnimationFrame(animate);
-      } else if ($arcFill) {
-        $arcFill.style.animation = 'arcSettle 400ms var(--spring)';
       }
     };
     requestAnimationFrame(animate);
