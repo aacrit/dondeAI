@@ -2112,6 +2112,9 @@ function settleResult() {
   // Clean canvas morph class (so returning to canvas is clean)
   const $canvas = document.querySelector('.canvas-layout');
   if ($canvas) $canvas.classList.remove('canvas-layout--morphing');
+  // Clear neighborhood from header
+  const $headerHood = document.getElementById('header-hood');
+  if ($headerHood) $headerHood.style.display = 'none';
 }
 
 /* ---- Reverse Canvas Fold (error/back during loading) ---- */
@@ -2387,6 +2390,19 @@ function renderResult(data) {
   const $name = document.getElementById('result-name');
   if ($name) $name.textContent = r.name || '';
 
+  // Neighborhood in header bar
+  const $headerHood = document.getElementById('header-hood');
+  if ($headerHood) {
+    const rawHood = r.neighborhood_name || '';
+    const hood = /^chicago$/i.test(rawHood.trim()) ? '' : rawHood;
+    if (hood) {
+      $headerHood.textContent = hood;
+      $headerHood.style.display = '';
+    } else {
+      $headerHood.style.display = 'none';
+    }
+  }
+
   // V10: One-liner removed from Tier 1 — blurb is the editorial voice
   const $oneliner = document.getElementById('result-oneliner');
   if ($oneliner) $oneliner.style.display = 'none';
@@ -2400,6 +2416,9 @@ function renderResult(data) {
   // V9.1: Open Now badge moved to Tier 2 signal chips
   const $signalChipsTier1 = document.getElementById('signal-chips');
   if ($signalChipsTier1) { $signalChipsTier1.innerHTML = ''; $signalChipsTier1.style.display = 'none'; }
+
+  // Restaurant meta: website, cuisine, what to order, open/closed pills
+  renderResultMeta(data);
 
   // Quick actions row: Reserve, Share, Website, Phone (subtle utility pills)
   renderQuickActions(data);
@@ -2642,6 +2661,10 @@ function renderTier2Animations() {
   const data = _pendingResultData;
   if (!data) return;
 
+  // Reset bloom state so factor bars render fresh with animations
+  // (prepareTier2's 900ms-delayed renderFactorBars may have already set _factorBarsRendered)
+  resetBloomState();
+
   // Animate Confidence Ring + factor bars (renderScoreHero auto-triggers factor bars)
   renderScoreHero(
     data.donde_match,
@@ -2795,6 +2818,93 @@ function renderQuickActions(data) {
     $actions.appendChild(pill);
   });
   $actions.style.display = items.length > 0 ? '' : 'none';
+}
+
+/* ---- Result Meta: website, cuisine, what to order, open/closed pills ---- */
+function renderResultMeta(data) {
+  const $meta = document.getElementById('result-meta');
+  if (!$meta) return;
+  $meta.innerHTML = '';
+
+  const r = data.restaurant || {};
+
+  // 1. Website link
+  if (r.website) {
+    let hostname = 'Website';
+    try { hostname = new URL(r.website).hostname.replace('www.', ''); } catch { /* fallback */ }
+    const a = document.createElement('a');
+    a.className = 'result-meta__pill type-data--sm';
+    a.href = r.website;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    a.innerHTML = `${svgIcon('globe', 11)} ${hostname}`;
+    $meta.appendChild(a);
+  }
+
+  // 2. Cuisine pill → opens cuisine drawer
+  if (r.cuisine_type) {
+    const pill = document.createElement('span');
+    pill.className = 'result-meta__pill type-data--sm';
+    pill.setAttribute('role', 'button');
+    pill.setAttribute('tabindex', '0');
+    pill.setAttribute('data-action', 'open-cuisine-drawer');
+    pill.innerHTML = `${svgIcon('plate', 11)} ${r.cuisine_type}`;
+    $meta.appendChild(pill);
+  }
+
+  // 3. "What to Order" pill → opens cuisine drawer (dishes section)
+  const dishes = data.deep_context?.signature_dishes;
+  if (dishes?.length > 0) {
+    const pill = document.createElement('span');
+    pill.className = 'result-meta__pill result-meta__pill--accent type-data--sm';
+    pill.setAttribute('role', 'button');
+    pill.setAttribute('tabindex', '0');
+    pill.setAttribute('data-action', 'open-cuisine-drawer');
+    pill.innerHTML = `${svgIcon('forkKnife', 11)} What to Order`;
+    $meta.appendChild(pill);
+  }
+
+  // 4. Open/Closed status pill with hours popout
+  const oh = r.opening_hours;
+  if (oh?.open_now != null) {
+    const pill = document.createElement('span');
+    pill.className = `result-meta__pill ${oh.open_now ? 'result-meta__pill--open' : 'result-meta__pill--closed'} type-data--sm`;
+    pill.setAttribute('role', 'button');
+    pill.setAttribute('tabindex', '0');
+    pill.setAttribute('aria-expanded', 'false');
+    pill.setAttribute('aria-haspopup', 'true');
+    pill.setAttribute('data-action', 'toggle-badge-popout');
+    pill.textContent = oh.open_now ? 'Open Now' : 'Closed';
+
+    // Build hours popout if weekday_text available
+    if (oh.weekday_text?.length) {
+      const popout = document.createElement('div');
+      popout.className = 'badge-popout';
+      popout.setAttribute('role', 'tooltip');
+      const title = document.createElement('span');
+      title.className = 'badge-popout__title';
+      title.textContent = 'Hours';
+      popout.appendChild(title);
+      const today = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+      const pillsWrap = document.createElement('div');
+      pillsWrap.className = 'badge-popout__pills';
+      oh.weekday_text.forEach(line => {
+        const p = document.createElement('span');
+        p.className = 'badge-popout__pill';
+        if (line.toLowerCase().startsWith(today)) {
+          p.classList.add('badge-popout__pill--today');
+        }
+        p.textContent = line;
+        pillsWrap.appendChild(p);
+      });
+      popout.appendChild(pillsWrap);
+      pill.appendChild(popout);
+    }
+
+    $meta.appendChild(pill);
+  }
+
+  $meta.style.display = $meta.children.length > 0 ? '' : 'none';
 }
 
 /* humanizeSnake moved to utils.js — imported at top of file */
