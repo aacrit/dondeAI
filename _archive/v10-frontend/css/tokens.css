@@ -1,0 +1,107 @@
+/* ============================================
+   DondeAI — Design Tokens
+   All colors, spacing, type, motion, and radii
+   as CSS custom properties.
+   ============================================ */
+
+:root {
+  /* ---- Spacing Scale ---- */
+  --space-2xs: clamp(0.125rem, 0.1rem + 0.15vw, 0.25rem);
+  --space-xs:  clamp(0.25rem, 0.2rem + 0.25vw, 0.5rem);
+  --space-sm:  clamp(0.5rem, 0.4rem + 0.5vw, 0.75rem);
+  --space-md:  clamp(0.75rem, 0.6rem + 0.75vw, 1.25rem);
+  --space-lg:  clamp(1rem, 0.8rem + 1vw, 1.75rem);
+  --space-xl:  clamp(1.5rem, 1.2rem + 1.5vw, 2.5rem);
+  --space-2xl: clamp(2rem, 1.5rem + 2.5vw, 5rem);
+  --space-3xl: clamp(3rem, 2rem + 4vw, 8rem);
+
+  /* ---- Type Scale (Fluid) ---- */
+  --text-2xs:  clamp(0.5625rem, 0.5rem + 0.25vw, 0.625rem);
+  --text-xs:   clamp(0.625rem, 0.55rem + 0.35vw, 0.75rem);
+  --text-sm:   clamp(0.75rem, 0.7rem + 0.25vw, 0.875rem);
+  --text-base: clamp(0.875rem, 0.8rem + 0.4vw, 1rem);
+  --text-md:   clamp(1rem, 0.9rem + 0.5vw, 1.25rem);
+  --text-lg:   clamp(1.25rem, 1rem + 1.25vw, 1.75rem);
+  --text-xl:   clamp(1.5rem, 1.2rem + 1.5vw, 2.25rem);
+  --text-2xl:  clamp(2rem, 1.5rem + 2.5vw, 3.5rem);
+  --text-3xl:  clamp(2.5rem, 2rem + 3vw, 5rem);
+
+  /* ---- Type Families ---- */
+  --font-emotional:  'Playfair Display', 'Georgia', 'Times New Roman', serif;
+  --font-structural: 'Inter', -apple-system, system-ui, sans-serif;
+  --font-data:       'JetBrains Mono', 'SF Mono', 'Fira Code', 'Consolas', monospace;
+
+  /* ---- Motion Curves ---- */
+  --spring:    cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-out:  cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-in:   cubic-bezier(0.4, 0, 1, 1);
+
+  /* ---- Motion Durations ---- */
+  --dur-instant: 0ms;
+  --dur-fast:    150ms;
+  --dur-normal:  300ms;
+  --dur-step:    450ms;
+  --dur-slow:    600ms;
+  --dur-score:   1200ms;
+  --dur-advance: 600ms;
+  --dur-morph:   400ms;
+  --dur-ink:     600ms;
+
+  /* ---- Z-Index Scale ---- */
+  --z-base:     1;
+  --z-above:    10;
+  --z-nav:      100;
+  --z-popout:   150;
+  --z-modal:    200;
+  --z-overlay:  300;
+  --z-toast:    400;
+  --z-particle: 500;
+
+  /* ---- Glass Tokens (Extended) ---- */
+  --glass-header:   var(--glass);
+  --glass-toast:    var(--glass);
+  --glass-info:     var(--glass);
+  --glass-tip:      var(--glass);
+  --glass-score:    var(--glass);
+
+  /* ---- Layout ---- */
+  --content-max: 640px;
+  --header-h:    48px;
+  --chip-h:      44px;
+}
+
+/* ---- Universal RAG Scale (theme-independent, distinct from all accent hues) ---- */
+/* Accents occupy hues 18-48° (warm) + 220° (cool) + 350° (chili).
+   RAG signals shifted to teal (162°), yellow (50°), rose (340°) to avoid overlap. */
+[data-mode="light"] {
+  --rag-green:      hsl(162 70% 33%);
+  --rag-amber:      hsl(50 100% 33%);
+  --rag-red:        hsl(340 70% 44%);
+  --rag-green-soft: hsl(162 70% 33% / 0.14);
+  --rag-amber-soft: hsl(50 100% 33% / 0.14);
+  --rag-red-soft:   hsl(340 70% 44% / 0.14);
+  --star-gold:      hsl(44 90% 48%);
+}
+[data-mode="dark"] {
+  --rag-green:      hsl(162 58% 48%);
+  --rag-amber:      hsl(50 85% 54%);
+  --rag-red:        hsl(340 62% 58%);
+  --rag-green-soft: hsl(162 58% 48% / 0.18);
+  --rag-amber-soft: hsl(50 85% 54% / 0.18);
+  --rag-red-soft:   hsl(340 62% 58% / 0.18);
+  --star-gold:      hsl(44 85% 52%);
+}
+
+/* ---- Reduced Motion Override ---- */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast:    0ms;
+    --dur-normal:  0ms;
+    --dur-step:    0ms;
+    --dur-slow:    0ms;
+    --dur-score:   0ms;
+    --dur-advance: 0ms;
+    --dur-morph:   0ms;
+    --dur-ink:     0ms;
+  }
+}

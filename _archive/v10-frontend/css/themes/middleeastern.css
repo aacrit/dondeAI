@@ -1,0 +1,89 @@
+/* ============================================
+   Bazaar Theme — Spice gold, hammered brass, souk warmth
+   "Where every meal is a gathering"
+   ============================================ */
+
+/* ---- Light Mode ---- */
+[data-theme="middleeastern"][data-mode="light"] {
+  --bg:          hsl(38 18% 95%);
+  --bg2:         hsl(38 14% 98%);
+  --bg3:         hsl(38 12% 91%);
+  --fg:          hsl(35 25% 12%);
+  --fg2:         hsl(35 12% 38%);
+  --fg3:         hsl(35 8% 42%);
+  --ac:          hsl(48 72% 25%);
+  --ac2:         hsl(48 72% 20%);
+  --ac-soft:     hsl(48 72% 30% / 0.14);
+  --green:       hsl(155 48% 38%);
+  --green-soft:  hsl(155 48% 38% / 0.12);
+
+  --rose:        hsl(0 60% 50%);
+  --rose-soft:   hsl(0 60% 50% / 0.12);
+  --amber:       hsl(35 85% 50%);
+  --amber-soft:  hsl(35 85% 50% / 0.12);
+  --glass:       hsl(38 14% 98% / 0.76);
+  --glass-blur:  14px;
+  --border:      hsl(38 12% 83%);
+  --shadow:      hsl(35 20% 18% / 0.08);
+  --shadow-lg:   hsl(35 20% 18% / 0.14);
+  --radius:      14px;
+  --radius-sm:   8px;
+  --radius-lg:   22px;
+  --radius-pill: 100px;
+  --blob-1:      hsl(48 68% 48% / 0.1);
+  --blob-2:      hsl(0 55% 48% / 0.06);
+  --blob-3:      hsl(155 40% 45% / 0.05);
+  --grain-opacity: 0.035;
+  --textile-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72' fill='none' stroke='%23000000' stroke-linecap='round'%3E%3Cpath d='M36 6l4 8l-8 0z' stroke-width='0.7' opacity='0.13'/%3E%3Cpath d='M36 14l4-8' stroke-width='0.5' opacity='0.10'/%3E%3Ccircle cx='12' cy='18' r='3.5' stroke-width='0.6' opacity='0.12'/%3E%3Ccircle cx='12' cy='18' r='1.5' stroke-width='0.5' opacity='0.09'/%3E%3Cpath d='M56 10Q60 6 64 10Q60 14 56 10' stroke-width='0.8' opacity='0.14'/%3E%3Cpath d='M8 42l6 0l0 6l-6 0z' stroke-width='0.7' opacity='0.12'/%3E%3Cpath d='M10 44l2 2M12 44l-2 2' stroke-width='0.5' opacity='0.09'/%3E%3Cpath d='M30 36Q34 32 38 36Q34 40 30 36' stroke-width='0.8' opacity='0.14'/%3E%3Cpath d='M34 32l0 8M30 36l8 0' stroke-width='0.5' opacity='0.08'/%3E%3Cpath d='M52 50Q56 46 60 50Q56 54 52 50' stroke-width='0.7' opacity='0.11'/%3E%3Ccircle cx='22' cy='60' r='0.7' fill='%23000000' stroke='none' opacity='0.12'/%3E%3Cpath d='M44 58l3 0M49 58l3 0M54 58l3 0' stroke-width='0.6' opacity='0.10'/%3E%3Cpath d='M62 28Q64 24 66 28Q64 32 62 28' stroke-width='0.5' opacity='0.08'/%3E%3C/svg%3E");
+  --textile-opacity: 0.42;
+  --glass-header: hsl(38 14% 98% / 0.68);
+  --glass-toast:  hsl(38 12% 97% / 0.86);
+  --glass-info:   hsl(48 18% 96% / 0.52);
+  --glass-tip:    hsl(35 30% 96% / 0.6);
+  --glass-score:  var(--glass);
+}
+
+/* Bazaar warmth: warm, moderate blobs */
+[data-theme="middleeastern"] .ambient__blob {
+  filter: blur(80px) saturate(0.65);
+}
+
+/* ---- Dark Mode ---- */
+[data-theme="middleeastern"][data-mode="dark"] {
+  --bg:          hsl(35 15% 8%);
+  --bg2:         hsl(35 12% 12%);
+  --bg3:         hsl(35 10% 16%);
+  --fg:          hsl(38 15% 90%);
+  --fg2:         hsl(38 8% 62%);
+  --fg3:         hsl(38 5% 53%);
+  --ac:          hsl(48 65% 56%);
+  --ac2:         hsl(48 65% 66%);
+  --ac-soft:     hsl(48 65% 56% / 0.18);
+  --green:       hsl(155 42% 48%);
+  --green-soft:  hsl(155 42% 48% / 0.15);
+
+  --rose:        hsl(0 55% 56%);
+  --rose-soft:   hsl(0 55% 56% / 0.15);
+  --amber:       hsl(35 80% 58%);
+  --amber-soft:  hsl(35 80% 58% / 0.15);
+  --glass:       hsl(35 12% 12% / 0.82);
+  --glass-blur:  16px;
+  --border:      hsl(35 10% 22%);
+  --shadow:      transparent;
+  --shadow-lg:   transparent;
+  --radius:      14px;
+  --radius-sm:   8px;
+  --radius-lg:   22px;
+  --radius-pill: 100px;
+  --blob-1:      hsl(48 60% 50% / 0.12);
+  --blob-2:      hsl(0 50% 48% / 0.07);
+  --blob-3:      hsl(155 38% 42% / 0.06);
+  --grain-opacity: 0.045;
+  --textile-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72' fill='none' stroke='%23ffffff' stroke-linecap='round'%3E%3Cpath d='M36 6l4 8l-8 0z' stroke-width='0.7' opacity='0.15'/%3E%3Cpath d='M36 14l4-8' stroke-width='0.5' opacity='0.12'/%3E%3Ccircle cx='12' cy='18' r='3.5' stroke-width='0.6' opacity='0.14'/%3E%3Ccircle cx='12' cy='18' r='1.5' stroke-width='0.5' opacity='0.11'/%3E%3Cpath d='M56 10Q60 6 64 10Q60 14 56 10' stroke-width='0.8' opacity='0.16'/%3E%3Cpath d='M8 42l6 0l0 6l-6 0z' stroke-width='0.7' opacity='0.14'/%3E%3Cpath d='M10 44l2 2M12 44l-2 2' stroke-width='0.5' opacity='0.11'/%3E%3Cpath d='M30 36Q34 32 38 36Q34 40 30 36' stroke-width='0.8' opacity='0.16'/%3E%3Cpath d='M34 32l0 8M30 36l8 0' stroke-width='0.5' opacity='0.10'/%3E%3Cpath d='M52 50Q56 46 60 50Q56 54 52 50' stroke-width='0.7' opacity='0.13'/%3E%3Ccircle cx='22' cy='60' r='0.7' fill='%23ffffff' stroke='none' opacity='0.14'/%3E%3Cpath d='M44 58l3 0M49 58l3 0M54 58l3 0' stroke-width='0.6' opacity='0.12'/%3E%3Cpath d='M62 28Q64 24 66 28Q64 32 62 28' stroke-width='0.5' opacity='0.10'/%3E%3C/svg%3E");
+  --textile-opacity: 0.48;
+  --glass-header: hsl(35 12% 12% / 0.74);
+  --glass-toast:  hsl(35 10% 14% / 0.9);
+  --glass-info:   hsl(48 10% 14% / 0.55);
+  --glass-tip:    hsl(35 18% 14% / 0.62);
+  --glass-score:  var(--glass);
+}

@@ -1,31 +1,32 @@
 /* ============================================
-   DondeAI — Central State Store (Pub/Sub)
-   Single source of truth for all app state.
+   DondeAI v11 — Central State Store (Pub/Sub)
+   Phase-based single surface architecture.
    ============================================ */
 
 const listeners = new Set();
 
 const state = {
-  step: 0,
+  phase: 'idle',              // 'idle' | 'loading' | 'result' | 'error'
   craving: '',
-  occasion: 'Any',
-  neighborhood: 'Anywhere',
-  priceLevel: 'Any',
-  dietaryRestrictions: [], // F5: multi-select dietary filter
-  openNow: false, // V5: Open Now filter toggle
+  filters: {
+    occasion: 'Any',
+    neighborhood: 'Anywhere',
+    priceLevel: 'Any',
+    dietaryRestrictions: [],
+    openNow: false,
+  },
   result: null,
-  loading: false,
   error: null,
   excludeIds: [],
-  rankedQueue: [],       // V7: Pre-computed top-N results for instant "Try Again"
-  rankedQueueIndex: 0,   // V7: Current position in ranked queue
+  rankedQueue: [],
+  rankedQueueIndex: 0,
   theme: { culture: 'neutral', mode: 'light' },
-  colorMode: 'auto', // 'auto' = auto-theme active, 'off' = Studio locked
+  colorMode: 'auto',
   soundEnabled: false,
   history: [],
-  pendingFeedback: null, // F11: feedback to send with next request
-  user: null,            // SSO: { id, email, name, avatar_url } or null
-  isAuthenticated: false, // SSO: true when signed in
+  pendingFeedback: null,
+  user: null,
+  isAuthenticated: false,
 };
 
 export function getState() {
@@ -33,7 +34,11 @@ export function getState() {
 }
 
 export function setState(patch) {
-  const prev = { ...state };
+  const prev = { ...state, filters: { ...state.filters } };
+  if (patch.filters) {
+    Object.assign(state.filters, patch.filters);
+    delete patch.filters;
+  }
   Object.assign(state, patch);
   for (const fn of listeners) {
     try {
@@ -51,19 +56,32 @@ export function subscribe(fn) {
 
 export function resetState() {
   setState({
-    step: 0,
+    phase: 'idle',
     craving: '',
-    occasion: 'Any',
-    neighborhood: 'Anywhere',
-    priceLevel: 'Any',
-    dietaryRestrictions: [],
-    openNow: false,
+    filters: {
+      occasion: 'Any',
+      neighborhood: 'Anywhere',
+      priceLevel: 'Any',
+      dietaryRestrictions: [],
+      openNow: false,
+    },
     result: null,
-    loading: false,
     error: null,
     excludeIds: [],
     rankedQueue: [],
     rankedQueueIndex: 0,
     pendingFeedback: null,
+  });
+}
+
+export function resetFilters() {
+  setState({
+    filters: {
+      occasion: 'Any',
+      neighborhood: 'Anywhere',
+      priceLevel: 'Any',
+      dietaryRestrictions: [],
+      openNow: false,
+    },
   });
 }
