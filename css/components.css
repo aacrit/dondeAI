@@ -875,8 +875,8 @@
 }
 
 .match-mini__arc {
-  width: 62px;
-  height: 36px;
+  width: 76px;
+  height: 42px;
   overflow: visible;
 }
 
@@ -900,7 +900,7 @@
 .match-mini[data-tier="low"]  .match-mini__arc-fill { stroke: var(--rag-red); }
 
 .match-mini__score {
-  font-size: clamp(1.5rem, 5vw, 2rem);
+  font-size: clamp(1.75rem, 6vw, 2.5rem);
   font-weight: 700;
   color: var(--fg);
   line-height: 1;
@@ -929,7 +929,7 @@
 
 .match-mini__tm {
   font-family: var(--font-data);
-  font-size: 0.5rem;
+  font-size: 0.625rem;
   color: var(--fg3);
   letter-spacing: 0.04em;
   margin-left: 1px;
@@ -940,13 +940,19 @@
   vertical-align: super;
 }
 
-/* Brand wordmark stays in its default accent/fg colors regardless of tier */
-
-/* Tap hint on Match Mini — tapping opens Tier 2 Score Hero */
-.match-mini::after {
-  content: '▾';
-  font-size: 0.5rem;
+/* Tap hint — labeled affordance replacing the old ▾ dot */
+.match-mini__hint {
+  font-family: var(--font-data);
+  font-size: 0.6rem;
   color: var(--fg3);
+  opacity: 0.6;
+  letter-spacing: 0.03em;
+  transition: opacity 200ms var(--ease-out), transform 200ms var(--ease-out);
+}
+
+.match-mini:hover .match-mini__hint {
+  opacity: 1;
+  transform: translateY(1px);
 }
 
 /* ── Quick Tags (cuisine + price snap-decision helpers) ── */
@@ -1331,6 +1337,52 @@
   color: var(--fg);
   border-color: var(--fg3);
   background: var(--bg2);
+}
+
+/* ── Result Meta (website, cuisine, what to order, open/closed — under name) ── */
+.result-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs);
+  align-items: center;
+  margin-top: var(--space-2xs);
+}
+
+.result-meta__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  font-family: var(--font-data);
+  font-size: 0.65rem;
+  color: var(--fg2);
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 200ms var(--ease-out), border-color 200ms var(--ease-out);
+  position: relative;
+}
+
+.result-meta__pill:hover {
+  background: var(--bg3);
+  border-color: var(--fg3);
+}
+
+.result-meta__pill--accent {
+  border-color: var(--ac);
+  color: var(--ac);
+}
+
+.result-meta__pill--open {
+  border-color: var(--rag-green);
+  color: var(--rag-green);
+}
+
+.result-meta__pill--closed {
+  border-color: var(--rag-red);
+  color: var(--rag-red);
 }
 
 /* ── Quick Actions (Reserve, Share, Website, Phone — subtle row in tier 1) ── */
@@ -1876,7 +1928,7 @@
   stroke-linecap: round;
 }
 
-/* Number + verdict + dots overlay (centered inside ring) */
+/* Number + brand + verdict overlay (centered inside ring) */
 .score-hero__center {
   position: absolute;
   inset: 0;
@@ -1884,7 +1936,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: 1px;
   z-index: 2;
 }
 
@@ -1949,12 +2001,13 @@
   transform: translateY(0);
 }
 
-/* Score Hero Brand (logo + Match™) — mirrors match-mini brand */
+/* Score Hero Brand (logo + Match™) — inside the ring */
 .score-hero__brand {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+  gap: 2px;
   line-height: 1;
+  transform: scale(0.9);
 }
 
 .score-hero__brand-logo {
@@ -1965,7 +2018,7 @@
 
 .score-hero__tm {
   font-family: var(--font-data);
-  font-size: 0.625rem;
+  font-size: 0.5rem;
   color: var(--fg3);
   letter-spacing: 0.04em;
   margin-left: 1px;
@@ -5692,64 +5745,92 @@
   pointer-events: none;
 }
 
-/* ---- Result Loading Interstitial (animated Donde logo) ---- */
+/* ---- Result Loading Interstitial (premium Donde logo transition) ---- */
 .result-loading {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--space-md);
+  gap: var(--space-sm);
   padding: var(--space-2xl) 0;
-  min-height: 40vh;
+  min-height: 60vh;
+  position: relative;
   color: var(--fg2);
 }
 
 .result-loading__mark {
   color: var(--fg2);
   opacity: 0;
-  animation: loadingMarkIn 400ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation: loadingMarkIn 600ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
+/* Logo group — glow builds up after settle */
+.result-loading__logo-group {
+  animation: logoGlowPulse 2.4s ease-in-out 1800ms infinite;
+}
+
+/* Fork tines — line-draw reveal */
 .result-loading__tine {
   stroke-dasharray: 30;
   stroke-dashoffset: 30;
-  animation: strokeDraw 300ms cubic-bezier(0.34, 1.56, 0.64, 1) 100ms forwards;
+  animation: strokeDraw 500ms cubic-bezier(0.22, 1, 0.36, 1) 100ms forwards;
 }
 
 .result-loading__tine--right {
-  animation-delay: 200ms;
+  animation-delay: 250ms;
 }
 
+/* Question-mark curve — longer fluid draw */
 .result-loading__curve {
   stroke-dasharray: 60;
   stroke-dashoffset: 60;
   animation:
-    strokeDraw 400ms cubic-bezier(0.34, 1.56, 0.64, 1) 300ms forwards,
-    curveWobble 2.5s ease-in-out 700ms infinite;
+    strokeDraw 700ms cubic-bezier(0.22, 1, 0.36, 1) 400ms forwards,
+    curveWobble 3s ease-in-out 1800ms infinite;
   transform-origin: 16px 22px;
 }
 
+/* Pin dot — springs in, then gentle pulse */
 .result-loading__dot {
   opacity: 0;
   transform: scale(0);
   transform-origin: 16px 40px;
   animation:
-    dotSpringIn 300ms cubic-bezier(0.34, 1.56, 0.64, 1) 500ms forwards,
-    dotPulseLoop 1.4s ease-in-out 800ms infinite;
+    dotSpringIn 400ms cubic-bezier(0.34, 1.56, 0.64, 1) 700ms forwards,
+    dotPulseLoop 2s ease-in-out 1800ms infinite;
 }
 
+/* Gradient shimmer sweep across logo */
+.result-loading__shimmer {
+  stroke-dasharray: 80;
+  stroke-dashoffset: 80;
+  opacity: 0;
+  animation:
+    shimmerAppear 100ms ease-out 1100ms forwards,
+    shimmerSweep 800ms cubic-bezier(0.22, 1, 0.36, 1) 1100ms forwards;
+}
+
+/* Wordmark fades in after logo settles */
+.result-loading__wordmark {
+  opacity: 0;
+  transform: translateY(6px);
+  animation: wordmarkReveal 500ms cubic-bezier(0.22, 1, 0.36, 1) 1400ms forwards;
+  font-size: clamp(1.5rem, 5vw, 2rem);
+}
+
+/* Status text — delayed subtle entrance */
 .result-loading__status {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--fg3);
-  letter-spacing: 0.06em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   opacity: 0;
-  animation: contentFadeIn 400ms ease-out 600ms forwards;
+  animation: statusReveal 600ms ease-out 1600ms forwards;
 }
 
-/* Fade out when data arrives */
+/* Fade out when data arrives — premium dissolve */
 .result-loading--exiting {
-  animation: loadingMarkOut 300ms var(--ease-out) forwards;
+  animation: loadingMarkOut 400ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 /* ---- Phase 2–3: Result Card Scaffold ---- */

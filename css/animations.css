@@ -250,13 +250,42 @@
 }
 
 @keyframes loadingMarkIn {
-  from { opacity: 0; transform: scale(0.8); }
+  from { opacity: 0; transform: scale(0.7); }
+  50%  { opacity: 1; transform: scale(1.03); }
   to   { opacity: 1; transform: scale(1); }
 }
 
 @keyframes loadingMarkOut {
-  from { opacity: 1; transform: scale(1) translateY(0); }
-  to   { opacity: 0; transform: scale(0.9) translateY(-12px); }
+  from { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
+  to   { opacity: 0; transform: scale(0.95) translateY(-20px); filter: blur(2px); }
+}
+
+/* ---- Gradient shimmer sweep across logo strokes ---- */
+@keyframes shimmerAppear {
+  to { opacity: 1; }
+}
+
+@keyframes shimmerSweep {
+  from { stroke-dashoffset: 80; }
+  to   { stroke-dashoffset: 0; }
+}
+
+/* ---- Logo glow pulse (ambient loop after settle) ---- */
+@keyframes logoGlowPulse {
+  0%, 100% { filter: url(#loading-glow) drop-shadow(0 0 3px var(--ac-a20, rgba(99,102,241,0.15))); }
+  50%      { filter: url(#loading-glow) drop-shadow(0 0 10px var(--ac-a40, rgba(99,102,241,0.3))); }
+}
+
+/* ---- Wordmark reveal (slides up + fades in) ---- */
+@keyframes wordmarkReveal {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ---- Status text reveal (letter-spacing settles) ---- */
+@keyframes statusReveal {
+  from { opacity: 0; letter-spacing: 0.25em; }
+  to   { opacity: 0.7; letter-spacing: 0.12em; }
 }
 
 @keyframes revealUp {
@@ -686,6 +715,9 @@
   .result-loading__tine,
   .result-loading__curve,
   .result-loading__dot,
+  .result-loading__logo-group,
+  .result-loading__shimmer,
+  .result-loading__wordmark,
   .result-loading__status,
   .result-loading--exiting,
   .result-card--revealing .result-photos,
