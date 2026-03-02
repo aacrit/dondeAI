@@ -844,9 +844,18 @@
     transform: none !important;
     transition: none !important;
   }
-  .result-card--swapping-out,
-  .result-card--swapping-in {
-    animation-duration: 0ms !important;
+  .result-card--crossfading .result-name,
+  .result-card--crossfading .result-oneliner,
+  .result-card--crossfading .result-meta,
+  .result-card--crossfading .quick-tags,
+  .result-card--crossfading .quick-actions,
+  .result-card--crossfading .glance-nav,
+  .result-card--crossfading .donde-blurb__text,
+  .result-card--crossfading .result-photos,
+  .result-card--crossfading .match-mini__score,
+  .result-card--crossfading .match-mini__verdict,
+  .result-card--crossfading .match-headline {
+    transition: none !important;
   }
   .score-hero__ring-wrap--celebrating {
     animation: none !important;
