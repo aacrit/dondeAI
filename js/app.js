@@ -14,7 +14,7 @@ import { initOffline, isOnline } from './offline.js';
 import { initAccessibility, announce } from './accessibility.js';
 import { fetchRecommendation, fetchBlurb, sendFeedback, sendVisit, sendAppFeedback } from './api.js';
 import { initAuth, signIn as signInWith, signOut as authSignOut, isAuthenticated as isAuthAuthenticated, getUser as getAuthUser, addFavoriteToServer, removeFavoriteFromServer, addVisitToServer } from './auth.js';
-import { animateScoreRing, renderPetalRadar, renderSentimentBar, renderScoreBloom, renderScoreHero, renderFactorBars, toggleBloom, resetBloomState, handlePetalTap, handleBloomRingTap, toggleScoreBreakdown, getBloomState, animateBadge, startParticles, stopParticles, chaosToOrderReveal, initLogoAnimation, startSearchPulse, stopSearchPulse, resolveLogoToFound, cleanupLoadingLogo, fireCelebration } from './animations.js';
+import { animateScoreRing, renderPetalRadar, renderSentimentBar, renderScoreBloom, renderScoreHero, renderFactorBars, toggleBloom, resetBloomState, handlePetalTap, handleBloomRingTap, toggleScoreBreakdown, getBloomState, animateBadge, startParticles, stopParticles, chaosToOrderReveal, initLogoAnimation, resolveLogoToFound, cleanupLoadingLogo, startWordRotation, stopWordRotation, fireCelebration } from './animations.js';
 import {
   getGreeting, getTimePeriod, getCuisineFromResult, svgIcon,
   getScoreTier, getScoreColor, getScoreThresholdColor, getFactorColor,
@@ -734,10 +734,39 @@ function wireEvents() {
         selectFilter('occasion', btn);
         break;
 
-      case 'select-neighborhood':
+      case 'select-neighborhood': {
         selectFilter('neighborhood', btn);
-        autoOpenHoodGroup(btn.dataset.value);
+        const hoodRegions = document.getElementById('hood-regions');
+        const hoodBrowse = document.querySelector('[data-action="toggle-hood-regions"]');
+        if (btn.dataset.value === 'Anywhere') {
+          // Collapse regions and deactivate browse
+          if (hoodRegions) hoodRegions.setAttribute('aria-hidden', 'true');
+          if (hoodBrowse) {
+            hoodBrowse.setAttribute('aria-expanded', 'false');
+            hoodBrowse.classList.remove('hood-browse--active');
+          }
+          // Close all detail groups
+          document.querySelectorAll('.hood-group[open]').forEach(g => g.removeAttribute('open'));
+        } else {
+          autoOpenHoodGroup(btn.dataset.value);
+          // Auto-expand regions
+          if (hoodRegions) hoodRegions.setAttribute('aria-hidden', 'false');
+          if (hoodBrowse) {
+            hoodBrowse.setAttribute('aria-expanded', 'true');
+            hoodBrowse.classList.add('hood-browse--active');
+          }
+        }
         break;
+      }
+
+      case 'toggle-hood-regions': {
+        const regions = document.getElementById('hood-regions');
+        if (!regions) break;
+        const isExpanded = btn.getAttribute('aria-expanded') === 'true';
+        btn.setAttribute('aria-expanded', String(!isExpanded));
+        regions.setAttribute('aria-hidden', String(isExpanded));
+        break;
+      }
 
       case 'select-budget':
         selectFilter('priceLevel', btn);
@@ -1836,6 +1865,14 @@ function autoOpenHoodGroup(value) {
   if (!pill) return;
   const group = pill.closest('.hood-group');
   if (group) group.setAttribute('open', '');
+  // Also expand the regions container
+  const regions = document.getElementById('hood-regions');
+  if (regions) regions.setAttribute('aria-hidden', 'false');
+  const browse = document.querySelector('[data-action="toggle-hood-regions"]');
+  if (browse) {
+    browse.setAttribute('aria-expanded', 'true');
+    browse.classList.add('hood-browse--active');
+  }
 }
 
 /* ---- Smooth filter drawer close ---- */
@@ -1992,19 +2029,17 @@ async function handleSubmit() {
    ============================================ */
 
 let _scaffoldTimers = [];
-let _phraseInterval = null;
 let _swapInFlight = false;
 
 /* ---- Phase 1: Canvas Fold ---- */
 function beginCanvasFold() {
   const $canvas = document.querySelector('.canvas-layout');
-  const $loading = document.getElementById('result-loading');
 
   // Cancel any previous timers
   _scaffoldTimers.forEach(clearTimeout);
   _scaffoldTimers = [];
 
-  // Hide result card, show loading interstitial
+  // Hide result card
   if ($resultCard) {
     $resultCard.style.display = 'none';
     $resultCard.style.opacity = '0';
@@ -2014,19 +2049,18 @@ function beginCanvasFold() {
     $resultCard.classList.remove('result-card--revealing');
   }
 
-  if ($loading) {
-    $loading.style.display = '';
-    $loading.classList.remove('result-loading--exiting');
-  }
-
-  // Show loading-state overlay with particles + logo
+  // Show unified loading-state overlay with particles + draw-loop + word rotation
   const $loadingState = document.getElementById('loading-state');
   if ($loadingState) {
     $loadingState.style.display = '';
+    $loadingState.classList.remove('loading-state--fading');
+    $loadingState.style.opacity = '';
     if (!REDUCED_MOTION.matches) {
-      startParticles();
+      const $particleCanvas = document.getElementById('particle-canvas');
+      if ($particleCanvas) startParticles($particleCanvas);
       initLogoAnimation();
-      _scaffoldTimers.push(setTimeout(() => startSearchPulse(), 800));
+      const labels = getLabels(getState().theme.culture);
+      if (labels.loadingPhrases) startWordRotation(labels.loadingPhrases);
     }
   }
 
@@ -2042,41 +2076,22 @@ function beginCanvasFold() {
   }
 }
 
-/* (V10: renderScaffold, startScaffoldPulse, startPhraseCarousel removed — instant loading) */
-function stopPhraseCarousel() {
-  if (_phraseInterval) {
-    clearInterval(_phraseInterval);
-    _phraseInterval = null;
-  }
-}
-
 /* ---- V10: Manifest Result — logo exit + progressive reveal ---- */
 async function manifestResult(data) {
   // Stop any running timers
-  stopPhraseCarousel();
+  stopWordRotation();
   _scaffoldTimers.forEach(clearTimeout);
   _scaffoldTimers = [];
 
   // Render all DOM content
   renderResult(data);
 
-  // Stop particles and hide loading-state overlay
+  // Stop particles and resolve loading overlay
   stopParticles();
-  stopSearchPulse();
   const $loadingState = document.getElementById('loading-state');
-  if ($loadingState) {
-    resolveLogoToFound();
-    _scaffoldTimers.push(setTimeout(() => {
-      $loadingState.style.display = 'none';
-      cleanupLoadingLogo();
-    }, 600));
-  }
-
-  const $loading = document.getElementById('result-loading');
 
   if (REDUCED_MOTION.matches) {
     // Instant swap
-    if ($loading) $loading.style.display = 'none';
     if ($loadingState) { $loadingState.style.display = 'none'; cleanupLoadingLogo(); }
     if ($resultCard) {
       $resultCard.style.display = '';
@@ -2084,14 +2099,22 @@ async function manifestResult(data) {
       $resultCard.classList.remove('result-card--scaffold', 'result-card--loading');
     }
   } else {
-    // Phase 1: Fade out loading logo (300ms)
-    if ($loading) {
-      $loading.classList.add('result-loading--exiting');
+    // Phase 1: Resolve logo (confirmation pulse, 450ms)
+    if ($loadingState) {
+      resolveLogoToFound();
+      // Phase 2: Fade out overlay
+      _scaffoldTimers.push(setTimeout(() => {
+        $loadingState.classList.add('loading-state--fading');
+        _scaffoldTimers.push(setTimeout(() => {
+          $loadingState.style.display = 'none';
+          $loadingState.classList.remove('loading-state--fading');
+          cleanupLoadingLogo();
+        }, 300));
+      }, 450));
     }
 
-    // Phase 2: After logo exits, show card with progressive reveal
+    // Phase 3: Show card with progressive reveal (starts after logo resolves)
     _scaffoldTimers.push(setTimeout(() => {
-      if ($loading) $loading.style.display = 'none';
       if ($resultCard) {
         $resultCard.style.display = '';
         $resultCard.classList.remove('result-card--scaffold', 'result-card--loading');
@@ -2103,7 +2126,7 @@ async function manifestResult(data) {
           $resultCard.classList.remove('result-card--revealing');
         }, 500));
       }
-    }, 280));
+    }, 500));
   }
 
   // Haptic on reveal
@@ -2146,22 +2169,23 @@ function settleResult() {
   if ($headerHood) $headerHood.style.display = 'none';
   // Clean up loading-state overlay
   stopParticles();
-  stopSearchPulse();
   const $loadingState = document.getElementById('loading-state');
-  if ($loadingState) { $loadingState.style.display = 'none'; cleanupLoadingLogo(); }
+  if ($loadingState) {
+    $loadingState.style.display = 'none';
+    $loadingState.classList.remove('loading-state--fading');
+    cleanupLoadingLogo();
+  }
 }
 
 /* ---- Reverse Canvas Fold (error/back during loading) ---- */
 function reverseCanvasFold() {
-  stopPhraseCarousel();
+  stopWordRotation();
   _scaffoldTimers.forEach(clearTimeout);
   _scaffoldTimers = [];
 
   const $canvas = document.querySelector('.canvas-layout');
-  const $loading = document.getElementById('result-loading');
 
   if ($canvas) $canvas.classList.remove('canvas-layout--morphing');
-  if ($loading) { $loading.style.display = 'none'; $loading.classList.remove('result-loading--exiting'); }
   if ($resultCard) {
     $resultCard.classList.remove('result-card--loading', 'result-card--revealing');
     $resultCard.style.display = 'none';
@@ -2169,9 +2193,12 @@ function reverseCanvasFold() {
 
   // Clean up loading-state overlay
   stopParticles();
-  stopSearchPulse();
   const $loadingState = document.getElementById('loading-state');
-  if ($loadingState) { $loadingState.style.display = 'none'; cleanupLoadingLogo(); }
+  if ($loadingState) {
+    $loadingState.style.display = 'none';
+    $loadingState.classList.remove('loading-state--fading');
+    cleanupLoadingLogo();
+  }
 
   goToStep(0);
 }
