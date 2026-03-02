@@ -211,53 +211,7 @@
   to { opacity: 1; transform: scale(1); }
 }
 
-/* ---- Wordmark Fade In (loading — text appears) ---- */
-@keyframes wordmarkFadeIn {
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* ---- Search Pulse (Act 2 — dot rhythmic pulse during search) ---- */
-@keyframes searchPulse {
-  0%   { transform: scale(1); }
-  50%  { transform: scale(1.3); }
-  100% { transform: scale(1); }
-}
-
-/* ---- Sonar Ring (Act 2 — expanding ring from pin dot) ---- */
-@keyframes sonarRing {
-  0%   { transform: scale(1); opacity: 0.6; }
-  100% { transform: scale(3); opacity: 0; }
-}
-
-/* ---- Curve Breathe (Act 2 — subtle question curve scale) ---- */
-@keyframes curveBreathe {
-  0%, 100% { transform: scale(1); }
-  50%      { transform: scale(1.02) translateY(-1px); }
-}
-
-/* ---- Result Loading: Wobbly curve animation ---- */
-@keyframes curveWobble {
-  0%   { transform: scale(1) rotate(0deg); }
-  25%  { transform: scale(1.03) rotate(1.5deg); }
-  50%  { transform: scale(0.98) rotate(-1deg); }
-  75%  { transform: scale(1.02) rotate(0.8deg); }
-  100% { transform: scale(1) rotate(0deg); }
-}
-
-@keyframes dotPulseLoop {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50%      { transform: scale(1.35); opacity: 0.7; }
-}
-
-@keyframes loadingMarkIn {
-  from { opacity: 0; transform: scale(0.8); }
-  to   { opacity: 1; transform: scale(1); }
-}
-
-@keyframes loadingMarkOut {
-  from { opacity: 1; transform: scale(1) translateY(0); }
-  to   { opacity: 0; transform: scale(0.9) translateY(-12px); }
-}
+/* ---- (Old loading keyframes removed — draw-loop is now JS-driven) ---- */
 
 @keyframes revealUp {
   from { opacity: 0; transform: translateY(10px); }
@@ -657,15 +611,7 @@
   .smart-chip,
   .filter-section,
   .filter-content--closing,
-  .logo-mark--loading .logo-mark__tine--draw,
-  .logo-mark--loading .logo-mark__curve--draw,
-  .logo-mark--loading .logo-mark__dot--draw,
-  .logo-mark__dot,
-  .logo-mark__sonar,
-  .logo-mark--searching .logo-mark__dot,
-  .logo-mark--searching .logo-mark__curve,
-  .loading-logo__text,
-  .loading-status,
+  .loading-word,
   .cta-btn--ready,
   .cta-btn--alive,
   .cta-btn--boosted,
@@ -681,13 +627,6 @@
   .canvas-layout--morphing .cta-hint,
   .canvas-layout--morphing .step__title,
   .canvas-layout--morphing .surprise-btn,
-  .scaffold-block,
-  .result-loading__mark,
-  .result-loading__tine,
-  .result-loading__curve,
-  .result-loading__dot,
-  .result-loading__status,
-  .result-loading--exiting,
   .result-card--revealing .result-photos,
   .result-card--revealing .glance-hero,
   .result-card--revealing .donde-blurb,
@@ -824,6 +763,11 @@
     transition: none !important;
     opacity: 1 !important;
     transform: none !important;
+  }
+
+  /* Hood regions — instant expand/collapse */
+  .hood-regions {
+    transition: none !important;
   }
 
   /* V5: Disable boost and relaxation animations */

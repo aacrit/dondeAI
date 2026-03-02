@@ -808,63 +808,206 @@ export function chaosToOrderReveal(element, text) {
   });
 }
 
-/* ---- Logo Animation Init (Question Pin — measure path lengths) ---- */
+/* ---- Unified Loading: Continuous Draw-Loop + Word Rotation ---- */
+
+// Draw-loop state
+let _drawLoopId = null;
+let _drawLoopRunning = false;
+let _wordRotationId = null;
+let _pathData = []; // { el, len, delayMs, drawMs }
+
+// Timing (total cycle ≈ 2400ms: draw 800ms + hold 400ms + erase 800ms + pause 400ms)
+const DRAW_MS   = 800;
+const HOLD_MS   = 400;
+const ERASE_MS  = 800;
+const PAUSE_MS  = 400;
+const CYCLE_MS  = DRAW_MS + HOLD_MS + ERASE_MS + PAUSE_MS;
+
+// Spring ease-out curve (approximation for manual interpolation)
+function springEase(t) {
+  // cubic-bezier(0.34, 1.56, 0.64, 1) approximation
+  return t < 0.5
+    ? 4 * t * t * t
+    : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
+function easeOutCubic(t) {
+  return 1 - Math.pow(1 - t, 3);
+}
+
+/**
+ * Start the continuous draw-loop animation on the loading logo.
+ * Strokes draw in (forward), hold, then erase (reverse) in a seamless loop.
+ * The dot breathes with a gentle scale pulse throughout.
+ */
 export function initLogoAnimation() {
-  const paths = document.querySelectorAll(
-    '.logo-mark--loading .logo-mark__tine--draw, .logo-mark--loading .logo-mark__curve--draw'
-  );
-  paths.forEach(el => {
-    if (el.getTotalLength) {
-      const len = el.getTotalLength();
-      el.style.strokeDasharray = len;
-      el.style.strokeDashoffset = len;
-    }
+  const svg = document.querySelector('.logo-mark--loading');
+  if (!svg) return;
+
+  // Measure all drawable paths
+  const tineL = svg.querySelector('.logo-mark__tine--left.logo-mark__tine--draw');
+  const tineR = svg.querySelector('.logo-mark__tine--right.logo-mark__tine--draw');
+  const curve = svg.querySelector('.logo-mark__curve--draw');
+  const dot   = svg.querySelector('.logo-mark__dot--draw');
+
+  _pathData = [];
+  // Staggered draw-in: left tine (0ms) → right tine (80ms) → curve (160ms)
+  [
+    { el: tineL, delay: 0 },
+    { el: tineR, delay: 80 },
+    { el: curve, delay: 160 },
+  ].forEach(({ el, delay }) => {
+    if (!el || !el.getTotalLength) return;
+    const len = el.getTotalLength();
+    el.style.strokeDasharray = len;
+    el.style.strokeDashoffset = len;
+    _pathData.push({ el, len, delay });
   });
 
-  // Reset dot to hidden state for spring-in animation
-  const dot = document.querySelector('.logo-mark--loading .logo-mark__dot--draw');
+  // Reset dot — will be animated in the loop
   if (dot) {
     dot.style.opacity = '0';
     dot.style.transform = 'scale(0)';
   }
+
+  if (REDUCED.matches) {
+    // Reduced motion: just show the logo static
+    _pathData.forEach(({ el }) => { el.style.strokeDashoffset = '0'; });
+    if (dot) { dot.style.opacity = '1'; dot.style.transform = 'scale(1)'; }
+    return;
+  }
+
+  _drawLoopRunning = true;
+  const startTime = performance.now();
+
+  function tick(now) {
+    if (!_drawLoopRunning) return;
+
+    const elapsed = (now - startTime) % CYCLE_MS;
+
+    // Phase 1: Draw in (0 → DRAW_MS)
+    if (elapsed < DRAW_MS) {
+      const baseT = elapsed / DRAW_MS;
+      _pathData.forEach(({ el, len, delay }) => {
+        const localT = Math.max(0, Math.min(1, (elapsed - delay) / (DRAW_MS - delay)));
+        const eased = springEase(localT);
+        el.style.strokeDashoffset = len * (1 - eased);
+      });
+      // Dot springs in during last 40% of draw phase
+      if (dot) {
+        const dotT = Math.max(0, (baseT - 0.6) / 0.4);
+        const dotEased = springEase(dotT);
+        dot.style.opacity = dotEased;
+        dot.style.transform = `scale(${dotEased})`;
+      }
+    }
+    // Phase 2: Hold (DRAW_MS → DRAW_MS + HOLD_MS)
+    else if (elapsed < DRAW_MS + HOLD_MS) {
+      // Everything fully drawn — gentle dot pulse
+      _pathData.forEach(({ el }) => { el.style.strokeDashoffset = '0'; });
+      if (dot) {
+        const holdT = (elapsed - DRAW_MS) / HOLD_MS;
+        const pulse = 1 + 0.08 * Math.sin(holdT * Math.PI);
+        dot.style.opacity = '1';
+        dot.style.transform = `scale(${pulse})`;
+      }
+    }
+    // Phase 3: Erase / un-draw (DRAW_MS + HOLD_MS → DRAW_MS + HOLD_MS + ERASE_MS)
+    else if (elapsed < DRAW_MS + HOLD_MS + ERASE_MS) {
+      const eraseT = (elapsed - DRAW_MS - HOLD_MS) / ERASE_MS;
+      const eased = easeOutCubic(eraseT);
+      // Erase in reverse order: curve → right tine → left tine
+      _pathData.forEach(({ el, len, delay }, i) => {
+        const reverseDelay = (_pathData.length - 1 - i) * 80;
+        const localT = Math.max(0, Math.min(1, (eraseT * ERASE_MS - reverseDelay) / (ERASE_MS - reverseDelay * _pathData.length * 0.3)));
+        const localEased = easeOutCubic(Math.min(1, localT));
+        el.style.strokeDashoffset = len * localEased;
+      });
+      // Dot fades out during first 40% of erase
+      if (dot) {
+        const dotT = Math.min(1, eraseT / 0.4);
+        dot.style.opacity = 1 - easeOutCubic(dotT);
+        dot.style.transform = `scale(${1 - easeOutCubic(dotT) * 0.3})`;
+      }
+    }
+    // Phase 4: Pause (fully erased, brief rest)
+    else {
+      _pathData.forEach(({ el, len }) => { el.style.strokeDashoffset = len; });
+      if (dot) {
+        dot.style.opacity = '0';
+        dot.style.transform = 'scale(0)';
+      }
+    }
+
+    _drawLoopId = requestAnimationFrame(tick);
+  }
+
+  _drawLoopId = requestAnimationFrame(tick);
 }
 
-/* ---- Search Pulse (Act 2 — sonar ring + pulse during API call) ---- */
-export function startSearchPulse() {
-  const logo = document.querySelector('.logo-mark--loading');
-  if (!logo || REDUCED.matches) return;
+/**
+ * Start rotating food/bar words below the logo.
+ * Words cycle with a smooth fade-out-up / fade-in-up transition.
+ * @param {string[]} phrases - Array of words to cycle through
+ */
+export function startWordRotation(phrases) {
+  const el = document.getElementById('loading-word');
+  if (!el || !phrases || !phrases.length) return;
 
-  logo.classList.add('logo-mark--searching');
+  let idx = 0;
+  // Show first word immediately
+  el.textContent = phrases[0];
+  el.classList.remove('loading-word--exiting', 'loading-word--entering');
+  el.style.opacity = '1';
+  el.style.transform = '';
 
-  // Create sonar ring SVG circle
-  const dot = logo.querySelector('.logo-mark__dot');
-  if (!dot) return;
+  if (REDUCED.matches) {
+    // Reduced motion: just swap text without animation
+    _wordRotationId = setInterval(() => {
+      idx = (idx + 1) % phrases.length;
+      el.textContent = phrases[idx];
+    }, 2000);
+    return;
+  }
 
-  const sonar = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-  sonar.setAttribute('cx', dot.getAttribute('cx'));
-  sonar.setAttribute('cy', dot.getAttribute('cy'));
-  sonar.setAttribute('r', dot.getAttribute('r'));
-  sonar.setAttribute('fill', 'none');
-  sonar.setAttribute('stroke', 'var(--ac)');
-  sonar.setAttribute('stroke-width', '1');
-  sonar.classList.add('logo-mark__sonar');
-  logo.insertBefore(sonar, dot);
+  _wordRotationId = setInterval(() => {
+    // Fade out current word (slide up)
+    el.classList.add('loading-word--exiting');
+
+    setTimeout(() => {
+      // Swap text, prepare enter position
+      idx = (idx + 1) % phrases.length;
+      el.textContent = phrases[idx];
+      el.classList.remove('loading-word--exiting');
+      el.classList.add('loading-word--entering');
+
+      // Force reflow, then animate in
+      void el.offsetWidth;
+      el.classList.remove('loading-word--entering');
+    }, 260);
+  }, 2000);
 }
 
-export function stopSearchPulse() {
-  const logo = document.querySelector('.logo-mark--loading');
-  if (!logo) return;
-  logo.classList.remove('logo-mark--searching');
-  const sonar = logo.querySelector('.logo-mark__sonar');
-  if (sonar) sonar.remove();
+/** Stop the word rotation interval. */
+export function stopWordRotation() {
+  if (_wordRotationId) {
+    clearInterval(_wordRotationId);
+    _wordRotationId = null;
+  }
 }
 
-/* ---- Resolve Logo to "Found" (Act 3 — confirmation pulse) ---- */
+/** Resolve logo to "found" state — confirmation pulse, then stop loop. */
 export function resolveLogoToFound() {
   const logo = document.getElementById('loading-logo');
   if (!logo) return Promise.resolve();
 
-  stopSearchPulse();
+  // Stop the draw loop
+  _drawLoopRunning = false;
+  if (_drawLoopId) {
+    cancelAnimationFrame(_drawLoopId);
+    _drawLoopId = null;
+  }
+  stopWordRotation();
 
   if (REDUCED.matches) {
     logo.style.transform = '';
@@ -872,8 +1015,13 @@ export function resolveLogoToFound() {
     return Promise.resolve();
   }
 
+  // Snap all strokes to fully drawn for the confirmation pulse
+  _pathData.forEach(({ el }) => { el.style.strokeDashoffset = '0'; });
+  const dot = document.querySelector('.logo-mark--loading .logo-mark__dot--draw');
+  if (dot) { dot.style.opacity = '1'; dot.style.transform = 'scale(1)'; }
+
   return new Promise(resolve => {
-    // "Found" confirmation pulse — scale up then settle
+    // "Found" confirmation pulse — spring scale up then settle
     logo.style.transition = 'transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
     logo.style.transform = 'scale(1.08)';
 
@@ -886,15 +1034,33 @@ export function resolveLogoToFound() {
   });
 }
 
-/* ---- Stop Search Pulse + cleanup (for cancel/back navigation) ---- */
+/** Stop draw loop + cleanup for cancel/back navigation. */
 export function cleanupLoadingLogo() {
-  stopSearchPulse();
+  _drawLoopRunning = false;
+  if (_drawLoopId) {
+    cancelAnimationFrame(_drawLoopId);
+    _drawLoopId = null;
+  }
+  stopWordRotation();
+  _pathData = [];
+
   const logo = document.getElementById('loading-logo');
   if (logo) {
     logo.style.transform = '';
     logo.style.opacity = '';
   }
+
+  // Reset word element
+  const word = document.getElementById('loading-word');
+  if (word) {
+    word.textContent = '';
+    word.classList.remove('loading-word--exiting', 'loading-word--entering');
+  }
 }
+
+// Keep exports compatible — these are now no-ops, draw-loop handles everything
+export function startSearchPulse() { /* unified into draw-loop */ }
+export function stopSearchPulse() { /* unified into draw-loop */ }
 
 /* ---- Particle System ---- */
 let particleAnimId = null;

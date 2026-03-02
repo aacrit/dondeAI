@@ -650,13 +650,77 @@
 /* ---- Hood Groups (collapsible neighborhood regions) ---- */
 .hood-groups {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: var(--space-2xs);
+}
+
+/* Top row: Anywhere pill + Browse toggle in a single line */
+.hood-top-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  flex-wrap: wrap;
 }
 
 .hood-groups .filter-pill--anywhere {
   width: auto;
   flex-shrink: 0;
+}
+
+/* Browse neighborhoods toggle button */
+.hood-browse {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: var(--space-2xs) var(--space-xs);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fg3);
+  background: none;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: color var(--dur-fast) var(--ease-out),
+              border-color var(--dur-fast) var(--ease-out),
+              background var(--dur-fast) var(--ease-out);
+  user-select: none;
+}
+
+.hood-browse:hover,
+.hood-browse:focus-visible {
+  color: var(--ac);
+  border-color: var(--ac);
+  background: var(--ac-soft);
+}
+
+.hood-browse__arrow {
+  font-size: 8px;
+  transition: transform 300ms var(--ease-out);
+  opacity: 0.5;
+}
+
+.hood-browse[aria-expanded="true"] .hood-browse__arrow {
+  transform: rotate(180deg);
+}
+
+/* Collapsible regions container — grid-template-rows 0fr→1fr for smooth height */
+.hood-regions {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 300ms var(--ease-out);
+}
+
+.hood-regions[aria-hidden="false"] {
+  grid-template-rows: 1fr;
+}
+
+.hood-regions__inner {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
 }
 
 .hood-group {
@@ -709,6 +773,18 @@
 /* Auto-open group when a pill inside is selected */
 .hood-group:has(.filter-pill[aria-checked="true"]) .hood-group__toggle {
   color: var(--ac);
+}
+
+/* Auto-expand regions when a neighborhood inside is selected */
+.hood-regions:has(.filter-pill[aria-checked="true"]) {
+  grid-template-rows: 1fr;
+}
+
+/* Active state on browse button when a neighborhood is selected */
+.hood-browse--active {
+  color: var(--ac);
+  border-color: var(--ac);
+  border-style: solid;
 }
 
 @keyframes hoodExpand {
@@ -3450,55 +3526,7 @@
   pointer-events: none;
 }
 
-/* ---- Loading Status Text ---- */
-.loading-status {
-  font-size: var(--text-sm);
-  color: var(--fg3);
-  opacity: 0;
-  animation: contentFadeIn 400ms ease-out 600ms forwards;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  margin-top: var(--space-sm);
-}
-
-/* ---- Result Skeleton (loading preview) ---- */
-.result-skeleton {
-  display: none;
-  flex-direction: column;
-  gap: var(--space-sm);
-  width: min(320px, 80vw);
-  opacity: 0;
-  transition: opacity 400ms ease-out;
-}
-
-.result-skeleton--visible {
-  display: flex;
-  opacity: 0.3;
-}
-
-.skel-block {
-  background: var(--bg2, #e0e0e0);
-  border-radius: var(--radius, 8px);
-  overflow: hidden;
-  position: relative;
-}
-
-.skel-block::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(90deg, transparent 0%, var(--bg3, rgba(255,255,255,0.4)) 50%, transparent 100%);
-  animation: shimmer 1.5s infinite;
-}
-
-.skel-block--name   { height: 24px; width: 60%; }
-.skel-block--story  { height: 48px; width: 100%; }
-.skel-block--scores { height: 32px; width: 80%; }
-.skel-block--actions { height: 20px; width: 50%; }
-
-@media (prefers-reduced-motion: reduce) {
-  .skel-block::after { animation: none; }
-}
+/* ---- Loading Status/Skeleton: removed — replaced by .loading-word in unified overlay ---- */
 
 /* ---- (Food orbit removed — replaced by logo-driven animation) ---- */
 
@@ -3838,62 +3866,44 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--space-sm);
-  z-index: var(--z-above);
+  z-index: calc(var(--z-particle) + 1);
   will-change: transform, opacity;
 }
 
-/* ---- Loading Logo Text ---- */
-.loading-logo__text {
-  font-size: var(--text-xl);
-  color: var(--fg);
-  opacity: 0;
-  transform: translateY(8px);
-  animation: wordmarkFadeIn 300ms cubic-bezier(0.4, 0, 0.2, 1) 600ms forwards;
-}
-
-/* ---- Loading Logo: Stroke Draw-In ---- */
+/* ---- Loading Logo: Continuous draw-loop ---- */
+/* stroke-dasharray/offset set + animated by JS for seamless forward/reverse */
 .logo-mark--loading .logo-mark__tine--draw,
 .logo-mark--loading .logo-mark__curve--draw {
-  /* stroke-dasharray/offset set by JS via getTotalLength() */
-}
-
-/* Staggered draw-in choreography: left tine → right tine → curve → dot spring-pop */
-.logo-mark--loading .logo-mark__tine--left.logo-mark__tine--draw {
-  animation: strokeDraw 350ms cubic-bezier(0.34, 1.56, 0.64, 1) 0ms forwards;
-}
-
-.logo-mark--loading .logo-mark__tine--right.logo-mark__tine--draw {
-  animation: strokeDraw 350ms cubic-bezier(0.34, 1.56, 0.64, 1) 120ms forwards;
-}
-
-.logo-mark--loading .logo-mark__curve--draw {
-  animation: strokeDraw 400ms cubic-bezier(0.34, 1.56, 0.64, 1) 240ms forwards;
+  will-change: stroke-dashoffset;
 }
 
 .logo-mark--loading .logo-mark__dot--draw {
+  transform-origin: 16px 40px;
+  will-change: transform, opacity;
+}
+
+/* ---- Rotating Loading Word ---- */
+.loading-word {
+  position: relative;
+  z-index: calc(var(--z-particle) + 1);
+  font-size: var(--text-sm);
+  color: var(--fg3);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-top: var(--space-md);
+  min-height: 1.2em;
+  text-align: center;
+  transition: opacity 250ms var(--ease-out), transform 250ms var(--ease-out);
+}
+
+.loading-word--exiting {
   opacity: 0;
-  transform: scale(0);
-  transform-origin: 16px 40px;
-  animation: dotSpringIn 300ms cubic-bezier(0.34, 1.56, 0.64, 1) 400ms forwards;
+  transform: translateY(-6px);
 }
 
-/* ---- Search Pulse State (Act 2 — looping during API call) ---- */
-.logo-mark--searching .logo-mark__dot {
-  animation: searchPulse 1.2s var(--ease-out) infinite;
-  transform-origin: 16px 40px;
-}
-
-.logo-mark--searching .logo-mark__curve {
-  animation: curveBreathe 2s var(--ease-out) infinite;
-  transform-origin: 16px 22px;
-}
-
-/* ---- Sonar Ring (dynamically created SVG circle) ---- */
-.logo-mark__sonar {
-  transform-origin: 16px 40px;
-  animation: sonarRing 1.5s ease-out infinite;
-  pointer-events: none;
+.loading-word--entering {
+  opacity: 0;
+  transform: translateY(6px);
 }
 
 /* ---- Custom Focus Rings (Spring-animated) ---- */
@@ -5796,69 +5806,7 @@
   pointer-events: none;
 }
 
-/* ---- Result Loading Interstitial (premium Donde logo transition) ---- */
-.result-loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-md);
-  padding: var(--space-2xl) 0;
-  min-height: 40vh;
-  color: var(--fg2);
-}
-
-.result-loading__mark {
-  color: var(--fg2);
-  opacity: 0;
-  animation: loadingMarkIn 400ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-}
-
-/* Fork tines — line-draw reveal */
-.result-loading__tine {
-  stroke-dasharray: 30;
-  stroke-dashoffset: 30;
-  animation: strokeDraw 300ms cubic-bezier(0.34, 1.56, 0.64, 1) 100ms forwards;
-}
-
-.result-loading__tine--right {
-  animation-delay: 200ms;
-}
-
-/* Question-mark curve — longer fluid draw */
-.result-loading__curve {
-  stroke-dasharray: 60;
-  stroke-dashoffset: 60;
-  animation:
-    strokeDraw 400ms cubic-bezier(0.34, 1.56, 0.64, 1) 300ms forwards,
-    curveWobble 2.5s ease-in-out 700ms infinite;
-  transform-origin: 16px 22px;
-}
-
-/* Pin dot — springs in, then gentle pulse */
-.result-loading__dot {
-  opacity: 0;
-  transform: scale(0);
-  transform-origin: 16px 40px;
-  animation:
-    dotSpringIn 300ms cubic-bezier(0.34, 1.56, 0.64, 1) 500ms forwards,
-    dotPulseLoop 1.4s ease-in-out 800ms infinite;
-}
-
-/* Status text */
-.result-loading__status {
-  font-size: var(--text-sm);
-  color: var(--fg3);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  opacity: 0;
-  animation: contentFadeIn 400ms ease-out 600ms forwards;
-}
-
-/* Fade out when data arrives */
-.result-loading--exiting {
-  animation: loadingMarkOut 300ms var(--ease-out) forwards;
-}
+/* ---- Result Loading Interstitial: removed — unified into #loading-state overlay ---- */
 
 /* ---- Phase 2–3: Result Card Scaffold ---- */
 /* V10: Loading state — card hidden until data arrives, then fades in */

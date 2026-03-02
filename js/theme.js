@@ -32,7 +32,7 @@ const THEME_LABELS = {
     goingDone: "You're Going!",
     feedbackTitle: 'Share Your Thoughts',
     feedbackSubtitle: 'Help us make Donde better for everyone.',
-    loadingPhrases: ['Searching', 'Thinking', 'Exploring', 'Hunting'],
+    loadingPhrases: ['Sizzling', 'Crafting', 'Plating', 'Pouring', 'Tasting', 'Savoring', 'Searing', 'Mixing'],
     placeholders: [
       'cozy ramen with killer sake...',
       'somewhere with a great patio...',
@@ -164,7 +164,7 @@ const THEME_LABELS = {
     goingDone: "You're Going!",
     feedbackTitle: 'Share Your Heart',
     feedbackSubtitle: 'Help us serve you better.',
-    loadingPhrases: ['Searching', 'Discovering', 'Seeking flavors', 'Finding your spot'],
+    loadingPhrases: ['Tempering', 'Simmering', 'Grinding', 'Roasting', 'Infusing', 'Tadka', 'Marinating', 'Blooming'],
     placeholders: [
       'rich butter chicken with warm naan...',
       'fragrant biryani for a special night...',
@@ -275,7 +275,7 @@ const THEME_LABELS = {
     goingDone: 'Confirmed.',
     feedbackTitle: 'Your Thoughts',
     feedbackSubtitle: 'Help us improve.',
-    loadingPhrases: ['Searching', 'Considering', 'Finding harmony', 'Seeking'],
+    loadingPhrases: ['Omakase', 'Steeping', 'Slicing', 'Folding', 'Plating', 'Pouring', 'Umami', 'Whisking'],
     placeholders: [
       'perfect omakase with sake pairing...',
       'handmade soba in a quiet room...',
@@ -392,7 +392,7 @@ const THEME_LABELS = {
     goingDone: 'Dale!',
     feedbackTitle: 'Share the Vibe',
     feedbackSubtitle: 'Help us keep Donde fresh.',
-    loadingPhrases: ['Buscando', 'Descubriendo', 'Explorando', 'Dale dale'],
+    loadingPhrases: ['Sazón', 'Asando', 'Mezclando', 'Sofrito', 'Picando', 'Saboreando', 'Fuego', 'Brindis'],
     placeholders: [
       'ceviche fresco con un pisco sour...',
       'empanadas y mate en buena compania...',
@@ -505,7 +505,7 @@ const THEME_LABELS = {
     goingDone: "You're Going!",
     feedbackTitle: 'Share Your Thoughts',
     feedbackSubtitle: 'Help us find you better spots.',
-    loadingPhrases: ['Searching', 'Discovering', 'Seeking', 'Exploring'],
+    loadingPhrases: ['Grilling', 'Steeping', 'Spicing', 'Roasting', 'Mezze', 'Brewing', 'Charring', 'Drizzling'],
     placeholders: [
       'smoky shawarma with garlic sauce...',
       'fresh hummus and warm pita...',
