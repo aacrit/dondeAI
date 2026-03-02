@@ -201,10 +201,13 @@ export function renderScoreHero(dondeMatch, scores, scoringV2, sentiment, timers
   if ($ringFill) {
     $ringFill.style.transition = 'none';
     $ringFill.style.strokeDasharray = String(circumference);
+    // RAG color based on final score
+    const ringColor = getScoreThresholdColor(pct);
+    $ringFill.style.stroke = ringColor;
 
     if (REDUCED.matches) {
       $ringFill.style.strokeDashoffset = String(target);
-      if ($number) $number.textContent = pct;
+      if ($number) { $number.textContent = pct; $number.style.color = ringColor; }
     } else {
       // Start empty
       $ringFill.style.strokeDashoffset = String(circumference);
@@ -215,17 +218,16 @@ export function renderScoreHero(dondeMatch, scores, scoringV2, sentiment, timers
         function tick(now) {
           const elapsed = now - startTime;
           const progress = Math.min(elapsed / duration, 1);
-          // Spring-like ease-out curve
           const eased = 1 - Math.pow(1 - progress, 3);
 
           const currentPct = Math.round(pct * eased);
           const currentOffset = circumference - (currentPct / 100) * circumference;
 
           $ringFill.style.strokeDashoffset = String(currentOffset);
-          if ($number) $number.textContent = currentPct;
+          if ($number) { $number.textContent = currentPct; $number.style.color = getScoreThresholdColor(currentPct); }
 
           if (progress < 1) requestAnimationFrame(tick);
-          else if ($number) $number.textContent = pct;
+          else if ($number) { $number.textContent = pct; $number.style.color = ringColor; }
         }
         requestAnimationFrame(tick);
       }, 100));
@@ -288,27 +290,8 @@ export function renderScoreHero(dondeMatch, scores, scoringV2, sentiment, timers
     }
   }
 
-  // Signal pills — stagger in after narrative (max 3)
-  if ($signals && resolvedNarrative?.key_signals) {
-    $signals.innerHTML = '';
-    const signals = resolvedNarrative.key_signals.slice(0, 3);
-    signals.forEach((sig, idx) => {
-      const pill = document.createElement('span');
-      pill.className = 'score-hero__signal-pill';
-      pill.setAttribute('data-idx', String(idx));
-      pill.textContent = sig;
-      $signals.appendChild(pill);
-
-      if (!REDUCED.matches) {
-        // 1000ms (narrative) + 300ms base + 100ms stagger per pill
-        timers.push(setTimeout(() => {
-          pill.classList.add('score-hero__signal-pill--visible');
-        }, 1300 + idx * 100));
-      } else {
-        pill.classList.add('score-hero__signal-pill--visible');
-      }
-    });
-  }
+  // Signal pills removed — factor bars communicate the same info with actual data
+  if ($signals) { $signals.innerHTML = ''; $signals.style.display = 'none'; }
 
   // Auto-render factor bars (always visible, no toggle)
   if (scoringV2) {

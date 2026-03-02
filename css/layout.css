@@ -316,7 +316,7 @@
   pointer-events: none;
   transform: translateX(-12px);
   transition: transform 300ms var(--spring),
-              opacity 200ms var(--ease-out),
+              opacity 300ms var(--spring),
               background var(--dur-fast) var(--ease-out);
 }
 
