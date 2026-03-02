@@ -488,8 +488,8 @@ export function getScoreTier(score, { mismatch = false } = {}) {
   const matched = MATCH_THRESHOLDS.find(t => clamped >= t) ?? 0;
   let verdict = MATCH_WORDS[matched];
   let tier, cssClass;
-  if (clamped >= 75) { tier = 'high'; cssClass = 'score-verdict--high'; }
-  else if (clamped >= 45) { tier = 'mid'; cssClass = 'score-verdict--mid'; }
+  if (clamped >= 80) { tier = 'high'; cssClass = 'score-verdict--high'; }
+  else if (clamped >= 60) { tier = 'mid'; cssClass = 'score-verdict--mid'; }
   else { tier = 'low'; cssClass = 'score-verdict--low'; }
   if (mismatch && tier === 'low') verdict = 'Best Alternative';
   return { tier, verdict, cssClass, integer: clamped };
@@ -521,9 +521,8 @@ export function strengthDots(score, max) {
 
 export function getScoreColor(score) {
   const pct = Math.round(parseFloat(score) || 0);
-  // V5: Weighted factor thresholds
-  if (pct >= 75) return 'var(--rag-green)';
-  if (pct >= 45) return 'var(--rag-amber)';
+  if (pct >= 80) return 'var(--rag-green)';
+  if (pct >= 60) return 'var(--rag-amber)';
   return 'var(--rag-red)';
 }
 
@@ -534,9 +533,8 @@ export function getScoreColor(score) {
  * @returns {string} CSS variable string
  */
 export function getScoreThresholdColor(score) {
-  // V5: Weighted factor thresholds
-  if (score >= 75) return 'var(--rag-green)';
-  if (score >= 45) return 'var(--rag-amber)';
+  if (score >= 80) return 'var(--rag-green)';
+  if (score >= 60) return 'var(--rag-amber)';
   return 'var(--rag-red)';
 }
 

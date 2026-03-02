@@ -119,14 +119,8 @@ function init() {
   // V9: Canvas progressive disclosure — start minimal, reveal on engagement
   startCanvasDisclosure();
 
-  // Render taste memory (recent searches)
-  renderTasteMemory();
-
-  // F4: Render saved spots (bookmarks)
-  renderSavedSpots();
-
-  // Render visited spots ("Been Here")
-  renderVisitedSpots();
+  // V10: Render combined "Your Spots" (recent + saved + visited)
+  renderYourSpots();
 
   // F9: Initialize anonymous user ID
   getOrCreateUserId();
@@ -662,13 +656,10 @@ function wireEvents() {
         if ($openNowPill) $openNowPill.setAttribute('aria-pressed', 'false');
         setupLanding();
         renderSmartChips();
-        renderTasteMemory();
-        renderSavedSpots();
+        renderYourSpots();
         // Clean up ink-manifests state and hide result
         settleResult();
-        if ($resultCard) { $resultCard.classList.remove('result-card--unfolding'); $resultCard.style.display = 'none'; }
-        const $scaffold = document.getElementById('result-scaffold');
-        if ($scaffold) { $scaffold.style.display = 'none'; $scaffold.querySelectorAll('.scaffold-block').forEach(b => b.classList.remove('scaffold-block--visible')); }
+        if ($resultCard) { $resultCard.classList.remove('result-card--unfolding', 'result-card--loading'); $resultCard.style.display = 'none'; }
         const $canvasReset = document.querySelector('.canvas-layout');
         if ($canvasReset) $canvasReset.classList.remove('canvas-layout--restoring', 'canvas-layout--morphing');
         goToStep(0);
@@ -903,7 +894,7 @@ function wireEvents() {
           if (isAuthAuthenticated()) addFavoriteToServer(restaurant);
         }
         updateBookmarkBtn(restaurant.id);
-        renderSavedSpots();
+        renderYourSpots();
         const t = toasts();
         const savedMsg = isAuthAuthenticated()
           ? (wasBookmarked ? t.bookmarkRemove : t.bookmarkAddAuth)
@@ -925,7 +916,7 @@ function wireEvents() {
         // SSO: also write with auth_user_id for richer data
         if (isAuthAuthenticated()) addVisitToServer(restaurant);
         updateGoingBtn(restaurant.id);
-        renderVisitedSpots();
+        renderYourSpots();
         showToast(toasts().goingHere, false);
         break;
       }
@@ -1005,12 +996,12 @@ function wireEvents() {
                 const dondeScore = Math.round(parseFloat(nextResult.donde_match) || 80);
                 const $matchScore = document.getElementById('match-pill-score');
                 if ($matchScore) animateScoreCountUp($matchScore, dondeScore);
-              }, 250);
+              }, 300);
               setTimeout(() => {
                 $resultCard.classList.remove('result-card--swapping-in');
                 _swapInFlight = false;
               }, 350);
-            }, 250);
+            }, 300);
           } else {
             renderResult(nextResult);
             const dondeScore = Math.round(parseFloat(nextResult.donde_match) || 80);
@@ -1941,7 +1932,7 @@ async function handleSubmit() {
     // Set result — triggers orchestrateReveal() via subscription
     setState({ result: data, loading: false, history: hist, rankedQueue, rankedQueueIndex: 0 });
     renderSmartChips(); // Refresh chips with new history
-    renderTasteMemory(); // Refresh taste memory with new entry
+    renderYourSpots(); // Refresh combined spots with new entry
     playChime();
     announce(`Recommendation: ${data.restaurant?.name || 'found'}`);
   } catch (err) {
@@ -1974,142 +1965,38 @@ async function handleSubmit() {
 
 let _scaffoldTimers = [];
 let _phraseInterval = null;
-let _morphStartTime = 0;
 let _swapInFlight = false;
 
 /* ---- Phase 1: Canvas Fold ---- */
 function beginCanvasFold() {
   const $canvas = document.querySelector('.canvas-layout');
-  const $scaffold = document.getElementById('result-scaffold');
-  const $progressInk = document.getElementById('progress-ink');
-  const $matchPill = document.getElementById('match-pill');
 
-  _morphStartTime = performance.now();
-
-  // Cancel any previous scaffold timers
+  // Cancel any previous timers
   _scaffoldTimers.forEach(clearTimeout);
   _scaffoldTimers = [];
 
-  // Show result card in scaffold state (skeleton visible, content hidden)
+  // V10: Instant slide + simple loading state
   if ($resultCard) {
     $resultCard.style.display = '';
-    $resultCard.style.opacity = '1';
+    $resultCard.style.opacity = '0';
     $resultCard.style.transform = '';
     $resultCard.style.transition = '';
-    $resultCard.classList.add('result-card--scaffold');
-    $resultCard.classList.remove('result-card--manifesting', 'result-card--revealing');
+    $resultCard.classList.add('result-card--loading');
   }
 
-  // Show scaffold skeleton
-  if ($scaffold) {
-    $scaffold.style.display = 'flex';
-    $scaffold.setAttribute('aria-hidden', 'true');
-  }
-
-  if (REDUCED_MOTION.matches) {
-    // Reduced motion: instant transition
-    if ($canvas) $canvas.classList.add('canvas-layout--morphing');
-    goToStepInstant(1);
-    renderScaffold();
-    return;
-  }
-
-  // Start canvas dissolve (Phase 1)
   if ($canvas) $canvas.classList.add('canvas-layout--morphing');
 
-  // Slide step-track during fold — overlapping animation
-  _scaffoldTimers.push(setTimeout(() => {
-    goToStep(1);
-  }, 200));
-
-  // Phase 2: Render scaffold skeleton after slide begins
-  _scaffoldTimers.push(setTimeout(() => {
-    renderScaffold();
-  }, 350));
-
-  // Phase 3: Start scaffold pulse after scaffold appears
-  _scaffoldTimers.push(setTimeout(() => {
-    startScaffoldPulse();
-  }, 600));
-}
-
-/* ---- Phase 2: Scaffold Skeleton ---- */
-function renderScaffold() {
-  const $scaffold = document.getElementById('result-scaffold');
-  const $progressInk = document.getElementById('progress-ink');
-  const $matchPill = document.getElementById('match-pill');
-
-  // Stagger scaffold blocks appearance
-  if ($scaffold) {
-    const blocks = $scaffold.querySelectorAll('.scaffold-block');
-    blocks.forEach((block, i) => {
-      _scaffoldTimers.push(setTimeout(() => {
-        block.classList.add('scaffold-block--visible');
-      }, i * 50));
-    });
-  }
-
-  // Show match pill in scaffold state (ring outline, no score)
-  if ($matchPill) {
-    $matchPill.classList.add('match-mini--scaffold');
-  }
-
-  // Start progress ink line
-  if ($progressInk) {
-    $progressInk.classList.remove('progress-ink--complete', 'progress-ink--fading');
-    requestAnimationFrame(() => {
-      $progressInk.classList.add('progress-ink--active');
-    });
-  }
-}
-
-/* ---- Phase 3: Scaffold Pulse (waiting state) ---- */
-function startScaffoldPulse() {
-  const $matchPill = document.getElementById('match-pill');
-  const $scaffoldStatus = document.getElementById('scaffold-status');
-
-  if (REDUCED_MOTION.matches) return;
-
-  // Score ring indeterminate oscillation
-  if ($matchPill) {
-    $matchPill.classList.add('match-mini--oscillating');
-  }
-
-  // Ghost headline phrase carousel
-  const $resultName = document.getElementById('result-name');
-  startPhraseCarousel($resultName);
-
-  // Show status caption
-  if ($scaffoldStatus) {
-    $scaffoldStatus.classList.add('scaffold-status--visible');
-  }
-}
-
-/* ---- Ghost Headline Carousel ---- */
-function startPhraseCarousel($el) {
-  if (!$el) return;
-  stopPhraseCarousel();
-
-  const labels = getLabels(getState().theme.culture);
-  const phrases = labels.loadingPhrases || ['Finding your spot'];
-  let idx = 0;
-
-  $el.textContent = phrases[0];
-  $el.classList.add('ghost-headline');
-  $el.style.display = '';
-
-  _phraseInterval = setInterval(() => {
-    idx = (idx + 1) % phrases.length;
-    $el.style.transition = 'opacity 200ms ease-out';
-    $el.style.opacity = '0';
+  if (REDUCED_MOTION.matches) {
+    goToStepInstant(1);
+  } else {
+    // Slide to result view after canvas morph completes (--dur-morph = 400ms)
     _scaffoldTimers.push(setTimeout(() => {
-      if (!_phraseInterval) return; // carousel was stopped
-      $el.textContent = phrases[idx];
-      $el.style.opacity = '0.5';
-    }, 200));
-  }, 2500);
+      goToStep(1);
+    }, 400));
+  }
 }
 
+/* (V10: renderScaffold, startScaffoldPulse, startPhraseCarousel removed — instant loading) */
 function stopPhraseCarousel() {
   if (_phraseInterval) {
     clearInterval(_phraseInterval);
@@ -2117,82 +2004,41 @@ function stopPhraseCarousel() {
   }
 }
 
-/* ---- Phase 4: Manifest Result (data arrives) ---- */
+/* ---- V10: Manifest Result — simple fade-in (data arrives) ---- */
 async function manifestResult(data) {
-  const elapsed = performance.now() - _morphStartTime;
-  const MIN_MORPH = 500; // minimum ms before reveal to prevent jarring flash
-
-  // Ensure scaffold had time to appear
-  if (elapsed < MIN_MORPH && !REDUCED_MOTION.matches) {
-    await new Promise(r => setTimeout(r, MIN_MORPH - elapsed));
-  }
-
-  // Stop scaffold animations
+  // Stop any running timers
   stopPhraseCarousel();
   _scaffoldTimers.forEach(clearTimeout);
   _scaffoldTimers = [];
 
-  const $scaffold = document.getElementById('result-scaffold');
-  const $progressInk = document.getElementById('progress-ink');
-  const $matchPill = document.getElementById('match-pill');
-  const $resultName = document.getElementById('result-name');
-  const $scaffoldStatus = document.getElementById('scaffold-status');
-
-  // Complete progress ink line
-  if ($progressInk) {
-    $progressInk.classList.remove('progress-ink--active');
-    $progressInk.classList.add('progress-ink--complete');
-    _scaffoldTimers.push(setTimeout(() => {
-      $progressInk.classList.add('progress-ink--fading');
-    }, 300));
-  }
-
-  // Remove scaffold states
-  if ($matchPill) {
-    $matchPill.classList.remove('match-mini--scaffold', 'match-mini--oscillating');
-  }
-  if ($resultName) {
-    $resultName.classList.remove('ghost-headline');
-    $resultName.style.transition = '';
-    $resultName.style.opacity = '';
-  }
-  if ($scaffoldStatus) {
-    $scaffoldStatus.classList.remove('scaffold-status--visible');
-  }
-
-  // Render all DOM content (hidden by manifesting class)
+  // Render all DOM content
   renderResult(data);
 
-  // Hide scaffold, show real content with ink-write reveals
-  if ($scaffold) {
-    $scaffold.style.display = 'none';
-    const blocks = $scaffold.querySelectorAll('.scaffold-block');
-    blocks.forEach(b => b.classList.remove('scaffold-block--visible'));
-  }
-
-  // Switch from scaffold to manifesting state
+  // V10: Simple fade-in of entire card (no staggered reveals)
   if ($resultCard) {
-    $resultCard.classList.remove('result-card--scaffold');
-    $resultCard.classList.add('result-card--manifesting');
+    $resultCard.classList.remove('result-card--scaffold', 'result-card--loading');
+
+    if (REDUCED_MOTION.matches) {
+      $resultCard.style.opacity = '1';
+    } else {
+      $resultCard.style.transition = 'opacity 300ms var(--ease-out)';
+      requestAnimationFrame(() => {
+        $resultCard.style.opacity = '1';
+      });
+    }
   }
 
   // Haptic on reveal
   haptic(HAPTICS.reveal);
 
-  // Score ring animation (reuse existing)
+  // Score count-up — the sole brand animation moment
   const dondeScore = Math.round(parseFloat(data.donde_match) || 0);
-  _scaffoldTimers.push(setTimeout(() => {
-    animateScoreCountUp(
-      document.getElementById('match-pill-score'),
-      dondeScore
-    );
-  }, 0));
+  animateScoreCountUp(
+    document.getElementById('match-pill-score'),
+    dondeScore
+  );
 
-  // Word-group reveal for recommendation blurb
-  const $blurb = document.getElementById('result-recommendation');
-  if ($blurb && data.recommendation && !REDUCED_MOTION.matches) {
-    wordGroupReveal($blurb, data.recommendation);
-  }
+  // V10: No word-group reveal — blurb text fades in with card
 
   // Celebration for 88%+ scores
   if (dondeScore >= 88) {
@@ -2200,31 +2046,20 @@ async function manifestResult(data) {
       fireCelebration();
       playCelebrationChime();
       haptic(HAPTICS.celebration);
-    }, 1600));
+    }, 1200));
   }
 
-  // Phase 5: Settle — clean up after animations complete
+  // Settle — clean up after animations complete
   _scaffoldTimers.push(setTimeout(() => {
     settleResult();
-  }, 1200));
+  }, 800));
 
   // Schedule edge-hint replays
   scheduleEdgeHintReplay();
 }
 
-/* ---- Phase 5: Settle (cleanup) ---- */
+/* ---- Settle (cleanup after manifest completes) ---- */
 function settleResult() {
-  if ($resultCard) {
-    $resultCard.classList.remove('result-card--manifesting');
-  }
-
-  // Clean up progress ink
-  const $progressInk = document.getElementById('progress-ink');
-  if ($progressInk) {
-    $progressInk.classList.remove('progress-ink--active', 'progress-ink--complete', 'progress-ink--fading');
-    $progressInk.style.width = '';
-  }
-
   // Clean canvas morph class (so returning to canvas is clean)
   const $canvas = document.querySelector('.canvas-layout');
   if ($canvas) $canvas.classList.remove('canvas-layout--morphing');
@@ -2232,44 +2067,18 @@ function settleResult() {
 
 /* ---- Reverse Canvas Fold (error/back during loading) ---- */
 function reverseCanvasFold() {
-  // Cancel all scaffold animations
   stopPhraseCarousel();
   _scaffoldTimers.forEach(clearTimeout);
   _scaffoldTimers = [];
 
   const $canvas = document.querySelector('.canvas-layout');
-  const $scaffold = document.getElementById('result-scaffold');
-  const $progressInk = document.getElementById('progress-ink');
-  const $matchPill = document.getElementById('match-pill');
-  const $resultName = document.getElementById('result-name');
-  const $scaffoldStatus = document.getElementById('scaffold-status');
 
-  // Remove all scaffold/morph classes
   if ($canvas) $canvas.classList.remove('canvas-layout--morphing');
   if ($resultCard) {
-    $resultCard.classList.remove('result-card--scaffold', 'result-card--manifesting');
+    $resultCard.classList.remove('result-card--loading');
     $resultCard.style.display = 'none';
   }
-  if ($scaffold) {
-    $scaffold.style.display = 'none';
-    $scaffold.querySelectorAll('.scaffold-block').forEach(b => b.classList.remove('scaffold-block--visible'));
-  }
-  if ($progressInk) {
-    $progressInk.classList.remove('progress-ink--active', 'progress-ink--complete', 'progress-ink--fading');
-  }
-  if ($matchPill) {
-    $matchPill.classList.remove('match-mini--scaffold', 'match-mini--oscillating');
-  }
-  if ($resultName) {
-    $resultName.classList.remove('ghost-headline');
-    $resultName.style.transition = '';
-    $resultName.style.opacity = '';
-  }
-  if ($scaffoldStatus) {
-    $scaffoldStatus.classList.remove('scaffold-status--visible');
-  }
 
-  // Navigate back to canvas
   goToStep(0);
 }
 
@@ -2314,37 +2123,7 @@ function unfoldResultToCanvas() {
   }, 250);
 }
 
-/* ---- Word-Group Reveal (recommendation blurb "writes itself") ---- */
-function wordGroupReveal($el, text) {
-  if (!text || REDUCED_MOTION.matches) {
-    $el.textContent = text || '';
-    return;
-  }
-
-  const words = text.split(/\s+/);
-  $el.innerHTML = '';
-
-  const groupSize = 4;
-  const groups = [];
-  for (let i = 0; i < words.length; i += groupSize) {
-    groups.push(words.slice(i, i + groupSize).join(' '));
-  }
-
-  const spans = groups.map((group, i) => {
-    const span = document.createElement('span');
-    span.className = 'word-group';
-    span.textContent = group + ' ';
-    $el.appendChild(span);
-    return span;
-  });
-
-  // Stagger reveal: each group becomes visible with 30ms delay
-  spans.forEach((span, i) => {
-    _scaffoldTimers.push(setTimeout(() => {
-      span.classList.add('word-group--visible');
-    }, 400 + i * 30)); // 400ms base delay (after card manifests)
-  });
-}
+/* (V10: wordGroupReveal removed — blurb fades in with card) */
 
 /* ---- Legacy compatibility: toggleLoading fallback ---- */
 function toggleLoading(loading) {
@@ -2384,17 +2163,18 @@ function clearEdgeHintTimers() {
 
 /* ---- V7: Score Count-Up Animation (reusable) ---- */
 function animateScoreCountUp($el, targetScore) {
-  const $ringFill = document.getElementById('match-pill-ring-fill');
-  const circumference = 2 * Math.PI * 52; // ~326.7 (full circle, r=52)
-  if ($ringFill) {
-    $ringFill.style.transition = 'none';
-    $ringFill.style.strokeDasharray = String(circumference);
-    $ringFill.style.strokeDashoffset = String(circumference);
+  const $arcFill = document.getElementById('match-pill-arc-fill');
+  const arcLength = Math.PI * 20; // ~62.83 (semicircle, r=20)
+  if ($arcFill) {
+    $arcFill.style.transition = 'none';
+    $arcFill.style.strokeDasharray = String(arcLength);
+    $arcFill.style.strokeDashoffset = String(arcLength);
+    $arcFill.style.animation = '';
   }
   $el.textContent = '0';
   const REDUCED_MQ = matchMedia('(prefers-reduced-motion: reduce)');
   if (!REDUCED_MQ.matches) {
-    const duration = 1000;
+    const duration = 1200; // matches --dur-score token
     const start = performance.now();
     const animate = (now) => {
       const elapsed = now - start;
@@ -2404,12 +2184,14 @@ function animateScoreCountUp($el, targetScore) {
       $el.textContent = current;
       const thresholdColor = getScoreThresholdColor(current);
       $el.style.color = thresholdColor;
-      if ($ringFill) {
-        $ringFill.style.strokeDashoffset = String(circumference - (current / 100) * circumference);
-        $ringFill.style.stroke = thresholdColor;
+      if ($arcFill) {
+        $arcFill.style.strokeDashoffset = String(arcLength - (current / 100) * arcLength);
+        $arcFill.style.stroke = thresholdColor;
       }
       if (progress < 1) {
         requestAnimationFrame(animate);
+      } else if ($arcFill) {
+        $arcFill.style.animation = 'arcSettle 400ms var(--spring)';
       }
     };
     requestAnimationFrame(animate);
@@ -2417,9 +2199,9 @@ function animateScoreCountUp($el, targetScore) {
     $el.textContent = targetScore;
     const finalColor = getScoreThresholdColor(targetScore);
     $el.style.color = finalColor;
-    if ($ringFill) {
-      $ringFill.style.strokeDashoffset = String(circumference - (targetScore / 100) * circumference);
-      $ringFill.style.stroke = finalColor;
+    if ($arcFill) {
+      $arcFill.style.strokeDashoffset = String(arcLength - (targetScore / 100) * arcLength);
+      $arcFill.style.stroke = finalColor;
     }
   }
 }
@@ -2493,21 +2275,20 @@ function renderResult(data) {
     $matchVerdict.setAttribute('data-tier', tier.tier);
   }
 
-  // Mini confidence ring setup
-  const $ringFill = document.getElementById('match-pill-ring-fill');
-  const circumference = 2 * Math.PI * 52; // ~326.7 (full circle, r=52)
-  if ($ringFill) {
-    $ringFill.style.transition = 'none';
-    $ringFill.style.strokeDasharray = String(circumference);
-    $ringFill.style.strokeDashoffset = String(circumference); // Start empty
+  // Mini semicircle arc setup
+  const $arcFill = document.getElementById('match-pill-arc-fill');
+  const arcLength = Math.PI * 20; // ~62.83 (semicircle, r=20)
+  if ($arcFill) {
+    $arcFill.style.transition = 'none';
+    $arcFill.style.strokeDasharray = String(arcLength);
+    $arcFill.style.strokeDashoffset = String(arcLength); // Start empty
+    $arcFill.style.stroke = getScoreThresholdColor(0);
   }
 
-  // V9.1: Match-mini uses accent color (var(--ac)) to match Tier 2 ring
-  const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--ac').trim() || '#383838';
   const REDUCED_MQ = matchMedia('(prefers-reduced-motion: reduce)');
   if ($matchScore && !REDUCED_MQ.matches) {
     animationTimers.push(setTimeout(() => {
-      const duration = 1000;
+      const duration = 1200; // matches --dur-score token
       const start = performance.now();
       const animate = (now) => {
         const elapsed = now - start;
@@ -2515,13 +2296,20 @@ function renderResult(data) {
         const eased = 1 - Math.pow(1 - progress, 3);
         const current = Math.round(eased * dondeScore);
         $matchScore.textContent = current;
-        if ($ringFill) {
-          $ringFill.style.strokeDashoffset = String(circumference - (current / 100) * circumference);
+        const thresholdColor = getScoreThresholdColor(current);
+        $matchScore.style.color = thresholdColor;
+        if ($arcFill) {
+          $arcFill.style.strokeDashoffset = String(arcLength - (current / 100) * arcLength);
+          $arcFill.style.stroke = thresholdColor;
         }
         if (progress < 1) {
           requestAnimationFrame(animate);
         } else {
-          // Settle pulse — subtle scale emphasis on completion
+          // Arc settle pulse on completion
+          if ($arcFill) {
+            $arcFill.style.animation = 'arcSettle 400ms var(--spring)';
+          }
+          // Pill settle pulse
           const $pill = document.getElementById('match-pill');
           if ($pill) {
             $pill.style.transition = 'transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1)';
@@ -2536,8 +2324,11 @@ function renderResult(data) {
     }, 200));
   } else if ($matchScore) {
     $matchScore.textContent = dondeScore;
-    if ($ringFill) {
-      $ringFill.style.strokeDashoffset = String(circumference - (dondeScore / 100) * circumference);
+    const finalColor = getScoreThresholdColor(dondeScore);
+    $matchScore.style.color = finalColor;
+    if ($arcFill) {
+      $arcFill.style.strokeDashoffset = String(arcLength - (dondeScore / 100) * arcLength);
+      $arcFill.style.stroke = finalColor;
     }
   }
 
@@ -2545,9 +2336,9 @@ function renderResult(data) {
   const $name = document.getElementById('result-name');
   if ($name) $name.textContent = r.name || '';
 
-  // One-liner subtitle
-  // One-liner removed from result card (AI blurb replaces it).
-  // best_for_oneliner is still used in share canvas rendering.
+  // V10: One-liner removed from Tier 1 — blurb is the editorial voice
+  const $oneliner = document.getElementById('result-oneliner');
+  if ($oneliner) $oneliner.style.display = 'none';
 
   // V9.1: Quick tags removed from Tier 1 — detail metrics moved to Tier 2 score area
   const $quickTags = document.getElementById('quick-tags');
@@ -2591,11 +2382,12 @@ function renderResult(data) {
   // V5: Relaxation notice — shown above result card when filters were expanded
   renderRelaxationNotice(data);
 
-  // V6.1: Match Reason Headline — WHY this restaurant
-  renderMatchHeadline(data);
+  // V10: Match headline removed from Tier 1 — blurb communicates WHY
+  const $matchHeadline = document.getElementById('match-headline');
+  if ($matchHeadline) $matchHeadline.style.display = 'none';
 
-  // V6.1: Signal Chips — top matching signals as semantic badges
-  renderSignalChips(data);
+  // V10: Signal chips removed from Tier 1 — factor bars are sufficient
+  // (renderSignalChips call removed)
 
   // DondeAI Recommendation blurb — the editorial voice in Tier 1
   const $rec = document.getElementById('result-recommendation');
@@ -2617,8 +2409,7 @@ function renderResult(data) {
     }
   }
 
-  // V9.1: Signature Dishes Showcase — horizontal scroll in Tier 1
-  renderKnownFor(data);
+  // V10: Known For moved to Tier 2 (rendered in prepareTier2)
 
   // F3: Enhanced map navigation tile
   renderMapPreview(data);
@@ -2651,54 +2442,9 @@ function renderResult(data) {
   // V9: Photo parallax depth effect
   setupPhotoParallax();
 
-  // Apply progressive reveal (Tier 1 only — Tier 2 animates on scroll)
-  // Skip old reveal if ink-manifesting is active (new transition handles its own stagger)
-  if ($resultCard && !$resultCard.classList.contains('result-card--manifesting')) {
-    $resultCard.classList.remove('card-enter', 'result-card--revealing');
-    void $resultCard.offsetWidth;
-    $resultCard.classList.add('result-card--revealing');
+  // V10: No progressive reveal — card fades in as one unit via manifestResult
 
-    // Clean up reveal class after Tier 1 animations complete (last: glance-actions at 600ms + 300ms)
-    setTimeout(() => {
-      $resultCard.classList.remove('result-card--revealing');
-      const glance = document.getElementById('tier-glance');
-      if (glance) {
-        glance.querySelectorAll(':scope > *').forEach(child => {
-          child.style.opacity = '';
-          child.style.transform = '';
-        });
-      }
-    }, 1100);
-  }
-
-  // V9.1 Enhancement 3: Tier 2 Peek Affordance — tease score breakdown
-  if (!_peekShown && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    _peekShown = true;
-    const $tier2 = document.getElementById('tier-leanin');
-    const $tellMore = document.getElementById('tell-more-btn');
-    if ($tier2 && $tellMore && $tellMore.getAttribute('aria-expanded') !== 'true') {
-      animationTimers.push(setTimeout(() => {
-        // Briefly peek Tier 2 content
-        $tier2.classList.add('tier--peeking');
-        $tier2.style.maxHeight = '40px';
-        $tier2.style.overflow = 'hidden';
-        $tier2.style.transition = 'max-height 500ms var(--ease-out, ease-out)';
-        $tier2.classList.add('tier--peek-shimmer');
-        haptic(HAPTICS.peekPulse);
-        // Collapse after 800ms
-        animationTimers.push(setTimeout(() => {
-          $tier2.style.maxHeight = '0';
-          $tier2.style.transition = 'max-height 400ms var(--ease-out, ease-out)';
-          animationTimers.push(setTimeout(() => {
-            $tier2.classList.remove('tier--peeking', 'tier--peek-shimmer');
-            $tier2.style.maxHeight = '';
-            $tier2.style.overflow = '';
-            $tier2.style.transition = '';
-          }, 400));
-        }, 800));
-      }, 1500));
-    }
-  }
+  // V10: Peek affordance removed — seamless loading, no theatrical animations
 }
 
 let _peekShown = false; // Only peek once per session
@@ -2827,6 +2573,9 @@ function prepareTier2(data, cuisine) {
 
   // 1D: Deep context extras (USP, wow factors)
   renderDeepContextExtras(data);
+
+  // V10: Known For — render as inline pills in Tier 2
+  renderKnownFor(data);
 
 }
 
@@ -3240,54 +2989,30 @@ function renderPhotos(data) {
   document.getElementById('photo-dots')?.remove();
   const urls = photoUrls.slice(0, 5);
 
-  // V9.1: Photo Hero Layout — first photo as hero, rest as thumbnail strip
-  $photos.classList.add('result-photos--hero');
+  // V10: Horizontal scroll strip — all photos equal, swipeable
+  $photos.classList.remove('result-photos--hero');
 
-  // Hero image with gradient scrim
-  const heroWrap = document.createElement('div');
-  heroWrap.className = 'result-photos__hero-wrap';
-  const heroImg = document.createElement('img');
-  heroImg.className = 'result-photos__hero-img';
-  heroImg.src = urls[0];
-  heroImg.alt = `${data.restaurant.name} — featured photo`;
-  heroImg.loading = 'eager';
-  heroImg.decoding = 'async';
-  heroImg.style.cursor = 'zoom-in';
-  heroImg.addEventListener('click', () => openLightbox(urls, 0));
-  heroWrap.appendChild(heroImg);
-  // Gradient scrim for text legibility
-  const scrim = document.createElement('div');
-  scrim.className = 'result-photos__hero-scrim';
-  heroWrap.appendChild(scrim);
-  $photos.appendChild(heroWrap);
+  urls.forEach((url, i) => {
+    const img = document.createElement('img');
+    img.className = 'result-photos__img';
+    img.src = url;
+    img.alt = `${data.restaurant.name} photo ${i + 1}`;
+    img.loading = i === 0 ? 'eager' : 'lazy';
+    img.decoding = 'async';
+    img.style.cursor = 'zoom-in';
+    img.addEventListener('click', () => openLightbox(urls, i));
+    $photos.appendChild(img);
+  });
 
-  // Thumbnail strip (remaining photos)
-  if (urls.length > 1) {
-    const thumbStrip = document.createElement('div');
-    thumbStrip.className = 'result-photos__thumb-strip';
-    urls.slice(1).forEach((url, i) => {
-      const thumb = document.createElement('img');
-      thumb.className = 'result-photos__thumb';
-      thumb.src = url;
-      thumb.alt = `${data.restaurant.name} photo ${i + 2}`;
-      thumb.loading = 'lazy';
-      thumb.decoding = 'async';
-      thumb.style.cursor = 'zoom-in';
-      thumb.addEventListener('click', () => openLightbox(urls, i + 1));
-      thumbStrip.appendChild(thumb);
-    });
-    $photos.appendChild(thumbStrip);
-
-    // Haptic on thumb strip scroll
-    let _photoSwipeTriggered = false;
-    thumbStrip.addEventListener('scroll', () => {
-      if (!_photoSwipeTriggered) {
-        _photoSwipeTriggered = true;
-        haptic(HAPTICS.photoSwipe);
-        setTimeout(() => { _photoSwipeTriggered = false; }, 500);
-      }
-    }, { passive: true });
-  }
+  // Haptic on photo scroll
+  let _photoSwipeTriggered = false;
+  $photos.addEventListener('scroll', () => {
+    if (!_photoSwipeTriggered) {
+      _photoSwipeTriggered = true;
+      haptic(HAPTICS.photoSwipe);
+      setTimeout(() => { _photoSwipeTriggered = false; }, 500);
+    }
+  }, { passive: true });
 
   $photos.style.display = '';
 }
@@ -3793,6 +3518,90 @@ function renderVisitedSpots() {
   $container.style.display = '';
 }
 
+/* ---- V10: Combined "Your Spots" — merges recent + saved + visited ---- */
+function renderYourSpots() {
+  const $container = document.getElementById('your-spots');
+  const $list = document.getElementById('your-spots-list');
+  if (!$container || !$list) return;
+
+  $list.innerHTML = '';
+  const items = [];
+
+  // Recent searches (clock icon)
+  const { history } = getState();
+  if (history?.length > 0) {
+    history.slice(0, 3).forEach(entry => {
+      const label = entry.label.length > 20 ? entry.label.slice(0, 18) + '…' : entry.label;
+      const time = entry.timestamp ? relativeTime(entry.timestamp) : '';
+      items.push({
+        type: 'recent',
+        icon: `<svg viewBox="0 0 256 256" width="12" height="12"><path fill="currentColor" d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm64-88a8,8,0,0,1-8,8H128a8,8,0,0,1-8-8V72a8,8,0,0,1,16,0v48h48A8,8,0,0,1,192,128Z"/></svg>`,
+        label,
+        meta: time,
+        action: () => {
+          if ($cravingInput) {
+            $cravingInput.value = entry.payload?.special_request || entry.label;
+            setState({ craving: $cravingInput.value });
+            updateCtaState();
+          }
+        }
+      });
+    });
+  }
+
+  // Saved spots (heart icon)
+  const bookmarks = loadBookmarks();
+  bookmarks.slice(0, 3).forEach(b => {
+    items.push({
+      type: 'saved',
+      icon: `<svg viewBox="0 0 256 256" width="12" height="12"><path fill="currentColor" d="M178,44c-21.44,0-39.92,10.19-50,27.07C117.92,54.19,99.44,44,78,44a58.07,58.07,0,0,0-58,58c0,28.59,18,58.47,53.4,88.79a333.81,333.81,0,0,0,52.7,36.73,4,4,0,0,0,3.8,0,333.81,333.81,0,0,0,52.7-36.73C218,160.47,236,130.59,236,102A58.07,58.07,0,0,0,178,44Z"/></svg>`,
+      label: b.name.length > 18 ? b.name.slice(0, 16) + '…' : b.name,
+      meta: b.cuisine_type || '',
+      action: () => {
+        if ($cravingInput) {
+          $cravingInput.value = b.name;
+          setState({ craving: b.name });
+          updateCtaState();
+        }
+      }
+    });
+  });
+
+  // Visited spots (check icon)
+  const visits = loadVisits();
+  visits.slice(0, 3).forEach(v => {
+    items.push({
+      type: 'visited',
+      icon: `<svg viewBox="0 0 256 256" width="12" height="12"><path fill="currentColor" d="M229.66,77.66l-128,128a8,8,0,0,1-11.32,0l-56-56a8,8,0,0,1,11.32-11.32L96,188.69,218.34,66.34a8,8,0,0,1,11.32,11.32Z"/></svg>`,
+      label: v.name.length > 18 ? v.name.slice(0, 16) + '…' : v.name,
+      meta: v.cuisine_type || v.neighborhood_name || '',
+      action: () => {
+        if ($cravingInput) {
+          $cravingInput.value = v.name;
+          setState({ craving: v.name });
+          updateCtaState();
+        }
+      }
+    });
+  });
+
+  if (items.length === 0) {
+    $container.style.display = 'none';
+    return;
+  }
+
+  // Render combined chips (max 6 total)
+  items.slice(0, 6).forEach(item => {
+    const btn = document.createElement('button');
+    btn.className = `your-spots__chip your-spots__chip--${item.type}`;
+    btn.innerHTML = `<span class="your-spots__icon">${item.icon}</span><span>${item.label}</span>${item.meta ? `<span class="your-spots__meta type-data--sm">${item.meta}</span>` : ''}`;
+    btn.addEventListener('click', item.action);
+    $list.appendChild(btn);
+  });
+
+  $container.style.display = '';
+}
+
 /* ---- App Feedback Sheet ---- */
 function openFeedbackSheet() {
   const $sheet = document.getElementById('feedback-sheet');
@@ -3995,33 +3804,17 @@ function renderKnownFor(data) {
   const dishes = dp.signature_dishes;
   const highlights = dp.menu_highlights;
 
-  // Priority: signature dishes → menu highlights → hide
-  if (dishes?.length > 0) {
-    $strip.innerHTML = '';
-    $strip.className = 'known-for__strip';
-    const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    dishes.slice(0, 4).forEach((d, i) => {
-      const card = document.createElement('div');
-      card.className = 'known-for__card';
-      card.innerHTML = `<div class="known-for__dish-name">${d.dish}</div>${d.why ? `<div class="known-for__dish-why">${d.why}</div>` : ''}`;
-      // Stagger entrance
-      if (!REDUCED) {
-        card.style.opacity = '0';
-        card.style.transform = 'translateX(-16px)';
-        animationTimers.push(setTimeout(() => {
-          card.style.transition = 'opacity 350ms var(--ease-out, ease-out), transform 350ms cubic-bezier(0.34, 1.56, 0.64, 1)';
-          card.style.opacity = '1';
-          card.style.transform = 'translateX(0)';
-        }, 400 + i * 80));
-      }
-      $strip.appendChild(card);
-    });
-    $section.style.display = '';
-  } else if (highlights?.length > 0) {
-    // Fallback: pill tags
+  // V10: Inline pills in Tier 2 — "Known for: Dish · Dish · Dish"
+  const items = dishes?.length > 0
+    ? dishes.slice(0, 4).map(d => d.dish)
+    : highlights?.length > 0
+      ? highlights.slice(0, 6)
+      : [];
+
+  if (items.length > 0) {
     $strip.innerHTML = '';
     $strip.className = 'known-for__pills';
-    highlights.slice(0, 6).forEach(item => {
+    items.forEach(item => {
       const pill = document.createElement('span');
       pill.className = 'known-for__pill type-data--sm';
       pill.textContent = item;
@@ -4031,16 +3824,6 @@ function renderKnownFor(data) {
   } else {
     $section.style.display = 'none';
   }
-
-  // Haptic on horizontal scroll start
-  let _knownForSwipeTriggered = false;
-  $strip.addEventListener('scroll', () => {
-    if (!_knownForSwipeTriggered) {
-      _knownForSwipeTriggered = true;
-      haptic(HAPTICS.photoSwipe);
-      setTimeout(() => { _knownForSwipeTriggered = false; }, 500);
-    }
-  }, { passive: true });
 }
 
 /* ---- V8: Cuisine Drawer — populates bottom-sheet / anchored panel ---- */
@@ -4693,9 +4476,7 @@ subscribe((state, prev) => {
     closeAuthSheet();
     if (state.isAuthenticated && !prev.isAuthenticated && state.user) {
       showToast(toasts().welcomeUser(state.user.name));
-      renderTasteMemory();
-      renderSavedSpots();
-      renderVisitedSpots();
+      renderYourSpots();
       if (!hasSeenOnboarding()) setTimeout(() => showCoachMarks(), 600);
     }
   }

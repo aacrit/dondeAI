@@ -289,11 +289,11 @@
   }
 }
 
-/* ---- Canvas Restore (elements fade back in from below) ---- */
+/* ---- Canvas Restore (elements fade back in — mirrors inkDissolve) ---- */
 @keyframes inkRestore {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(20px);
   }
   to {
     opacity: 1;
@@ -396,7 +396,7 @@
 }
 
 .filter-content--closing {
-  animation: drawerClose 250ms var(--ease-out) forwards;
+  animation: drawerClose 300ms var(--ease-out) forwards;
   pointer-events: none;
 }
 
@@ -428,11 +428,7 @@
   }
 }
 
-/* ---- Ink Reveal (restaurant name left-to-right) ---- */
-@keyframes inkReveal {
-  from { clip-path: inset(0 100% 0 0); }
-  to   { clip-path: inset(0 0 0 0); }
-}
+/* (Duplicate inkReveal removed — defined at line 262) */
 
 /* ---- Slide Settle In (oneliner from right) ---- */
 @keyframes slideSettleIn {
@@ -641,12 +637,6 @@
   .logo-mark--searching .logo-mark__curve,
   .loading-logo__text,
   .loading-status,
-  .result-card--revealing .tier--glance > *,
-  .result-card--revealing .glance-hero,
-  .result-card--revealing .match-mini,
-  .result-card--revealing .donde-blurb,
-  .result-card--revealing .glance-nav,
-  .result-card--revealing .glance-actions,
   .cta-btn--ready,
   .cta-btn--alive,
   .cta-btn--boosted,
@@ -747,45 +737,13 @@
     opacity: 1;
   }
 
-  .result-card--scaffold .scaffold-block {
-    animation: none !important;
-    opacity: 0.06;
-  }
-
-  .result-card--scaffold .progress-ink {
-    display: none !important;
-  }
-
-  .match-mini--oscillating .match-mini__ring-fill {
-    animation: none !important;
-  }
+  /* (V10: scaffold + oscillation reduced-motion rules removed) */
 
   .inkwell-dot {
     transition: none !important;
   }
 
-  /* Ink Manifests Phase 4 — instant reveal, no clip-path */
-  .result-card--manifesting .glance-hero,
-  .result-card--manifesting .match-headline,
-  .result-card--manifesting .glance-nav {
-    clip-path: none !important;
-    animation: none !important;
-  }
-
-  .result-card--manifesting .donde-blurb,
-  .result-card--manifesting .tell-more-btn,
-  .result-card--manifesting .card-footer,
-  .result-card--manifesting .quick-actions,
-  .result-card--manifesting .cuisine-mismatch-notice,
-  .result-card--manifesting .signal-chips {
-    animation: none !important;
-    opacity: 1;
-    transform: none;
-  }
-
-  .word-group {
-    opacity: 1 !important;
-  }
+  /* (V10: manifesting + word-group reduced-motion rules removed) */
 
   /* Tile expand modal — instant open/close, no spring */
   .tile-expand__panel {

@@ -435,6 +435,81 @@
   margin-left: var(--space-2xs);
 }
 
+/* ---- V10: Combined "Your Spots" section ---- */
+.your-spots {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  width: 100%;
+  margin-top: var(--space-sm);
+}
+
+.your-spots__label {
+  color: var(--fg3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: var(--text-xs);
+}
+
+.your-spots__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  justify-content: center;
+}
+
+.your-spots__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  padding: var(--space-2xs) var(--space-sm);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill, 100px);
+  color: var(--fg2);
+  font-family: var(--font-structural);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out),
+              border-color var(--dur-fast) var(--ease-out),
+              color var(--dur-fast) var(--ease-out);
+}
+
+.your-spots__chip:hover {
+  background: var(--ac-soft);
+  border-color: var(--ac-soft);
+  color: var(--ac);
+}
+
+.your-spots__chip:active {
+  transform: scale(0.95);
+}
+
+.your-spots__icon {
+  display: flex;
+  align-items: center;
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  color: var(--fg3);
+}
+
+.your-spots__chip--saved .your-spots__icon {
+  color: var(--rag-red);
+}
+
+.your-spots__chip--visited .your-spots__icon {
+  color: var(--rag-green);
+}
+
+.your-spots__meta {
+  color: var(--fg3);
+  font-family: var(--font-data);
+  font-size: var(--text-xs);
+  margin-left: var(--space-2xs);
+}
+
 /* ---- Filter Drawer ---- */
 .filter-drawer {
   width: 100%;
@@ -539,7 +614,7 @@
   flex-direction: column;
   gap: var(--space-md);
   transform-origin: top center;
-  animation: drawerOpen 350ms var(--spring) forwards;
+  animation: drawerOpen 300ms var(--ease-out) forwards;
 }
 
 .filter-content[hidden] {
@@ -689,7 +764,7 @@
   pointer-events: none;
   will-change: max-height, opacity;
   transition: max-height 450ms var(--ease-out),
-              opacity 400ms var(--ease-out) 50ms,
+              opacity 450ms var(--ease-out),
               padding 450ms var(--ease-out),
               margin 450ms var(--ease-out);
 }
@@ -735,49 +810,50 @@
   cursor: pointer;
 }
 
-/* Ring-wrap: mini confidence ring + number centered */
-.match-mini__ring-wrap {
-  position: relative;
-  width: 64px;
-  aspect-ratio: 1;
+/* Score-wrap: semicircular arc gauge + number */
+.match-mini__score-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-.match-mini__ring-svg {
-  width: 100%;
-  height: 100%;
+.match-mini__arc {
+  width: 62px;
+  height: 36px;
   overflow: visible;
-  transform: rotate(-90deg);
 }
 
-.match-mini__ring-bg {
+.match-mini__arc-bg {
   fill: none;
   stroke: var(--border);
-  stroke-width: 5;
-  opacity: 0.5;
-}
-
-.match-mini__ring-fill {
-  fill: none;
-  stroke: var(--ac);
-  stroke-width: 5;
+  stroke-width: 3;
   stroke-linecap: round;
 }
 
+.match-mini__arc-fill {
+  fill: none;
+  stroke: var(--rag-green);
+  stroke-width: 3;
+  stroke-linecap: round;
+  transform-origin: center bottom;
+}
+/* RAG coloring on arc fill */
+.match-mini[data-tier="high"] .match-mini__arc-fill { stroke: var(--rag-green); }
+.match-mini[data-tier="mid"]  .match-mini__arc-fill { stroke: var(--rag-amber); }
+.match-mini[data-tier="low"]  .match-mini__arc-fill { stroke: var(--rag-red); }
+
 .match-mini__score {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: clamp(1.25rem, 4vw, 1.5rem);
+  font-size: clamp(1.5rem, 5vw, 2rem);
   font-weight: 700;
   color: var(--fg);
   line-height: 1;
   letter-spacing: -0.02em;
 }
 
-/* V9.1: Score uses accent color (no RAG) */
-.match-mini__score { color: var(--ac); }
+/* Score-tier RAG coloring */
+.match-mini[data-tier="high"] .match-mini__score { color: var(--rag-green); }
+.match-mini[data-tier="mid"]  .match-mini__score { color: var(--rag-amber); }
+.match-mini[data-tier="low"]  .match-mini__score { color: var(--rag-red); }
 
 /* ── Match Mini Brand (multi-voice wordmark) ── */
 .match-mini__brand {
@@ -1274,8 +1350,7 @@
   word-break: break-word;
   padding-left: 0;
   min-width: 0;
-  /* V8.8: Let blurb grow naturally for 100-120 word recommendations */
-  /* V8.8: Smooth transition for lazy blurb swap on Try Again */
+  /* V10: Full text flows naturally — no height cap */
   transition: opacity 200ms var(--ease-out);
 }
 
@@ -1684,11 +1759,11 @@
   border-radius: var(--radius);
 }
 
-/* V9: Verdict-first — large emotional text ABOVE the ring */
+/* V9: Verdict-first — large emotional text ABOVE the ring, RAG colored */
 .score-hero__verdict-text {
   font-family: var(--font-emotional);
   font-size: var(--text-xl);
-  color: var(--ac);
+  color: var(--rag-green);
   text-align: center;
   letter-spacing: 0.02em;
   line-height: 1.2;
@@ -1702,12 +1777,16 @@
   transform: translateY(0);
 }
 
+.score-hero__verdict-text[data-tier="high"] {
+  color: var(--rag-green);
+}
+
 .score-hero__verdict-text[data-tier="mid"] {
-  color: var(--fg2);
+  color: var(--rag-amber);
 }
 
 .score-hero__verdict-text[data-tier="low"] {
-  color: var(--fg3);
+  color: var(--rag-red);
 }
 
 /* Confidence Ring container — V9: smaller, accent role */
@@ -1732,10 +1811,10 @@
   opacity: 0.5;
 }
 
-/* Accent fill ring — animated via JS strokeDashoffset */
+/* RAG fill ring — color set by JS based on score threshold */
 .score-hero__ring-fill {
   fill: none;
-  stroke: var(--ac);
+  stroke: var(--rag-green);
   stroke-width: 5;
   stroke-linecap: round;
 }
@@ -1863,7 +1942,7 @@
 
 /* V7: Card swap transition for Try Again from ranked queue */
 .result-card--swapping-out {
-  animation: cardSwapOut 250ms var(--ease-out) forwards;
+  animation: cardSwapOut 300ms var(--ease-out) forwards;
 }
 
 .result-card--swapping-in {
@@ -3730,42 +3809,7 @@
   color: var(--bg);
 }
 
-/* ---- Progressive Result Card Reveal (Tier 1: Glance) ---- */
-.result-card--revealing .tier--glance > * {
-  opacity: 0;
-  transform: translateY(12px);
-}
-
-/* Glance Hero (badge + name + oneliner): hero entrance — spring pop */
-.result-card--revealing .glance-hero {
-  animation: tileRevealIn 400ms var(--spring) 0ms forwards;
-}
-
-/* DondeAI Blurb: editorial entrance — tighter stagger */
-.result-card--revealing .donde-blurb {
-  animation: resultSectionIn 350ms var(--ease-out) 120ms forwards;
-}
-
-/* Glance nav: settle in */
-.result-card--revealing .glance-nav {
-  animation: resultSectionIn 300ms var(--ease-out) 220ms forwards;
-}
-
-/* Show More button: settle in just before card footer */
-.result-card--revealing .tell-more-btn {
-  opacity: 0;
-  transform: translateY(8px);
-  animation: resultSectionIn 300ms var(--ease-out) 300ms forwards;
-}
-
-/* Card footer (feedback + actions): settle in last */
-.result-card--revealing .card-footer {
-  opacity: 0;
-  transform: translateY(12px);
-  animation: resultSectionIn 300ms var(--ease-out) 380ms forwards;
-}
-
-/* Tier 2/3 elements: animate on expansion via JS (no CSS reveal stagger needed) */
+/* (V10: Progressive card reveal removed — card fades in as unit) */
 
 /* ---- Filter Pill Ink Ripple ---- */
 .filter-pill {
@@ -3877,20 +3921,14 @@
   opacity: 0.4;
 }
 
-.result-card--revealing .story-extras__label::after {
-  width: 0;
-  animation: inkUnderline 400ms var(--ease-out) 200ms forwards;
-}
+/* (V10: .result-card--revealing story-extras removed) */
 
 /* ---- Story Extras Callout Personality ---- */
 #story-extras-tip {
   transform: rotate(-0.3deg);
 }
 
-.result-card--revealing #story-extras-tip {
-  transform: rotate(-1deg);
-  animation: tipSettle 400ms var(--spring) 300ms forwards;
-}
+/* (V10: .result-card--revealing tip settle removed) */
 
 @keyframes tipSettle {
   to { transform: rotate(-0.3deg); }
@@ -3917,15 +3955,7 @@
     transform: none !important;
   }
 
-  .result-card--revealing #story-extras-tip {
-    transform: none !important;
-    animation: none !important;
-  }
-
-  .result-card--revealing .story-extras__label::after {
-    animation: none !important;
-    width: 100% !important;
-  }
+  /* (V10: .result-card--revealing reduced-motion rules removed) */
 }
 
 /* ============================================
@@ -4236,26 +4266,37 @@
   border-color: var(--ac);
 }
 
-/* ---- Card Footer Action Row (primary Going button only) ---- */
-.card-footer__actions {
+/* ---- V10: Card Footer Primary Row (Going + Try Another side by side) ---- */
+.card-footer__primary-row {
   display: flex;
   gap: var(--space-sm);
   width: 100%;
   max-width: 400px;
 }
-
-/* ---- Card Footer Secondary Row (Try Another + Start Over equal pills) ---- */
-.card-footer__secondary-row {
-  display: flex;
-  gap: var(--space-sm);
-  width: 100%;
-  max-width: 400px;
+.card-footer__primary-row .going-btn {
+  flex: 1;
+  min-width: 0;
 }
-.card-footer__secondary-row .cta-btn {
+.card-footer__primary-row .cta-btn {
   flex: 1;
   min-width: 0;
   font-size: var(--text-xs);
   padding: var(--space-xs) var(--space-sm);
+}
+
+/* ---- V10: Card Footer Secondary Row (Feedback + Start Over) ---- */
+.card-footer__secondary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 400px;
+  padding-top: var(--space-xs);
+  border-top: 1px solid color-mix(in srgb, var(--border) 40%, transparent);
+}
+.card-footer__secondary-row .cta-btn {
+  font-size: var(--text-xs);
+  padding: var(--space-2xs) var(--space-sm);
 }
 
 /* ---- Neutral outline pill (Start Over) ---- */
@@ -4277,16 +4318,7 @@
 .cta-btn--neutral:active { transform: scale(0.97); }
 .cta-btn--neutral:focus-visible { outline: 2px solid var(--fg3); outline-offset: 2px; }
 
-/* ---- Card Footer Feedback Row (lowest priority) ---- */
-.card-footer__feedback {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-sm);
-  width: 100%;
-  padding-top: var(--space-xs);
-  border-top: 1px solid color-mix(in srgb, var(--border) 40%, transparent);
-}
+/* V10: card-footer__feedback removed — feedback icons now in secondary row */
 
 /* ---- Visited Spots (landing page) ---- */
 .visited-spots {
@@ -5601,149 +5633,12 @@
 }
 
 /* ---- Phase 2–3: Result Card Scaffold ---- */
-.result-card--scaffold {
-  position: relative;
-}
-
-.result-card--scaffold .tier--glance > *,
-.result-card--scaffold .tell-more-btn,
-.result-card--scaffold .card-footer,
-.result-card--scaffold .result-photos {
-  opacity: 0;
-  pointer-events: none;
-}
-
-/* Scaffold container */
-.result-scaffold {
-  display: none;
-  flex-direction: column;
-  gap: var(--space-sm);
-  padding: var(--space-xs) 0;
-}
-
-.result-card--scaffold .result-scaffold {
-  display: flex;
-}
-
-/* Scaffold skeleton blocks — ink-wash shimmer */
-.scaffold-block {
-  border-radius: var(--radius, 8px);
-  overflow: hidden;
-  position: relative;
-  background: linear-gradient(
-    90deg,
-    var(--bg3) 25%,
-    var(--bg2) 50%,
-    var(--bg3) 75%
-  );
-  background-size: 200% 100%;
-  animation: inkWash 2s ease-in-out infinite;
+/* V10: Loading state — card hidden until data arrives, then fades in */
+.result-card--loading {
   opacity: 0;
 }
 
-.scaffold-block--visible {
-  animation: inkFadeUp 300ms var(--ease-out) forwards, inkWash 2s ease-in-out infinite;
-}
-
-.scaffold-block--name {
-  height: 22px;
-  width: 55%;
-}
-
-.scaffold-block--tags {
-  display: flex;
-  gap: var(--space-xs);
-}
-
-.scaffold-block--tag {
-  height: 20px;
-  width: 60px;
-  border-radius: 12px;
-}
-
-.scaffold-block--blurb {
-  height: 14px;
-  width: 100%;
-  border-radius: 4px;
-}
-
-.scaffold-block--blurb:nth-child(2) { width: 92%; }
-.scaffold-block--blurb:nth-child(3) { width: 85%; }
-.scaffold-block--blurb:nth-child(4) { width: 40%; }
-
-/* Progress ink line at card top */
-.progress-ink {
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 2px;
-  width: 0%;
-  background: var(--ac);
-  opacity: 0.6;
-  border-radius: 0 1px 1px 0;
-  transition: width 2s cubic-bezier(0.4, 0, 0.2, 1);
-  z-index: 2;
-}
-
-.progress-ink--active {
-  width: 70%;
-}
-
-.progress-ink--complete {
-  width: 100%;
-  transition: width 300ms var(--ease-out);
-}
-
-.progress-ink--fading {
-  opacity: 0;
-  transition: opacity 300ms var(--ease-out);
-}
-
-/* Ghost headline (loading phrases in name slot) */
-.ghost-headline {
-  color: var(--fg3) !important;
-  opacity: 0.5;
-  transition: opacity 200ms var(--ease-out);
-  font-style: italic;
-}
-
-/* Match mini oscillation state */
-.match-mini--oscillating .match-mini__ring-fill {
-  --ring-circ: 326.73;
-  animation: scoreOscillate 2.5s ease-in-out infinite;
-}
-
-/* Score ring during scaffold — ring outline visible but empty */
-.match-mini--scaffold {
-  opacity: 1 !important;
-}
-
-.match-mini--scaffold .match-mini__ring-bg {
-  opacity: 0.3;
-}
-
-.match-mini--scaffold .match-mini__score {
-  opacity: 0;
-}
-
-.match-mini--scaffold .match-mini__brand {
-  opacity: 0.4;
-}
-
-/* Loading status caption (positioned inside scaffold) */
-.scaffold-status {
-  font-family: var(--font-structural);
-  font-size: var(--text-sm);
-  color: var(--fg3);
-  text-align: center;
-  margin-top: var(--space-xs);
-  opacity: 0;
-  transition: opacity 200ms var(--ease-out);
-}
-
-.scaffold-status--visible {
-  opacity: 0.5;
-}
+/* (V10: Scaffold, progress ink, ghost headline, oscillation removed — instant loading) */
 
 /* ---- CTA-to-Dot FLIP element ---- */
 .inkwell-dot {
@@ -5760,63 +5655,7 @@
               opacity 300ms var(--ease-out);
 }
 
-/* ---- Phase 4: Ink Manifest Reveal ---- */
-
-/* Ink-write children: visible but clipped (clip-path reveal) */
-.result-card--manifesting .glance-hero {
-  clip-path: inset(0 100% 0 0);
-  animation: inkReveal var(--dur-ink) cubic-bezier(0.2, 1, 0.4, 1) 80ms forwards;
-}
-
-.result-card--manifesting .match-headline {
-  clip-path: inset(0 100% 0 0);
-  animation: inkReveal var(--dur-ink) cubic-bezier(0.2, 1, 0.4, 1) 200ms forwards;
-}
-
-/* Blurb uses word-group reveal (JS-driven), so just fade the container in */
-.result-card--manifesting .donde-blurb {
-  opacity: 0;
-  animation: fadeInUp 400ms var(--ease-out) 300ms forwards;
-}
-
-.result-card--manifesting .glance-nav {
-  clip-path: inset(0 100% 0 0);
-  animation: inkReveal 400ms cubic-bezier(0.2, 1, 0.4, 1) 500ms forwards;
-}
-
-/* Fade-up children: invisible, opacity + transform reveal */
-.result-card--manifesting .tell-more-btn {
-  opacity: 0;
-  animation: fadeInUp 300ms var(--ease-out) 600ms forwards;
-}
-
-.result-card--manifesting .card-footer {
-  opacity: 0;
-  animation: fadeInUp 300ms var(--spring) 700ms forwards;
-}
-
-.result-card--manifesting .quick-actions {
-  opacity: 0;
-  animation: fadeInUp 300ms var(--spring) 500ms forwards;
-}
-
-/* Cuisine mismatch, signal chips — fade in late */
-.result-card--manifesting .cuisine-mismatch-notice,
-.result-card--manifesting .signal-chips {
-  opacity: 0;
-  animation: fadeInUp 300ms var(--ease-out) 400ms forwards;
-}
-
-/* ---- Word-group reveal for recommendation blurb ---- */
-.word-group {
-  display: inline;
-  opacity: 0;
-  transition: opacity 200ms var(--ease-out);
-}
-
-.word-group--visible {
-  opacity: 1;
-}
+/* (V10: Ink manifest + word-group removed — card fades in as unit) */
 
 /* ---- Phase: Result Card Unfold (back navigation) ---- */
 .result-card--unfolding .card-footer {
