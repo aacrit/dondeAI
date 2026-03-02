@@ -66,27 +66,29 @@
 
   /* ---- Layout ---- */
   --content-max: 640px;
-  --header-h:    56px;
+  --header-h:    48px;
   --chip-h:      44px;
 }
 
-/* ---- Universal RAG Scale (theme-independent) ---- */
+/* ---- Universal RAG Scale (theme-independent, distinct from all accent hues) ---- */
+/* Accents occupy hues 18-48° (warm) + 220° (cool) + 350° (chili).
+   RAG signals shifted to teal (162°), yellow (50°), rose (340°) to avoid overlap. */
 [data-mode="light"] {
-  --rag-green:      hsl(145 63% 35%);
-  --rag-amber:      hsl(38 92% 31%);  /* V3.3 (DV4): was hsl(40 82% 44%); darkened for WCAG AA on white */
-  --rag-red:        hsl(4 72% 46%);
-  --rag-green-soft: hsl(145 63% 35% / 0.14);
-  --rag-amber-soft: hsl(38 92% 31% / 0.14);  /* V3.3: sync with amber */
-  --rag-red-soft:   hsl(4 72% 46% / 0.14);
+  --rag-green:      hsl(162 70% 33%);
+  --rag-amber:      hsl(50 100% 33%);
+  --rag-red:        hsl(340 70% 44%);
+  --rag-green-soft: hsl(162 70% 33% / 0.14);
+  --rag-amber-soft: hsl(50 100% 33% / 0.14);
+  --rag-red-soft:   hsl(340 70% 44% / 0.14);
   --star-gold:      hsl(44 90% 48%);
 }
 [data-mode="dark"] {
-  --rag-green:      hsl(145 56% 50%);
-  --rag-amber:      hsl(40 82% 58%);
-  --rag-red:        hsl(4 65% 56%);
-  --rag-green-soft: hsl(145 56% 50% / 0.18);
-  --rag-amber-soft: hsl(40 82% 58% / 0.18);
-  --rag-red-soft:   hsl(4 65% 56% / 0.18);
+  --rag-green:      hsl(162 58% 48%);
+  --rag-amber:      hsl(50 85% 54%);
+  --rag-red:        hsl(340 62% 58%);
+  --rag-green-soft: hsl(162 58% 48% / 0.18);
+  --rag-amber-soft: hsl(50 85% 54% / 0.18);
+  --rag-red-soft:   hsl(340 62% 58% / 0.18);
   --star-gold:      hsl(44 85% 52%);
 }
 

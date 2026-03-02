@@ -647,16 +647,73 @@
   gap: var(--space-2xs);
 }
 
-.filter-group-label {
+/* ---- Hood Groups (collapsible neighborhood regions) ---- */
+.hood-groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs);
+}
+
+.hood-groups .filter-pill--anywhere {
+  width: auto;
+  flex-shrink: 0;
+}
+
+.hood-group {
   width: 100%;
-  padding: var(--space-xs) 0 2px;
-  font-size: 10px;
-  letter-spacing: 0.08em;
+}
+
+.hood-group__toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: var(--space-2xs) var(--space-xs);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--fg3);
-  opacity: 0.7;
-  pointer-events: none;
+  color: var(--fg2);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: color var(--dur-fast) var(--ease-out),
+              background var(--dur-fast) var(--ease-out);
+  list-style: none;
   user-select: none;
+}
+
+.hood-group__toggle::-webkit-details-marker { display: none; }
+
+.hood-group__toggle:hover {
+  color: var(--ac);
+  background: var(--ac-soft);
+}
+
+.hood-group__arrow {
+  font-size: 8px;
+  transition: transform var(--dur-fast) var(--ease-out);
+  opacity: 0.5;
+}
+
+.hood-group[open] .hood-group__arrow {
+  transform: rotate(180deg);
+}
+
+.hood-group__pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs);
+  padding: var(--space-2xs) 0 var(--space-xs) var(--space-xs);
+  animation: hoodExpand 200ms var(--ease-out);
+}
+
+/* Auto-open group when a pill inside is selected */
+.hood-group:has(.filter-pill[aria-checked="true"]) .hood-group__toggle {
+  color: var(--ac);
+}
+
+@keyframes hoodExpand {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .filter-pill {
@@ -3262,8 +3319,9 @@
 
 /* ---- Particle Canvas ---- */
 .particle-canvas {
-  position: absolute;
+  position: fixed;
   inset: 0;
+  z-index: var(--z-particle, 500);
   pointer-events: none;
 }
 
@@ -4016,10 +4074,10 @@
 .glance-nav__link--enhanced {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
-  padding: var(--space-sm) var(--space-md);
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
   background: var(--bg2);
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
   text-decoration: none;
   color: var(--fg);
   transition: background 200ms var(--ease-out), transform 150ms var(--spring);
@@ -4034,8 +4092,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   background: var(--ac);
   color: white;
@@ -4045,21 +4103,22 @@
 .glance-nav__info {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
   min-width: 0;
   flex: 1;
 }
 
 .glance-nav__hood {
-  color: var(--ac);
+  color: var(--fg2);
   font-weight: 600;
+  font-size: var(--text-xs);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
 .glance-nav__address {
-  color: var(--fg2);
-  font-size: var(--text-sm);
+  color: var(--fg3);
+  font-size: var(--text-xs);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -5141,7 +5200,8 @@
   background: color-mix(in srgb, var(--fg3) 8%, var(--bg));
   border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
   border-radius: var(--radius-sm);
-  margin-bottom: var(--space-sm);
+  margin-top: var(--space-sm);
+  margin-bottom: var(--space-xs);
   animation: fadeInUp 300ms var(--ease-out) forwards;
 }
 
@@ -5632,11 +5692,79 @@
   pointer-events: none;
 }
 
+/* ---- Result Loading Interstitial (animated Donde logo) ---- */
+.result-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  padding: var(--space-2xl) 0;
+  min-height: 40vh;
+  color: var(--fg2);
+}
+
+.result-loading__mark {
+  color: var(--fg2);
+  opacity: 0;
+  animation: loadingMarkIn 400ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.result-loading__tine {
+  stroke-dasharray: 30;
+  stroke-dashoffset: 30;
+  animation: strokeDraw 300ms cubic-bezier(0.34, 1.56, 0.64, 1) 100ms forwards;
+}
+
+.result-loading__tine--right {
+  animation-delay: 200ms;
+}
+
+.result-loading__curve {
+  stroke-dasharray: 60;
+  stroke-dashoffset: 60;
+  animation:
+    strokeDraw 400ms cubic-bezier(0.34, 1.56, 0.64, 1) 300ms forwards,
+    curveWobble 2.5s ease-in-out 700ms infinite;
+  transform-origin: 16px 22px;
+}
+
+.result-loading__dot {
+  opacity: 0;
+  transform: scale(0);
+  transform-origin: 16px 40px;
+  animation:
+    dotSpringIn 300ms cubic-bezier(0.34, 1.56, 0.64, 1) 500ms forwards,
+    dotPulseLoop 1.4s ease-in-out 800ms infinite;
+}
+
+.result-loading__status {
+  font-size: var(--text-sm);
+  color: var(--fg3);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0;
+  animation: contentFadeIn 400ms ease-out 600ms forwards;
+}
+
+/* Fade out when data arrives */
+.result-loading--exiting {
+  animation: loadingMarkOut 300ms var(--ease-out) forwards;
+}
+
 /* ---- Phase 2–3: Result Card Scaffold ---- */
 /* V10: Loading state — card hidden until data arrives, then fades in */
 .result-card--loading {
   opacity: 0;
 }
+
+/* Progressive reveal: elements fade in sequentially when card enters */
+.result-card--revealing .result-photos    { opacity: 0; animation: revealUp 350ms var(--ease-out) 0ms forwards; }
+.result-card--revealing .glance-hero      { opacity: 0; animation: revealUp 350ms var(--ease-out) 80ms forwards; }
+.result-card--revealing .donde-blurb      { opacity: 0; animation: revealUp 350ms var(--ease-out) 160ms forwards; }
+.result-card--revealing .glance-nav       { opacity: 0; animation: revealUp 350ms var(--ease-out) 240ms forwards; }
+.result-card--revealing .tell-more-btn    { opacity: 0; animation: revealUp 300ms var(--ease-out) 320ms forwards; }
+.result-card--revealing .card-footer      { opacity: 0; animation: revealUp 300ms var(--ease-out) 380ms forwards; }
 
 /* (V10: Scaffold, progress ink, ghost headline, oscillation removed — instant loading) */
 

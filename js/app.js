@@ -26,9 +26,7 @@ import {
 const $app = document.querySelector('.app');
 const $main = document.querySelector('.cockpit');
 const $cravingInput = document.getElementById('craving-input');
-const $loadingState = document.getElementById('loading-state');
 const $resultCard = document.getElementById('result-card');
-const $particleCanvas = document.getElementById('particle-canvas');
 const $toast = document.getElementById('toast');
 const $toastText = document.getElementById('toast-text');
 const $cursorGlow = document.querySelector('.cursor-glow');
@@ -118,6 +116,9 @@ function init() {
 
   // V9: Canvas progressive disclosure — start minimal, reveal on engagement
   startCanvasDisclosure();
+
+  // Hood group accordion init
+  initHoodGroups();
 
   // V10: Render combined "Your Spots" (recent + saved + visited)
   renderYourSpots();
@@ -735,6 +736,7 @@ function wireEvents() {
 
       case 'select-neighborhood':
         selectFilter('neighborhood', btn);
+        autoOpenHoodGroup(btn.dataset.value);
         break;
 
       case 'select-budget':
@@ -1810,6 +1812,27 @@ function collapseFilters() {
   if (content && !content.hidden) _animateDrawerClose(content);
 }
 
+/* ---- Hood group accordion (close others on open) ---- */
+function initHoodGroups() {
+  document.querySelectorAll('.hood-group').forEach(group => {
+    group.addEventListener('toggle', () => {
+      if (group.open) {
+        document.querySelectorAll('.hood-group').forEach(other => {
+          if (other !== group) other.removeAttribute('open');
+        });
+      }
+    });
+  });
+}
+
+function autoOpenHoodGroup(value) {
+  if (!value || value === 'Anywhere') return;
+  const pill = document.querySelector(`.hood-group .filter-pill[data-value="${value}"]`);
+  if (!pill) return;
+  const group = pill.closest('.hood-group');
+  if (group) group.setAttribute('open', '');
+}
+
 /* ---- Smooth filter drawer close ---- */
 function _animateDrawerClose(content) {
   if (REDUCED_MOTION.matches) {
@@ -1970,18 +1993,25 @@ let _swapInFlight = false;
 /* ---- Phase 1: Canvas Fold ---- */
 function beginCanvasFold() {
   const $canvas = document.querySelector('.canvas-layout');
+  const $loading = document.getElementById('result-loading');
 
   // Cancel any previous timers
   _scaffoldTimers.forEach(clearTimeout);
   _scaffoldTimers = [];
 
-  // V10: Instant slide + simple loading state
+  // Hide result card, show loading interstitial
   if ($resultCard) {
-    $resultCard.style.display = '';
+    $resultCard.style.display = 'none';
     $resultCard.style.opacity = '0';
     $resultCard.style.transform = '';
     $resultCard.style.transition = '';
     $resultCard.classList.add('result-card--loading');
+    $resultCard.classList.remove('result-card--revealing');
+  }
+
+  if ($loading) {
+    $loading.style.display = '';
+    $loading.classList.remove('result-loading--exiting');
   }
 
   if ($canvas) $canvas.classList.add('canvas-layout--morphing');
@@ -2004,7 +2034,7 @@ function stopPhraseCarousel() {
   }
 }
 
-/* ---- V10: Manifest Result — simple fade-in (data arrives) ---- */
+/* ---- V10: Manifest Result — logo exit + progressive reveal ---- */
 async function manifestResult(data) {
   // Stop any running timers
   stopPhraseCarousel();
@@ -2014,31 +2044,50 @@ async function manifestResult(data) {
   // Render all DOM content
   renderResult(data);
 
-  // V10: Simple fade-in of entire card (no staggered reveals)
-  if ($resultCard) {
-    $resultCard.classList.remove('result-card--scaffold', 'result-card--loading');
+  const $loading = document.getElementById('result-loading');
 
-    if (REDUCED_MOTION.matches) {
+  if (REDUCED_MOTION.matches) {
+    // Instant swap
+    if ($loading) $loading.style.display = 'none';
+    if ($resultCard) {
+      $resultCard.style.display = '';
       $resultCard.style.opacity = '1';
-    } else {
-      $resultCard.style.transition = 'opacity 300ms var(--ease-out)';
-      requestAnimationFrame(() => {
-        $resultCard.style.opacity = '1';
-      });
+      $resultCard.classList.remove('result-card--scaffold', 'result-card--loading');
     }
+  } else {
+    // Phase 1: Fade out loading logo (300ms)
+    if ($loading) {
+      $loading.classList.add('result-loading--exiting');
+    }
+
+    // Phase 2: After logo exits, show card with progressive reveal
+    _scaffoldTimers.push(setTimeout(() => {
+      if ($loading) $loading.style.display = 'none';
+      if ($resultCard) {
+        $resultCard.style.display = '';
+        $resultCard.classList.remove('result-card--scaffold', 'result-card--loading');
+        $resultCard.classList.add('result-card--revealing');
+        $resultCard.style.opacity = '1';
+
+        // Clean up revealing class after all animations complete
+        _scaffoldTimers.push(setTimeout(() => {
+          $resultCard.classList.remove('result-card--revealing');
+        }, 500));
+      }
+    }, 280));
   }
 
   // Haptic on reveal
   haptic(HAPTICS.reveal);
 
-  // Score count-up — the sole brand animation moment
+  // Score count-up — the sole brand animation moment (delayed for progressive reveal)
   const dondeScore = Math.round(parseFloat(data.donde_match) || 0);
-  animateScoreCountUp(
-    document.getElementById('match-pill-score'),
-    dondeScore
-  );
-
-  // V10: No word-group reveal — blurb text fades in with card
+  _scaffoldTimers.push(setTimeout(() => {
+    animateScoreCountUp(
+      document.getElementById('match-pill-score'),
+      dondeScore
+    );
+  }, REDUCED_MOTION.matches ? 0 : 360));
 
   // Celebration for 88%+ scores
   if (dondeScore >= 88) {
@@ -2046,13 +2095,13 @@ async function manifestResult(data) {
       fireCelebration();
       playCelebrationChime();
       haptic(HAPTICS.celebration);
-    }, 1200));
+    }, 1400));
   }
 
   // Settle — clean up after animations complete
   _scaffoldTimers.push(setTimeout(() => {
     settleResult();
-  }, 800));
+  }, 1000));
 
   // Schedule edge-hint replays
   scheduleEdgeHintReplay();
@@ -2072,10 +2121,12 @@ function reverseCanvasFold() {
   _scaffoldTimers = [];
 
   const $canvas = document.querySelector('.canvas-layout');
+  const $loading = document.getElementById('result-loading');
 
   if ($canvas) $canvas.classList.remove('canvas-layout--morphing');
+  if ($loading) { $loading.style.display = 'none'; $loading.classList.remove('result-loading--exiting'); }
   if ($resultCard) {
-    $resultCard.classList.remove('result-card--loading');
+    $resultCard.classList.remove('result-card--loading', 'result-card--revealing');
     $resultCard.style.display = 'none';
   }
 
@@ -3265,8 +3316,13 @@ function renderRelaxationNotice(data) {
     <span class="relaxation-notice__text type-structural">We expanded beyond ${filterText} to find your best match</span>
     <button class="relaxation-notice__dismiss" aria-label="Dismiss notice">&times;</button>`;
 
-  // Insert before result card content
-  $resultCard.insertAdjacentElement('afterbegin', notice);
+  // Insert before "Show More" button (below content, not above)
+  const $showMore = $resultCard.querySelector('.tell-more-btn');
+  if ($showMore) {
+    $showMore.parentNode.insertBefore(notice, $showMore);
+  } else {
+    $resultCard.appendChild(notice);
+  }
 
   // Dismiss handler
   notice.querySelector('.relaxation-notice__dismiss')?.addEventListener('click', () => {
@@ -3333,15 +3389,17 @@ function renderMapPreview(data) {
   const mapsUrl = r.google_place_id
     ? `https://www.google.com/maps/place/?q=place_id:${r.google_place_id}`
     : buildMapsUrl(r.address);
-  const neighborhood = r.neighborhood_name || '';
+  // Filter out generic city-level names from neighborhood display
+  const rawHood = r.neighborhood_name || '';
+  const neighborhood = /^chicago$/i.test(rawHood.trim()) ? '' : rawHood;
   $glanceNav.innerHTML = `
     <a class="glance-nav__link glance-nav__link--enhanced" href="${mapsUrl}" target="_blank" rel="noopener noreferrer">
-      <div class="glance-nav__map-icon">${svgIcon('pin', 24)}</div>
+      <div class="glance-nav__map-icon">${svgIcon('pin', 20)}</div>
       <div class="glance-nav__info">
         ${neighborhood ? `<span class="glance-nav__hood type-data--sm">${neighborhood}</span>` : ''}
         <span class="glance-nav__address type-structural">${r.address}</span>
       </div>
-      <span class="glance-nav__cta type-structural">Directions ${svgIcon('chevronRight', 16)}</span>
+      <span class="glance-nav__cta type-structural">${svgIcon('chevronRight', 16)}</span>
     </a>`;
   $glanceNav.style.display = '';
 }
