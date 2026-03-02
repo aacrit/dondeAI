@@ -1,78 +1,75 @@
 # Features
 
-Last updated: 2026-02-27
+Last updated: 2026-03-02
 
 ## Core Journey
 
-- [x] Free-text craving input with 500-char limit (BR-C1)
-- [x] Voice input via Web Speech Recognition (BR-H8)
-- [x] Smart chips — culture-aware suggestions (BR-L7)
-- [x] Surprise Me — one-tap random craving (BR-H1)
-- [x] Occasion filter — 9 options (BR-C2)
-- [x] Neighborhood filter — Anywhere + 14 Chicago areas (BR-C3)
-- [x] Budget filter — Any, $, $$, $$$, $$$$ (BR-C4)
-- [x] Dietary filter — Vegan, Vegetarian, Gluten-Free, Halal (multi-select)
-- [x] Randomize filters button
+- [x] Free-text craving input (500-char limit) + voice input (Web Speech)
+- [x] Smart chips — culture-aware suggestions
+- [x] Surprise Me — one-tap random craving
+- [x] Filters: occasion (9), neighborhood (14 + Anywhere), budget (4 + Any), dietary (multi-select)
 - [x] CTA disabled until craving entered
-- [x] 3-act loading transition (blur → particles + logo → reveal) (BR-C5)
-- [x] Result card with 5 semantic blocks (identity, story, scores, profile, actions) (BR-C6)
-- [x] Try Another / Try Again — instant from ranked queue (V7), API fallback when exhausted (BR-C7)
-- [x] Start Over / reset to canvas (BR-C8)
+- [x] V10 loading: instant slide + 300ms fade (score count-up only animation)
+- [x] Result card: photos → score + name → blurb → address → actions → footer
+- [x] Try Another — instant from ranked queue (V7), API fallback when exhausted
+- [x] Start Over — reset to canvas
 
-## Scoring & Display (V7)
+## Scoring & Display
 
-- [x] Donde Match ring (0-100, animated arc, 5 verdict tiers)
-- [x] V7 Score Hero: 5 factor constellation rings (concentric semicircular arcs, color-coded by tier)
-- [x] Match narrative reveal (after score count-up: strongest factor + key signal)
-- [x] Factor bars with weight badges (shows % weight contribution per factor)
-- [x] Factor bars with signal chips (top 2 signals per factor, color-coded by strength)
-- [x] Donde Vibe petal radar (6-axis teardrop, expandable)
-- [x] Bloom cycle (ring → radar → V2 bars → compact)
-- [x] Sentiment bar (RAG horizontal, labeled, tooltip)
-- [x] Google rating inline (stars + count, links to Maps)
-- [x] Glyph bar (value-based icons: price, noise, ambiance, cuisine, parking, dress)
-- [x] Profile facts (expandable badge grid)
-- [x] Progressive reveal with staggered timing
-- [x] Card swap animation on Try Again (slide left out → slide right in)
+- [x] Donde Match ring (0-100) with RAG colors (green ≥80, amber ≥60, red <60)
+- [x] Score Hero in Tier 2: full ring + RAG colors
+- [x] Factor bars with weight badges
+- [x] Match narrative reveal (strongest factor + key signal)
+- [x] Donde Vibe petal radar (6-axis, expandable)
+- [x] Sentiment bar (RAG, labeled)
+- [x] Google rating (stars + count, links to Maps)
+- [x] Glyph bar (price, noise, ambiance, cuisine, parking, dress)
+- [x] Card swap animation on Try Again (300ms symmetric slide)
+
+### V10 Removed from Tier 1
+- Signal chips (factor bars sufficient)
+- Match headline (blurb communicates the why)
+- One-liner (redundant with blurb)
+- Quick tags (low value)
+- Staggered progressive reveal (card fades in as unit)
+- Blurb height cap (full text flows naturally)
 
 ## Enhanced UX
 
-- [x] 5 cultural themes x 2 modes (BR-H5)
-- [x] Auto-theme on typing (cuisine → culture preview)
+- [x] 5 cultural themes × 2 modes (auto-theme on typing)
 - [x] Theme wash transition (radial clip-path)
-- [x] Sound/haptic chimes per culture (BR-H6)
-- [x] Celebration chime for 88%+ matches
-- [x] Taste Memory — last 3 searches with re-fill (BR-H3)
-- [x] Share sheet — 8 channels + canvas card (BR-H4)
-- [x] Time-of-day intelligence (BR-H7)
+- [x] Sound/haptic chimes per culture + celebration for 88%+
+- [x] V10 "Your Spots" — unified recent + saved + visited history
+- [x] Known For — inline pills in Tier 2 (moved from Tier 1)
+- [x] Share sheet — 8 channels + canvas card
+- [x] Time-of-day intelligence
+- [x] 2-row compact footer: Going + Try Another / Feedback + Start Over
 
-## V7 Backend Integration
+## V10 Loading Changes
 
-- [x] `ranked_queue` consumed from API response → stored in state
-- [x] `match_narrative` passed to `renderScoreHero()` for narrative reveal
-- [x] `scoring_v7` / `scoring_v5` alias normalization in `api.js`
-- [x] `intent_alignment` available in scoring data (cuisine/dish/vibe/constraints sub-scores)
-- [x] `factor_details` used for signal chips in factor bars
+| Before | After |
+|--------|-------|
+| 5-phase scaffold choreography | Instant slide + simple fade |
+| Skeleton blocks + ink wash | No skeleton |
+| Ghost headline carousel | No carousel |
+| Word-group stagger reveal | Blurb fades in with card |
+| 500ms minimum wait | No artificial delay |
+| Staggered element reveals | Card fades in as unit (300ms) |
 
 ## Polish
 
-- [x] Particle loading animation (BR-L2)
-- [x] Keyboard navigation — full a11y (BR-L3)
-- [x] Offline detection with banner (BR-L4)
-- [x] Virtual keyboard adaptation (BR-L5)
-- [x] Ambient background blobs (culture-specific speeds)
+- [x] Keyboard nav (full a11y), shortcuts: `/` `T` `F` `R` `Esc`
+- [x] Offline detection banner
+- [x] Virtual keyboard adaptation
+- [x] Ambient background blobs (culture-specific)
 - [x] Logo SVG draw-in animation
-- [x] Reduced-motion: all animations disabled, factor rings skip to final state
+- [x] Reduced-motion: all animations disabled
 
-## Auth (Partial — Phase 1a)
+## Auth (Partial)
 
-- [x] Google SSO via Supabase Auth
-- [x] Server-side search history for authenticated users
-- [x] Server-side favorites/bookmarks
-- [x] Anonymous-to-auth data migration on first sign-in
-- [ ] Apple SSO (awaiting developer enrollment)
-- [ ] Facebook/Instagram (Phase 2, demand-driven)
+- [x] Google SSO, server-side history + favorites, anon-to-auth migration
+- [ ] Apple SSO (awaiting enrollment)
 
 ## Persistence (localStorage)
 
-`dondeai-theme`, `dondeai-sound`, `dondeai-colormode`, `dondeai-history` (last 3), `dondeai-bookmarks` (max 20), `dondeai-user-id` (UUID), `dondeai-feedback` (max 100)
+`dondeai-theme`, `dondeai-sound`, `dondeai-colormode`, `dondeai-history` (3), `dondeai-bookmarks` (20), `dondeai-user-id`, `dondeai-feedback` (100)

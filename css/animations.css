@@ -235,6 +235,35 @@
   50%      { transform: scale(1.02) translateY(-1px); }
 }
 
+/* ---- Result Loading: Wobbly curve animation ---- */
+@keyframes curveWobble {
+  0%   { transform: scale(1) rotate(0deg); }
+  25%  { transform: scale(1.03) rotate(1.5deg); }
+  50%  { transform: scale(0.98) rotate(-1deg); }
+  75%  { transform: scale(1.02) rotate(0.8deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+@keyframes dotPulseLoop {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%      { transform: scale(1.35); opacity: 0.7; }
+}
+
+@keyframes loadingMarkIn {
+  from { opacity: 0; transform: scale(0.8); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes loadingMarkOut {
+  from { opacity: 1; transform: scale(1) translateY(0); }
+  to   { opacity: 0; transform: scale(0.9) translateY(-12px); }
+}
+
+@keyframes revealUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 /* ============================================
    "Ink Manifests" Transition Keyframes
    Canvas → Result morph, scaffold, reveal
@@ -652,7 +681,19 @@
   .canvas-layout--morphing .cta-hint,
   .canvas-layout--morphing .step__title,
   .canvas-layout--morphing .surprise-btn,
-  .scaffold-block {
+  .scaffold-block,
+  .result-loading__mark,
+  .result-loading__tine,
+  .result-loading__curve,
+  .result-loading__dot,
+  .result-loading__status,
+  .result-loading--exiting,
+  .result-card--revealing .result-photos,
+  .result-card--revealing .glance-hero,
+  .result-card--revealing .donde-blurb,
+  .result-card--revealing .glance-nav,
+  .result-card--revealing .tell-more-btn,
+  .result-card--revealing .card-footer {
     animation-duration: 100ms !important;
     animation-timing-function: linear !important;
     opacity: 1;

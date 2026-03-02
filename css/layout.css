@@ -114,7 +114,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 var(--space-md);
+  padding: 0 var(--space-sm);
   z-index: var(--z-nav);
   pointer-events: none;
   background: var(--glass-header);
@@ -131,9 +131,9 @@
 .header__logo {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-sm);
-  padding: var(--space-xs) var(--space-sm);
-  margin: calc(-1 * var(--space-xs)) calc(-1 * var(--space-sm));
+  gap: var(--space-xs);
+  padding: var(--space-2xs) var(--space-xs);
+  margin: calc(-1 * var(--space-2xs)) calc(-1 * var(--space-xs));
   color: var(--fg);
   cursor: pointer;
   user-select: none;
@@ -152,8 +152,8 @@
 }
 
 .header__btn {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -169,8 +169,8 @@
 }
 
 .header__btn svg {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
 }
 
 /* Color mode button */

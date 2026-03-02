@@ -1,60 +1,60 @@
 # Test Cases
 
-Last updated: 2026-02-26
+Last updated: 2026-03-02
 
-## Current State
+No automated frontend tests. All testing is manual or via backend API tests (`dondeBackend/tests/`).
 
-No automated frontend test framework exists. The app is vanilla HTML/CSS/JS with no build step. All testing is manual or via backend API tests.
+## Visual (V1-V7)
 
-## Backend Test References
+| ID | Test | Expected |
+|----|------|----------|
+| V1 | All 10 theme variants | Colors update, no layout shift, no console errors |
+| V2 | Ink Rule compliance | `--ac` only on allowed elements (see DESIGN-SYSTEM.md) |
+| V3 | Responsive 320-2560px | No overflow, readable at all sizes |
+| V4 | Typography voices | Playfair=headings, Inter=buttons, JetBrains=scores |
+| V5 | RAG colors on score | Green ≥80, amber ≥60, red <60 on ring + number |
+| V6 | Photo scroll strip | Equal-sized photos, scroll-snap, lightbox on tap |
+| V7 | Blurb full text | No height cap, no scrollbar, full text flows naturally |
 
-| File | Location | Description |
-|------|----------|-------------|
-| `test_catalog.sh` | `dondeBackend/tests/` | 65-scenario bash API test suite |
-| `TEST-FULL.md` | `dondeBackend/tests/` | 170-scenario agent-driven test spec (V4-era) |
-| `TEST_RESULTS.md` | `dondeBackend/tests/` | Latest results: 273 pass, 3 fail, 30 warn (2026-02-24) |
+## Interaction (I1-I9)
 
-## Frontend Manual Test Suite
+| ID | Test | Expected |
+|----|------|----------|
+| I1 | Submit → result | Canvas dissolves (400ms), step slides, card fades in (300ms) |
+| I2 | Try Another × 3 | 3 unique restaurants, card swaps symmetrically (300ms each) |
+| I3 | Start Over | Canvas view, "Your Spots" shows recent search |
+| I4 | Filter combos | CTA enabled, summary line updates |
+| I5 | Voice input | Transcript fills input |
+| I6 | Smart chips | Input fills with chip text |
+| I7 | Surprise Me | Random craving submitted |
+| I8 | Share sheet | Native share or 8-channel fallback |
+| I9 | Show More / Less | Tier 2 toggles symmetrically (450ms), button text swaps |
 
-### Visual (V1-V6)
+## Animation Symmetry (S1-S5)
 
-| ID | Test | Steps | Expected |
-|----|------|-------|----------|
-| V1 | All 10 theme variants render | Cycle 5 themes in light + dark mode | Colors update, no layout shift, no console errors |
-| V2 | Ink Rule compliance | Inspect accent usage on result card | `--ac` only on allowed elements (see DESIGN-SYSTEM.md) |
-| V3 | Responsive 320-2560px | Chrome DevTools device toolbar | No overflow, readable at all sizes |
-| V4 | Typography voices | Check headings, buttons, scores | Playfair=headings, Inter=buttons, JetBrains=scores |
-| V5 | Progressive reveal timing | Submit and observe result card | Blocks stagger in, ring animates at 800ms |
-| V6 | Glyph bar icons | Check result card glyph bar | Price as text, noise/ambiance context-mapped |
+| ID | Test | Expected |
+|----|------|----------|
+| S1 | Filter drawer open/close | 300ms both directions, no jank |
+| S2 | Tier 2 expand/collapse | 450ms both, opacity aligned with max-height |
+| S3 | Card swap out/in | 300ms both, smooth slide |
+| S4 | Back button appear/disappear | 300ms spring, opacity + transform aligned |
+| S5 | Canvas morph/restore | inkDissolve ↔ inkRestore mirrored (20px offset) |
 
-### Interaction (I1-I8)
+## Accessibility (A1-A5)
 
-| ID | Test | Steps | Expected |
-|----|------|-------|----------|
-| I1 | Submit → result flow | Enter craving, submit | Loading animation, result card appears |
-| I2 | Try Another chain (3x) | Submit, Try Another x3 | 3 unique restaurants, scores may decrease |
-| I3 | Start Over | From result, tap Start Over | Canvas view, input cleared, filters reset |
-| I4 | Filter combinations | Set occasion + neighborhood + budget | CTA enabled, filters shown in summary |
-| I5 | Voice input | Tap mic, speak craving | Transcript fills input, auto-submit on high confidence |
-| I6 | Smart chips | Tap a chip on canvas | Input fills with chip text |
-| I7 | Surprise Me | Tap Surprise Me | Random craving submitted |
-| I8 | Share sheet | From result, tap Share | Native share or 8-channel fallback sheet |
+| ID | Test | Expected |
+|----|------|----------|
+| A1 | Keyboard tab | Focus visible, logical order, no traps |
+| A2 | Shortcuts `/` `T` `F` `R` `Esc` | Focus, toggle, retry, close |
+| A3 | Screen reader | All elements announced, landmarks found |
+| A4 | Reduced motion | 0ms animations, no visual motion |
+| A5 | Focus management | Focus moves to primary element on view change |
 
-### Accessibility (A1-A5)
+## Theme & Persistence (T1-T4)
 
-| ID | Test | Steps | Expected |
-|----|------|-------|----------|
-| A1 | Keyboard navigation | Tab through all interactives | Focus visible, logical order, no traps |
-| A2 | Keyboard shortcuts | Press /, T, F, R, Escape | Focus input, toggle mode, toggle filters, try again, close |
-| A3 | Screen reader flow | VoiceOver/NVDA through full journey | All elements announced, landmarks found |
-| A4 | Reduced motion | Enable `prefers-reduced-motion` | 0ms animations, no visual motion |
-| A5 | Focus management | Submit → result, Start Over → canvas | Focus moves to primary element on view change |
-
-### Theme & Persistence (T1-T4)
-
-| ID | Test | Steps | Expected |
-|----|------|-------|----------|
-| T1 | Theme persistence | Set theme to Zen, reload | Theme still Zen |
-| T2 | Auto-theme on typing | Type "sushi" in craving | Theme previews to Zen (indigo) |
-| T3 | Theme wash animation | Click cycle button | Radial clip-path wash transition |
-| T4 | Sound toggle persistence | Enable sound, reload, check | Sound state preserved |
+| ID | Test | Expected |
+|----|------|----------|
+| T1 | Theme persistence | Reload preserves theme |
+| T2 | Auto-theme on typing | "sushi" → Zen preview |
+| T3 | Theme wash | Radial clip-path transition |
+| T4 | Sound toggle | State preserved across reload |
