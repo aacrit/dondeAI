@@ -140,6 +140,12 @@ export async function fetchRecommendation({ special_request, occasion, neighborh
 
       clearTimeout(timer);
 
+      // Retry on 503 (Edge Function cold start / boot failure)
+      if (res.status === 503 && attempt < MAX_ATTEMPTS) {
+        await new Promise(r => setTimeout(r, RETRY_DELAY));
+        continue;
+      }
+
       if (!res.ok) {
         throw new Error(`Server returned ${res.status}. Please try again.`);
       }
