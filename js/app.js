@@ -1262,40 +1262,48 @@ function wireEvents() {
 
       case 'expand-tier-2': {
         const $tier2 = document.getElementById('tier-leanin');
+        if (!$tier2 || $tier2._transitioning) break;
+
         const isExpanded = btn.getAttribute('aria-expanded') === 'true';
         btn.setAttribute('aria-expanded', String(!isExpanded));
-        if ($tier2) {
-          $tier2.classList.toggle('tier--expanded');
-          $tier2.setAttribute('aria-hidden', String(isExpanded));
-          // JS-driven height for smooth expand/collapse
-          requestAnimationFrame(() => {
-            if ($tier2.classList.contains('tier--expanded')) {
-              $tier2.style.maxHeight = $tier2.scrollHeight + 'px';
-              $tier2.addEventListener('transitionend', function onEnd() {
-                $tier2.style.maxHeight = 'none';
-                $tier2.removeEventListener('transitionend', onEnd);
-              }, { once: true });
-            } else {
-              $tier2.style.maxHeight = '';
-            }
-          });
-        }
+        $tier2.classList.toggle('tier--expanded');
+        $tier2.setAttribute('aria-hidden', String(isExpanded));
+
         const $btnText = btn.querySelector('.tell-more-btn__text');
         if ($btnText) $btnText.textContent = isExpanded ? 'Show More' : 'Show Less';
+
+        $tier2._transitioning = true;
+        const onDone = (e) => {
+          if (e.propertyName !== 'max-height') return;
+          $tier2.removeEventListener('transitionend', onDone);
+          $tier2._transitioning = false;
+          if ($tier2.classList.contains('tier--expanded')) {
+            $tier2.style.maxHeight = 'none';
+          }
+          $tier2.style.willChange = '';
+        };
+        $tier2.addEventListener('transitionend', onDone);
+
         if (!isExpanded) {
+          // EXPANDING — set concrete height target then let CSS transition
+          $tier2.style.willChange = 'max-height, opacity';
+          requestAnimationFrame(() => {
+            $tier2.style.maxHeight = $tier2.scrollHeight + 'px';
+          });
           haptic(HAPTICS.tierExpand);
           renderTier2Animations();
-          // Scroll to Score Hero (300ms delay lets expansion settle)
           setTimeout(() => {
             document.getElementById('score-hero')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
           }, 300);
           announce('Showing more details');
         } else {
-          // Collapsing — remove will-change after transition
-          $tier2?.addEventListener('transitionend', () => {
-            $tier2.style.willChange = '';
-          }, { once: true });
-          if (typeof resetBloomState === 'function') resetBloomState();
+          // COLLAPSING — snap to concrete px, force reflow, then transition to 0
+          $tier2.style.willChange = 'max-height, opacity';
+          $tier2.style.maxHeight = $tier2.scrollHeight + 'px';
+          void $tier2.offsetHeight; // force reflow
+          requestAnimationFrame(() => {
+            $tier2.style.maxHeight = '0';
+          });
         }
         break;
       }
@@ -2014,6 +2022,17 @@ function beginCanvasFold() {
     $loading.classList.remove('result-loading--exiting');
   }
 
+  // Show loading-state overlay with particles + logo
+  const $loadingState = document.getElementById('loading-state');
+  if ($loadingState) {
+    $loadingState.style.display = '';
+    if (!REDUCED_MOTION.matches) {
+      startParticles();
+      initLogoAnimation();
+      _scaffoldTimers.push(setTimeout(() => startSearchPulse(), 800));
+    }
+  }
+
   if ($canvas) $canvas.classList.add('canvas-layout--morphing');
 
   if (REDUCED_MOTION.matches) {
@@ -2044,11 +2063,24 @@ async function manifestResult(data) {
   // Render all DOM content
   renderResult(data);
 
+  // Stop particles and hide loading-state overlay
+  stopParticles();
+  stopSearchPulse();
+  const $loadingState = document.getElementById('loading-state');
+  if ($loadingState) {
+    resolveLogoToFound();
+    _scaffoldTimers.push(setTimeout(() => {
+      $loadingState.style.display = 'none';
+      cleanupLoadingLogo();
+    }, 600));
+  }
+
   const $loading = document.getElementById('result-loading');
 
   if (REDUCED_MOTION.matches) {
     // Instant swap
     if ($loading) $loading.style.display = 'none';
+    if ($loadingState) { $loadingState.style.display = 'none'; cleanupLoadingLogo(); }
     if ($resultCard) {
       $resultCard.style.display = '';
       $resultCard.style.opacity = '1';
@@ -2115,6 +2147,11 @@ function settleResult() {
   // Clear neighborhood from header
   const $headerHood = document.getElementById('header-hood');
   if ($headerHood) $headerHood.style.display = 'none';
+  // Clean up loading-state overlay
+  stopParticles();
+  stopSearchPulse();
+  const $loadingState = document.getElementById('loading-state');
+  if ($loadingState) { $loadingState.style.display = 'none'; cleanupLoadingLogo(); }
 }
 
 /* ---- Reverse Canvas Fold (error/back during loading) ---- */
@@ -2132,6 +2169,12 @@ function reverseCanvasFold() {
     $resultCard.classList.remove('result-card--loading', 'result-card--revealing');
     $resultCard.style.display = 'none';
   }
+
+  // Clean up loading-state overlay
+  stopParticles();
+  stopSearchPulse();
+  const $loadingState = document.getElementById('loading-state');
+  if ($loadingState) { $loadingState.style.display = 'none'; cleanupLoadingLogo(); }
 
   goToStep(0);
 }
@@ -2281,7 +2324,7 @@ function renderResult(data) {
   // Reset tier expansion state — always start at Tier 1 (Glance)
   const $tier2 = document.getElementById('tier-leanin');
   const $tellMore = document.getElementById('tell-more-btn');
-  if ($tier2) { $tier2.classList.remove('tier--expanded'); $tier2.setAttribute('aria-hidden', 'true'); }
+  if ($tier2) { $tier2.classList.remove('tier--expanded'); $tier2.setAttribute('aria-hidden', 'true'); $tier2.style.maxHeight = ''; $tier2._transitioning = false; }
   if ($tellMore) { $tellMore.setAttribute('aria-expanded', 'false'); const t = $tellMore.querySelector('.tell-more-btn__text'); if (t) t.textContent = 'Show More'; }
 
   // Cuisine detection (for accent color + auto-theme)

@@ -819,15 +819,13 @@
   padding: 0;
   margin: 0;
   pointer-events: none;
-  will-change: max-height, opacity;
-  transition: max-height 450ms var(--ease-out),
-              opacity 450ms var(--ease-out),
-              padding 450ms var(--ease-out),
-              margin 450ms var(--ease-out);
+  transition: max-height 400ms var(--ease-out),
+              opacity 350ms var(--ease-out),
+              padding 400ms var(--ease-out),
+              margin 400ms var(--ease-out);
 }
 
 .tier--leanin.tier--expanded {
-  max-height: none;
   opacity: 1;
   pointer-events: auto;
   padding-top: var(--space-md);
@@ -5751,33 +5749,27 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--space-sm);
+  gap: var(--space-md);
   padding: var(--space-2xl) 0;
-  min-height: 60vh;
-  position: relative;
+  min-height: 40vh;
   color: var(--fg2);
 }
 
 .result-loading__mark {
   color: var(--fg2);
   opacity: 0;
-  animation: loadingMarkIn 600ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
-}
-
-/* Logo group — glow builds up after settle */
-.result-loading__logo-group {
-  animation: logoGlowPulse 2.4s ease-in-out 1800ms infinite;
+  animation: loadingMarkIn 400ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
 /* Fork tines — line-draw reveal */
 .result-loading__tine {
   stroke-dasharray: 30;
   stroke-dashoffset: 30;
-  animation: strokeDraw 500ms cubic-bezier(0.22, 1, 0.36, 1) 100ms forwards;
+  animation: strokeDraw 300ms cubic-bezier(0.34, 1.56, 0.64, 1) 100ms forwards;
 }
 
 .result-loading__tine--right {
-  animation-delay: 250ms;
+  animation-delay: 200ms;
 }
 
 /* Question-mark curve — longer fluid draw */
@@ -5785,8 +5777,8 @@
   stroke-dasharray: 60;
   stroke-dashoffset: 60;
   animation:
-    strokeDraw 700ms cubic-bezier(0.22, 1, 0.36, 1) 400ms forwards,
-    curveWobble 3s ease-in-out 1800ms infinite;
+    strokeDraw 400ms cubic-bezier(0.34, 1.56, 0.64, 1) 300ms forwards,
+    curveWobble 2.5s ease-in-out 700ms infinite;
   transform-origin: 16px 22px;
 }
 
@@ -5796,41 +5788,23 @@
   transform: scale(0);
   transform-origin: 16px 40px;
   animation:
-    dotSpringIn 400ms cubic-bezier(0.34, 1.56, 0.64, 1) 700ms forwards,
-    dotPulseLoop 2s ease-in-out 1800ms infinite;
+    dotSpringIn 300ms cubic-bezier(0.34, 1.56, 0.64, 1) 500ms forwards,
+    dotPulseLoop 1.4s ease-in-out 800ms infinite;
 }
 
-/* Gradient shimmer sweep across logo */
-.result-loading__shimmer {
-  stroke-dasharray: 80;
-  stroke-dashoffset: 80;
-  opacity: 0;
-  animation:
-    shimmerAppear 100ms ease-out 1100ms forwards,
-    shimmerSweep 800ms cubic-bezier(0.22, 1, 0.36, 1) 1100ms forwards;
-}
-
-/* Wordmark fades in after logo settles */
-.result-loading__wordmark {
-  opacity: 0;
-  transform: translateY(6px);
-  animation: wordmarkReveal 500ms cubic-bezier(0.22, 1, 0.36, 1) 1400ms forwards;
-  font-size: clamp(1.5rem, 5vw, 2rem);
-}
-
-/* Status text — delayed subtle entrance */
+/* Status text */
 .result-loading__status {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   color: var(--fg3);
-  letter-spacing: 0.12em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   opacity: 0;
-  animation: statusReveal 600ms ease-out 1600ms forwards;
+  animation: contentFadeIn 400ms ease-out 600ms forwards;
 }
 
-/* Fade out when data arrives — premium dissolve */
+/* Fade out when data arrives */
 .result-loading--exiting {
-  animation: loadingMarkOut 400ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: loadingMarkOut 300ms var(--ease-out) forwards;
 }
 
 /* ---- Phase 2–3: Result Card Scaffold ---- */
