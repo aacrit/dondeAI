@@ -348,11 +348,18 @@ function renderSmartChips() {
     }
   }
 
-  if (pool) {
-    pickFrom(pool.time?.[timePeriod], 2);
-    pickFrom(pool.vibe, 1);
-    pickFrom(pool.cuisine, 1);
-    pickFrom(pool.style, 1);
+  // Chicago 1000 base pool (neutral) for most chips; 1 culture-specific cuisine chip
+  const basePool = culture !== 'neutral' ? getLabels('neutral').chipPool : pool;
+  if (basePool) {
+    pickFrom(basePool.time?.[timePeriod], 2);
+    pickFrom(basePool.vibe, 1);
+    pickFrom(basePool.style, 1);
+    // 1 cuisine chip: culture-specific if non-neutral, otherwise from Chicago 1000 base
+    if (culture !== 'neutral' && pool?.cuisine) {
+      pickFrom(pool.cuisine, 1);
+    } else {
+      pickFrom(basePool.cuisine, 1);
+    }
   }
 
   // Fallback to legacy smartChips
