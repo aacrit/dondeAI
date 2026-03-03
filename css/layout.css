@@ -434,10 +434,30 @@
   z-index: var(--z-toast);
   transition: transform var(--dur-normal) var(--spring);
   max-width: calc(100vw - var(--space-xl));
+  overflow: hidden;
 }
 
 .toast--visible {
   transform: translateX(-50%) translateY(0);
+}
+
+/* Progress bar — auto-dismiss countdown */
+.toast--visible::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--fg3);
+  border-radius: 0 0 var(--radius) var(--radius);
+  transform-origin: left;
+  animation: toastProgress var(--toast-dur, 3500ms) linear forwards;
+}
+
+@keyframes toastProgress {
+  from { transform: scaleX(1); }
+  to   { transform: scaleX(0); }
 }
 
 .toast--error {

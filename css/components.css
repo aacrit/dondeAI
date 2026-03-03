@@ -528,7 +528,7 @@
   letter-spacing: 0.02em;
   text-transform: uppercase;
   position: relative;
-  transition: color 150ms ease;
+  transition: color var(--dur-fast) var(--ease-out);
   cursor: pointer;
 }
 
@@ -545,11 +545,17 @@
   mask-size: 100% 100%;
   -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='4' viewBox='0 0 200 4'%3E%3Cpath d='M0 2 Q20 0.5 40 2.2 T80 1.8 T120 2.5 T160 1.5 T200 2' stroke='black' stroke-width='2' fill='none'/%3E%3C/svg%3E");
   -webkit-mask-size: 100% 100%;
-  transition: background 150ms ease;
+  transition: background var(--dur-fast) var(--ease-out);
 }
 
 .filter-drawer__toggle:hover {
   color: var(--ac);
+}
+
+.filter-drawer__toggle:focus-visible {
+  outline: 2px solid var(--ac);
+  outline-offset: 4px;
+  border-radius: 2px;
 }
 
 .filter-drawer__toggle:hover::after {
@@ -1120,7 +1126,7 @@
   max-width: 260px;
   white-space: normal;
   pointer-events: none;
-  box-shadow: 0 4px 20px hsl(0 0% 0% / 0.10);
+  box-shadow: var(--shadow-md);
 }
 .badge-popout--open {
   display: flex;
@@ -1359,7 +1365,7 @@
   padding: var(--space-md);
   transform: translateY(100%);
   transition: transform var(--dur-normal) var(--spring);
-  box-shadow: 0 -4px 24px hsl(0 0% 0% / 0.1);
+  box-shadow: var(--shadow-md);
 }
 
 .cuisine-drawer--open {
@@ -1586,7 +1592,7 @@
 .result-meta__pill--interactive:hover {
   background: var(--bg3);
   border-color: var(--fg3);
-  box-shadow: 0 1px 4px hsl(0 0% 0% / 0.06);
+  box-shadow: var(--shadow-sm);
 }
 .result-meta__pill--interactive:hover::after {
   opacity: 0.8;
@@ -2450,7 +2456,7 @@
   justify-content: center;
   flex-shrink: 0;
   width: 20px;
-  transition: color 0.3s ease;
+  transition: color var(--dur-normal) var(--ease-out);
 }
 
 .factor-row__icon svg {
@@ -3235,7 +3241,7 @@
   -webkit-backdrop-filter: blur(20px) saturate(140%);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  box-shadow: 0 8px 32px hsl(0 0% 0% / 0.12);
+  box-shadow: var(--shadow-lg);
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
@@ -3299,7 +3305,7 @@
   height: 16px;
   border-radius: 50%;
   background: var(--bg);
-  box-shadow: 0 1px 3px hsl(0 0% 0% / 0.2);
+  box-shadow: var(--shadow-sm);
   transition: transform var(--dur-fast) var(--spring);
 }
 
@@ -3640,7 +3646,7 @@
   border: none;
   background: none;
   cursor: pointer;
-  transition: color 150ms ease;
+  transition: color var(--dur-fast) var(--ease-out);
 }
 
 .filter-utility-link:hover {
@@ -3679,8 +3685,14 @@
   background: none;
   border: none;
   cursor: pointer;
-  transition: color 150ms ease;
+  transition: color var(--dur-fast) var(--ease-out);
   position: relative;
+}
+
+.share-format-btn:focus-visible {
+  outline: 2px solid var(--ac);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 .share-format-btn--active {
@@ -4277,14 +4289,14 @@
 
 /* Open/Closed quick tag — RAG tokens for consistency */
 .quick-tag--open {
-  background: var(--rag-green-soft) !important;
-  color: var(--rag-green) !important;
+  background: var(--rag-green-soft);
+  color: var(--rag-green);
   font-weight: 600;
 }
 
 .quick-tag--closed {
-  background: var(--rag-red-soft) !important;
-  color: var(--rag-red) !important;
+  background: var(--rag-red-soft);
+  color: var(--rag-red);
   font-weight: 600;
 }
 
@@ -4388,7 +4400,7 @@
 }
 
 /* ---- F5: Dietary toggle pills ---- */
-.filter-pill--toggle[aria-pressed="true"] {
+.filter-pill--toggle[aria-checked="true"] {
   background: var(--ac);
   color: white;
   border-color: var(--ac);
@@ -4429,21 +4441,21 @@
 }
 
 .feedback-btn--like.feedback-btn--active {
-  border-color: hsl(142 70% 49%);
-  color: hsl(142 70% 40%);
-  background: hsl(142 70% 49% / 0.12);
+  border-color: var(--color-like-border);
+  color: var(--color-like);
+  background: var(--color-like-soft);
 }
 
 .feedback-btn--dislike.feedback-btn--active {
-  border-color: hsl(0 70% 55%);
-  color: hsl(0 70% 45%);
-  background: hsl(0 70% 55% / 0.12);
+  border-color: var(--color-dislike-border);
+  color: var(--color-dislike);
+  background: var(--color-dislike-soft);
 }
 
 .feedback-btn--bookmark.feedback-btn--active {
-  border-color: hsl(350 80% 55%);
-  color: hsl(350 80% 50%);
-  background: hsl(350 80% 55% / 0.12);
+  border-color: var(--color-bookmark-border);
+  color: var(--color-bookmark);
+  background: var(--color-bookmark-soft);
 }
 
 /* ---- "I'm Going Here!" Button (Primary CTA — Emerald Green, theme-independent) ---- */
@@ -4457,9 +4469,9 @@
   min-width: 0;
   max-width: 100%;
   padding: var(--space-sm) var(--space-lg);
-  background: hsl(142, 76%, 36%);
+  background: var(--color-success);
   color: white;
-  border: 2px solid hsl(142, 76%, 36%);
+  border: 2px solid var(--color-success);
   border-radius: var(--radius-pill);
   font-family: var(--font-structural);
   font-weight: 700;
@@ -4471,8 +4483,8 @@
 }
 
 .going-btn:hover {
-  background: hsl(142, 76%, 30%);
-  border-color: hsl(142, 76%, 30%);
+  background: var(--color-success-hover);
+  border-color: var(--color-success-hover);
 }
 
 .going-btn:active {
@@ -4480,20 +4492,20 @@
 }
 
 .going-btn:focus-visible {
-  outline: 2px solid hsl(142, 76%, 36%);
+  outline: 2px solid var(--color-success);
   outline-offset: 2px;
 }
 
 .going-btn--done {
-  background: hsl(142, 76%, 36% / 0.1);
-  color: hsl(142, 76%, 36%);
-  border-color: hsl(142, 76%, 36%);
+  background: var(--color-success-soft);
+  color: var(--color-success);
+  border-color: var(--color-success);
   cursor: default;
 }
 
 .going-btn--done:hover {
-  background: hsl(142, 76%, 36% / 0.15);
-  border-color: hsl(142, 76%, 36%);
+  background: var(--color-success-soft-hover);
+  border-color: var(--color-success);
 }
 
 .going-btn__icon {
@@ -4527,6 +4539,12 @@
   background: var(--ac);
   color: var(--bg);
   border-color: var(--ac);
+}
+
+.cta-btn--loading {
+  opacity: 0.5;
+  cursor: wait;
+  pointer-events: none;
 }
 
 /* ---- V10: Card Footer Primary Row (Going + Try Another side by side) ---- */
@@ -4727,7 +4745,7 @@
   color: var(--fg);
 }
 
-.feedback-cat-pill[aria-pressed="true"] {
+.feedback-cat-pill[aria-checked="true"] {
   background: var(--ac);
   color: var(--bg);
   border-color: var(--ac);
@@ -5192,8 +5210,8 @@
 .lightbox {
   position: fixed;
   inset: 0;
-  z-index: 9999;
-  background: rgba(0, 0, 0, 0.92);
+  z-index: var(--z-particle);
+  background: var(--overlay-bg);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   display: flex;
@@ -5213,16 +5231,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--overlay-btn);
   border: none;
   border-radius: 50%;
-  color: #fff;
+  color: var(--overlay-fg);
   cursor: pointer;
   transition: background var(--dur-fast) var(--ease-out);
 }
 
 .lightbox__close:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--overlay-btn-hover);
 }
 
 .lightbox__track {
@@ -5327,7 +5345,7 @@
   opacity: 0;
   pointer-events: none;
   z-index: 10;
-  transition: opacity 100ms ease;
+  transition: opacity 100ms var(--ease-out);
 }
 
 /* ============================================
