@@ -299,7 +299,7 @@ function startGreetingRotation() {
     if (!$greeting) return;
     const newText = getGreeting(state.theme.culture);
     if (newText === $greeting.textContent) return;
-    $greeting.style.transition = 'opacity 400ms ease';
+    $greeting.style.transition = 'opacity 400ms cubic-bezier(0.4, 0, 0.2, 1)';
     $greeting.style.opacity = '0';
     setTimeout(() => {
       $greeting.textContent = newText;
@@ -650,11 +650,11 @@ function wireEvents() {
         clearAllSelections();
         // F5: Clear dietary pills
         document.querySelectorAll('[data-action="toggle-dietary"]').forEach(pill => {
-          pill.setAttribute('aria-pressed', 'false');
+          pill.setAttribute('aria-checked', 'false');
         });
         // V5: Clear Open Now pill
         const $openNowPill = document.getElementById('open-now-pill');
-        if ($openNowPill) $openNowPill.setAttribute('aria-pressed', 'false');
+        if ($openNowPill) $openNowPill.setAttribute('aria-checked', 'false');
         setupLanding();
         renderSmartChips();
         renderYourSpots();
@@ -791,8 +791,8 @@ function wireEvents() {
       case 'toggle-dietary': {
         const val = btn.dataset.value;
         const current = [...getState().dietaryRestrictions];
-        const isActive = btn.getAttribute('aria-pressed') === 'true';
-        btn.setAttribute('aria-pressed', String(!isActive));
+        const isActive = btn.getAttribute('aria-checked') === 'true';
+        btn.setAttribute('aria-checked', String(!isActive));
         if (isActive) {
           setState({ dietaryRestrictions: current.filter(d => d !== val) });
         } else {
@@ -816,8 +816,8 @@ function wireEvents() {
 
       // V5: Open Now toggle
       case 'toggle-open-now': {
-        const isActive = btn.getAttribute('aria-pressed') === 'true';
-        btn.setAttribute('aria-pressed', String(!isActive));
+        const isActive = btn.getAttribute('aria-checked') === 'true';
+        btn.setAttribute('aria-checked', String(!isActive));
         setState({ openNow: !isActive });
         haptic(HAPTICS.tick);
         // Ink ripple feedback
@@ -965,15 +965,15 @@ function wireEvents() {
 
       case 'select-feedback-cat': {
         haptic(HAPTICS.tick);
-        const wasPressed = btn.getAttribute('aria-pressed') === 'true';
-        document.querySelectorAll('.feedback-cat-pill').forEach(b => b.setAttribute('aria-pressed', 'false'));
-        btn.setAttribute('aria-pressed', String(!wasPressed));
+        const wasPressed = btn.getAttribute('aria-checked') === 'true';
+        document.querySelectorAll('.feedback-cat-pill').forEach(b => b.setAttribute('aria-checked', 'false'));
+        btn.setAttribute('aria-checked', String(!wasPressed));
         updateFeedbackSubmitState();
         break;
       }
 
       case 'submit-app-feedback': {
-        const selectedCat = document.querySelector('.feedback-cat-pill[aria-pressed="true"]');
+        const selectedCat = document.querySelector('.feedback-cat-pill[aria-checked="true"]');
         const category = selectedCat?.dataset.category;
         const messageEl = document.getElementById('feedback-text');
         const message = messageEl?.value?.trim();
@@ -993,6 +993,9 @@ function wireEvents() {
       case 'try-again': {
         // Debounce: block rapid taps while swap is in-flight
         if (_swapInFlight) break;
+        // Visual loading state on button during swap
+        const $tryBtn = btn.closest('[data-action="try-again"]') || btn;
+        $tryBtn.classList.add('cta-btn--loading');
 
         // Track current restaurant ID so backend can exclude it
         const prevId = getState().result?.restaurant?.id;
@@ -1028,13 +1031,22 @@ function wireEvents() {
                 const $matchScore = document.getElementById('match-pill-score');
                 if ($matchScore) animateScoreCountUp($matchScore, dondeScore);
                 _swapInFlight = false;
+                document.querySelector('.cta-btn--loading')?.classList.remove('cta-btn--loading');
+                // Celebration for 88%+ scores (matches initial reveal behavior)
+                if (dondeScore >= 88) {
+                  setTimeout(() => { fireCelebration(); playCelebrationChime(); haptic(HAPTICS.celebration); }, 1400);
+                }
               }, 300);
-            }, 280);
+            }, 300);
           } else {
             renderResult(nextResult);
             const dondeScore = Math.round(parseFloat(nextResult.donde_match) || 80);
             const $matchScore = document.getElementById('match-pill-score');
             if ($matchScore) animateScoreCountUp($matchScore, dondeScore);
+            if (dondeScore >= 88) {
+              setTimeout(() => { fireCelebration(); playCelebrationChime(); haptic(HAPTICS.celebration); }, 1400);
+            }
+            document.querySelector('.cta-btn--loading')?.classList.remove('cta-btn--loading');
           }
           haptic(HAPTICS.reveal);
 
@@ -1740,12 +1752,12 @@ function startPlaceholderRotation() {
   placeholderInterval = setInterval(() => {
     if ($cravingInput.value.trim() || document.activeElement === $cravingInput) return;
     idx = (idx + 1) % phs.length;
-    $cravingInput.style.transition = 'opacity 200ms ease';
-    $cravingInput.style.opacity = '0.3';
+    $cravingInput.style.transition = 'opacity 150ms cubic-bezier(0.4, 0, 0.2, 1)';
+    $cravingInput.style.opacity = '0';
     setTimeout(() => {
       $cravingInput.placeholder = phs[idx];
       $cravingInput.style.opacity = '';
-    }, 200);
+    }, 150);
   }, 4000);
 }
 
@@ -1953,7 +1965,7 @@ async function handleSubmit() {
   if ($cta) {
     $cta.classList.remove('cta-btn--ready');
     $cta.classList.add('cta-btn--confirming');
-    await new Promise(r => setTimeout(r, 200));
+    if (!REDUCED_MOTION.matches) await new Promise(r => setTimeout(r, 200));
     $cta.classList.remove('cta-btn--confirming');
     $cta.classList.add('cta-btn--loading');
     $cta.textContent = 'Searching';
@@ -2119,7 +2131,7 @@ async function manifestResult(data) {
       }, 450));
     }
 
-    // Phase 3: Show card with progressive reveal (starts after logo resolves)
+    // Phase 3: Show card with progressive reveal (starts after overlay fade completes at 750ms)
     _scaffoldTimers.push(setTimeout(() => {
       if ($resultCard) {
         $resultCard.style.display = '';
@@ -2132,7 +2144,7 @@ async function manifestResult(data) {
           $resultCard.classList.remove('result-card--revealing');
         }, 500));
       }
-    }, 500));
+    }, 750));
   }
 
   // Haptic on reveal
@@ -2181,6 +2193,9 @@ function settleResult() {
     $loadingState.classList.remove('loading-state--fading');
     cleanupLoadingLogo();
   }
+  // A11y: Move focus to restaurant name for screen readers
+  const $restName = document.getElementById('result-name');
+  if ($restName) $restName.focus({ preventScroll: true });
 }
 
 /* ---- Reverse Canvas Fold (error/back during loading) ---- */
@@ -3898,7 +3913,7 @@ function openFeedbackSheet() {
   if ($title) $title.textContent = labels.feedbackTitle || 'Share Your Thoughts';
   if ($subtitle) $subtitle.textContent = labels.feedbackSubtitle || 'Help us make Donde better for everyone.';
   // Reset form
-  document.querySelectorAll('.feedback-cat-pill').forEach(b => b.setAttribute('aria-pressed', 'false'));
+  document.querySelectorAll('.feedback-cat-pill').forEach(b => b.setAttribute('aria-checked', 'false'));
   const $text = document.getElementById('feedback-text');
   if ($text) $text.value = '';
   const $count = document.getElementById('feedback-char-count');
@@ -3923,7 +3938,7 @@ function closeFeedbackSheet() {
 }
 
 function updateFeedbackSubmitState() {
-  const hasCat = !!document.querySelector('.feedback-cat-pill[aria-pressed="true"]');
+  const hasCat = !!document.querySelector('.feedback-cat-pill[aria-checked="true"]');
   const hasText = (document.getElementById('feedback-text')?.value?.trim().length || 0) > 0;
   const $submit = document.getElementById('feedback-submit');
   if ($submit) $submit.disabled = !(hasCat && hasText);
@@ -4262,10 +4277,12 @@ function showToast(message, isError = false, action = null) {
     }
   }
 
+  // Set progress bar duration via CSS custom property
+  const duration = action ? 10000 : isError ? 6000 : 3500;
+  $toast.style.setProperty('--toast-dur', `${duration}ms`);
   $toast.classList.add('toast--visible');
 
   // Auto-dismiss: errors stay longer, actions linger even longer
-  const duration = action ? 10000 : isError ? 6000 : 3500;
   toastTimer = setTimeout(() => dismissToast(), duration);
 }
 
