@@ -1155,8 +1155,12 @@ function wireEvents() {
 
       case 'toggle-badge-popout': {
         const isOpen = btn.getAttribute('aria-expanded') === 'true';
-        if (isOpen) closeBadgePopout();
-        else openBadgePopout(btn);
+        if (isOpen) {
+          closeBadgePopout();
+        } else {
+          haptic(HAPTICS.drawerOpen);
+          openBadgePopout(btn);
+        }
         break;
       }
 
@@ -1182,6 +1186,7 @@ function wireEvents() {
       }
 
       case 'share':
+        haptic(HAPTICS.tick);
         shareResult();
         break;
 
@@ -1324,6 +1329,7 @@ function wireEvents() {
           announce('Showing more details');
         } else {
           // COLLAPSING — snap to concrete px, force reflow, then transition to 0
+          haptic(HAPTICS.tick);
           $tier2.style.willChange = 'max-height, opacity';
           $tier2.style.maxHeight = $tier2.scrollHeight + 'px';
           void $tier2.offsetHeight; // force reflow
@@ -2759,7 +2765,9 @@ function openBadgePopout(badgeEl) {
   document.body.appendChild(popout);
   popout.classList.add('badge-popout--open');
   _activePopout = { badge: badgeEl, popout };
-  _popoutTimer = setTimeout(() => closeBadgePopout(), 5000);
+  // Longer auto-close for content-heavy popouts (known-for)
+  const timeout = popout.classList.contains('badge-popout--known-for') ? 8000 : 5000;
+  _popoutTimer = setTimeout(() => closeBadgePopout(), timeout);
   requestAnimationFrame(() => positionPopout(badgeEl, popout));
 }
 
@@ -2883,6 +2891,29 @@ function renderQuickActions(data) {
   $actions.style.display = items.length > 0 ? '' : 'none';
 }
 
+/* ---- Shorten hours text: "Monday: 11:00 AM – 10:00 PM" → "Mon 11a–10p" ---- */
+function _shortenHoursLine(line) {
+  const dayMap = {
+    monday: 'Mon', tuesday: 'Tue', wednesday: 'Wed', thursday: 'Thu',
+    friday: 'Fri', saturday: 'Sat', sunday: 'Sun',
+  };
+  // Split "Day: time" or return as-is
+  const colonIdx = line.indexOf(':');
+  if (colonIdx < 0) return line;
+  const dayPart = line.slice(0, colonIdx).trim().toLowerCase();
+  const timePart = line.slice(colonIdx + 1).trim();
+  const shortDay = dayMap[dayPart] || line.slice(0, 3);
+
+  // Shorten time: "11:00 AM" → "11a", "2:30 PM" → "2:30p", "Closed" stays
+  const shortened = timePart.replace(/(\d{1,2}):00\s*(AM|PM)/gi, (_, h, ampm) =>
+    `${h}${ampm[0].toLowerCase()}`
+  ).replace(/(\d{1,2}:\d{2})\s*(AM|PM)/gi, (_, t, ampm) =>
+    `${t}${ampm[0].toLowerCase()}`
+  ).replace(/\s*[–—-]\s*/g, '–');
+
+  return `${shortDay} ${shortened}`;
+}
+
 /* ---- Result Meta: website, cuisine, what to order, open/closed pills ---- */
 function renderResultMeta(data) {
   const $meta = document.getElementById('result-meta');
@@ -2890,16 +2921,61 @@ function renderResultMeta(data) {
   $meta.innerHTML = '';
 
   const r = data.restaurant || {};
+  const dp = data.deep_context || {};
 
-  // 1. Cuisine pill → opens cuisine drawer (includes Known For data)
+  // 1. Cuisine pill → badge-popout with Known For items (signature dishes + highlights)
   if (r.cuisine_type) {
     const pill = document.createElement('span');
     pill.className = 'result-meta__pill result-meta__pill--interactive type-data--sm';
     pill.setAttribute('role', 'button');
     pill.setAttribute('tabindex', '0');
     pill.setAttribute('aria-expanded', 'false');
-    pill.setAttribute('data-action', 'open-cuisine-drawer');
+    pill.setAttribute('aria-haspopup', 'true');
+    pill.setAttribute('data-action', 'toggle-badge-popout');
     pill.innerHTML = `${svgIcon('plate', 11)} ${r.cuisine_type}`;
+
+    // Build known-for popout from signature dishes + menu highlights
+    const hasDishes = dp.signature_dishes?.length > 0;
+    const hasHighlights = dp.menu_highlights?.length > 0;
+    if (hasDishes || hasHighlights) {
+      const popout = document.createElement('div');
+      popout.className = 'badge-popout badge-popout--known-for';
+      popout.setAttribute('role', 'tooltip');
+
+      const title = document.createElement('span');
+      title.className = 'badge-popout__title';
+      title.textContent = 'Known For';
+      popout.appendChild(title);
+
+      // Top signature dishes (max 3) — name + short reason
+      if (hasDishes) {
+        const dishesWrap = document.createElement('div');
+        dishesWrap.className = 'badge-popout__dishes';
+        dp.signature_dishes.slice(0, 3).forEach(d => {
+          const row = document.createElement('div');
+          row.className = 'badge-popout__dish-row';
+          row.innerHTML = `<span class="badge-popout__dish-name">${d.dish}</span>${d.why ? `<span class="badge-popout__dish-why">${d.why}</span>` : ''}`;
+          dishesWrap.appendChild(row);
+        });
+        popout.appendChild(dishesWrap);
+      }
+
+      // Menu highlights as compact pills (max 5)
+      if (hasHighlights) {
+        const pillsWrap = document.createElement('div');
+        pillsWrap.className = 'badge-popout__pills';
+        dp.menu_highlights.slice(0, 5).forEach(item => {
+          const p = document.createElement('span');
+          p.className = 'badge-popout__pill badge-popout__pill--dish';
+          p.textContent = item;
+          pillsWrap.appendChild(p);
+        });
+        popout.appendChild(pillsWrap);
+      }
+
+      pill.appendChild(popout);
+    }
+
     $meta.appendChild(pill);
   }
 
@@ -2933,7 +3009,7 @@ function renderResultMeta(data) {
         if (line.toLowerCase().startsWith(today)) {
           p.classList.add('badge-popout__pill--today');
         }
-        p.textContent = line;
+        p.textContent = _shortenHoursLine(line);
         pillsWrap.appendChild(p);
       });
       popout.appendChild(pillsWrap);
@@ -3520,7 +3596,7 @@ function renderOpenNowTag(data) {
       if (line.toLowerCase().startsWith(today)) {
         pill.classList.add('badge-popout__pill--today');
       }
-      pill.textContent = line;
+      pill.textContent = _shortenHoursLine(line);
       pillsWrap.appendChild(pill);
     });
     popout.appendChild(pillsWrap);
