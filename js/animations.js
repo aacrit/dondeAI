@@ -718,6 +718,22 @@ function buildFactorDetail(factorKey, scoring) {
     budget:          { icon: 'heart',      label: 'Budget Fit' },
   };
 
+  // V9: Google rating row for reputation (always show if available, regardless of factor_details)
+  const _buildGoogleRow = () => {
+    if (factorKey !== 'reputation') return '';
+    const gRating = _lastRestaurantData?.restaurant?.google_rating;
+    const gCount = _lastRestaurantData?.restaurant?.google_review_count;
+    if (!gRating) return '';
+    const stars = parseFloat(gRating);
+    const starColor = stars >= 4.5 ? 'var(--green, #4ade80)' : stars >= 4.0 ? 'var(--amber, #fbbf24)' : 'var(--red, #f87171)';
+    const countLabel = gCount ? ` (${gCount} reviews)` : '';
+    return `<div class="factor-detail__google-row">
+      <span class="factor-detail__google-icon">${svgIcon('starFull', 14)}</span>
+      <span class="factor-detail__google-rating" style="color:${starColor}">${stars.toFixed(1)}/5</span>
+      <span class="factor-detail__google-label">Google${countLabel}</span>
+    </div>`;
+  };
+
   if (!details || typeof details !== 'object') {
     // Graceful fallback: show score context + weight + deep context even without sub-factor data
     const score = typeof scoring[factorKey] === 'number'
@@ -725,7 +741,7 @@ function buildFactorDetail(factorKey, scoring) {
     const weightsUsed = scoring.weights_used || {};
     const weight = weightsUsed[factorKey] != null ? Math.round(parseFloat(weightsUsed[factorKey]) * 100) : null;
 
-    let fallback = '';
+    let fallback = _buildGoogleRow();
     if (score !== null) {
       const label = score >= 8.5 ? 'Excellent' : score >= 7 ? 'Good' : score >= 5 ? 'Fair' : 'Limited';
       fallback += `<div class="factor-detail__signal-row factor-detail__signal-row--neutral">
@@ -734,7 +750,7 @@ function buildFactorDetail(factorKey, scoring) {
       </div>`;
     }
     if (weight !== null) {
-      fallback += `<div class="factor-detail__confidence">Weight in scoring: ${weight}%</div>`;
+      fallback += `<div class="factor-detail__weight-note">${weight}% of your match score</div>`;
     }
     fallback += buildDeepContextExtras(factorKey);
     fallback += '<div class="factor-detail__confidence">Detailed breakdown available soon</div>';
@@ -773,10 +789,18 @@ function buildFactorDetail(factorKey, scoring) {
     </div>`;
   }
 
-  // Confidence note when data is limited
+  // Confidence note when data quality is not high
   const conf = scoring.confidence?.[factorKey];
-  if (conf === 'low') {
-    items += '<div class="factor-detail__confidence">Based on limited data</div>';
+  const confLabels = { medium: 'Based on moderate data', low: 'Based on limited data' };
+  if (conf && confLabels[conf]) {
+    items += `<div class="factor-detail__confidence">${confLabels[conf]}</div>`;
+  }
+
+  // V9: Weight transparency — show how much this factor contributes
+  const weightsUsed = scoring.weights_used || {};
+  const weight = weightsUsed[factorKey] != null ? Math.round(parseFloat(weightsUsed[factorKey]) * 100) : null;
+  if (weight !== null) {
+    items += `<div class="factor-detail__weight-note">${weight}% of your match score</div>`;
   }
 
   // V9: Deep context integration
@@ -786,8 +810,9 @@ function buildFactorDetail(factorKey, scoring) {
   }
 
   const narrative = buildFactorNarrative(factorKey, scoring);
+  const googleRow = _buildGoogleRow();
 
-  return `<div class="factor-detail__items">${narrative}${items}</div>`;
+  return `<div class="factor-detail__items">${googleRow}${narrative}${items}</div>`;
 }
 
 // Legacy export for backward compat — vibe bars removed in V5
