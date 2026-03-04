@@ -2312,6 +2312,18 @@
   color: var(--red, #f87171);
 }
 
+.v9-formula__boost-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: var(--radius-pill, 100px);
+  font-family: var(--font-data);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  background: color-mix(in srgb, var(--blue, #60a5fa) 12%, transparent);
+  color: var(--blue, #60a5fa);
+}
+
 /* Gate popout */
 .v9-gate-popout {
   position: absolute;
