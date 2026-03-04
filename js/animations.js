@@ -346,15 +346,11 @@ export function renderRelevanceGate(scoringV9, container, timers = []) {
   if (!scoringV9 || !container) return;
 
   const { relevance_score, relevance_type, relevance_details,
-          quality_score, occasion_bonus } = scoringV9;
+          occasion_bonus } = scoringV9;
 
   if (relevance_score == null) return;
 
   const relPct = Math.round(relevance_score * 100);
-  const qualInt = Math.round(quality_score);
-  const bonusText = occasion_bonus > 0 ? `+${occasion_bonus}`
-                  : occasion_bonus < 0 ? `${occasion_bonus}`
-                  : null;
 
   const TYPE_LABELS = {
     dish: 'Dish Match',
@@ -372,7 +368,12 @@ export function renderRelevanceGate(scoringV9, container, timers = []) {
   const row = document.createElement('div');
   row.className = 'v9-formula-row';
   row.setAttribute('role', 'group');
-  row.setAttribute('aria-label', `Score formula: ${relPct}% relevance times ${qualInt} quality`);
+  row.setAttribute('aria-label', `${typeLabel}: ${relPct}% relevance`);
+
+  // Occasion bonus pill (human-readable, no raw numbers)
+  const bonusPill = occasion_bonus && occasion_bonus !== 0
+    ? `<span class="v9-formula__bonus-pill" data-positive="${occasion_bonus > 0}">${occasion_bonus > 0 ? 'Occasion boost' : 'Occasion mismatch'}</span>`
+    : '';
 
   row.innerHTML = `
     <button class="v9-formula__gate"
@@ -382,10 +383,7 @@ export function renderRelevanceGate(scoringV9, container, timers = []) {
       <span class="v9-formula__gate-label">${typeLabel}</span>
       <span class="v9-formula__gate-score" style="color:${relColor}">${relPct}%</span>
     </button>
-    <span class="v9-formula__operator">\u00d7</span>
-    <span class="v9-formula__quality">${qualInt}/100</span>
-    ${bonusText ? `<span class="v9-formula__operator">+</span>
-    <span class="v9-formula__bonus" data-positive="${occasion_bonus > 0}">${bonusText}</span>` : ''}
+    ${bonusPill}
   `;
 
   // Gate popout — tapping shows relevance_details explanation
@@ -623,6 +621,56 @@ function buildFactorNarrativeText(factorKey, scoring) {
   return html.replace(/<p[^>]*>/, '').replace(/<\/p>/, '').trim();
 }
 
+/** Render deep_context extras for a factor (signature dishes, vibe, awards, etc.) */
+function buildDeepContextExtras(factorKey) {
+  const dc = _lastRestaurantData?.deep_context;
+  if (!dc) return '';
+  let html = '';
+
+  if (factorKey === 'food') {
+    if (dc.signature_dishes?.length > 0) {
+      html += '<div class="factor-detail__context"><div class="factor-detail__context-header">Known For</div>';
+      dc.signature_dishes.slice(0, 3).forEach(dish => {
+        html += `<div class="factor-detail__context-item">${dish.dish}${dish.why ? ' — ' + dish.why : ''}</div>`;
+      });
+      html += '</div>';
+    }
+    if (dc.flavor_profiles?.length > 0) {
+      html += `<div class="factor-detail__context-item">Flavors: ${dc.flavor_profiles.join(', ')}</div>`;
+    }
+  }
+
+  if (factorKey === 'vibe') {
+    if (dc.decor_style) html += `<div class="factor-detail__context-item">Décor: ${dc.decor_style}</div>`;
+    if (dc.music_vibe) html += `<div class="factor-detail__context-item">Music: ${dc.music_vibe}</div>`;
+    if (dc.energy_level != null) {
+      const energyLabel = dc.energy_level >= 7 ? 'Buzzing' : dc.energy_level >= 4 ? 'Lively' : 'Chill';
+      html += `<div class="factor-detail__context-item">Energy: ${energyLabel}</div>`;
+    }
+    if (dc.conversation_friendliness >= 7) {
+      html += `<div class="factor-detail__context-item">Great for conversation</div>`;
+    }
+  }
+
+  if (factorKey === 'reputation') {
+    if (dc.awards_recognition?.length > 0) {
+      html += '<div class="factor-detail__context">';
+      dc.awards_recognition.slice(0, 2).forEach(award => {
+        html += `<div class="factor-detail__context-item">${award}</div>`;
+      });
+      html += '</div>';
+    }
+    if (dc.chef_notable) html += `<div class="factor-detail__context-item">Notable chef</div>`;
+  }
+
+  if (factorKey === 'convenience') {
+    if (dc.typical_wait_minutes) html += `<div class="factor-detail__context-item">Typical wait: ~${dc.typical_wait_minutes} min</div>`;
+    if (dc.transit_accessibility) html += `<div class="factor-detail__context-item">Transit: ${dc.transit_accessibility}</div>`;
+  }
+
+  return html;
+}
+
 /** Build drill-down HTML for a factor — narrative + rank-based sub-factor list */
 function buildFactorDetail(factorKey, scoring) {
   const details = scoring.factor_details?.[factorKey] || null;
@@ -664,7 +712,28 @@ function buildFactorDetail(factorKey, scoring) {
     budget:          { icon: 'heart',      label: 'Budget Fit' },
   };
 
-  if (!details || typeof details !== 'object') return '<div class="factor-detail__items"></div>';
+  if (!details || typeof details !== 'object') {
+    // Graceful fallback: show score context + weight + deep context even without sub-factor data
+    const score = typeof scoring[factorKey] === 'number'
+      ? Math.min(parseFloat(scoring[factorKey]) || 0, 10) : null;
+    const weightsUsed = scoring.weights_used || {};
+    const weight = weightsUsed[factorKey] != null ? Math.round(parseFloat(weightsUsed[factorKey]) * 100) : null;
+
+    let fallback = '';
+    if (score !== null) {
+      const label = score >= 8.5 ? 'Excellent' : score >= 7 ? 'Good' : score >= 5 ? 'Fair' : 'Limited';
+      fallback += `<div class="factor-detail__signal-row factor-detail__signal-row--neutral">
+        ${strengthDots(score, 10)}
+        <span class="factor-detail__signal-label">${score.toFixed(1)}/10 — ${label}</span>
+      </div>`;
+    }
+    if (weight !== null) {
+      fallback += `<div class="factor-detail__confidence">Weight in scoring: ${weight}%</div>`;
+    }
+    fallback += buildDeepContextExtras(factorKey);
+    fallback += '<div class="factor-detail__confidence">Detailed breakdown available soon</div>';
+    return `<div class="factor-detail__items">${fallback}</div>`;
+  }
 
   const entries = Object.entries(details)
     .filter(([, sub]) => sub && typeof sub === 'object')
@@ -705,66 +774,9 @@ function buildFactorDetail(factorKey, scoring) {
   }
 
   // V9: Deep context integration
-  const dc = _lastRestaurantData?.deep_context;
-  if (dc) {
-    let contextHtml = '';
-
-    if (factorKey === 'food') {
-      // Signature dishes
-      if (dc.signature_dishes?.length > 0) {
-        contextHtml += '<div class="factor-detail__context"><div class="factor-detail__context-header">Known For</div>';
-        dc.signature_dishes.slice(0, 3).forEach(dish => {
-          contextHtml += `<div class="factor-detail__context-item">${dish.dish}${dish.why ? ' — ' + dish.why : ''}</div>`;
-        });
-        contextHtml += '</div>';
-      }
-      // Flavor profiles
-      if (dc.flavor_profiles?.length > 0) {
-        contextHtml += `<div class="factor-detail__context-item">Flavors: ${dc.flavor_profiles.join(', ')}</div>`;
-      }
-    }
-
-    if (factorKey === 'vibe') {
-      if (dc.decor_style) {
-        contextHtml += `<div class="factor-detail__context-item">Décor: ${dc.decor_style}</div>`;
-      }
-      if (dc.music_vibe) {
-        contextHtml += `<div class="factor-detail__context-item">Music: ${dc.music_vibe}</div>`;
-      }
-      if (dc.energy_level != null) {
-        const energyLabel = dc.energy_level >= 7 ? 'Buzzing' : dc.energy_level >= 4 ? 'Lively' : 'Chill';
-        contextHtml += `<div class="factor-detail__context-item">Energy: ${energyLabel}</div>`;
-      }
-      if (dc.conversation_friendliness >= 7) {
-        contextHtml += `<div class="factor-detail__context-item">Great for conversation</div>`;
-      }
-    }
-
-    if (factorKey === 'reputation') {
-      if (dc.awards_recognition?.length > 0) {
-        contextHtml += '<div class="factor-detail__context">';
-        dc.awards_recognition.slice(0, 2).forEach(award => {
-          contextHtml += `<div class="factor-detail__context-item">🏆 ${award}</div>`;
-        });
-        contextHtml += '</div>';
-      }
-      if (dc.chef_notable) {
-        contextHtml += `<div class="factor-detail__context-item">Notable chef</div>`;
-      }
-    }
-
-    if (factorKey === 'convenience') {
-      if (dc.typical_wait_minutes) {
-        contextHtml += `<div class="factor-detail__context-item">Typical wait: ~${dc.typical_wait_minutes} min</div>`;
-      }
-      if (dc.transit_accessibility) {
-        contextHtml += `<div class="factor-detail__context-item">Transit: ${dc.transit_accessibility}</div>`;
-      }
-    }
-
-    if (contextHtml) {
-      items += contextHtml;
-    }
+  const contextHtml = buildDeepContextExtras(factorKey);
+  if (contextHtml) {
+    items += contextHtml;
   }
 
   const narrative = buildFactorNarrative(factorKey, scoring);

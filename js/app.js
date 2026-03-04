@@ -3,7 +3,6 @@
    Single-canvas layout: Canvas + Result.
    ============================================ */
 
-console.log('[donde] app.js module loading...');
 import { getState, setState, subscribe, resetState } from './state.js';
 import { initRouter, goToStep, goToStepInstant } from './router.js';
 import { loadTheme, loadSound, loadHistory, addToHistory, saveTheme, loadColorMode, loadBookmarks, addBookmark, removeBookmark, isBookmarked, loadVisits, addVisit, isVisited, getOrCreateUserId, saveFeedback, loadFeedback, clearFeedback, hasGuestDismissed, setGuestDismissed, hasSeenOnboarding, setOnboardingSeen } from './persistence.js';
@@ -2007,7 +2006,6 @@ async function handleSubmit() {
       setState({ pendingFeedback: null });
     }
     const data = await fetchRecommendation(payload);
-    console.log('[donde] API returned, restaurant:', data?.restaurant?.name, 'scoring_v9:', !!data?.scoring_v9);
 
     // Save to history with cuisine icon
     const cuisine = getCuisineFromResult(data);
@@ -2028,7 +2026,6 @@ async function handleSubmit() {
     playChime();
     announce(`Recommendation: ${data.restaurant?.name || 'found'}`);
   } catch (err) {
-    console.error('[donde] handleSubmit error:', err.message);
     if (err.name === 'AbortError') return; // user navigated away
     // Error: reverse the canvas fold and return to input
     reverseCanvasFold();
@@ -2116,12 +2113,10 @@ async function manifestResult(data) {
   _scaffoldTimers = [];
 
   // Render all DOM content — wrapped to ensure loading overlay always cleans up
-  console.log('[donde] manifestResult called, rendering...');
   try {
     renderResult(data);
-    console.log('[donde] renderResult completed');
   } catch (e) {
-    console.error('[donde] renderResult failed:', e);
+    console.error('renderResult failed:', e);
   }
 
   // Stop particles and resolve loading overlay
@@ -2675,19 +2670,7 @@ function prepareTier2(data, cuisine) {
     }
   } catch (e) { console.warn('V9 formula row render failed:', e); }
 
-  // V9: Occasion bonus badge
-  try {
-    if (data.scoring_v9?.occasion_bonus && data.scoring_v9.occasion_bonus !== 0) {
-      const bonus = data.scoring_v9.occasion_bonus;
-      const $bonusEl = document.getElementById('occasion-bonus-badge');
-      if ($bonusEl) {
-        const isPositive = bonus > 0;
-        $bonusEl.textContent = isPositive ? `+${bonus} occasion bonus` : `${bonus} occasion penalty`;
-        $bonusEl.setAttribute('data-positive', String(isPositive));
-        $bonusEl.style.display = '';
-      }
-    }
-  } catch (e) { console.warn('V9 occasion badge render failed:', e); }
+  // V9: Occasion bonus now shown inside formula row pill (renderRelevanceGate)
 
   // Recommendation is now rendered in Tier 1 (Glance) via donde-blurb
 
