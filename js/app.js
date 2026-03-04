@@ -1068,7 +1068,7 @@ function wireEvents() {
               special_request: getState().craving,
               occasion: getState().occasion,
               neighborhood: getState().neighborhood,
-              score_tier: nextResult.scoring_v7?.score_tier || nextResult.scoring?.score_tier || 'good',
+              score_tier: nextResult.scoring_v9?.score_tier || nextResult.scoring?.score_tier || 'good',
               match_narrative: nextResult.match_narrative || null,
             },
           };
@@ -2641,7 +2641,7 @@ function prepareTier2(data, cuisine) {
   renderScoreHero(
     data.donde_match,
     data.scores || {},
-    data.scoring || data.scoring_v5 || null,
+    data.scoring || data.scoring_v9 || null,
     null,
     [],
     data.match_narrative || null
@@ -2753,7 +2753,7 @@ function renderTier2Animations() {
   renderScoreHero(
     data.donde_match,
     data.scores || {},
-    data.scoring || data.scoring_v5 || null,
+    data.scoring || data.scoring_v9 || null,
     null,
     animationTimers,
     data.match_narrative || null
@@ -3116,7 +3116,7 @@ function openTileExpand(tileEl) {
       <span class="score-verdict type-structural--bold ${tier.cssClass}" style="font-size: var(--text-lg);">${tier.verdict}</span>`;
 
     // V5: Factor breakdown — "Why This Match" (weighted factors)
-    const sv4 = data.scoring || data.scoring_v5 || null;
+    const sv4 = data.scoring || data.scoring_v9 || null;
     if (sv4) {
       const v5Dims = [
         { key: 'food',        label: 'Food',        icon: 'plate' },
@@ -3371,7 +3371,7 @@ function renderDishMatchChip(data) {
   document.getElementById('dish-match-chip')?.remove();
 
   // Check if the scoring details indicate a dish match
-  const menuSignal = data.scoring_v5?.factor_details?.food?.menu?.signal;
+  const menuSignal = data.scoring_v9?.factor_details?.food?.menu?.signal || data.scoring?.factor_details?.food?.menu?.signal;
   if (!menuSignal || menuSignal === 'No dish match' || menuSignal === 'No menu data' || menuSignal === 'No tag match') return;
 
   // Only show for positive dish matches
@@ -3411,7 +3411,7 @@ function renderSignalChips(data) {
   $chips.innerHTML = '';
 
   const chips = [];
-  const sv5 = data.scoring_v5 || data.scoring || null;
+  const sv5 = data.scoring_v9 || data.scoring || null;
   const r = data.restaurant;
   const narrative = data.match_narrative;
 
@@ -3976,7 +3976,7 @@ function renderQuickStats(data) {
   if (!dc) { $stats.style.display = 'none'; return; }
 
   // Dimension weights from scoring — drives which stats surface first
-  const dw = data.scoring?.weights_used || data.scoring_v5?.weights_used ||
+  const dw = data.scoring?.weights_used || data.scoring_v9?.weights_used ||
     { food: 0.25, vibe: 0.20, service: 0.15, reputation: 0.20, convenience: 0.20 };
 
   const candidates = [];
