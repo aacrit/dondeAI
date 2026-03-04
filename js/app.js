@@ -2662,11 +2662,11 @@ function prepareTier2(data, cuisine) {
     data.match_narrative || null
   );
 
-  // V9: Formula row — Relevance × Quality equation
+  // V9: Formula row — Relevance gate + optional boost pill
   try {
     const $formulaContainer = document.getElementById('score-hero-formula');
     if ($formulaContainer && data.scoring_v9) {
-      renderRelevanceGate(data.scoring_v9, $formulaContainer, []);
+      renderRelevanceGate(data.scoring_v9, $formulaContainer, [], data.intent_boost || null);
     }
   } catch (e) { console.warn('V9 formula row render failed:', e); }
 
