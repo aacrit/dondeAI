@@ -14,7 +14,7 @@ import { initOffline, isOnline } from './offline.js';
 import { initAccessibility, announce } from './accessibility.js';
 import { fetchRecommendation, fetchBlurb, sendFeedback, sendVisit, sendAppFeedback } from './api.js';
 import { initAuth, signIn as signInWith, signOut as authSignOut, isAuthenticated as isAuthAuthenticated, getUser as getAuthUser, addFavoriteToServer, removeFavoriteFromServer, addVisitToServer } from './auth.js';
-import { animateScoreRing, renderPetalRadar, renderSentimentBar, renderScoreBloom, renderScoreHero, renderRelevanceGate, renderFactorBars, toggleBloom, resetBloomState, handlePetalTap, handleBloomRingTap, toggleScoreBreakdown, getBloomState, animateBadge, startParticles, stopParticles, chaosToOrderReveal, initLogoAnimation, startSearchPulse, stopSearchPulse, resolveLogoToFound, cleanupLoadingLogo, fireCelebration } from './animations.js';
+import { animateScoreRing, renderPetalRadar, renderSentimentBar, renderScoreBloom, renderScoreHero, renderRelevanceGate, renderFactorBars, toggleBloom, resetBloomState, handlePetalTap, handleBloomRingTap, toggleScoreBreakdown, getBloomState, animateBadge, startParticles, stopParticles, chaosToOrderReveal, initLogoAnimation, startWordRotation, stopWordRotation, resolveLogoToFound, cleanupLoadingLogo, fireCelebration } from './animations.js';
 import {
   getGreeting, getTimePeriod, getCuisineFromResult, svgIcon,
   getScoreTier, getScoreColor, getScoreThresholdColor, getFactorColor,
@@ -2108,8 +2108,12 @@ async function manifestResult(data) {
   _scaffoldTimers.forEach(clearTimeout);
   _scaffoldTimers = [];
 
-  // Render all DOM content
-  renderResult(data);
+  // Render all DOM content — wrapped to ensure loading overlay always cleans up
+  try {
+    renderResult(data);
+  } catch (e) {
+    console.error('renderResult failed:', e);
+  }
 
   // Stop particles and resolve loading overlay
   stopParticles();
@@ -2655,22 +2659,26 @@ function prepareTier2(data, cuisine) {
   );
 
   // V9: Formula row — Relevance × Quality equation
-  const $formulaContainer = document.getElementById('score-hero-formula');
-  if ($formulaContainer && data.scoring_v9) {
-    renderRelevanceGate(data.scoring_v9, $formulaContainer, []);
-  }
+  try {
+    const $formulaContainer = document.getElementById('score-hero-formula');
+    if ($formulaContainer && data.scoring_v9) {
+      renderRelevanceGate(data.scoring_v9, $formulaContainer, []);
+    }
+  } catch (e) { console.warn('V9 formula row render failed:', e); }
 
   // V9: Occasion bonus badge
-  if (data.scoring_v9?.occasion_bonus && data.scoring_v9.occasion_bonus !== 0) {
-    const bonus = data.scoring_v9.occasion_bonus;
-    const $bonusEl = document.getElementById('occasion-bonus-badge');
-    if ($bonusEl) {
-      const isPositive = bonus > 0;
-      $bonusEl.textContent = isPositive ? `+${bonus} occasion bonus` : `${bonus} occasion penalty`;
-      $bonusEl.setAttribute('data-positive', String(isPositive));
-      $bonusEl.style.display = '';
+  try {
+    if (data.scoring_v9?.occasion_bonus && data.scoring_v9.occasion_bonus !== 0) {
+      const bonus = data.scoring_v9.occasion_bonus;
+      const $bonusEl = document.getElementById('occasion-bonus-badge');
+      if ($bonusEl) {
+        const isPositive = bonus > 0;
+        $bonusEl.textContent = isPositive ? `+${bonus} occasion bonus` : `${bonus} occasion penalty`;
+        $bonusEl.setAttribute('data-positive', String(isPositive));
+        $bonusEl.style.display = '';
+      }
     }
-  }
+  } catch (e) { console.warn('V9 occasion badge render failed:', e); }
 
   // Recommendation is now rendered in Tier 1 (Glance) via donde-blurb
 
