@@ -14,7 +14,7 @@ import { initOffline, isOnline } from './offline.js';
 import { initAccessibility, announce } from './accessibility.js';
 import { fetchRecommendation, fetchBlurb, sendFeedback, sendVisit, sendAppFeedback } from './api.js';
 import { initAuth, signIn as signInWith, signOut as authSignOut, isAuthenticated as isAuthAuthenticated, getUser as getAuthUser, addFavoriteToServer, removeFavoriteFromServer, addVisitToServer } from './auth.js';
-import { animateScoreRing, renderPetalRadar, renderSentimentBar, renderScoreBloom, renderScoreHero, renderFactorBars, toggleBloom, resetBloomState, handlePetalTap, handleBloomRingTap, toggleScoreBreakdown, getBloomState, animateBadge, startParticles, stopParticles, chaosToOrderReveal, initLogoAnimation, resolveLogoToFound, cleanupLoadingLogo, startWordRotation, stopWordRotation, fireCelebration } from './animations.js';
+import { animateScoreRing, renderPetalRadar, renderSentimentBar, renderScoreBloom, renderScoreHero, renderRelevanceGate, renderFactorBars, toggleBloom, resetBloomState, handlePetalTap, handleBloomRingTap, toggleScoreBreakdown, getBloomState, animateBadge, startParticles, stopParticles, chaosToOrderReveal, initLogoAnimation, startSearchPulse, stopSearchPulse, resolveLogoToFound, cleanupLoadingLogo, fireCelebration } from './animations.js';
 import {
   getGreeting, getTimePeriod, getCuisineFromResult, svgIcon,
   getScoreTier, getScoreColor, getScoreThresholdColor, getFactorColor,
@@ -1068,7 +1068,14 @@ function wireEvents() {
               special_request: getState().craving,
               occasion: getState().occasion,
               neighborhood: getState().neighborhood,
-              score_tier: nextResult.scoring_v9?.score_tier || nextResult.scoring?.score_tier || 'good',
+              score_tier: (() => {
+                const s = nextResult.donde_match || 0;
+                if (s >= 90) return 'exceptional';
+                if (s >= 80) return 'great';
+                if (s >= 65) return 'good';
+                if (s >= 50) return 'decent';
+                return 'weak';
+              })(),
               match_narrative: nextResult.match_narrative || null,
             },
           };
@@ -2647,6 +2654,24 @@ function prepareTier2(data, cuisine) {
     data.match_narrative || null
   );
 
+  // V9: Formula row — Relevance × Quality equation
+  const $formulaContainer = document.getElementById('score-hero-formula');
+  if ($formulaContainer && data.scoring_v9) {
+    renderRelevanceGate(data.scoring_v9, $formulaContainer, []);
+  }
+
+  // V9: Occasion bonus badge
+  if (data.scoring_v9?.occasion_bonus && data.scoring_v9.occasion_bonus !== 0) {
+    const bonus = data.scoring_v9.occasion_bonus;
+    const $bonusEl = document.getElementById('occasion-bonus-badge');
+    if ($bonusEl) {
+      const isPositive = bonus > 0;
+      $bonusEl.textContent = isPositive ? `+${bonus} occasion bonus` : `${bonus} occasion penalty`;
+      $bonusEl.setAttribute('data-positive', String(isPositive));
+      $bonusEl.style.display = '';
+    }
+  }
+
   // Recommendation is now rendered in Tier 1 (Glance) via donde-blurb
 
   // The Story: Origin Story + Insider Tip (dynamic label)
@@ -3181,12 +3206,9 @@ function openTileExpand(tileEl) {
           return html;
         }).join('');
 
-        // V4: Show weight shift reasons if available
+        // V9: Show top-weight factor label
         let summaryHtml = '';
-        if (sv4.weight_shift_reasons && sv4.weight_shift_reasons.length > 0) {
-          const topReason = sv4.weight_shift_reasons[0].split(':')[0]; // Short label before colon
-          summaryHtml = `<p class="tile-expand__summary type-data--sm">${topReason}</p>`;
-        } else if (weightsUsed) {
+        if (weightsUsed) {
           const factorLabels = { food: 'Food', vibe: 'Vibe', service: 'Service', reputation: 'Reputation', convenience: 'Convenience' };
           const topFactor = Object.entries(weightsUsed).sort((a, b) => b[1] - a[1])[0];
           if (topFactor && factorLabels[topFactor[0]]) {
@@ -3370,14 +3392,31 @@ function renderDishMatchChip(data) {
   // Remove any previous chip
   document.getElementById('dish-match-chip')?.remove();
 
-  // Check if the scoring details indicate a dish match
-  const menuSignal = data.scoring_v9?.factor_details?.food?.menu?.signal || data.scoring?.factor_details?.food?.menu?.signal;
-  if (!menuSignal || menuSignal === 'No dish match' || menuSignal === 'No menu data' || menuSignal === 'No tag match') return;
+  const sv9 = data.scoring_v9;
 
-  // Only show for positive dish matches
+  // V9: use relevance for dish match detection
+  if (sv9?.relevance_type === 'dish' && sv9.relevance_score >= 0.7) {
+    const request = data.user_request || data.special_request || '';
+    const chipText = request.length > 2 ? `Serves ${request}` : 'Dish Match';
+
+    const chip = document.createElement('span');
+    chip.id = 'dish-match-chip';
+    chip.className = 'dish-match-chip type-data--sm';
+    chip.textContent = chipText;
+    chip.setAttribute('aria-label', `This restaurant matches your request: ${chipText}`);
+
+    const $blurb = document.getElementById('donde-blurb');
+    if ($blurb) $blurb.insertAdjacentElement('afterend', chip);
+    return;
+  }
+
+  // Fallback: check factor_details (now populated by V9 backend)
+  const menuSignal = sv9?.factor_details?.food?.review_quality?.signal ||
+                     sv9?.factor_details?.food?.menu?.signal ||
+                     data.scoring?.factor_details?.food?.menu?.signal;
+  if (!menuSignal || menuSignal === 'No dish match' || menuSignal === 'No menu data' || menuSignal === 'No tag match') return;
   if (!menuSignal.includes('match') && !menuSignal.includes('Match')) return;
 
-  // Extract the dish name from the user's request if possible
   const request = data.user_request || data.special_request || '';
   const chipText = request.length > 2 ? `Serves ${request}` : menuSignal;
 
@@ -3387,11 +3426,8 @@ function renderDishMatchChip(data) {
   chip.textContent = chipText;
   chip.setAttribute('aria-label', `This restaurant matches your request: ${chipText}`);
 
-  // Insert after the blurb
   const $blurb = document.getElementById('donde-blurb');
-  if ($blurb) {
-    $blurb.insertAdjacentElement('afterend', chip);
-  }
+  if ($blurb) $blurb.insertAdjacentElement('afterend', chip);
 }
 
 /* ---- V6.1: Match Reason Headline ---- */
@@ -3422,22 +3458,20 @@ function renderSignalChips(data) {
     });
   }
 
-  // Supplementary signals from scoring data (lower priority, fills gaps)
-  const foodDetails = sv5?.factor_details?.food;
+  // V9: Supplementary signals from relevance data (replaces stale V7 factor_details reads)
+  const sv9 = data.scoring_v9;
 
-  // Cuisine match (if not already in key_signals)
-  if (foodDetails?.cuisine?.signal && !foodDetails.cuisine.signal.startsWith('No ')) {
+  // Cuisine match — V9 uses relevance_type
+  if (sv9?.relevance_type === 'cuisine' && sv9.relevance_score >= 0.7) {
     const cuisineLabel = r.cuisine_type || 'Cuisine';
-    const cuisineText = foodDetails.cuisine.signal.includes('Exact')
-      ? cuisineLabel + ' \u2713' : cuisineLabel;
+    const cuisineText = sv9.relevance_score >= 0.95 ? cuisineLabel + ' \u2713' : cuisineLabel;
     if (!chips.some(c => c.text.toLowerCase().includes('cuisine'))) {
       chips.push({ text: cuisineText, priority: 10 });
     }
   }
 
-  // Dish match
-  const menuSignal = foodDetails?.menu?.signal;
-  if (menuSignal && menuSignal.toLowerCase().includes('match') && !menuSignal.startsWith('No ')) {
+  // Dish match — V9 uses relevance_type
+  if (sv9?.relevance_type === 'dish' && sv9.relevance_score >= 0.7) {
     if (!chips.some(c => c.text.toLowerCase().includes('dish'))) {
       chips.push({ text: 'Dish Match \u2713', priority: 12 });
     }
@@ -4001,6 +4035,11 @@ function renderQuickStats(data) {
     chef_interaction: 'user',
   };
   // (wow factors rendered as subtle accent line below — not in candidate pool)
+
+  // -- Value signal (V9: review_value_score exposed from backend) --
+  if (dc.review_value_score != null && dc.review_value_score >= 7) {
+    candidates.push({ icon: 'heart', text: 'Great Value', priority: dw.food * 0.5 });
+  }
 
   // -- Practical stats --
   if (dc.check_average_per_person) {

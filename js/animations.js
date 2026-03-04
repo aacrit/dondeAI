@@ -182,11 +182,11 @@ function highlightNarrativeKeywords($el, restaurantData) {
 
 let heroData = null;
 
-export function renderScoreHero(dondeMatch, scores, scoringV2, sentiment, timers = [], matchNarrative = null) {
+export function renderScoreHero(dondeMatch, scores, scoringData, sentiment, timers = [], matchNarrative = null) {
   const $hero = document.getElementById('score-hero');
   if (!$hero) return;
 
-  heroData = { dondeMatch, scores, scoringV2, sentiment, matchNarrative };
+  heroData = { dondeMatch, scores, scoringData, sentiment, matchNarrative };
 
   const pct = Math.round(parseFloat(dondeMatch) || 80);
   const $ringFill = document.getElementById('score-hero-ring-fill');
@@ -252,15 +252,15 @@ export function renderScoreHero(dondeMatch, scores, scoringV2, sentiment, timers
 
   // Narrative — typewriter-reveals after ring completes (300ms delay after ring)
   const $narrative = document.getElementById('score-hero-narrative');
-  const resolvedNarrative = matchNarrative || heroData?.scoringV2?.match_narrative;
+  const resolvedNarrative = matchNarrative || heroData?.scoringData?.match_narrative;
 
   if ($narrative) {
     let narrativeText = '';
     if (resolvedNarrative?.summary) {
       narrativeText = resolvedNarrative.summary;
-    } else if (scoringV2) {
+    } else if (scoringData) {
       // Fallback: generate from strongest factor
-      const sv = normalizeScoringKeys(scoringV2);
+      const sv = normalizeScoringKeys(scoringData);
       const weights = sv.weights_used || {};
       const factorEntries = FACTOR_DIMS.filter(d => sv[d.key] != null);
       if (factorEntries.length > 0) {
@@ -294,10 +294,10 @@ export function renderScoreHero(dondeMatch, scores, scoringV2, sentiment, timers
   if ($signals) { $signals.innerHTML = ''; $signals.style.display = 'none'; }
 
   // Auto-render factor bars (always visible, no toggle)
-  if (scoringV2) {
+  if (scoringData) {
     timers.push(setTimeout(() => {
       if (!_factorBarsRendered) {
-        renderFactorBars(scoringV2, timers, _lastRestaurantData);
+        renderFactorBars(scoringData, timers, _lastRestaurantData);
         _factorBarsRendered = true;
       }
     }, 900));
@@ -328,8 +328,8 @@ export function renderScoreHero(dondeMatch, scores, scoringV2, sentiment, timers
   }
 
   // Build aria-label
-  if (scoringV2) {
-    const normalizedForAria = normalizeScoringKeys(scoringV2);
+  if (scoringData) {
+    const normalizedForAria = normalizeScoringKeys(scoringData);
     const ariaDesc = FACTOR_DIMS
       .filter(d => normalizedForAria[d.key] != null)
       .map(d => `${d.label} ${(normalizedForAria[d.key] || 0).toFixed(1)} out of 10`)
@@ -337,6 +337,91 @@ export function renderScoreHero(dondeMatch, scores, scoringV2, sentiment, timers
     $hero.setAttribute('aria-label', `DondeAI Match ${pct}%. Factors: ${ariaDesc}`);
   } else {
     $hero.setAttribute('aria-label', `DondeAI Match ${pct}%`);
+  }
+}
+
+/* ---- V9 Formula Row — Relevance × Quality equation ---- */
+
+export function renderRelevanceGate(scoringV9, container, timers = []) {
+  if (!scoringV9 || !container) return;
+
+  const { relevance_score, relevance_type, relevance_details,
+          quality_score, occasion_bonus } = scoringV9;
+
+  if (relevance_score == null) return;
+
+  const relPct = Math.round(relevance_score * 100);
+  const qualInt = Math.round(quality_score);
+  const bonusText = occasion_bonus > 0 ? `+${occasion_bonus}`
+                  : occasion_bonus < 0 ? `${occasion_bonus}`
+                  : null;
+
+  const TYPE_LABELS = {
+    dish: 'Dish Match',
+    cuisine: 'Cuisine Match',
+    vibe: 'Vibe Match',
+    open_ended: 'Open Search',
+  };
+  const typeLabel = TYPE_LABELS[relevance_type] || 'Match';
+
+  // RAG color for relevance gate
+  const relColor = relPct >= 80 ? 'var(--green, #4ade80)'
+                 : relPct >= 50 ? 'var(--amber, #fbbf24)'
+                 : 'var(--red, #f87171)';
+
+  const row = document.createElement('div');
+  row.className = 'v9-formula-row';
+  row.setAttribute('role', 'group');
+  row.setAttribute('aria-label', `Score formula: ${relPct}% relevance times ${qualInt} quality`);
+
+  row.innerHTML = `
+    <button class="v9-formula__gate"
+            aria-expanded="false"
+            aria-haspopup="true"
+            style="--gate-color: ${relColor}">
+      <span class="v9-formula__gate-label">${typeLabel}</span>
+      <span class="v9-formula__gate-score" style="color:${relColor}">${relPct}%</span>
+    </button>
+    <span class="v9-formula__operator">\u00d7</span>
+    <span class="v9-formula__quality">${qualInt}/100</span>
+    ${bonusText ? `<span class="v9-formula__operator">+</span>
+    <span class="v9-formula__bonus" data-positive="${occasion_bonus > 0}">${bonusText}</span>` : ''}
+  `;
+
+  // Gate popout — tapping shows relevance_details explanation
+  const gateBtn = row.querySelector('.v9-formula__gate');
+  const popout = document.createElement('div');
+  popout.className = 'v9-gate-popout';
+  popout.setAttribute('role', 'tooltip');
+  popout.innerHTML = `
+    <span class="v9-gate-popout__label">Why this relevance score</span>
+    <p class="v9-gate-popout__detail">${relevance_details || 'Match type determined by your request'}</p>
+  `;
+  gateBtn.appendChild(popout);
+
+  gateBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isOpen = gateBtn.getAttribute('aria-expanded') === 'true';
+    gateBtn.setAttribute('aria-expanded', String(!isOpen));
+    popout.classList.toggle('v9-gate-popout--open', !isOpen);
+  });
+
+  // Close popout when clicking outside
+  document.addEventListener('click', () => {
+    gateBtn.setAttribute('aria-expanded', 'false');
+    popout.classList.remove('v9-gate-popout--open');
+  }, { once: false });
+
+  container.innerHTML = '';
+  container.appendChild(row);
+
+  // Animate in
+  if (!REDUCED.matches) {
+    timers.push(setTimeout(() => {
+      row.classList.add('v9-formula-row--visible');
+    }, 800));
+  } else {
+    row.classList.add('v9-formula-row--visible');
   }
 }
 
@@ -351,6 +436,23 @@ export function renderFactorBars(scoringData, timers = [], restaurantData = null
   if (!scoring) return;
 
   $list.innerHTML = '';
+
+  // C3: Weight profile label — shows the active weight profile
+  const WEIGHT_PROFILE_LABELS = {
+    dish: 'Weighted for dish quality',
+    cuisine: 'Weighted for cuisine fit',
+    vibe: 'Weighted for atmosphere',
+    open_ended: 'Weighted for reputation',
+  };
+  const relevanceType = scoring.relevance_type;
+  const existingProfile = $container.querySelector('.factor-bars__profile');
+  if (existingProfile) existingProfile.remove();
+  if (relevanceType && WEIGHT_PROFILE_LABELS[relevanceType]) {
+    const profileEl = document.createElement('p');
+    profileEl.className = 'factor-bars__profile';
+    profileEl.textContent = WEIGHT_PROFILE_LABELS[relevanceType];
+    $container.insertBefore(profileEl, $list);
+  }
 
   const weightsUsed = scoring.weights_used || {};
 
@@ -526,6 +628,7 @@ function buildFactorDetail(factorKey, scoring) {
   const details = scoring.factor_details?.[factorKey] || null;
 
   const SUB_META = {
+    // V7 legacy keys
     cuisine:     { icon: 'plate',      label: 'Cuisine' },
     flavor:      { icon: 'fire',       label: 'Flavor' },
     dietary:     { icon: 'salad',      label: 'Dietary' },
@@ -545,6 +648,20 @@ function buildFactorDetail(factorKey, scoring) {
     timing:      { icon: 'clock',      label: 'Timing' },
     reservation: { icon: 'calendar',   label: 'Reservations' },
     practical:   { icon: 'briefcase',  label: 'Practical' },
+    // V9 sub-keys
+    review_quality:  { icon: 'chat',       label: 'Review Quality' },
+    ambiance:        { icon: 'moon',       label: 'Ambiance Reviews' },
+    authenticity:    { icon: 'starFull',   label: 'Authenticity' },
+    chef:            { icon: 'diamond',    label: 'Notable Chef' },
+    trending:        { icon: 'bolt',       label: 'Trending' },
+    review_service:  { icon: 'diamond',    label: 'Service Reviews' },
+    instagram:       { icon: 'starOutline',label: 'Instagram' },
+    spice:           { icon: 'fire',       label: 'Spice Level' },
+    value:           { icon: 'heart',      label: 'Value Score' },
+    crowd:           { icon: 'usersThree', label: 'Crowd Profile' },
+    wait:            { icon: 'clock',      label: 'Wait Time' },
+    parking:         { icon: 'briefcase',  label: 'Parking' },
+    budget:          { icon: 'heart',      label: 'Budget Fit' },
   };
 
   if (!details || typeof details !== 'object') return '<div class="factor-detail__items"></div>';
