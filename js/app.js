@@ -299,7 +299,7 @@ function startGreetingRotation() {
     if (!$greeting) return;
     const newText = getGreeting(state.theme.culture);
     if (newText === $greeting.textContent) return;
-    $greeting.style.transition = 'opacity 400ms ease';
+    $greeting.style.transition = 'opacity 400ms cubic-bezier(0.4, 0, 0.2, 1)';
     $greeting.style.opacity = '0';
     setTimeout(() => {
       $greeting.textContent = newText;
@@ -650,11 +650,11 @@ function wireEvents() {
         clearAllSelections();
         // F5: Clear dietary pills
         document.querySelectorAll('[data-action="toggle-dietary"]').forEach(pill => {
-          pill.setAttribute('aria-pressed', 'false');
+          pill.setAttribute('aria-checked', 'false');
         });
         // V5: Clear Open Now pill
         const $openNowPill = document.getElementById('open-now-pill');
-        if ($openNowPill) $openNowPill.setAttribute('aria-pressed', 'false');
+        if ($openNowPill) $openNowPill.setAttribute('aria-checked', 'false');
         setupLanding();
         renderSmartChips();
         renderYourSpots();
@@ -734,10 +734,39 @@ function wireEvents() {
         selectFilter('occasion', btn);
         break;
 
-      case 'select-neighborhood':
+      case 'select-neighborhood': {
         selectFilter('neighborhood', btn);
-        autoOpenHoodGroup(btn.dataset.value);
+        const hoodRegions = document.getElementById('hood-regions');
+        const hoodBrowse = document.querySelector('[data-action="toggle-hood-regions"]');
+        if (btn.dataset.value === 'Anywhere') {
+          // Collapse regions and deactivate browse
+          if (hoodRegions) hoodRegions.setAttribute('aria-hidden', 'true');
+          if (hoodBrowse) {
+            hoodBrowse.setAttribute('aria-expanded', 'false');
+            hoodBrowse.classList.remove('hood-browse--active');
+          }
+          // Close all detail groups
+          document.querySelectorAll('.hood-group[open]').forEach(g => g.removeAttribute('open'));
+        } else {
+          autoOpenHoodGroup(btn.dataset.value);
+          // Auto-expand regions
+          if (hoodRegions) hoodRegions.setAttribute('aria-hidden', 'false');
+          if (hoodBrowse) {
+            hoodBrowse.setAttribute('aria-expanded', 'true');
+            hoodBrowse.classList.add('hood-browse--active');
+          }
+        }
         break;
+      }
+
+      case 'toggle-hood-regions': {
+        const regions = document.getElementById('hood-regions');
+        if (!regions) break;
+        const isExpanded = btn.getAttribute('aria-expanded') === 'true';
+        btn.setAttribute('aria-expanded', String(!isExpanded));
+        regions.setAttribute('aria-hidden', String(isExpanded));
+        break;
+      }
 
       case 'select-budget':
         selectFilter('priceLevel', btn);
@@ -762,8 +791,8 @@ function wireEvents() {
       case 'toggle-dietary': {
         const val = btn.dataset.value;
         const current = [...getState().dietaryRestrictions];
-        const isActive = btn.getAttribute('aria-pressed') === 'true';
-        btn.setAttribute('aria-pressed', String(!isActive));
+        const isActive = btn.getAttribute('aria-checked') === 'true';
+        btn.setAttribute('aria-checked', String(!isActive));
         if (isActive) {
           setState({ dietaryRestrictions: current.filter(d => d !== val) });
         } else {
@@ -787,8 +816,8 @@ function wireEvents() {
 
       // V5: Open Now toggle
       case 'toggle-open-now': {
-        const isActive = btn.getAttribute('aria-pressed') === 'true';
-        btn.setAttribute('aria-pressed', String(!isActive));
+        const isActive = btn.getAttribute('aria-checked') === 'true';
+        btn.setAttribute('aria-checked', String(!isActive));
         setState({ openNow: !isActive });
         haptic(HAPTICS.tick);
         // Ink ripple feedback
@@ -936,15 +965,15 @@ function wireEvents() {
 
       case 'select-feedback-cat': {
         haptic(HAPTICS.tick);
-        const wasPressed = btn.getAttribute('aria-pressed') === 'true';
-        document.querySelectorAll('.feedback-cat-pill').forEach(b => b.setAttribute('aria-pressed', 'false'));
-        btn.setAttribute('aria-pressed', String(!wasPressed));
+        const wasPressed = btn.getAttribute('aria-checked') === 'true';
+        document.querySelectorAll('.feedback-cat-pill').forEach(b => b.setAttribute('aria-checked', 'false'));
+        btn.setAttribute('aria-checked', String(!wasPressed));
         updateFeedbackSubmitState();
         break;
       }
 
       case 'submit-app-feedback': {
-        const selectedCat = document.querySelector('.feedback-cat-pill[aria-pressed="true"]');
+        const selectedCat = document.querySelector('.feedback-cat-pill[aria-checked="true"]');
         const category = selectedCat?.dataset.category;
         const messageEl = document.getElementById('feedback-text');
         const message = messageEl?.value?.trim();
@@ -964,6 +993,9 @@ function wireEvents() {
       case 'try-again': {
         // Debounce: block rapid taps while swap is in-flight
         if (_swapInFlight) break;
+        // Visual loading state on button during swap
+        const $tryBtn = btn.closest('[data-action="try-again"]') || btn;
+        $tryBtn.classList.add('cta-btn--loading');
 
         // Track current restaurant ID so backend can exclude it
         const prevId = getState().result?.restaurant?.id;
@@ -988,27 +1020,33 @@ function wireEvents() {
 
           if ($resultCard && !REDUCED_MOTION.matches) {
             _swapInFlight = true;
-            $resultCard.classList.add('result-card--swapping-out');
+            // Per-element crossfade: fade out individual elements, update, fade back in
+            $resultCard.classList.add('result-card--crossfading');
             setTimeout(() => {
-              $resultCard.classList.remove('result-card--swapping-out');
               renderResult(nextResult);
-              $resultCard.classList.add('result-card--swapping-in');
-              // Delay score animation until card-swap-in settles
+              $resultCard.classList.remove('result-card--crossfading');
+              // Score animates after content settles
               setTimeout(() => {
                 const dondeScore = Math.round(parseFloat(nextResult.donde_match) || 80);
                 const $matchScore = document.getElementById('match-pill-score');
                 if ($matchScore) animateScoreCountUp($matchScore, dondeScore);
-              }, 300);
-              setTimeout(() => {
-                $resultCard.classList.remove('result-card--swapping-in');
                 _swapInFlight = false;
-              }, 350);
+                document.querySelector('.cta-btn--loading')?.classList.remove('cta-btn--loading');
+                // Celebration for 88%+ scores (matches initial reveal behavior)
+                if (dondeScore >= 88) {
+                  setTimeout(() => { fireCelebration(); playCelebrationChime(); haptic(HAPTICS.celebration); }, 1400);
+                }
+              }, 300);
             }, 300);
           } else {
             renderResult(nextResult);
             const dondeScore = Math.round(parseFloat(nextResult.donde_match) || 80);
             const $matchScore = document.getElementById('match-pill-score');
             if ($matchScore) animateScoreCountUp($matchScore, dondeScore);
+            if (dondeScore >= 88) {
+              setTimeout(() => { fireCelebration(); playCelebrationChime(); haptic(HAPTICS.celebration); }, 1400);
+            }
+            document.querySelector('.cta-btn--loading')?.classList.remove('cta-btn--loading');
           }
           haptic(HAPTICS.reveal);
 
@@ -1136,8 +1174,12 @@ function wireEvents() {
 
       case 'toggle-badge-popout': {
         const isOpen = btn.getAttribute('aria-expanded') === 'true';
-        if (isOpen) closeBadgePopout();
-        else openBadgePopout(btn);
+        if (isOpen) {
+          closeBadgePopout();
+        } else {
+          haptic(HAPTICS.drawerOpen);
+          openBadgePopout(btn);
+        }
         break;
       }
 
@@ -1163,6 +1205,7 @@ function wireEvents() {
       }
 
       case 'share':
+        haptic(HAPTICS.tick);
         shareResult();
         break;
 
@@ -1305,6 +1348,7 @@ function wireEvents() {
           announce('Showing more details');
         } else {
           // COLLAPSING — snap to concrete px, force reflow, then transition to 0
+          haptic(HAPTICS.tick);
           $tier2.style.willChange = 'max-height, opacity';
           $tier2.style.maxHeight = $tier2.scrollHeight + 'px';
           void $tier2.offsetHeight; // force reflow
@@ -1715,12 +1759,12 @@ function startPlaceholderRotation() {
   placeholderInterval = setInterval(() => {
     if ($cravingInput.value.trim() || document.activeElement === $cravingInput) return;
     idx = (idx + 1) % phs.length;
-    $cravingInput.style.transition = 'opacity 200ms ease';
-    $cravingInput.style.opacity = '0.3';
+    $cravingInput.style.transition = 'opacity 150ms cubic-bezier(0.4, 0, 0.2, 1)';
+    $cravingInput.style.opacity = '0';
     setTimeout(() => {
       $cravingInput.placeholder = phs[idx];
       $cravingInput.style.opacity = '';
-    }, 200);
+    }, 150);
   }, 4000);
 }
 
@@ -1846,6 +1890,14 @@ function autoOpenHoodGroup(value) {
   if (!pill) return;
   const group = pill.closest('.hood-group');
   if (group) group.setAttribute('open', '');
+  // Also expand the regions container
+  const regions = document.getElementById('hood-regions');
+  if (regions) regions.setAttribute('aria-hidden', 'false');
+  const browse = document.querySelector('[data-action="toggle-hood-regions"]');
+  if (browse) {
+    browse.setAttribute('aria-expanded', 'true');
+    browse.classList.add('hood-browse--active');
+  }
 }
 
 /* ---- Smooth filter drawer close ---- */
@@ -1920,7 +1972,7 @@ async function handleSubmit() {
   if ($cta) {
     $cta.classList.remove('cta-btn--ready');
     $cta.classList.add('cta-btn--confirming');
-    await new Promise(r => setTimeout(r, 200));
+    if (!REDUCED_MOTION.matches) await new Promise(r => setTimeout(r, 200));
     $cta.classList.remove('cta-btn--confirming');
     $cta.classList.add('cta-btn--loading');
     $cta.textContent = 'Searching';
@@ -2002,19 +2054,17 @@ async function handleSubmit() {
    ============================================ */
 
 let _scaffoldTimers = [];
-let _phraseInterval = null;
 let _swapInFlight = false;
 
 /* ---- Phase 1: Canvas Fold ---- */
 function beginCanvasFold() {
   const $canvas = document.querySelector('.canvas-layout');
-  const $loading = document.getElementById('result-loading');
 
   // Cancel any previous timers
   _scaffoldTimers.forEach(clearTimeout);
   _scaffoldTimers = [];
 
-  // Hide result card, show loading interstitial
+  // Hide result card
   if ($resultCard) {
     $resultCard.style.display = 'none';
     $resultCard.style.opacity = '0';
@@ -2024,19 +2074,18 @@ function beginCanvasFold() {
     $resultCard.classList.remove('result-card--revealing');
   }
 
-  if ($loading) {
-    $loading.style.display = '';
-    $loading.classList.remove('result-loading--exiting');
-  }
-
-  // Show loading-state overlay with particles + logo
+  // Show unified loading-state overlay with particles + draw-loop + word rotation
   const $loadingState = document.getElementById('loading-state');
   if ($loadingState) {
     $loadingState.style.display = '';
+    $loadingState.classList.remove('loading-state--fading');
+    $loadingState.style.opacity = '';
     if (!REDUCED_MOTION.matches) {
-      startParticles();
+      const $particleCanvas = document.getElementById('particle-canvas');
+      if ($particleCanvas) startParticles($particleCanvas);
       initLogoAnimation();
-      _scaffoldTimers.push(setTimeout(() => startSearchPulse(), 800));
+      const labels = getLabels(getState().theme.culture);
+      if (labels.loadingPhrases) startWordRotation(labels.loadingPhrases);
     }
   }
 
@@ -2052,41 +2101,22 @@ function beginCanvasFold() {
   }
 }
 
-/* (V10: renderScaffold, startScaffoldPulse, startPhraseCarousel removed — instant loading) */
-function stopPhraseCarousel() {
-  if (_phraseInterval) {
-    clearInterval(_phraseInterval);
-    _phraseInterval = null;
-  }
-}
-
 /* ---- V10: Manifest Result — logo exit + progressive reveal ---- */
 async function manifestResult(data) {
   // Stop any running timers
-  stopPhraseCarousel();
+  stopWordRotation();
   _scaffoldTimers.forEach(clearTimeout);
   _scaffoldTimers = [];
 
   // Render all DOM content
   renderResult(data);
 
-  // Stop particles and hide loading-state overlay
+  // Stop particles and resolve loading overlay
   stopParticles();
-  stopSearchPulse();
   const $loadingState = document.getElementById('loading-state');
-  if ($loadingState) {
-    resolveLogoToFound();
-    _scaffoldTimers.push(setTimeout(() => {
-      $loadingState.style.display = 'none';
-      cleanupLoadingLogo();
-    }, 600));
-  }
-
-  const $loading = document.getElementById('result-loading');
 
   if (REDUCED_MOTION.matches) {
     // Instant swap
-    if ($loading) $loading.style.display = 'none';
     if ($loadingState) { $loadingState.style.display = 'none'; cleanupLoadingLogo(); }
     if ($resultCard) {
       $resultCard.style.display = '';
@@ -2094,14 +2124,22 @@ async function manifestResult(data) {
       $resultCard.classList.remove('result-card--scaffold', 'result-card--loading');
     }
   } else {
-    // Phase 1: Fade out loading logo (300ms)
-    if ($loading) {
-      $loading.classList.add('result-loading--exiting');
+    // Phase 1: Resolve logo (confirmation pulse, 450ms)
+    if ($loadingState) {
+      resolveLogoToFound();
+      // Phase 2: Fade out overlay
+      _scaffoldTimers.push(setTimeout(() => {
+        $loadingState.classList.add('loading-state--fading');
+        _scaffoldTimers.push(setTimeout(() => {
+          $loadingState.style.display = 'none';
+          $loadingState.classList.remove('loading-state--fading');
+          cleanupLoadingLogo();
+        }, 300));
+      }, 450));
     }
 
-    // Phase 2: After logo exits, show card with progressive reveal
+    // Phase 3: Show card with progressive reveal (starts after overlay fade completes at 750ms)
     _scaffoldTimers.push(setTimeout(() => {
-      if ($loading) $loading.style.display = 'none';
       if ($resultCard) {
         $resultCard.style.display = '';
         $resultCard.classList.remove('result-card--scaffold', 'result-card--loading');
@@ -2113,7 +2151,7 @@ async function manifestResult(data) {
           $resultCard.classList.remove('result-card--revealing');
         }, 500));
       }
-    }, 280));
+    }, 750));
   }
 
   // Haptic on reveal
@@ -2156,22 +2194,26 @@ function settleResult() {
   if ($headerHood) $headerHood.style.display = 'none';
   // Clean up loading-state overlay
   stopParticles();
-  stopSearchPulse();
   const $loadingState = document.getElementById('loading-state');
-  if ($loadingState) { $loadingState.style.display = 'none'; cleanupLoadingLogo(); }
+  if ($loadingState) {
+    $loadingState.style.display = 'none';
+    $loadingState.classList.remove('loading-state--fading');
+    cleanupLoadingLogo();
+  }
+  // A11y: Move focus to restaurant name for screen readers
+  const $restName = document.getElementById('result-name');
+  if ($restName) $restName.focus({ preventScroll: true });
 }
 
 /* ---- Reverse Canvas Fold (error/back during loading) ---- */
 function reverseCanvasFold() {
-  stopPhraseCarousel();
+  stopWordRotation();
   _scaffoldTimers.forEach(clearTimeout);
   _scaffoldTimers = [];
 
   const $canvas = document.querySelector('.canvas-layout');
-  const $loading = document.getElementById('result-loading');
 
   if ($canvas) $canvas.classList.remove('canvas-layout--morphing');
-  if ($loading) { $loading.style.display = 'none'; $loading.classList.remove('result-loading--exiting'); }
   if ($resultCard) {
     $resultCard.classList.remove('result-card--loading', 'result-card--revealing');
     $resultCard.style.display = 'none';
@@ -2179,9 +2221,12 @@ function reverseCanvasFold() {
 
   // Clean up loading-state overlay
   stopParticles();
-  stopSearchPulse();
   const $loadingState = document.getElementById('loading-state');
-  if ($loadingState) { $loadingState.style.display = 'none'; cleanupLoadingLogo(); }
+  if ($loadingState) {
+    $loadingState.style.display = 'none';
+    $loadingState.classList.remove('loading-state--fading');
+    cleanupLoadingLogo();
+  }
 
   goToStep(0);
 }
@@ -2268,12 +2313,11 @@ function clearEdgeHintTimers() {
 /* ---- V7: Score Count-Up Animation (reusable) ---- */
 function animateScoreCountUp($el, targetScore) {
   const $arcFill = document.getElementById('match-pill-arc-fill');
-  const arcLength = Math.PI * 20; // ~62.83 (semicircle, r=20)
+  const arcLength = 2 * Math.PI * 25; // ~157.08 (full circle, r=25)
   if ($arcFill) {
     $arcFill.style.transition = 'none';
     $arcFill.style.strokeDasharray = String(arcLength);
     $arcFill.style.strokeDashoffset = String(arcLength);
-    $arcFill.style.animation = '';
   }
   $el.textContent = '0';
   const REDUCED_MQ = matchMedia('(prefers-reduced-motion: reduce)');
@@ -2294,8 +2338,6 @@ function animateScoreCountUp($el, targetScore) {
       }
       if (progress < 1) {
         requestAnimationFrame(animate);
-      } else if ($arcFill) {
-        $arcFill.style.animation = 'arcSettle 400ms var(--spring)';
       }
     };
     requestAnimationFrame(animate);
@@ -2712,8 +2754,7 @@ function prepareTier2(data, cuisine) {
   // 1D: Deep context extras (USP, wow factors)
   renderDeepContextExtras(data);
 
-  // V10: Known For — render as inline pills in Tier 2
-  renderKnownFor(data);
+  // Known For data now merged into cuisine drawer (Phase 3 reorganization)
 
 }
 
@@ -2764,7 +2805,9 @@ function openBadgePopout(badgeEl) {
   document.body.appendChild(popout);
   popout.classList.add('badge-popout--open');
   _activePopout = { badge: badgeEl, popout };
-  _popoutTimer = setTimeout(() => closeBadgePopout(), 5000);
+  // Longer auto-close for content-heavy popouts (known-for)
+  const timeout = popout.classList.contains('badge-popout--known-for') ? 8000 : 5000;
+  _popoutTimer = setTimeout(() => closeBadgePopout(), timeout);
   requestAnimationFrame(() => positionPopout(badgeEl, popout));
 }
 
@@ -2888,6 +2931,29 @@ function renderQuickActions(data) {
   $actions.style.display = items.length > 0 ? '' : 'none';
 }
 
+/* ---- Shorten hours text: "Monday: 11:00 AM – 10:00 PM" → "Mon 11a–10p" ---- */
+function _shortenHoursLine(line) {
+  const dayMap = {
+    monday: 'Mon', tuesday: 'Tue', wednesday: 'Wed', thursday: 'Thu',
+    friday: 'Fri', saturday: 'Sat', sunday: 'Sun',
+  };
+  // Split "Day: time" or return as-is
+  const colonIdx = line.indexOf(':');
+  if (colonIdx < 0) return line;
+  const dayPart = line.slice(0, colonIdx).trim().toLowerCase();
+  const timePart = line.slice(colonIdx + 1).trim();
+  const shortDay = dayMap[dayPart] || line.slice(0, 3);
+
+  // Shorten time: "11:00 AM" → "11a", "2:30 PM" → "2:30p", "Closed" stays
+  const shortened = timePart.replace(/(\d{1,2}):00\s*(AM|PM)/gi, (_, h, ampm) =>
+    `${h}${ampm[0].toLowerCase()}`
+  ).replace(/(\d{1,2}:\d{2})\s*(AM|PM)/gi, (_, t, ampm) =>
+    `${t}${ampm[0].toLowerCase()}`
+  ).replace(/\s*[–—-]\s*/g, '–');
+
+  return `${shortDay} ${shortened}`;
+}
+
 /* ---- Result Meta: website, cuisine, what to order, open/closed pills ---- */
 function renderResultMeta(data) {
   const $meta = document.getElementById('result-meta');
@@ -2895,48 +2961,69 @@ function renderResultMeta(data) {
   $meta.innerHTML = '';
 
   const r = data.restaurant || {};
+  const dp = data.deep_context || {};
 
-  // 1. Website link
-  if (r.website) {
-    let hostname = 'Website';
-    try { hostname = new URL(r.website).hostname.replace('www.', ''); } catch { /* fallback */ }
-    const a = document.createElement('a');
-    a.className = 'result-meta__pill type-data--sm';
-    a.href = r.website;
-    a.target = '_blank';
-    a.rel = 'noopener noreferrer';
-    a.innerHTML = `${svgIcon('globe', 11)} ${hostname}`;
-    $meta.appendChild(a);
-  }
-
-  // 2. Cuisine pill → opens cuisine drawer
+  // 1. Cuisine pill → badge-popout with Known For items (signature dishes + highlights)
   if (r.cuisine_type) {
     const pill = document.createElement('span');
-    pill.className = 'result-meta__pill type-data--sm';
+    pill.className = 'result-meta__pill result-meta__pill--interactive type-data--sm';
     pill.setAttribute('role', 'button');
     pill.setAttribute('tabindex', '0');
-    pill.setAttribute('data-action', 'open-cuisine-drawer');
+    pill.setAttribute('aria-expanded', 'false');
+    pill.setAttribute('aria-haspopup', 'true');
+    pill.setAttribute('data-action', 'toggle-badge-popout');
     pill.innerHTML = `${svgIcon('plate', 11)} ${r.cuisine_type}`;
+
+    // Build known-for popout from signature dishes + menu highlights
+    const hasDishes = dp.signature_dishes?.length > 0;
+    const hasHighlights = dp.menu_highlights?.length > 0;
+    if (hasDishes || hasHighlights) {
+      const popout = document.createElement('div');
+      popout.className = 'badge-popout badge-popout--known-for';
+      popout.setAttribute('role', 'tooltip');
+
+      const title = document.createElement('span');
+      title.className = 'badge-popout__title';
+      title.textContent = 'Known For';
+      popout.appendChild(title);
+
+      // Top signature dishes (max 3) — name + short reason
+      if (hasDishes) {
+        const dishesWrap = document.createElement('div');
+        dishesWrap.className = 'badge-popout__dishes';
+        dp.signature_dishes.slice(0, 3).forEach(d => {
+          const row = document.createElement('div');
+          row.className = 'badge-popout__dish-row';
+          row.innerHTML = `<span class="badge-popout__dish-name">${d.dish}</span>${d.why ? `<span class="badge-popout__dish-why">${d.why}</span>` : ''}`;
+          dishesWrap.appendChild(row);
+        });
+        popout.appendChild(dishesWrap);
+      }
+
+      // Menu highlights as compact pills (max 5)
+      if (hasHighlights) {
+        const pillsWrap = document.createElement('div');
+        pillsWrap.className = 'badge-popout__pills';
+        dp.menu_highlights.slice(0, 5).forEach(item => {
+          const p = document.createElement('span');
+          p.className = 'badge-popout__pill badge-popout__pill--dish';
+          p.textContent = item;
+          pillsWrap.appendChild(p);
+        });
+        popout.appendChild(pillsWrap);
+      }
+
+      pill.appendChild(popout);
+    }
+
     $meta.appendChild(pill);
   }
 
-  // 3. "What to Order" pill → opens cuisine drawer (dishes section)
-  const dishes = data.deep_context?.signature_dishes;
-  if (dishes?.length > 0) {
-    const pill = document.createElement('span');
-    pill.className = 'result-meta__pill result-meta__pill--accent type-data--sm';
-    pill.setAttribute('role', 'button');
-    pill.setAttribute('tabindex', '0');
-    pill.setAttribute('data-action', 'open-cuisine-drawer');
-    pill.innerHTML = `${svgIcon('forkKnife', 11)} What to Order`;
-    $meta.appendChild(pill);
-  }
-
-  // 4. Open/Closed status pill with hours popout
+  // 2. Open/Closed status pill with hours popout
   const oh = r.opening_hours;
   if (oh?.open_now != null) {
     const pill = document.createElement('span');
-    pill.className = `result-meta__pill ${oh.open_now ? 'result-meta__pill--open' : 'result-meta__pill--closed'} type-data--sm`;
+    pill.className = `result-meta__pill result-meta__pill--interactive ${oh.open_now ? 'result-meta__pill--open' : 'result-meta__pill--closed'} type-data--sm`;
     pill.setAttribute('role', 'button');
     pill.setAttribute('tabindex', '0');
     pill.setAttribute('aria-expanded', 'false');
@@ -2962,7 +3049,7 @@ function renderResultMeta(data) {
         if (line.toLowerCase().startsWith(today)) {
           p.classList.add('badge-popout__pill--today');
         }
-        p.textContent = line;
+        p.textContent = _shortenHoursLine(line);
         pillsWrap.appendChild(p);
       });
       popout.appendChild(pillsWrap);
@@ -3558,7 +3645,7 @@ function renderOpenNowTag(data) {
       if (line.toLowerCase().startsWith(today)) {
         pill.classList.add('badge-popout__pill--today');
       }
-      pill.textContent = line;
+      pill.textContent = _shortenHoursLine(line);
       pillsWrap.appendChild(pill);
     });
     popout.appendChild(pillsWrap);
@@ -3579,14 +3666,16 @@ function renderMapPreview(data) {
   // Filter out generic city-level names from neighborhood display
   const rawHood = r.neighborhood_name || '';
   const neighborhood = /^chicago$/i.test(rawHood.trim()) ? '' : rawHood;
+  // Short address: just street name, no city/state/zip
+  const shortAddr = r.address.split(',')[0] || r.address;
+  const displayText = neighborhood ? `${neighborhood} · ${shortAddr}` : shortAddr;
+
   $glanceNav.innerHTML = `
-    <a class="glance-nav__link glance-nav__link--enhanced" href="${mapsUrl}" target="_blank" rel="noopener noreferrer">
-      <div class="glance-nav__map-icon">${svgIcon('pin', 20)}</div>
-      <div class="glance-nav__info">
-        ${neighborhood ? `<span class="glance-nav__hood type-data--sm">${neighborhood}</span>` : ''}
-        <span class="glance-nav__address type-structural">${r.address}</span>
-      </div>
-      <span class="glance-nav__cta type-structural">${svgIcon('chevronRight', 16)}</span>
+    <a class="glance-nav__pill" href="${mapsUrl}" target="_blank" rel="noopener noreferrer"
+       aria-label="Get directions to ${r.name}">
+      ${svgIcon('pin', 14)}
+      <span class="glance-nav__pill-text type-data--sm">${displayText}</span>
+      ${svgIcon('chevronRight', 12)}
     </a>`;
   $glanceNav.style.display = '';
 }
@@ -3858,7 +3947,7 @@ function openFeedbackSheet() {
   if ($title) $title.textContent = labels.feedbackTitle || 'Share Your Thoughts';
   if ($subtitle) $subtitle.textContent = labels.feedbackSubtitle || 'Help us make Donde better for everyone.';
   // Reset form
-  document.querySelectorAll('.feedback-cat-pill').forEach(b => b.setAttribute('aria-pressed', 'false'));
+  document.querySelectorAll('.feedback-cat-pill').forEach(b => b.setAttribute('aria-checked', 'false'));
   const $text = document.getElementById('feedback-text');
   if ($text) $text.value = '';
   const $count = document.getElementById('feedback-char-count');
@@ -3883,7 +3972,7 @@ function closeFeedbackSheet() {
 }
 
 function updateFeedbackSubmitState() {
-  const hasCat = !!document.querySelector('.feedback-cat-pill[aria-pressed="true"]');
+  const hasCat = !!document.querySelector('.feedback-cat-pill[aria-checked="true"]');
   const hasText = (document.getElementById('feedback-text')?.value?.trim().length || 0) > 0;
   const $submit = document.getElementById('feedback-submit');
   if ($submit) $submit.disabled = !(hasCat && hasText);
@@ -4227,10 +4316,12 @@ function showToast(message, isError = false, action = null) {
     }
   }
 
+  // Set progress bar duration via CSS custom property
+  const duration = action ? 10000 : isError ? 6000 : 3500;
+  $toast.style.setProperty('--toast-dur', `${duration}ms`);
   $toast.classList.add('toast--visible');
 
   // Auto-dismiss: errors stay longer, actions linger even longer
-  const duration = action ? 10000 : isError ? 6000 : 3500;
   toastTimer = setTimeout(() => dismissToast(), duration);
 }
 

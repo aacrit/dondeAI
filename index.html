@@ -109,7 +109,7 @@
             <path fill="currentColor" d="M128,28A100,100,0,1,0,228,128,100.11,100.11,0,0,0,128,28ZM68.87,198.42a68,68,0,0,1,118.26,0,91.8,91.8,0,0,1-118.26,0Zm124.13-5.56a75.61,75.61,0,0,0-44.51-34,44,44,0,1,0-41,0,75.61,75.61,0,0,0-44.51,34,92,92,0,1,1,130,0ZM128,156a36,36,0,1,1,36-36A36,36,0,0,1,128,156Z"/>
           </svg>
           <!-- Avatar image (shown when signed in) -->
-          <img class="auth-icon auth-icon--avatar" id="auth-avatar-img" src="" alt="" width="24" height="24" style="display:none;">
+          <img class="auth-icon auth-icon--avatar" id="auth-avatar-img" src="" alt="Account" width="24" height="24" style="display:none;">
         </button>
       </div>
     </header>
@@ -119,7 +119,7 @@
       <div class="user-menu__backdrop" data-action="close-user-menu"></div>
       <div class="user-menu__panel">
         <div class="user-menu__header">
-          <img class="user-menu__avatar" id="user-menu-avatar" src="" alt="" width="36" height="36">
+          <img class="user-menu__avatar" id="user-menu-avatar" src="" alt="Account" width="36" height="36">
           <div class="user-menu__info">
             <span class="user-menu__name type-structural" id="user-menu-name"></span>
             <span class="user-menu__email type-data--sm" id="user-menu-email"></span>
@@ -202,8 +202,8 @@
               <div class="filter-content" id="filter-content" hidden>
                 <!-- Occasion -->
                 <div class="filter-section">
-                  <h3 class="filter-section__title type-structural--caps" data-label="vibe">Vibe</h3>
-                  <div class="filter-pills" role="radiogroup" aria-label="Occasion">
+                  <h3 class="filter-section__title type-structural--caps" data-label="vibe" id="filter-title-vibe">Vibe</h3>
+                  <div class="filter-pills" role="radiogroup" aria-labelledby="filter-title-vibe">
                     <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-occasion" data-value="Date Night">
                       <svg viewBox="0 0 256 256" width="16" height="16"><path fill="currentColor" d="M178,44c-21.44,0-39.92,10.19-50,27.07C117.92,54.19,99.44,44,78,44a58.07,58.07,0,0,0-58,58c0,28.59,18,58.47,53.4,88.79a333.81,333.81,0,0,0,52.7,36.73,4,4,0,0,0,3.8,0,333.81,333.81,0,0,0,52.7-36.73C218,160.47,236,130.59,236,102A58.07,58.07,0,0,0,178,44ZM128,219.42c-14-8-100-59.35-100-117.42A50.06,50.06,0,0,1,78,52c21.11,0,38.85,11.31,46.3,29.51a4,4,0,0,0,7.4,0C139.15,63.31,156.89,52,178,52a50.06,50.06,0,0,1,50,50C228,160,142,211.46,128,219.42Z"/></svg>
                       Date Night
@@ -245,74 +245,83 @@
 
                 <!-- Neighborhood -->
                 <div class="filter-section">
-                  <h3 class="filter-section__title type-structural--caps" data-label="hood">Hood</h3>
-                  <div class="hood-groups" role="radiogroup" aria-label="Neighborhood">
-                    <button class="filter-pill filter-pill--anywhere type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Anywhere">Anywhere</button>
-                    <details class="hood-group">
-                      <summary class="hood-group__toggle type-data--sm">Downtown <span class="hood-group__arrow">&#9662;</span></summary>
-                      <div class="hood-group__pills">
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Loop">Loop</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="River North">River North</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Gold Coast">Gold Coast</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Streeterville">Streeterville</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="South Loop">South Loop</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Fulton Market">Fulton Market</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="West Loop">West Loop</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Greektown">Greektown</button>
-                      </div>
-                    </details>
-                    <details class="hood-group">
-                      <summary class="hood-group__toggle type-data--sm">Near North <span class="hood-group__arrow">&#9662;</span></summary>
-                      <div class="hood-group__pills">
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Old Town">Old Town</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Lincoln Park">Lincoln Park</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Lakeview">Lakeview</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Wicker Park">Wicker Park</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Bucktown">Bucktown</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Ukrainian Village">Ukrainian Village</button>
-                      </div>
-                    </details>
-                    <details class="hood-group">
-                      <summary class="hood-group__toggle type-data--sm">Northwest <span class="hood-group__arrow">&#9662;</span></summary>
-                      <div class="hood-group__pills">
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Logan Square">Logan Square</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Avondale">Avondale</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Humboldt Park">Humboldt Park</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Irving Park">Irving Park</button>
-                      </div>
-                    </details>
-                    <details class="hood-group">
-                      <summary class="hood-group__toggle type-data--sm">North <span class="hood-group__arrow">&#9662;</span></summary>
-                      <div class="hood-group__pills">
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Andersonville">Andersonville</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Edgewater">Edgewater</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Uptown">Uptown</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Rogers Park">Rogers Park</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Lincoln Square">Lincoln Square</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="North Center">North Center</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Ravenswood">Ravenswood</button>
-                      </div>
-                    </details>
-                    <details class="hood-group">
-                      <summary class="hood-group__toggle type-data--sm">South &amp; West <span class="hood-group__arrow">&#9662;</span></summary>
-                      <div class="hood-group__pills">
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Pilsen">Pilsen</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Little Italy">Little Italy</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Chinatown">Chinatown</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Bridgeport">Bridgeport</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Bronzeville">Bronzeville</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Hyde Park">Hyde Park</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Back of the Yards">Back of the Yards</button>
-                        <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Woodlawn">Woodlawn</button>
-                      </div>
-                    </details>
+                  <h3 class="filter-section__title type-structural--caps" data-label="hood" id="filter-title-hood">Hood</h3>
+                  <div class="hood-groups" role="radiogroup" aria-labelledby="filter-title-hood">
+                    <div class="hood-top-row">
+                      <button class="filter-pill filter-pill--anywhere type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Anywhere">Anywhere</button>
+                      <button class="hood-browse type-data--sm" data-action="toggle-hood-regions" aria-expanded="false" aria-controls="hood-regions">
+                        Browse neighborhoods <span class="hood-browse__arrow">&#9662;</span>
+                      </button>
+                    </div>
+                    <div class="hood-regions" id="hood-regions" aria-hidden="true">
+                      <div class="hood-regions__inner">
+                      <details class="hood-group">
+                        <summary class="hood-group__toggle type-data--sm">Downtown <span class="hood-group__arrow">&#9662;</span></summary>
+                        <div class="hood-group__pills">
+                          <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Loop">Loop</button>
+                          <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="River North">River North</button>
+                          <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Gold Coast">Gold Coast</button>
+                          <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Streeterville">Streeterville</button>
+                          <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="South Loop">South Loop</button>
+                          <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Fulton Market">Fulton Market</button>
+                          <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="West Loop">West Loop</button>
+                          <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Greektown">Greektown</button>
+                        </div>
+                      </details>
+                      <details class="hood-group">
+                        <summary class="hood-group__toggle type-data--sm">Near North <span class="hood-group__arrow">&#9662;</span></summary>
+                        <div class="hood-group__pills">
+                          <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Old Town">Old Town</button>
+                          <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Lincoln Park">Lincoln Park</button>
+                          <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Lakeview">Lakeview</button>
+                          <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Wicker Park">Wicker Park</button>
+                          <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Bucktown">Bucktown</button>
+                          <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Ukrainian Village">Ukrainian Village</button>
+                        </div>
+                      </details>
+                      <details class="hood-group">
+                        <summary class="hood-group__toggle type-data--sm">Northwest <span class="hood-group__arrow">&#9662;</span></summary>
+                        <div class="hood-group__pills">
+                          <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Logan Square">Logan Square</button>
+                          <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Avondale">Avondale</button>
+                          <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Humboldt Park">Humboldt Park</button>
+                          <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Irving Park">Irving Park</button>
+                        </div>
+                      </details>
+                      <details class="hood-group">
+                        <summary class="hood-group__toggle type-data--sm">North <span class="hood-group__arrow">&#9662;</span></summary>
+                        <div class="hood-group__pills">
+                          <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Andersonville">Andersonville</button>
+                          <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Edgewater">Edgewater</button>
+                          <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Uptown">Uptown</button>
+                          <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Rogers Park">Rogers Park</button>
+                          <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Lincoln Square">Lincoln Square</button>
+                          <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="North Center">North Center</button>
+                          <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Ravenswood">Ravenswood</button>
+                        </div>
+                      </details>
+                      <details class="hood-group">
+                        <summary class="hood-group__toggle type-data--sm">South &amp; West <span class="hood-group__arrow">&#9662;</span></summary>
+                        <div class="hood-group__pills">
+                          <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Pilsen">Pilsen</button>
+                          <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Little Italy">Little Italy</button>
+                          <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Chinatown">Chinatown</button>
+                          <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Bridgeport">Bridgeport</button>
+                          <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Bronzeville">Bronzeville</button>
+                          <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Hyde Park">Hyde Park</button>
+                          <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Back of the Yards">Back of the Yards</button>
+                          <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-neighborhood" data-value="Woodlawn">Woodlawn</button>
+                        </div>
+                      </details>
+                      </div><!-- /.hood-regions__inner -->
+                    </div>
                   </div>
                 </div>
 
                 <!-- Budget -->
                 <div class="filter-section">
-                  <h3 class="filter-section__title type-structural--caps">Budget</h3>
-                  <div class="filter-pills" role="radiogroup" aria-label="Budget">
+                  <h3 class="filter-section__title type-structural--caps" id="filter-title-budget">Budget</h3>
+                  <div class="filter-pills" role="radiogroup" aria-labelledby="filter-title-budget">
                     <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-budget" data-value="Any">Any</button>
                     <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-budget" data-value="$">
                       <svg viewBox="0 0 256 256" width="14" height="14"><path fill="currentColor" d="M152,124H132V52h12a36,36,0,0,1,36,36,4,4,0,0,0,8,0,44.05,44.05,0,0,0-44-44H132V24a4,4,0,0,0-8,0V44H112a44,44,0,0,0,0,88h12v72H104a36,36,0,0,1-36-36,4,4,0,0,0-8,0,44.05,44.05,0,0,0,44,44h20v20a4,4,0,0,0,8,0V212h20a44,44,0,0,0,0-88Zm-40,0a36,36,0,0,1,0-72h12v72Zm40,80H132V132h20a36,36,0,0,1,0,72Z"/></svg>
@@ -324,19 +333,19 @@
                 </div>
                 <!-- F5: Dietary Preferences -->
                 <div class="filter-section">
-                  <h3 class="filter-section__title type-structural--caps">Dietary</h3>
-                  <div class="filter-pills" role="group" aria-label="Dietary preferences">
-                    <button class="filter-pill filter-pill--toggle type-structural" aria-pressed="false" data-action="toggle-dietary" data-value="vegan">Vegan</button>
-                    <button class="filter-pill filter-pill--toggle type-structural" aria-pressed="false" data-action="toggle-dietary" data-value="vegetarian">Vegetarian</button>
-                    <button class="filter-pill filter-pill--toggle type-structural" aria-pressed="false" data-action="toggle-dietary" data-value="gluten-free">Gluten-Free</button>
-                    <button class="filter-pill filter-pill--toggle type-structural" aria-pressed="false" data-action="toggle-dietary" data-value="halal">Halal</button>
+                  <h3 class="filter-section__title type-structural--caps" id="filter-title-dietary">Dietary</h3>
+                  <div class="filter-pills" role="group" aria-labelledby="filter-title-dietary">
+                    <button class="filter-pill filter-pill--toggle type-structural" role="switch" aria-checked="false" data-action="toggle-dietary" data-value="vegan">Vegan</button>
+                    <button class="filter-pill filter-pill--toggle type-structural" role="switch" aria-checked="false" data-action="toggle-dietary" data-value="vegetarian">Vegetarian</button>
+                    <button class="filter-pill filter-pill--toggle type-structural" role="switch" aria-checked="false" data-action="toggle-dietary" data-value="gluten-free">Gluten-Free</button>
+                    <button class="filter-pill filter-pill--toggle type-structural" role="switch" aria-checked="false" data-action="toggle-dietary" data-value="halal">Halal</button>
                   </div>
                 </div>
                 <!-- V5: Open Now Toggle -->
                 <div class="filter-section">
-                  <h3 class="filter-section__title type-structural--caps">Availability</h3>
-                  <div class="filter-pills" role="group" aria-label="Availability">
-                    <button class="filter-pill filter-pill--toggle type-structural" aria-pressed="false" data-action="toggle-open-now" data-value="open_now" id="open-now-pill">
+                  <h3 class="filter-section__title type-structural--caps" id="filter-title-availability">Availability</h3>
+                  <div class="filter-pills" role="group" aria-labelledby="filter-title-availability">
+                    <button class="filter-pill filter-pill--toggle type-structural" role="switch" aria-checked="false" data-action="toggle-open-now" data-value="open_now" id="open-now-pill">
                       <svg viewBox="0 0 256 256" width="14" height="14"><path fill="currentColor" d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm64-88a8,8,0,0,1-8,8H128a8,8,0,0,1-8-8V72a8,8,0,0,1,16,0v48h48A8,8,0,0,1,192,128Z"/></svg>
                       Open Now
                     </button>
@@ -379,24 +388,8 @@
         <!-- ========== VIEW 1: Result ========== -->
         <section class="step" data-step="1" aria-hidden="true" aria-label="Your recommendation">
           <div class="step__inner" id="result-container">
-            <!-- Loading Interstitial: Animated Donde logo while API call runs -->
-            <div class="result-loading" id="result-loading" style="display: none;" aria-label="Finding your spot">
-              <svg class="result-loading__mark" viewBox="0 0 32 44" width="48" height="66">
-                <path class="result-loading__tine result-loading__tine--left"
-                      d="M10.5 1 C10.5 1, 10 8.5, 12.5 11.5 Q14 13, 14.5 13.5"
-                      fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-                <path class="result-loading__tine result-loading__tine--right"
-                      d="M21.5 1 C21.5 1, 22 8.5, 19.5 11.5 Q18 13, 17.5 13.5"
-                      fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-                <path class="result-loading__curve"
-                      d="M16 13.5 C22 11, 29 14, 28 21 C27 27, 19 29, 16 31 L16 34"
-                      fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>
-                <circle class="result-loading__dot" cx="16" cy="40" r="2.8" fill="var(--ac)"/>
-              </svg>
-              <p class="result-loading__status type-structural">Finding your spot</p>
-            </div>
             <!-- Result Card (populated by JS) — 3-Tier Progressive Disclosure -->
-            <div class="result-card card-enter" id="result-card" style="display: none;">
+            <article class="result-card card-enter" id="result-card" style="display: none;">
 
               <!-- Ink Manifests: Progress ink line -->
               <div class="progress-ink" id="progress-ink"></div>
@@ -440,26 +433,28 @@
                       <span class="match-mini__tm type-data--sm">Match<sup>™</sup></span>
                     </span>
                     <span class="match-mini__score-wrap">
-                      <svg class="match-mini__arc" viewBox="0 0 50 30" aria-hidden="true">
-                        <path class="match-mini__arc-bg" d="M 5 28 A 20 20 0 0 1 45 28" />
-                        <path class="match-mini__arc-fill" id="match-pill-arc-fill" d="M 5 28 A 20 20 0 0 1 45 28" />
+                      <svg class="match-mini__arc" viewBox="0 0 60 60" aria-hidden="true">
+                        <circle class="match-mini__arc-bg" cx="30" cy="30" r="25" />
+                        <circle class="match-mini__arc-fill" id="match-pill-arc-fill" cx="30" cy="30" r="25" />
                       </svg>
                       <span class="match-mini__score type-data" id="match-pill-score">0</span>
                     </span>
+                    <span class="match-mini__verdict type-data--sm" id="match-pill-verdict"></span>
                     <span class="match-mini__hint type-data--sm">Details &#8595;</span>
                   </div>
                   <!-- V5: Intent Boost Badge — rendered dynamically by JS -->
                   <div class="glance-hero__info">
                     <div class="result-header">
-                      <h2 class="result-name type-emotional--md" id="result-name"></h2>
+                      <h2 class="result-name type-emotional--md" id="result-name" tabindex="-1"></h2>
+                      <!-- Cuisine + Open/Closed pills — inline with name -->
+                      <div class="result-meta" id="result-meta"></div>
                       <div class="quick-tags" id="quick-tags"></div>
-                      <!-- V6.1: Signal Chips — inline with tags -->
                       <div class="signal-chips" id="signal-chips" style="display: none;"></div>
                     </div>
-                    <!-- Restaurant meta: website, cuisine, what to order, open/closed -->
-                    <div class="result-meta" id="result-meta"></div>
                     <p class="result-oneliner type-structural" id="result-oneliner"></p>
                     <div class="quick-actions" id="quick-actions"></div>
+                    <!-- Compact navigation pill (address → maps) — directly below action buttons -->
+                    <div class="glance-nav" id="glance-nav" style="display: none;"></div>
                   </div>
                 </div>
 
@@ -478,9 +473,6 @@
                   <div class="donde-blurb__accent" aria-hidden="true"></div>
                   <p class="donde-blurb__text type-structural" id="result-recommendation"></p>
                 </div>
-
-                <!-- Compact navigation tile (address → maps) -->
-                <div class="glance-nav" id="glance-nav" style="display: none;"></div>
               </div>
 
               <!-- ══════ TIER 2: LEAN-IN — "Tell me more / Should I go?" ══════ -->
@@ -490,8 +482,6 @@
                 <div class="score-hero" id="score-hero"
                      role="figure" tabindex="0"
                      aria-label="DondeAI Match score detail">
-                  <!-- V9: Verdict-first — emotional hook before data -->
-                  <span class="score-hero__verdict-text type-emotional" id="score-hero-verdict-text"></span>
                   <div class="score-hero__ring-wrap">
                     <svg class="score-hero__svg" viewBox="0 0 120 120" aria-hidden="true">
                       <circle class="score-hero__ring-bg" cx="60" cy="60" r="52" />
@@ -499,7 +489,7 @@
                     </svg>
                     <div class="score-hero__center">
                       <span class="score-hero__brand" aria-hidden="true">
-                        <svg class="score-hero__brand-logo" viewBox="0 0 32 44" width="14" height="19">
+                        <svg class="score-hero__brand-logo" viewBox="0 0 32 44" width="20" height="27">
                           <path d="M10.5 1C10.5 1 10 8.5 12.5 11.5Q14 13 14.5 13.5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
                           <path d="M21.5 1C21.5 1 22 8.5 19.5 11.5Q18 13 17.5 13.5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
                           <path d="M16 13.5C22 11 29 14 28 21C27 27 19 29 16 31L16 34" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>
@@ -510,6 +500,8 @@
                       <span class="score-hero__number type-data" id="score-hero-number">0</span>
                     </div>
                   </div>
+                  <!-- Verdict below ring — smaller font -->
+                  <span class="score-hero__verdict-text type-emotional" id="score-hero-verdict-text"></span>
                   <!-- V9: Narrative — editorial voice below ring -->
                   <p class="score-hero__narrative type-emotional" id="score-hero-narrative"></p>
                   <!-- V9: Formula row — Relevance × Quality equation -->
@@ -541,11 +533,7 @@
                 <!-- Quick Stats ribbon (compact deep-context data, includes wow factors) -->
                 <div class="quick-stats" id="quick-stats" style="display: none;"></div>
 
-                <!-- V10: Known For — moved to Tier 2 as inline pills -->
-                <div class="known-for" id="known-for" style="display: none;">
-                  <span class="known-for__label type-data--sm">Known For</span>
-                  <div class="known-for__strip" id="known-for-strip"></div>
-                </div>
+                <!-- Known For data merged into cuisine drawer -->
 
               </div>
 
@@ -593,7 +581,7 @@
                   </button>
                 </div>
               </div>
-            </div>
+            </article>
           </div>
 
           <!-- V9: Floating Action Bar — persistent quick actions on scroll -->
@@ -638,11 +626,11 @@
 
       </div><!-- /step-track -->
 
-      <!-- Loading State Overlay: Particle canvas + Donde logo + skeleton -->
-      <div class="loading-state" id="loading-state" style="display: none;" role="status" aria-label="Searching for restaurant">
+      <!-- Loading State Overlay: Particle canvas + Donde logo draw-loop + rotating word -->
+      <div class="loading-state" id="loading-state" style="display: none;" role="status" aria-label="Finding your spot">
         <canvas class="particle-canvas" id="particle-canvas" aria-hidden="true"></canvas>
         <div class="loading-logo" id="loading-logo" aria-hidden="true">
-          <svg class="logo-mark logo-mark--loading" viewBox="0 0 32 44" width="56" height="77">
+          <svg class="logo-mark logo-mark--loading" viewBox="0 0 32 44" width="48" height="66">
             <path class="logo-mark__tine logo-mark__tine--left logo-mark__tine--draw"
                   d="M10.5 1 C10.5 1, 10 8.5, 12.5 11.5 Q14 13, 14.5 13.5"
                   fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
@@ -654,19 +642,8 @@
                   fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>
             <circle class="logo-mark__dot logo-mark__dot--draw" cx="16" cy="40" r="2.8" fill="var(--ac)"/>
           </svg>
-          <span class="loading-logo__text logo-wordmark" aria-label="Donde">
-            <span class="logo-wordmark__d" aria-hidden="true">D</span><span
-              class="logo-wordmark__ond" aria-hidden="true">ond</span><span
-              class="logo-wordmark__e" aria-hidden="true">e</span>
-          </span>
         </div>
-        <p class="loading-status type-structural" id="loading-status">Searching</p>
-        <div class="result-skeleton" id="result-skeleton" aria-hidden="true">
-          <div class="skel-block skel-block--name"></div>
-          <div class="skel-block skel-block--story"></div>
-          <div class="skel-block skel-block--scores"></div>
-          <div class="skel-block skel-block--actions"></div>
-        </div>
+        <p class="loading-word type-structural" id="loading-word" aria-live="polite"></p>
       </div>
     </main>
 
@@ -796,13 +773,13 @@
         <p class="feedback-sheet__subtitle type-data--sm" id="feedback-sheet-subtitle">Help us make Donde better for everyone.</p>
         <div class="feedback-sheet__form">
           <div class="feedback-sheet__categories" id="feedback-categories" role="radiogroup" aria-label="Feedback category">
-            <button class="feedback-cat-pill type-structural" data-action="select-feedback-cat" data-category="recommendation" aria-pressed="false">Recommendations</button>
-            <button class="feedback-cat-pill type-structural" data-action="select-feedback-cat" data-category="experience" aria-pressed="false">Experience</button>
-            <button class="feedback-cat-pill type-structural" data-action="select-feedback-cat" data-category="feature" aria-pressed="false">Feature Request</button>
-            <button class="feedback-cat-pill type-structural" data-action="select-feedback-cat" data-category="restaurant_info" aria-pressed="false">Restaurant Info</button>
-            <button class="feedback-cat-pill type-structural" data-action="select-feedback-cat" data-category="other" aria-pressed="false">Other</button>
+            <button class="feedback-cat-pill type-structural" role="radio" data-action="select-feedback-cat" data-category="recommendation" aria-checked="false">Recommendations</button>
+            <button class="feedback-cat-pill type-structural" role="radio" data-action="select-feedback-cat" data-category="experience" aria-checked="false">Experience</button>
+            <button class="feedback-cat-pill type-structural" role="radio" data-action="select-feedback-cat" data-category="feature" aria-checked="false">Feature Request</button>
+            <button class="feedback-cat-pill type-structural" role="radio" data-action="select-feedback-cat" data-category="restaurant_info" aria-checked="false">Restaurant Info</button>
+            <button class="feedback-cat-pill type-structural" role="radio" data-action="select-feedback-cat" data-category="other" aria-checked="false">Other</button>
           </div>
-          <textarea class="feedback-sheet__input" id="feedback-text" rows="3" placeholder="What's on your mind?" maxlength="500"></textarea>
+          <textarea class="feedback-sheet__input" id="feedback-text" rows="3" placeholder="What's on your mind?" maxlength="500" aria-describedby="feedback-char-count"></textarea>
           <div class="feedback-sheet__footer">
             <span class="feedback-sheet__count type-data--sm" id="feedback-char-count">0 / 500</span>
             <button class="feedback-sheet__submit cta-btn type-structural" id="feedback-submit" data-action="submit-app-feedback" disabled>Send</button>

@@ -119,6 +119,7 @@ function pulseBlobs() {
     blob.style.transform = 'scale(1.12)';
     setTimeout(() => {
       blob.style.transform = '';
+      blob.style.transition = '';
     }, 600 + i * 100);
   });
 }
