@@ -3,6 +3,7 @@
    Single-canvas layout: Canvas + Result.
    ============================================ */
 
+console.log('[donde] app.js module loading...');
 import { getState, setState, subscribe, resetState } from './state.js';
 import { initRouter, goToStep, goToStepInstant } from './router.js';
 import { loadTheme, loadSound, loadHistory, addToHistory, saveTheme, loadColorMode, loadBookmarks, addBookmark, removeBookmark, isBookmarked, loadVisits, addVisit, isVisited, getOrCreateUserId, saveFeedback, loadFeedback, clearFeedback, hasGuestDismissed, setGuestDismissed, hasSeenOnboarding, setOnboardingSeen } from './persistence.js';
@@ -2006,6 +2007,7 @@ async function handleSubmit() {
       setState({ pendingFeedback: null });
     }
     const data = await fetchRecommendation(payload);
+    console.log('[donde] API returned, restaurant:', data?.restaurant?.name, 'scoring_v9:', !!data?.scoring_v9);
 
     // Save to history with cuisine icon
     const cuisine = getCuisineFromResult(data);
@@ -2026,6 +2028,7 @@ async function handleSubmit() {
     playChime();
     announce(`Recommendation: ${data.restaurant?.name || 'found'}`);
   } catch (err) {
+    console.error('[donde] handleSubmit error:', err.message);
     if (err.name === 'AbortError') return; // user navigated away
     // Error: reverse the canvas fold and return to input
     reverseCanvasFold();
@@ -2080,12 +2083,16 @@ function beginCanvasFold() {
     $loadingState.style.display = '';
     $loadingState.classList.remove('loading-state--fading');
     $loadingState.style.opacity = '';
-    if (!REDUCED_MOTION.matches) {
-      const $particleCanvas = document.getElementById('particle-canvas');
-      if ($particleCanvas) startParticles($particleCanvas);
-      initLogoAnimation();
-      const labels = getLabels(getState().theme.culture);
-      if (labels.loadingPhrases) startWordRotation(labels.loadingPhrases);
+    try {
+      if (!REDUCED_MOTION.matches) {
+        const $particleCanvas = document.getElementById('particle-canvas');
+        if ($particleCanvas) startParticles($particleCanvas);
+        initLogoAnimation();
+        const labels = getLabels(getState().theme.culture);
+        if (labels.loadingPhrases) startWordRotation(labels.loadingPhrases);
+      }
+    } catch (e) {
+      console.error('Loading animation setup failed:', e);
     }
   }
 
@@ -2109,10 +2116,12 @@ async function manifestResult(data) {
   _scaffoldTimers = [];
 
   // Render all DOM content — wrapped to ensure loading overlay always cleans up
+  console.log('[donde] manifestResult called, rendering...');
   try {
     renderResult(data);
+    console.log('[donde] renderResult completed');
   } catch (e) {
-    console.error('renderResult failed:', e);
+    console.error('[donde] renderResult failed:', e);
   }
 
   // Stop particles and resolve loading overlay
