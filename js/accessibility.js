@@ -98,6 +98,27 @@ function handleKeyboard(e) {
       shareSheet.classList.remove('share-sheet--open');
       return;
     }
+
+    // Lightbox
+    const lightbox = document.getElementById('lightbox');
+    if (lightbox?.classList.contains('lightbox--open')) {
+      document.querySelector('[data-action="close-lightbox"]')?.click();
+      return;
+    }
+
+    // Filter drawer
+    const filterDrawer = document.getElementById('filter-drawer');
+    if (filterDrawer?.classList.contains('filter-drawer--open')) {
+      document.querySelector('[data-action="toggle-filters"]')?.click();
+      return;
+    }
+
+    // Badge popout
+    const popout = document.querySelector('.badge-popout--open');
+    if (popout) {
+      popout.classList.remove('badge-popout--open');
+      return;
+    }
   }
 }
 

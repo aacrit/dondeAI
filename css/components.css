@@ -168,6 +168,15 @@
   transition: opacity 120ms ease-out;
 }
 
+/* Character counter — appears at 80%+ of maxlength */
+.craving-counter {
+  display: block;
+  text-align: right;
+  color: var(--fg3);
+  margin-top: var(--space-2xs);
+  opacity: 0.6;
+}
+
 .craving-input:focus {
   border-color: var(--ac);
   box-shadow: 0 4px 16px -4px color-mix(in srgb, var(--ac) 8%, transparent);
@@ -229,6 +238,15 @@
 }
 
 /* ---- Smart Chips (input augmentation) ---- */
+/* Smart chip framing label — contextual hint for first-time users */
+.smart-chips__label {
+  display: block;
+  text-align: center;
+  color: var(--fg3);
+  margin-bottom: var(--space-2xs);
+  letter-spacing: 0.03em;
+}
+
 .smart-chips {
   display: flex;
   flex-wrap: wrap;
@@ -5949,12 +5967,24 @@
 }
 
 /* V9: Caveat signal chip — transparency note for weak spots */
-.signal-chip--caveat {
+.signal-chip--caveat-label {
   background: transparent;
   border-color: transparent;
-  color: var(--fg4);
+  color: var(--rag-amber);
+  font-weight: 600;
+  font-size: var(--text-2xs);
+  letter-spacing: 0.03em;
+  width: 100%;
+  text-align: center;
+  padding: var(--space-2xs) 0 0;
+}
+
+.signal-chip--caveat {
+  background: var(--rag-amber-soft);
+  border-color: color-mix(in srgb, var(--rag-amber) 30%, transparent);
+  color: var(--rag-amber);
   font-style: italic;
-  font-size: 0.6rem;
+  font-size: var(--text-2xs);
 }
 
 

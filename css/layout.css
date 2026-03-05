@@ -327,8 +327,8 @@
   top: calc(var(--header-h) + var(--space-sm));
   left: var(--space-md);
   z-index: var(--z-above);
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
