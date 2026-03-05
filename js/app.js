@@ -176,6 +176,16 @@ function init() {
   updateCtaState();
 
   // Auto-color is on by default — no first-visit nudge needed
+
+  // Font loading: remove .fonts-loading once Playfair Display is ready
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(() => {
+      document.body.classList.remove('fonts-loading');
+    });
+  } else {
+    // Fallback: just remove after 1s
+    setTimeout(() => document.body.classList.remove('fonts-loading'), 1000);
+  }
 }
 
 /* ---- Landing Setup ---- */
@@ -818,7 +828,7 @@ function wireEvents() {
 
       // F14: Surprise Me — slot-machine shuffle animation
       case 'surprise-me': {
-        haptic(HAPTICS.tick);
+        haptic([10, 30, 10, 30, 10]); // playful surprise pattern
         const surprisePrompts = [
           "surprise me with the best spot tonight",
           "the most underrated gem nearby",
@@ -829,9 +839,9 @@ function wireEvents() {
           "the best meal I'll have this month",
           "chef's pick — go wild",
         ];
-        // Spring feedback on button
-        btn.classList.add('chip-pop');
-        btn.addEventListener('animationend', () => btn.classList.remove('chip-pop'), { once: true });
+        // Wobble feedback on button (playful, not just spring)
+        btn.style.animation = 'factorWobble 400ms ease-out';
+        btn.addEventListener('animationend', () => { btn.style.animation = ''; }, { once: true });
 
         // Pick the final prompt
         const finalPrompt = surprisePrompts[Math.floor(Math.random() * surprisePrompts.length)];
@@ -841,24 +851,22 @@ function wireEvents() {
           $cravingInput.classList.add('craving-input--surprising');
           $cravingInput.addEventListener('animationend', () => $cravingInput.classList.remove('craving-input--surprising'), { once: true });
 
-          // Slot-machine shuffle: cycle through 4 random prompts rapidly before settling
-          let shuffleCount = 0;
-          const shuffleMax = 4;
-          const shuffleInterval = setInterval(() => {
-            const randPrompt = surprisePrompts[Math.floor(Math.random() * surprisePrompts.length)];
-            $cravingInput.value = randPrompt;
-            shuffleCount++;
-            if (shuffleCount >= shuffleMax) {
-              clearInterval(shuffleInterval);
-              $cravingInput.value = finalPrompt;
-              $cravingInput.style.height = 'auto';
-              $cravingInput.style.height = $cravingInput.scrollHeight + 'px';
+          // Typewriter effect: write the surprise prompt character by character
+          $cravingInput.value = '';
+          let charIdx = 0;
+          const typeInterval = setInterval(() => {
+            charIdx++;
+            $cravingInput.value = finalPrompt.slice(0, charIdx);
+            $cravingInput.style.height = 'auto';
+            $cravingInput.style.height = $cravingInput.scrollHeight + 'px';
+            if (charIdx >= finalPrompt.length) {
+              clearInterval(typeInterval);
               setState({ craving: finalPrompt, excludeIds: [] });
               updateCtaState();
               // Auto-submit after a brief pause
-              setTimeout(() => handleSubmit(), 600);
+              setTimeout(() => handleSubmit(), 400);
             }
-          }, 120);
+          }, 35);
         } else {
           setState({ craving: finalPrompt, excludeIds: [] });
           updateCtaState();
@@ -1772,11 +1780,14 @@ function updateCtaState() {
       $cta.classList.remove('cta-btn--ready');
       if (ctaBreathTimer) { clearTimeout(ctaBreathTimer); ctaBreathTimer = null; }
     } else if (wasDisabled && !isEmpty) {
-      // Just enabled: one-shot ready pulse (no infinite breathing)
-      $cta.classList.add('cta-btn--ready');
+      // Ink fill: accent color writes in left-to-right when CTA becomes enabled
+      $cta.classList.add('cta-btn--ink-fill');
+      // After ink fill completes (400ms), do one-shot ready pulse
       if (ctaBreathTimer) clearTimeout(ctaBreathTimer);
       ctaBreathTimer = setTimeout(() => {
-        $cta.classList.remove('cta-btn--ready');
+        $cta.classList.remove('cta-btn--ink-fill');
+        $cta.classList.add('cta-btn--ready');
+        setTimeout(() => $cta.classList.remove('cta-btn--ready'), 400);
       }, 400);
     }
   }
@@ -1953,6 +1964,9 @@ async function handleSubmit() {
   // Cancel any in-flight request
   if (currentAbort) currentAbort.abort();
   currentAbort = new AbortController();
+
+  // Haptic: confident submit tap
+  haptic([20]);
 
   // Set CTA to loading state with brief confirmation glow
   const $cta = document.querySelector('.cta-btn[data-action="submit"]');
@@ -4230,7 +4244,11 @@ function showToast(message, isError = false, action = null) {
 
 function dismissToast() {
   if (!$toast) return;
-  $toast.classList.remove('toast--visible');
+  // Smooth exit: add exiting class, then remove visible after animation
+  $toast.classList.add('toast--exiting');
+  setTimeout(() => {
+    $toast.classList.remove('toast--visible', 'toast--exiting');
+  }, 250);
   if (toastTimer) {
     clearTimeout(toastTimer);
     toastTimer = null;

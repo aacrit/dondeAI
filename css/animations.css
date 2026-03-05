@@ -366,15 +366,15 @@
   }
 }
 
-/* ---- Filter Drawer Open ---- */
+/* ---- Filter Drawer Open (pure translate — no scaleY squish) ---- */
 @keyframes drawerOpen {
   from {
     opacity: 0;
-    transform: translateY(-8px) scaleY(0.95);
+    transform: translateY(-8px);
   }
   to {
     opacity: 1;
-    transform: translateY(0) scaleY(1);
+    transform: translateY(0);
   }
 }
 
@@ -382,11 +382,11 @@
 @keyframes drawerClose {
   from {
     opacity: 1;
-    transform: translateY(0) scaleY(1);
+    transform: translateY(0);
   }
   to {
     opacity: 0;
-    transform: translateY(-8px) scaleY(0.95);
+    transform: translateY(-8px);
   }
 }
 
@@ -601,17 +601,17 @@
   animation: ringCelebrate 800ms ease-out;
 }
 
-/* ---- V7: Card Swap Out (Try Again instant queue transition) ---- */
+/* ---- V7: Card Swap Out (flicked off desk — slight rotation) ---- */
 @keyframes cardSwapOut {
-  from { opacity: 1; transform: translateX(0) scale(1); }
-  to   { opacity: 0; transform: translateX(-20px) scale(0.97); }
+  from { opacity: 1; transform: translateX(0) scale(1) rotate(0deg); }
+  to   { opacity: 0; transform: translateX(-24px) scale(0.96) rotate(-0.5deg); }
 }
 
-/* ---- V7: Card Swap In (new result from queue) ---- */
+/* ---- V7: Card Swap In (new card landing on desk from stack) ---- */
 @keyframes cardSwapIn {
-  0%   { opacity: 0; transform: translateX(20px) scale(0.97); }
-  70%  { opacity: 1; transform: translateX(-2px) scale(1.01); }
-  100% { opacity: 1; transform: translateX(0) scale(1); }
+  0%   { opacity: 0; transform: translateX(24px) translateY(4px) scale(0.96); }
+  60%  { opacity: 1; transform: translateX(-2px) translateY(-1px) scale(1.01); }
+  100% { opacity: 1; transform: translateX(0) translateY(0) scale(1); }
 }
 
 /* ---- Reduced Motion: Gentle fallback (100ms linear, not 0ms) ---- */

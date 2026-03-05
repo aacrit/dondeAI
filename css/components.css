@@ -2,6 +2,14 @@
    DondeAI — Component Styles
    ============================================ */
 
+/* ---- Font Loading: prevent FOUT on emotional typeface ---- */
+.fonts-loading .step__title {
+  opacity: 0;
+}
+.step__title {
+  transition: opacity 300ms var(--ease-out);
+}
+
 /* ---- Step Title ---- */
 .step__title {
   font-size: var(--text-2xl);
@@ -332,6 +340,25 @@
   box-shadow: none;
   opacity: 1;
   cursor: not-allowed;
+}
+
+/* Ink fill: accent writes left-to-right when CTA becomes enabled */
+.cta-btn--ink-fill {
+  background: transparent;
+  color: var(--bg);
+  border-color: var(--ac);
+}
+.cta-btn--ink-fill::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--ac);
+  clip-path: inset(0 100% 0 0);
+  animation: inkReveal 400ms cubic-bezier(0.2, 1, 0.4, 1) forwards;
+  z-index: -1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cta-btn--ink-fill::before { animation: none; clip-path: none; }
 }
 
 .cta-btn--loading {
@@ -881,7 +908,8 @@
 }
 
 [data-mode="dark"] .result-card {
-  box-shadow: none;
+  /* Subtle depth: hairline top-edge highlight + border instead of flat zero-shadow */
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
@@ -4485,6 +4513,10 @@
   padding: 0 0 var(--space-sm);
   border-radius: var(--radius) var(--radius) 0 0;
   margin: calc(-1 * var(--space-md)) calc(-1 * var(--space-md)) var(--space-sm);
+  position: relative;
+  /* Edge fade gradients to hint at scrollable content */
+  mask-image: linear-gradient(to right, transparent 0, black 16px, black calc(100% - 16px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, transparent 0, black 16px, black calc(100% - 16px), transparent 100%);
 }
 
 .result-photos::-webkit-scrollbar { display: none; }
@@ -4498,6 +4530,12 @@
   object-fit: cover;
   border-radius: var(--radius);
   background: var(--bg3);
+  /* Ken Burns: subtle slow zoom on visible photos */
+  animation: kenBurns 8s ease-in-out infinite alternate;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .result-photos__img { animation: none; }
 }
 
 .result-photos__img:first-child {
@@ -5023,15 +5061,23 @@
   color: var(--fg2);
   cursor: pointer;
   font-size: var(--text-sm);
-  transition: all 200ms var(--ease-out);
+  transition: color 200ms var(--ease-out), border-color 200ms var(--ease-out),
+              background 200ms var(--ease-out);
   margin: 0 auto;
+  background-image: repeating-linear-gradient(90deg, var(--ac) 0 6px, transparent 6px 12px);
+  background-size: 200% 1.5px;
+  background-position: 0 100%;
+  background-repeat: no-repeat;
 }
 
 .surprise-btn:hover {
   border-color: var(--ac);
   color: var(--ac);
-  border-style: solid;
-  background: hsl(var(--ac-h, 220) var(--ac-s, 70%) var(--ac-l, 50%) / 0.06);
+  background-color: hsl(var(--ac-h, 220) var(--ac-s, 70%) var(--ac-l, 50%) / 0.06);
+  background-position: 100% 100%;
+  transition: color 200ms var(--ease-out), border-color 200ms var(--ease-out),
+              background-color 200ms var(--ease-out),
+              background-position 800ms linear;
 }
 
 .surprise-btn__icon {
@@ -6105,25 +6151,30 @@
    data ink-writes into existence.
    ============================================ */
 
-/* ---- Phase 1: Canvas Morph-Out ---- */
-.canvas-layout--morphing .filter-drawer,
-.canvas-layout--morphing .smart-chips,
-.canvas-layout--morphing .taste-memory,
-.canvas-layout--morphing .cta-hint,
-.canvas-layout--morphing .surprise-btn,
-.canvas-layout--morphing .saved-spots,
-.canvas-layout--morphing .step__title,
-.canvas-layout--morphing .empty-state {
-  animation: inkDissolve var(--dur-morph) var(--ease-out) forwards;
+/* ---- Phase 1: Canvas Morph-Out (staggered ink dissolve) ---- */
+/* Stagger: title(0) → input(60ms) → chips(120ms) → filters(180ms) → surprise/spots(240ms) */
+.canvas-layout--morphing .step__title {
+  animation: inkDissolve var(--dur-morph) var(--ease-out) 0ms forwards;
   pointer-events: none;
 }
-
 .canvas-layout--morphing .craving-wrap {
-  transition: opacity var(--dur-morph) var(--ease-out),
-              transform var(--dur-morph) var(--ease-out),
-              font-size var(--dur-morph) var(--ease-out);
-  opacity: 0;
-  transform: translateY(-12px) scale(0.92);
+  animation: inkDissolve var(--dur-morph) var(--ease-out) 60ms forwards;
+  pointer-events: none;
+}
+.canvas-layout--morphing .smart-chips,
+.canvas-layout--morphing .taste-memory {
+  animation: inkDissolve var(--dur-morph) var(--ease-out) 120ms forwards;
+  pointer-events: none;
+}
+.canvas-layout--morphing .filter-drawer,
+.canvas-layout--morphing .cta-hint {
+  animation: inkDissolve var(--dur-morph) var(--ease-out) 180ms forwards;
+  pointer-events: none;
+}
+.canvas-layout--morphing .surprise-btn,
+.canvas-layout--morphing .saved-spots,
+.canvas-layout--morphing .empty-state {
+  animation: inkDissolve var(--dur-morph) var(--ease-out) 240ms forwards;
   pointer-events: none;
 }
 
@@ -6147,6 +6198,7 @@
 .result-card--revealing .result-photos    { opacity: 0; animation: revealUp 350ms var(--ease-out) 0ms forwards; }
 .result-card--revealing .glance-hero      { opacity: 0; animation: revealUp 350ms var(--ease-out) 80ms forwards; }
 .result-card--revealing .donde-blurb      { opacity: 0; animation: revealUp 350ms var(--ease-out) 160ms forwards; }
+.result-card--revealing .donde-blurb__text { clip-path: inset(0 100% 0 0); animation: inkReveal 600ms cubic-bezier(0.2, 1, 0.4, 1) 360ms forwards; }
 .result-card--revealing .glance-nav       { opacity: 0; animation: revealUp 350ms var(--ease-out) 240ms forwards; }
 .result-card--revealing .tell-more-btn    { opacity: 0; animation: revealUp 300ms var(--ease-out) 320ms forwards; }
 .result-card--revealing .card-footer      { opacity: 0; animation: revealUp 300ms var(--ease-out) 380ms forwards; }

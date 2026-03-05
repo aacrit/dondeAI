@@ -441,6 +441,13 @@
   transform: translateX(-50%) translateY(0);
 }
 
+/* Smooth exit: fade down */
+.toast--exiting {
+  transform: translateX(-50%) translateY(20px);
+  opacity: 0;
+  transition: transform 250ms var(--ease-out), opacity 250ms var(--ease-out);
+}
+
 /* Progress bar — auto-dismiss countdown */
 .toast--visible::after {
   content: '';
