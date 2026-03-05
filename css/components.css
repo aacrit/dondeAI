@@ -34,6 +34,14 @@
 .craving-wrap {
   width: 100%;
   position: relative;
+  border-radius: var(--radius-sm, 8px);
+  transition: box-shadow 300ms var(--ease-out);
+}
+
+/* Focus glow — halo of attention (fast acquire, slow release) */
+.craving-wrap:focus-within {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ac) 12%, transparent);
+  transition: box-shadow 200ms var(--ease-out);
 }
 
 /* Ink underline draw-in — "pen touching paper" metaphor */
@@ -279,7 +287,9 @@
 }
 
 .smart-chip--active {
-  background: var(--ac-soft);
+  background: color-mix(in srgb, var(--ac) 15%, transparent);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   color: var(--ac);
   border-color: var(--ac);
   animation: chipPop 350ms var(--spring);
@@ -326,6 +336,7 @@
 .cta-btn:not(:disabled):hover {
   background: var(--ac2);
   border-color: var(--ac2);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--ac) 25%, transparent);
 }
 
 .cta-btn:not(:disabled):active {
@@ -336,10 +347,10 @@
   background: transparent;
   color: var(--fg2);
   border-color: var(--border);
+  border-style: dashed;
   cursor: not-allowed;
   box-shadow: none;
   opacity: 1;
-  cursor: not-allowed;
 }
 
 /* Ink fill: accent writes left-to-right when CTA becomes enabled */
@@ -662,6 +673,12 @@
   opacity: 0;
   transform: translateY(8px);
   animation: sectionReveal 250ms cubic-bezier(0.2, 0, 0, 1) forwards;
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--border);
+}
+.filter-section:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
 }
 
 .filter-section:nth-child(1) { animation-delay: 0ms; }
@@ -913,6 +930,15 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+/* Dark mode elevated surfaces — inset highlight for perceived depth */
+[data-mode="dark"] .cta-btn:not(:disabled),
+[data-mode="dark"] .tell-more-btn,
+[data-mode="dark"] .going-btn,
+[data-mode="dark"] .feedback-btn,
+[data-mode="dark"] .filter-drawer__toggle {
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
+}
+
 /* ---- 3-Tier Progressive Disclosure System ---- */
 .tier {
   display: flex;
@@ -1018,6 +1044,20 @@
   color: var(--fg);
   line-height: 1;
   letter-spacing: -0.02em;
+}
+
+/* Completion pulse — ring glows briefly when score count-up finishes */
+.match-mini__score-wrap--pulsing {
+  animation: ringPulse 500ms var(--ease-out);
+}
+
+/* Tap feedback — micro-scale spring */
+.match-mini:active .match-mini__score-wrap {
+  transform: scale(0.92);
+  transition: transform 100ms var(--ease-out);
+}
+.match-mini__score-wrap {
+  transition: transform 200ms var(--spring);
 }
 
 /* Score-tier RAG coloring */
@@ -1161,6 +1201,7 @@
   opacity: 1;
   transform: scale(1);
   pointer-events: auto;
+  border-top: 2px solid var(--ac);
 }
 /* Tiny uppercase section label — only place we use the data font */
 .badge-popout__title {
@@ -1704,8 +1745,36 @@
   word-break: break-word;
   padding-left: 0;
   min-width: 0;
+  position: relative;
   /* V10: Full text flows naturally — no height cap */
   transition: opacity 200ms var(--ease-out);
+}
+
+/* Editorial quotation marks — frames recommendation as a personal note */
+.donde-blurb__text::before {
+  content: '\201C';
+  font-family: var(--font-emotional);
+  font-size: 150%;
+  color: var(--fg3);
+  opacity: 0.3;
+  position: absolute;
+  top: -0.15em;
+  left: -0.5em;
+  line-height: 1;
+}
+.donde-blurb__text::after {
+  content: '\201D';
+  font-family: var(--font-emotional);
+  font-size: 150%;
+  color: var(--fg3);
+  opacity: 0.3;
+  margin-left: 0.1em;
+  line-height: 1;
+}
+
+/* First sentence bold — lede structure */
+.donde-blurb__text strong:first-child {
+  font-weight: 600;
 }
 
 @media (max-width: 767px) {
@@ -1852,6 +1921,19 @@
   transition: transform var(--dur-expand) var(--ease-out);
 }
 
+/* Idle bounce hint — draws attention to "Show More" after 5s */
+.tell-more-btn__arrow--bouncing {
+  animation: arrowBounce 600ms var(--ease-out);
+}
+
+/* Text crossfade — smooth "Show More" ↔ "Show Less" transition */
+.tell-more-btn__text {
+  transition: opacity 100ms var(--ease-out);
+}
+.tell-more-btn__text--fading {
+  opacity: 0;
+}
+
 .tell-more-btn[aria-expanded="true"] .tell-more-btn__arrow {
   transform: rotate(180deg);
 }
@@ -1887,10 +1969,16 @@
   word-break: break-word;
   cursor: pointer;
   text-decoration-line: underline;
-  text-decoration-color: transparent;
+  text-decoration-color: color-mix(in srgb, var(--ac) 20%, transparent);
   text-underline-offset: 3px;
   text-decoration-thickness: 1.5px;
   transition: text-decoration-color 200ms var(--ease-out);
+}
+
+/* Ink write entrance — name "writes in" left-to-right */
+.result-card--revealing .result-name {
+  clip-path: inset(0 100% 0 0);
+  animation: inkReveal 500ms cubic-bezier(0.2, 1, 0.4, 1) 100ms forwards;
 }
 
 .result-name:hover {
@@ -2174,7 +2262,7 @@
 /* Confidence Ring container */
 .score-hero__ring-wrap {
   position: relative;
-  width: clamp(100px, 28vw, 130px);
+  width: clamp(120px, 32vw, 150px);
   aspect-ratio: 1;
 }
 
@@ -2233,10 +2321,7 @@
   opacity: 0;
   transform: translateY(4px);
   transition: opacity 400ms var(--ease-out), transform 400ms var(--ease-out);
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  /* Tier 2 is the lean-in view — content flows fully, no clamp */
 }
 
 /* V9: Signal pills — key match reasons below narrative */
@@ -2599,6 +2684,13 @@
   text-align: left;
   -webkit-tap-highlight-color: transparent;
   position: relative;
+  transition: background-color 200ms var(--ease-out);
+}
+
+/* Touch feedback flash — confirms tap registered */
+.factor-row:active {
+  background-color: var(--ac-soft, color-mix(in srgb, var(--ac) 8%, transparent));
+  transition: background-color 100ms var(--ease-out);
 }
 
 /* Ink underline — writes under the factor label on hover/focus */
@@ -2667,6 +2759,21 @@
   border-radius: 3px;
   overflow: hidden;
   min-width: 40px;
+  position: relative;
+}
+
+/* Benchmark line at average (50%) — gives context for "is this score good?" */
+.factor-row__bar::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--fg3);
+  opacity: 0.2;
+  pointer-events: none;
+  z-index: 1;
 }
 
 .factor-row__bar-fill {
@@ -3398,6 +3505,8 @@
   justify-content: center;
   gap: var(--space-sm);
   width: 100%;
+  padding-top: var(--space-xs);
+  border-top: 1px solid var(--border);
 }
 
 /* Text-link style for Start Over — minimal, matches Show More/Less size */
@@ -4521,6 +4630,22 @@
 
 .result-photos::-webkit-scrollbar { display: none; }
 
+/* Photo count indicator — "1 / 4" overlay bottom-right */
+.result-photos__count {
+  position: absolute;
+  bottom: var(--space-sm);
+  right: var(--space-sm);
+  padding: 2px 8px;
+  font-family: var(--font-data);
+  font-size: var(--text-2xs);
+  color: var(--overlay-fg);
+  background: var(--overlay-bg);
+  border-radius: var(--radius-pill, 999px);
+  z-index: 2;
+  pointer-events: none;
+  letter-spacing: 0.03em;
+}
+
 .result-photos__img {
   scroll-snap-align: start;
   flex: 0 0 auto;
@@ -4711,6 +4836,7 @@
   border-color: var(--color-bookmark-border);
   color: var(--color-bookmark);
   background: var(--color-bookmark-soft);
+  animation: heartPop 300ms var(--spring);
 }
 
 /* ---- "I'm Going Here!" Button (Primary CTA — Emerald Green, theme-independent) ---- */
@@ -5083,6 +5209,11 @@
 .surprise-btn__icon {
   display: flex;
   color: var(--ac);
+  transition: transform 600ms var(--ease-out);
+}
+
+.surprise-btn:hover .surprise-btn__icon {
+  transform: rotate(360deg);
 }
 
 /* ---- F19: Textarea craving input ---- */
@@ -5216,7 +5347,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   opacity: 0;
-  transition: opacity 300ms var(--ease-out);
+  transition: opacity 300ms var(--ease-out) 600ms;
   pointer-events: none;
 }
 .header__user-name--visible {

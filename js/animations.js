@@ -1032,7 +1032,7 @@ function easeOutCubic(t) {
  * Strokes draw in (forward), hold, then erase (reverse) in a seamless loop.
  * The dot breathes with a gentle scale pulse throughout.
  */
-export function initLogoAnimation() {
+export function initLogoAnimation(craving) {
   const svg = document.querySelector('.logo-mark--loading');
   if (!svg) return;
 
@@ -1138,7 +1138,7 @@ export function initLogoAnimation() {
 
   // Ink Resolve: Animate progress ring (non-deterministic fill)
   _startProgressRing();
-  _startStatusText();
+  _startStatusText(craving);
 }
 
 /** Ink Resolve: Progress ring fills non-deterministically during loading */
@@ -1163,12 +1163,21 @@ function _startProgressRing() {
 }
 
 /** Ink Resolve: Status text fades between states */
-function _startStatusText() {
+function _startStatusText(craving) {
   const el = document.getElementById('loading-status');
   if (!el) return;
 
   _statusPhase = 0;
-  const phrases = ['Finding your spot\u2026', 'Almost there\u2026'];
+
+  // Personalized status phrases based on craving keywords
+  let phrases;
+  if (craving && craving.trim().length > 3) {
+    const short = craving.trim().split(/\s+/).slice(0, 3).join(' ');
+    phrases = [`Scanning spots for ${short}\u2026`, 'Almost there\u2026'];
+  } else {
+    phrases = ['Finding your spot\u2026', 'Almost there\u2026'];
+  }
+
   el.textContent = phrases[0];
   el.style.opacity = '0.7';
 

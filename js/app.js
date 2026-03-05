@@ -32,6 +32,13 @@ const $toastText = document.getElementById('toast-text');
 const $cursorGlow = document.querySelector('.cursor-glow');
 const $suggestions = document.getElementById('craving-suggestions');
 
+/* ---- HTML Escape (for safe innerHTML insertion) ---- */
+function _escHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
 /* ---- Haptic Feedback Library ---- */
 function haptic(pattern) {
   if (navigator.vibrate) navigator.vibrate(pattern);
@@ -196,6 +203,16 @@ function setupLanding() {
     typewriterReveal($greeting, getGreeting(culture));
   }
   startGreetingRotation();
+
+  // Header border fades in when greeting scrolls out of view
+  if ($greeting && 'IntersectionObserver' in window) {
+    const $header = document.querySelector('.header');
+    if ($header) {
+      new IntersectionObserver(([e]) => {
+        $header.classList.toggle('header--scrolled', !e.isIntersecting);
+      }, { threshold: 0 }).observe($greeting);
+    }
+  }
 }
 
 /* ---- V9: Canvas Progressive Disclosure ---- */
@@ -1314,8 +1331,18 @@ function wireEvents() {
         $tier2.classList.toggle('tier--expanded');
         $tier2.setAttribute('aria-hidden', String(isExpanded));
 
+        // Text crossfade — smooth "Show More" ↔ "Show Less" transition
         const $btnText = btn.querySelector('.tell-more-btn__text');
-        if ($btnText) $btnText.textContent = isExpanded ? 'Show More' : 'Show Less';
+        if ($btnText) {
+          $btnText.classList.add('tell-more-btn__text--fading');
+          setTimeout(() => {
+            $btnText.textContent = isExpanded ? 'Show More' : 'Show Less';
+            $btnText.classList.remove('tell-more-btn__text--fading');
+          }, 100);
+        }
+
+        // Cancel idle arrow bounce if it's active
+        if (_arrowBounceTimer) { clearTimeout(_arrowBounceTimer); _arrowBounceTimer = null; }
 
         $tier2._transitioning = true;
         const onDone = (e) => {
@@ -2055,6 +2082,7 @@ async function handleSubmit() {
    ============================================ */
 
 let _scaffoldTimers = [];
+let _arrowBounceTimer = null;
 let _swapInFlight = false;
 
 /* ---- Phase 1: Canvas Fold ---- */
@@ -2085,7 +2113,7 @@ function beginCanvasFold() {
       if (!REDUCED_MOTION.matches) {
         const $particleCanvas = document.getElementById('particle-canvas');
         if ($particleCanvas) startParticles($particleCanvas);
-        initLogoAnimation();
+        initLogoAnimation(getState().craving);
         const labels = getLabels(getState().theme.culture);
         if (labels.loadingPhrases) startWordRotation(labels.loadingPhrases);
       }
@@ -2191,6 +2219,20 @@ async function manifestResult(data) {
 
   // Schedule edge-hint replays
   scheduleEdgeHintReplay();
+
+  // Show More arrow bounce hint after 5s idle (if Tier 2 not already opened)
+  if (_arrowBounceTimer) clearTimeout(_arrowBounceTimer);
+  _arrowBounceTimer = setTimeout(() => {
+    const $tellMore = document.getElementById('tell-more-btn');
+    if ($tellMore && $tellMore.getAttribute('aria-expanded') !== 'true') {
+      const $arrow = $tellMore.querySelector('.tell-more-btn__arrow');
+      if ($arrow) {
+        $arrow.classList.add('tell-more-btn__arrow--bouncing');
+        $arrow.addEventListener('animationend',
+          () => $arrow.classList.remove('tell-more-btn__arrow--bouncing'), { once: true });
+      }
+    }
+  }, 5000);
 }
 
 /* ---- Settle (cleanup after manifest completes) ---- */
@@ -2347,6 +2389,14 @@ function animateScoreCountUp($el, targetScore) {
       }
       if (progress < 1) {
         requestAnimationFrame(animate);
+      } else {
+        // Completion pulse on the score ring wrap
+        const $scoreWrap = document.querySelector('.match-mini__score-wrap');
+        if ($scoreWrap) {
+          $scoreWrap.classList.add('match-mini__score-wrap--pulsing');
+          $scoreWrap.addEventListener('animationend',
+            () => $scoreWrap.classList.remove('match-mini__score-wrap--pulsing'), { once: true });
+        }
       }
     };
     requestAnimationFrame(animate);
@@ -2572,7 +2622,15 @@ function renderResult(data) {
         recText += ' ' + data.match_narrative.key_signals.join('. ') + '.';
       }
     }
-    $rec.textContent = recText;
+    // First-sentence emphasis — lede structure (bold the hook)
+    const firstSentenceEnd = recText.search(/[.!?]\s/);
+    if (firstSentenceEnd > 10 && firstSentenceEnd < recText.length - 5) {
+      const first = recText.slice(0, firstSentenceEnd + 1);
+      const rest = recText.slice(firstSentenceEnd + 1);
+      $rec.innerHTML = `<strong>${_escHtml(first)}</strong>${_escHtml(rest)}`;
+    } else {
+      $rec.textContent = recText;
+    }
     if ($blurb) {
       $blurb.style.display = recText ? '' : 'none';
       // V5: Boost-aware blurb accent border
@@ -3233,6 +3291,25 @@ function renderPhotos(data) {
     img.addEventListener('click', () => openLightbox(urls, i));
     $photos.appendChild(img);
   });
+
+  // Photo count indicator (e.g. "1 / 4")
+  if (urls.length > 1) {
+    const $count = document.createElement('span');
+    $count.className = 'result-photos__count';
+    $count.textContent = `1 / ${urls.length}`;
+    $photos.appendChild($count);
+
+    // Update count on scroll via IntersectionObserver
+    const observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) {
+          const idx = Array.from($photos.querySelectorAll('.result-photos__img')).indexOf(entry.target);
+          if (idx >= 0) $count.textContent = `${idx + 1} / ${urls.length}`;
+        }
+      }
+    }, { root: $photos, threshold: 0.6 });
+    $photos.querySelectorAll('.result-photos__img').forEach(img => observer.observe(img));
+  }
 
   // Haptic on photo scroll
   let _photoSwipeTriggered = false;
