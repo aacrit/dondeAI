@@ -2121,7 +2121,7 @@ async function manifestResult(data) {
   } else {
     // Phase 1: Resolve logo (confirmation pulse, 450ms)
     if ($loadingState) {
-      resolveLogoToFound();
+      resolveLogoToFound(data?.restaurant?.name);
       // Phase 2: Fade out overlay
       _scaffoldTimers.push(setTimeout(() => {
         $loadingState.classList.add('loading-state--fading');
@@ -4690,6 +4690,7 @@ function closeUserMenu() {
 function updateAuthUI() {
   const $btn = document.getElementById('auth-btn');
   const $avatarImg = document.getElementById('auth-avatar-img');
+  const $userName = document.getElementById('header-user-name');
   if (!$btn) return;
 
   const user = getAuthUser();
@@ -4702,6 +4703,12 @@ function updateAuthUI() {
       $avatarImg.alt = user.name || '';
       $avatarImg.style.display = '';
     }
+    // Show first name in header
+    if ($userName) {
+      const firstName = (user.name || '').split(' ')[0];
+      $userName.textContent = firstName;
+      $userName.classList.add('header__user-name--visible');
+    }
   } else {
     $btn.classList.remove('is-authenticated');
     $btn.setAttribute('aria-label', 'Sign in');
@@ -4709,6 +4716,11 @@ function updateAuthUI() {
     if ($avatarImg) {
       $avatarImg.src = '';
       $avatarImg.style.display = 'none';
+    }
+    // Hide header name
+    if ($userName) {
+      $userName.textContent = '';
+      $userName.classList.remove('header__user-name--visible');
     }
   }
 }
@@ -4719,7 +4731,6 @@ subscribe((state, prev) => {
     updateAuthUI();
     closeAuthSheet();
     if (state.isAuthenticated && !prev.isAuthenticated && state.user) {
-      showToast(toasts().welcomeUser(state.user.name));
       renderYourSpots();
       if (!hasSeenOnboarding()) setTimeout(() => showCoachMarks(), 600);
     }

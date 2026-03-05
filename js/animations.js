@@ -441,22 +441,9 @@ export function renderFactorBars(scoringData, timers = [], restaurantData = null
 
   $list.innerHTML = '';
 
-  // C3: Weight profile label — shows the active weight profile
-  const WEIGHT_PROFILE_LABELS = {
-    dish: 'Weighted for dish quality',
-    cuisine: 'Weighted for cuisine fit',
-    vibe: 'Weighted for atmosphere',
-    open_ended: 'Weighted for reputation',
-  };
-  const relevanceType = scoring.relevance_type;
+  // Remove any leftover profile label from previous render
   const existingProfile = $container.querySelector('.factor-bars__profile');
   if (existingProfile) existingProfile.remove();
-  if (relevanceType && WEIGHT_PROFILE_LABELS[relevanceType]) {
-    const profileEl = document.createElement('p');
-    profileEl.className = 'factor-bars__profile';
-    profileEl.textContent = WEIGHT_PROFILE_LABELS[relevanceType];
-    $container.insertBefore(profileEl, $list);
-  }
 
   const weightsUsed = scoring.weights_used || {};
 
@@ -493,13 +480,15 @@ export function renderFactorBars(scoringData, timers = [], restaurantData = null
       : slot.val >= 6.0 ? 'bar-fill--mid'
       : 'bar-fill--weak';
 
-    // Clean: icon | label | weight pips | bar | contextual label
+    // Clean: icon | label-stack (label + pips stacked) | bar | contextual label
     const pipCount = slot.weight >= 30 ? 3 : slot.weight >= 18 ? 2 : 1;
     const pips = '\u25CF'.repeat(pipCount);
     row.innerHTML = `
       <span class="factor-row__icon">${svgIcon(slot.icon, 16)}</span>
-      <span class="factor-row__label type-structural">${slot.label}</span>
-      <span class="factor-row__weight-pips" aria-label="${slot.weight != null ? slot.weight + '% weight' : ''}">${pips}</span>
+      <span class="factor-row__label-stack">
+        <span class="factor-row__label type-structural">${slot.label}</span>
+        <span class="factor-row__weight-pips" aria-label="${slot.weight != null ? slot.weight + '% weight' : ''}">${pips}</span>
+      </span>
       <span class="factor-row__bar">
         <span class="factor-row__bar-fill ${scoreTierClass}" data-width="${pct}"></span>
       </span>
@@ -525,12 +514,22 @@ export function renderFactorBars(scoringData, timers = [], restaurantData = null
       if (navigator.vibrate) navigator.vibrate([15, 10, 15]);
 
       const isOpen = row.getAttribute('aria-expanded') === 'true';
-      // Close all panels first (accordion)
+      // Close all panels first (accordion) — smooth collapse
       $list.querySelectorAll('.factor-row').forEach(r => r.setAttribute('aria-expanded', 'false'));
       $list.querySelectorAll('.factor-detail').forEach(d => {
         d.setAttribute('aria-hidden', 'true');
-        d.style.height = '0';
-        d.style.opacity = '0';
+        if (!REDUCED.matches && d.scrollHeight > 0) {
+          // Smooth collapse: set explicit height, then transition to 0
+          d.style.height = d.scrollHeight + 'px';
+          d.style.transition = 'height var(--dur-expand, 350ms) var(--ease-out, ease-out), opacity var(--dur-expand, 350ms) var(--ease-out, ease-out)';
+          requestAnimationFrame(() => {
+            d.style.height = '0';
+            d.style.opacity = '0';
+          });
+        } else {
+          d.style.height = '0';
+          d.style.opacity = '0';
+        }
       });
       if (!isOpen) {
         row.setAttribute('aria-expanded', 'true');
@@ -571,6 +570,21 @@ export function renderFactorBars(scoringData, timers = [], restaurantData = null
       fill.style.width = fill.dataset.width + '%';
     }
   });
+
+  // Strongest factor badge — "Top match" pill on highest-contributing factor
+  const strongestKey = heroData?.matchNarrative?.strongest_factor;
+  if (strongestKey) {
+    const strongestRow = $list.querySelector(`.factor-row[data-factor="${strongestKey}"]`);
+    if (strongestRow) {
+      const badge = document.createElement('span');
+      badge.className = 'factor-row__top-badge type-data';
+      badge.textContent = 'Top match';
+      badge.setAttribute('aria-label', 'Strongest contributing factor');
+      // Insert after label-stack, before bar
+      const labelStack = strongestRow.querySelector('.factor-row__label-stack');
+      if (labelStack) labelStack.appendChild(badge);
+    }
+  }
 }
 
 const FACTOR_LABELS = { food: 'Food', vibe: 'Vibe', service: 'Service', reputation: 'Reputation', convenience: 'Convenience' };
@@ -749,11 +763,7 @@ function buildFactorDetail(factorKey, scoring) {
         <span class="factor-detail__signal-label">${score.toFixed(1)}/10 — ${label}</span>
       </div>`;
     }
-    if (weight !== null) {
-      fallback += `<div class="factor-detail__weight-note">${weight}% of your match score</div>`;
-    }
     fallback += buildDeepContextExtras(factorKey);
-    fallback += '<div class="factor-detail__confidence">Detailed breakdown available soon</div>';
     return `<div class="factor-detail__items">${fallback}</div>`;
   }
 
@@ -796,13 +806,6 @@ function buildFactorDetail(factorKey, scoring) {
     items += `<div class="factor-detail__confidence">${confLabels[conf]}</div>`;
   }
 
-  // V9: Weight transparency — show how much this factor contributes
-  const weightsUsed = scoring.weights_used || {};
-  const weight = weightsUsed[factorKey] != null ? Math.round(parseFloat(weightsUsed[factorKey]) * 100) : null;
-  if (weight !== null) {
-    items += `<div class="factor-detail__weight-note">${weight}% of your match score</div>`;
-  }
-
   // V9: Deep context integration
   const contextHtml = buildDeepContextExtras(factorKey);
   if (contextHtml) {
@@ -812,7 +815,9 @@ function buildFactorDetail(factorKey, scoring) {
   const narrative = buildFactorNarrative(factorKey, scoring);
   const googleRow = _buildGoogleRow();
 
-  return `<div class="factor-detail__items">${googleRow}${narrative}${items}</div>`;
+  // Narrative-first: hero narrative above signal rows (evidence)
+  const signalSection = items ? `<div class="factor-detail__signals">${items}</div>` : '';
+  return `<div class="factor-detail__items">${narrative}${googleRow}${signalSection}</div>`;
 }
 
 // Legacy export for backward compat — vibe bars removed in V5
@@ -975,6 +980,8 @@ let _drawLoopId = null;
 let _drawLoopRunning = false;
 let _wordRotationId = null;
 let _pathData = []; // { el, len, delayMs, drawMs }
+let _ringAnimId = null;
+let _statusPhase = 0;
 
 // Timing (total cycle ≈ 2400ms: draw 800ms + hold 400ms + erase 800ms + pause 400ms)
 const DRAW_MS   = 800;
@@ -1103,6 +1110,55 @@ export function initLogoAnimation() {
   }
 
   _drawLoopId = requestAnimationFrame(tick);
+
+  // Ink Resolve: Animate progress ring (non-deterministic fill)
+  _startProgressRing();
+  _startStatusText();
+}
+
+/** Ink Resolve: Progress ring fills non-deterministically during loading */
+function _startProgressRing() {
+  const ringFill = document.getElementById('loading-ring-fill');
+  if (!ringFill) return;
+
+  const circumference = 226.2; // 2 * π * 36
+  let progress = 0; // 0 to 1
+  const start = performance.now();
+
+  // Non-deterministic: fast at first, then slows down asymptotically
+  function ringTick(now) {
+    if (!_drawLoopRunning) return;
+    const elapsed = (now - start) / 1000; // seconds
+    // Asymptotic curve: quick to ~60%, then crawls toward ~85%
+    progress = Math.min(0.85, 1 - 1 / (1 + elapsed * 0.4));
+    ringFill.style.strokeDashoffset = circumference * (1 - progress);
+    _ringAnimId = requestAnimationFrame(ringTick);
+  }
+  _ringAnimId = requestAnimationFrame(ringTick);
+}
+
+/** Ink Resolve: Status text fades between states */
+function _startStatusText() {
+  const el = document.getElementById('loading-status');
+  if (!el) return;
+
+  _statusPhase = 0;
+  const phrases = ['Finding your spot\u2026', 'Almost there\u2026'];
+  el.textContent = phrases[0];
+  el.style.opacity = '0.7';
+
+  if (REDUCED.matches) return;
+
+  // Transition to "Almost there..." after 4 seconds
+  setTimeout(() => {
+    if (!_drawLoopRunning) return;
+    el.style.opacity = '0';
+    setTimeout(() => {
+      el.textContent = phrases[1];
+      el.style.opacity = '0.7';
+      _statusPhase = 1;
+    }, 300);
+  }, 4000);
 }
 
 /**
@@ -1156,22 +1212,31 @@ export function stopWordRotation() {
   }
 }
 
-/** Resolve logo to "found" state — confirmation pulse, then stop loop. */
-export function resolveLogoToFound() {
+/** Resolve logo to "found" state — Ink Resolve: ring snaps, dot pulses, status shows name. */
+export function resolveLogoToFound(restaurantName) {
   const logo = document.getElementById('loading-logo');
   if (!logo) return Promise.resolve();
 
-  // Stop the draw loop
+  // Stop the draw loop + ring animation
   _drawLoopRunning = false;
   if (_drawLoopId) {
     cancelAnimationFrame(_drawLoopId);
     _drawLoopId = null;
+  }
+  if (_ringAnimId) {
+    cancelAnimationFrame(_ringAnimId);
+    _ringAnimId = null;
   }
   stopWordRotation();
 
   if (REDUCED.matches) {
     logo.style.transform = '';
     logo.style.opacity = '1';
+    // Snap ring + show status instantly
+    const ringFill = document.getElementById('loading-ring-fill');
+    if (ringFill) ringFill.style.strokeDashoffset = '0';
+    const statusEl = document.getElementById('loading-status');
+    if (statusEl && restaurantName) statusEl.textContent = restaurantName;
     return Promise.resolve();
   }
 
@@ -1180,17 +1245,43 @@ export function resolveLogoToFound() {
   const dot = document.querySelector('.logo-mark--loading .logo-mark__dot--draw');
   if (dot) { dot.style.opacity = '1'; dot.style.transform = 'scale(1)'; }
 
+  // Ink Resolve: Snap progress ring to full
+  const ringSvg = document.getElementById('loading-ring');
+  if (ringSvg) ringSvg.classList.add('loading-logo__ring--resolved');
+  const ringFill = document.getElementById('loading-ring-fill');
+  if (ringFill) ringFill.style.strokeDashoffset = '0';
+
+  // Status text: show restaurant name
+  const statusEl = document.getElementById('loading-status');
+  if (statusEl && restaurantName) {
+    statusEl.style.opacity = '0';
+    setTimeout(() => {
+      statusEl.textContent = restaurantName;
+      statusEl.style.opacity = '1';
+    }, 200);
+  }
+
   return new Promise(resolve => {
     // "Found" confirmation pulse — spring scale up then settle
     logo.style.transition = 'transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
     logo.style.transform = 'scale(1.08)';
+
+    // Dot emphasis pulse (period at end of sentence)
+    if (dot) {
+      dot.style.transition = 'transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
+      dot.style.transform = 'scale(1.3)';
+      setTimeout(() => {
+        dot.style.transition = 'transform 250ms cubic-bezier(0.2, 1, 0.4, 1)';
+        dot.style.transform = 'scale(1)';
+      }, 200);
+    }
 
     setTimeout(() => {
       logo.style.transition = 'transform 250ms cubic-bezier(0.2, 1, 0.4, 1)';
       logo.style.transform = 'scale(1)';
     }, 200);
 
-    setTimeout(resolve, 450);
+    setTimeout(resolve, 500);
   });
 }
 
@@ -1201,6 +1292,10 @@ export function cleanupLoadingLogo() {
     cancelAnimationFrame(_drawLoopId);
     _drawLoopId = null;
   }
+  if (_ringAnimId) {
+    cancelAnimationFrame(_ringAnimId);
+    _ringAnimId = null;
+  }
   stopWordRotation();
   _pathData = [];
 
@@ -1209,6 +1304,16 @@ export function cleanupLoadingLogo() {
     logo.style.transform = '';
     logo.style.opacity = '';
   }
+
+  // Reset progress ring
+  const ringFill = document.getElementById('loading-ring-fill');
+  if (ringFill) ringFill.style.strokeDashoffset = '226.2';
+  const ringSvg = document.getElementById('loading-ring');
+  if (ringSvg) ringSvg.classList.remove('loading-logo__ring--resolved');
+
+  // Reset status text
+  const statusEl = document.getElementById('loading-status');
+  if (statusEl) { statusEl.textContent = ''; statusEl.style.opacity = ''; }
 
   // Reset word element
   const word = document.getElementById('loading-word');

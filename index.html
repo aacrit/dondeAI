@@ -102,7 +102,8 @@
             <path fill="currentColor" d="M230.72,145.06a4,4,0,0,0-4-1A92.08,92.08,0,0,1,111.94,29.27a4,4,0,0,0-5-5A100.78,100.78,0,0,0,56.08,59.88a100,100,0,0,0,140,140,100.78,100.78,0,0,0,35.59-50.87A4,4,0,0,0,230.72,145.06ZM191.3,193.53A92,92,0,0,1,62.47,64.7a93,93,0,0,1,39.88-30.35,100.09,100.09,0,0,0,119.3,119.3A93,93,0,0,1,191.3,193.53Z"/>
           </svg>
         </button>
-        <!-- SSO: Auth avatar / sign-in button -->
+        <!-- SSO: User name label + auth button -->
+        <span class="header__user-name type-structural" id="header-user-name"></span>
         <button class="header__btn header__btn--auth" id="auth-btn" data-action="toggle-auth" aria-label="Sign in" title="Sign in">
           <!-- Person icon (shown when signed out) -->
           <svg class="auth-icon auth-icon--anon" viewBox="0 0 256 256" width="20" height="20">
@@ -628,6 +629,15 @@
       <div class="loading-state" id="loading-state" style="display: none;" role="status" aria-label="Finding your spot">
         <canvas class="particle-canvas" id="particle-canvas" aria-hidden="true"></canvas>
         <div class="loading-logo" id="loading-logo" aria-hidden="true">
+          <!-- Ink Resolve: Progress ring around logo -->
+          <svg class="loading-logo__ring" id="loading-ring" viewBox="0 0 80 80" width="80" height="80">
+            <circle class="loading-logo__ring-track" cx="40" cy="40" r="36" fill="none"
+                    stroke="var(--bg3)" stroke-width="1.5" opacity="0.3"/>
+            <circle class="loading-logo__ring-fill" id="loading-ring-fill" cx="40" cy="40" r="36" fill="none"
+                    stroke="var(--ac)" stroke-width="1.5" stroke-linecap="round"
+                    stroke-dasharray="226.2" stroke-dashoffset="226.2"
+                    transform="rotate(-90 40 40)"/>
+          </svg>
           <svg class="logo-mark logo-mark--loading" viewBox="0 0 32 44" width="48" height="66">
             <path class="logo-mark__tine logo-mark__tine--left logo-mark__tine--draw"
                   d="M10.5 1 C10.5 1, 10 8.5, 12.5 11.5 Q14 13, 14.5 13.5"
@@ -641,6 +651,7 @@
             <circle class="logo-mark__dot logo-mark__dot--draw" cx="16" cy="40" r="2.8" fill="var(--ac)"/>
           </svg>
         </div>
+        <p class="loading-status type-structural" id="loading-status" aria-live="polite"></p>
         <p class="loading-word type-structural" id="loading-word" aria-live="polite"></p>
       </div>
     </main>

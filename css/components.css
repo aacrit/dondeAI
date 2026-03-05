@@ -2570,6 +2570,29 @@
   cursor: pointer;
   text-align: left;
   -webkit-tap-highlight-color: transparent;
+  position: relative;
+}
+
+/* Ink underline — writes under the factor label on hover/focus */
+.factor-row::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--ac);
+  opacity: 0.3;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 300ms var(--ease-out);
+}
+.factor-row:hover::before,
+.factor-row:focus-visible::before {
+  transform: scaleX(1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .factor-row::before { transition: none; }
 }
 
 .factor-row:focus-visible {
@@ -2592,6 +2615,14 @@
   height: 16px;
 }
 
+.factor-row__label-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 76px;
+  flex-shrink: 0;
+}
+
 .factor-row__label {
   font-family: var(--font-structural);
   font-size: var(--text-xs);
@@ -2599,7 +2630,6 @@
   color: var(--fg2);
   line-height: 1;
   white-space: nowrap;
-  min-width: 76px;
 }
 
 .factor-row__bar {
@@ -2805,6 +2835,11 @@
 .factor-detail__row--detractor .factor-detail__mini-bar-fill { background: var(--rag-red); }
 /* Dark mode handled automatically by --rag-* tokens in tokens.css */
 
+/* Narrative-first: Signal evidence container */
+.factor-detail__signals {
+  padding-top: var(--space-2xs);
+}
+
 /* V9: Signal pill layout — replaces mini-bars */
 .factor-detail__signal-row {
   display: flex;
@@ -2853,14 +2888,6 @@
 .sdot--red.sdot--half { background: linear-gradient(90deg, var(--rag-red) 50%, var(--border) 50%); }
 
 /* V9: Factor narrative — promoted, larger */
-.factor-detail__narrative {
-  font-family: var(--font-structural);
-  font-size: var(--text-sm);
-  color: var(--fg);
-  line-height: 1.5;
-  padding: var(--space-xs) 0 var(--space-sm);
-}
-
 /* V9: Confidence note */
 .factor-detail__confidence {
   font-family: var(--font-structural);
@@ -2897,12 +2924,21 @@
 
 /* Weight-importance pips (●/●●/●●●) next to factor label */
 .factor-row__weight-pips {
-  font-size: 5px;
+  font-size: 6px;
   letter-spacing: 2px;
   color: var(--fg3);
   opacity: 0.5;
-  align-self: center;
-  margin-left: 2px;
+  line-height: 1;
+}
+
+/* Strongest factor "Top match" badge */
+.factor-row__top-badge {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--ac);
+  letter-spacing: 0.04em;
+  line-height: 1;
+  opacity: 0.85;
 }
 .factor-row--weight-high .factor-row__weight-pips {
   color: var(--ac);
@@ -4124,6 +4160,36 @@
   will-change: transform, opacity;
 }
 
+/* Ink Resolve: Progress ring around logo */
+.loading-logo__ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.loading-logo__ring-fill {
+  will-change: stroke-dashoffset;
+  transition: stroke-dashoffset 400ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.loading-logo__ring--resolved .loading-logo__ring-fill {
+  stroke-dashoffset: 0 !important;
+  transition: stroke-dashoffset 500ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Ink Resolve: Status text below word */
+.loading-status {
+  position: relative;
+  z-index: calc(var(--z-particle) + 1);
+  font-size: var(--text-xs);
+  color: var(--fg3);
+  opacity: 0.7;
+  margin-top: var(--space-sm);
+  text-align: center;
+  min-height: 1.2em;
+  transition: opacity 300ms var(--ease-out);
+}
+
 /* ---- Loading Logo: Continuous draw-loop ---- */
 /* stroke-dasharray/offset set + animated by JS for seamless forward/reverse */
 .logo-mark--loading .logo-mark__tine--draw,
@@ -5096,6 +5162,21 @@
    ============================================ */
 
 /* Auth avatar button in header */
+.header__user-name {
+  font-size: var(--text-xs);
+  color: var(--fg2);
+  white-space: nowrap;
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0;
+  transition: opacity 300ms var(--ease-out);
+  pointer-events: none;
+}
+.header__user-name--visible {
+  opacity: 1;
+}
+
 .header__btn--auth {
   position: relative;
 }
@@ -5701,18 +5782,17 @@
 
 
 /* ============================================
-   V6.1: Factor Narrative Sentence
+   V6.1: Factor Narrative Sentence — Hero treatment
    ============================================ */
 .factor-detail__narrative {
   font-family: var(--font-structural, 'Inter', sans-serif);
-  font-size: var(--text-xs);
-  font-weight: 400;
-  color: var(--fg2);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--fg);
   line-height: 1.5;
-  padding: var(--space-2xs) 0;
-  margin: 0 0 var(--space-2xs);
+  padding: var(--space-xs) 0 var(--space-sm);
+  margin: 0 0 var(--space-xs);
   border-bottom: 1px solid color-mix(in srgb, var(--border) 30%, transparent);
-  font-style: italic;
 }
 
 /* ============================================
