@@ -61,6 +61,8 @@ export function startVoice() {
     isListening = false;
     if (btn) btn.classList.remove('craving-voice-btn--recording');
     restorePlaceholder();
+    // Notify app of voice error for user feedback
+    document.dispatchEvent(new CustomEvent('voice-error'));
   };
 
   recognition.onend = () => {

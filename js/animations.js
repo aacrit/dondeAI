@@ -1193,6 +1193,25 @@ function _startStatusText(craving) {
       _statusPhase = 1;
     }, 300);
   }, 4000);
+
+  // Elapsed time comfort messages — manage expectations on slow responses
+  setTimeout(() => {
+    if (!_drawLoopRunning) return;
+    el.style.opacity = '0';
+    setTimeout(() => {
+      el.textContent = 'Still searching\u2026';
+      el.style.opacity = '0.5';
+    }, 300);
+  }, 8000);
+
+  setTimeout(() => {
+    if (!_drawLoopRunning) return;
+    el.style.opacity = '0';
+    setTimeout(() => {
+      el.textContent = 'Taking longer than usual\u2026';
+      el.style.opacity = '0.5';
+    }, 300);
+  }, 13000);
 }
 
 /**

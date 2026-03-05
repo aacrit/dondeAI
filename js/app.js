@@ -85,6 +85,9 @@ function init() {
   initTheme();
   initAudio();
   initVoice();
+  document.addEventListener('voice-error', () => {
+    showToast("Couldn't hear you — tap the mic to try again", true);
+  });
   initShare();
   initOffline();
   initAccessibility();
@@ -205,15 +208,19 @@ function setupLanding() {
   startGreetingRotation();
 
   // Header border fades in when greeting scrolls out of view
+  if (_headerScrollObserver) _headerScrollObserver.disconnect();
   if ($greeting && 'IntersectionObserver' in window) {
     const $header = document.querySelector('.header');
     if ($header) {
-      new IntersectionObserver(([e]) => {
+      _headerScrollObserver = new IntersectionObserver(([e]) => {
         $header.classList.toggle('header--scrolled', !e.isIntersecting);
-      }, { threshold: 0 }).observe($greeting);
+      }, { threshold: 0 });
+      _headerScrollObserver.observe($greeting);
     }
   }
 }
+
+let _headerScrollObserver = null;
 
 /* ---- V9: Canvas Progressive Disclosure ---- */
 let _canvasPhase = 'minimal';
@@ -403,6 +410,11 @@ function renderSmartChips() {
   });
 
   $container.classList.add('smart-chips--visible');
+
+  // Show framing label when chips appear (hide on first chip tap)
+  const $chipLabel = document.getElementById('smart-chips-label');
+  if ($chipLabel && chips.length > 0) $chipLabel.hidden = false;
+
   startChipRotation();
 }
 
@@ -715,6 +727,9 @@ function wireEvents() {
           setState({ craving: $cravingInput.value });
           updateCtaState();
         }
+        // Hide chip framing label on first tap
+        const $chipLabel = document.getElementById('smart-chips-label');
+        if ($chipLabel) $chipLabel.hidden = true;
         // Spring feedback
         btn.classList.add('smart-chip--active');
         btn.addEventListener('animationend',
@@ -809,10 +824,13 @@ function wireEvents() {
         btn.setAttribute('aria-checked', String(!isActive));
         if (isActive) {
           setState({ dietaryRestrictions: current.filter(d => d !== val) });
+          announce(`${val} removed`);
         } else {
           current.push(val);
           setState({ dietaryRestrictions: current });
+          announce(`${val} selected`);
         }
+        haptic(HAPTICS.tick);
         // Ink ripple feedback
         const ripple = document.createElement('span');
         ripple.className = 'filter-pill__ripple';
@@ -1049,6 +1067,8 @@ function wireEvents() {
                   setTimeout(() => { fireCelebration(); playCelebrationChime(); haptic(HAPTICS.celebration); }, 1400);
                 }
               }, 300);
+              // Announce swap to screen readers
+              announce(`Now showing: ${nextResult.restaurant?.name || 'new recommendation'}`);
             }, 300);
           } else {
             renderResult(nextResult);
@@ -1059,6 +1079,7 @@ function wireEvents() {
               setTimeout(() => { fireCelebration(); playCelebrationChime(); haptic(HAPTICS.celebration); }, 1400);
             }
             document.querySelector('.cta-btn--loading')?.classList.remove('cta-btn--loading');
+            announce(`Now showing: ${nextResult.restaurant?.name || 'new recommendation'}`);
           }
           haptic(HAPTICS.reveal);
 
@@ -1336,7 +1357,7 @@ function wireEvents() {
         if ($btnText) {
           $btnText.classList.add('tell-more-btn__text--fading');
           setTimeout(() => {
-            $btnText.textContent = isExpanded ? 'Show More' : 'Show Less';
+            $btnText.textContent = isExpanded ? 'See Match Details' : 'Hide Details';
             $btnText.classList.remove('tell-more-btn__text--fading');
           }, 100);
         }
@@ -1365,9 +1386,12 @@ function wireEvents() {
           haptic(HAPTICS.tierExpand);
           renderTier2Animations();
           setTimeout(() => {
-            document.getElementById('score-hero')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            const $scoreHero = document.getElementById('score-hero');
+            $scoreHero?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // Move focus to Score Hero so keyboard/screen reader users land on new content
+            $scoreHero?.focus({ preventScroll: true });
           }, 300);
-          announce('Showing more details');
+          announce('Showing match details');
         } else {
           // COLLAPSING — snap to concrete px, force reflow, then transition to 0
           haptic(HAPTICS.tick);
@@ -1670,6 +1694,18 @@ function wireCravingInput() {
     setState({ craving: $cravingInput.value });
     updateCtaState();
     clearEmptyState();
+    // Character counter — visible at 80%+ of maxlength
+    const $counter = document.getElementById('craving-counter');
+    if ($counter) {
+      const max = 500;
+      const len = $cravingInput.value.length;
+      if (len >= max * 0.8) {
+        $counter.textContent = `${len} / ${max}`;
+        $counter.hidden = false;
+      } else {
+        $counter.hidden = true;
+      }
+    }
     // F19: Auto-grow textarea
     $cravingInput.style.height = 'auto';
     $cravingInput.style.height = $cravingInput.scrollHeight + 'px';
@@ -1845,9 +1881,11 @@ function selectFilter(field, btn) {
   btn.classList.add('chip-pop');
   btn.addEventListener('animationend', () => btn.classList.remove('chip-pop'), { once: true });
 
-  setState({ [field]: btn.dataset.value });
+  const selectedValue = btn.dataset.value;
+  setState({ [field]: selectedValue });
   updateFilterSummary();
   boostCta();
+  announce(`${selectedValue} selected`);
 
   // Auto-collapse only when all filter categories have been selected
   clearTimeout(autoAdvanceTimer);
@@ -1968,11 +2006,13 @@ async function handleSubmit() {
   if (!s.craving.trim()) {
     $cravingInput?.classList.add('shake');
     $cravingInput?.addEventListener('animationend', () => $cravingInput.classList.remove('shake'), { once: true });
+    $cravingInput?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     $cravingInput?.focus();
     // Inline hint instead of toast — modern validation pattern
     const $hint = document.getElementById('cta-hint');
     if ($hint) {
       $hint.textContent = "Tell us what you're craving first";
+      $hint.setAttribute('aria-live', 'assertive');
       $hint.classList.add('cta-hint--visible', 'cta-hint--nudge');
       $hint.addEventListener('animationend',
         () => $hint.classList.remove('cta-hint--nudge'), { once: true });
@@ -2083,6 +2123,7 @@ async function handleSubmit() {
 
 let _scaffoldTimers = [];
 let _arrowBounceTimer = null;
+let _sessionResultCount = 0;
 let _swapInFlight = false;
 
 /* ---- Phase 1: Canvas Fold ---- */
@@ -2136,6 +2177,8 @@ function beginCanvasFold() {
 
 /* ---- V10: Manifest Result — logo exit + progressive reveal ---- */
 async function manifestResult(data) {
+  _sessionResultCount++;
+
   // Stop any running timers
   stopWordRotation();
   _scaffoldTimers.forEach(clearTimeout);
@@ -2195,11 +2238,14 @@ async function manifestResult(data) {
   haptic(HAPTICS.reveal);
 
   // Score count-up — the sole brand animation moment (delayed for progressive reveal)
+  // After 2nd result in session, shorten to 600ms (reduce animation fatigue)
   const dondeScore = Math.round(parseFloat(data.donde_match) || 0);
+  const scoreDuration = _sessionResultCount > 2 ? 600 : undefined;
   _scaffoldTimers.push(setTimeout(() => {
     animateScoreCountUp(
       document.getElementById('match-pill-score'),
-      dondeScore
+      dondeScore,
+      scoreDuration
     );
   }, REDUCED_MOTION.matches ? 0 : 360));
 
@@ -2362,7 +2408,7 @@ function clearEdgeHintTimers() {
 }
 
 /* ---- V7: Score Count-Up Animation (reusable) ---- */
-function animateScoreCountUp($el, targetScore) {
+function animateScoreCountUp($el, targetScore, customDuration) {
   const $arcFill = document.getElementById('match-pill-arc-fill');
   const arcLength = 2 * Math.PI * 25; // ~157.08 (full circle, r=25)
   if ($arcFill) {
@@ -2373,7 +2419,7 @@ function animateScoreCountUp($el, targetScore) {
   $el.textContent = '0';
   const REDUCED_MQ = matchMedia('(prefers-reduced-motion: reduce)');
   if (!REDUCED_MQ.matches) {
-    const duration = 1200; // matches --dur-score token
+    const duration = customDuration || 1200; // matches --dur-score token
     const start = performance.now();
     const animate = (now) => {
       const elapsed = now - start;
@@ -2433,7 +2479,7 @@ function renderResult(data) {
   const $tier2 = document.getElementById('tier-leanin');
   const $tellMore = document.getElementById('tell-more-btn');
   if ($tier2) { $tier2.classList.remove('tier--expanded'); $tier2.setAttribute('aria-hidden', 'true'); $tier2.style.maxHeight = ''; $tier2._transitioning = false; }
-  if ($tellMore) { $tellMore.setAttribute('aria-expanded', 'false'); const t = $tellMore.querySelector('.tell-more-btn__text'); if (t) t.textContent = 'Show More'; }
+  if ($tellMore) { $tellMore.setAttribute('aria-expanded', 'false'); const t = $tellMore.querySelector('.tell-more-btn__text'); if (t) t.textContent = 'See Match Details'; }
 
   // Cuisine detection (for accent color + auto-theme)
   const cuisine = getCuisineFromResult(data);
@@ -3368,15 +3414,46 @@ function openLightbox(urls, startIndex) {
 
   // Prevent body scroll
   document.body.style.overflow = 'hidden';
+
+  // Focus trap: cache previous focus, move to close button
+  $lightbox._prevFocus = document.activeElement;
+  $lightbox.classList.add('lightbox--open');
+  const $closeBtn = $lightbox.querySelector('[data-action="close-lightbox"]');
+  if ($closeBtn) $closeBtn.focus();
+
+  // Trap Tab within lightbox
+  const onTab = (e) => {
+    if (e.key !== 'Tab') return;
+    const focusable = $lightbox.querySelectorAll('button, [tabindex]:not([tabindex="-1"])');
+    if (focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  };
+  document.addEventListener('keydown', onTab);
+  $lightbox._tabCleanup = () => document.removeEventListener('keydown', onTab);
 }
 
 function closeLightbox() {
   const $lightbox = document.getElementById('lightbox');
   if (!$lightbox) return;
   $lightbox.style.display = 'none';
+  $lightbox.classList.remove('lightbox--open');
   if ($lightbox._cleanup) $lightbox._cleanup();
   if ($lightbox._keyCleanup) $lightbox._keyCleanup();
+  if ($lightbox._tabCleanup) $lightbox._tabCleanup();
   document.body.style.overflow = '';
+  // Restore focus to the element that opened the lightbox
+  if ($lightbox._prevFocus) {
+    $lightbox._prevFocus.focus();
+    $lightbox._prevFocus = null;
+  }
 }
 
 
@@ -3503,12 +3580,19 @@ function renderSignalChips(data) {
     $chips.appendChild(span);
   });
 
-  // V9: Weak spots — subtle transparency note
+  // Weak spots — transparency builds trust
   if (narrative?.weak_spots?.length > 0) {
-    const note = document.createElement('span');
-    note.className = 'signal-chip signal-chip--caveat type-data--sm';
-    note.textContent = narrative.weak_spots[0];
-    $chips.appendChild(note);
+    const caveats = narrative.weak_spots.slice(0, 2);
+    const label = document.createElement('span');
+    label.className = 'signal-chip signal-chip--caveat-label type-data--sm';
+    label.textContent = 'Watch out for';
+    $chips.appendChild(label);
+    caveats.forEach(ws => {
+      const note = document.createElement('span');
+      note.className = 'signal-chip signal-chip--caveat type-data--sm';
+      note.textContent = ws;
+      $chips.appendChild(note);
+    });
   }
 
   $chips.style.display = '';
