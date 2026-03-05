@@ -95,6 +95,17 @@ Errors: HTTP non-200 -> toast + canvas | `success:false` -> show `recommendation
 
 Open `index.html` in browser. No build step, no dependencies, no env vars.
 
+## Git Workflow
+
+After committing to the feature branch, also **merge and push to `main`** so changes are immediately testable. Steps:
+1. Commit and push to the feature branch as normal.
+2. `git checkout main && git pull origin main`
+3. `git merge <feature-branch> --no-edit`
+4. `git push origin main`
+5. `git checkout <feature-branch>` (return to feature branch for continued work)
+
+The user tests on `main` directly and can revert if needed.
+
 ## Coding Standards
 
 - **HTML:** Semantic, `data-action` event delegation, all interactives focusable
