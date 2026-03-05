@@ -238,15 +238,6 @@
 }
 
 /* ---- Smart Chips (input augmentation) ---- */
-/* Smart chip framing label — contextual hint for first-time users */
-.smart-chips__label {
-  display: block;
-  text-align: center;
-  color: var(--fg3);
-  margin-bottom: var(--space-2xs);
-  letter-spacing: 0.03em;
-}
-
 .smart-chips {
   display: flex;
   flex-wrap: wrap;
@@ -638,11 +629,11 @@
   min-width: 16px;
   height: 16px;
   padding: 0 4px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--ac);
   color: var(--bg);
   font-family: var(--font-data);
-  font-size: 10px;
+  font-size: var(--text-2xs);
   font-weight: 700;
   line-height: 16px;
   text-align: center;
@@ -739,9 +730,9 @@
 .hood-browse {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-2xs);
   padding: var(--space-2xs) var(--space-xs);
-  font-size: 11px;
+  font-size: var(--text-xs);
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -764,7 +755,7 @@
 }
 
 .hood-browse__arrow {
-  font-size: 8px;
+  font-size: var(--text-2xs);
   transition: transform 300ms var(--ease-out);
   opacity: 0.5;
 }
@@ -798,9 +789,9 @@
 .hood-group__toggle {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-2xs);
   padding: var(--space-2xs) var(--space-xs);
-  font-size: 11px;
+  font-size: var(--text-xs);
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -821,7 +812,7 @@
 }
 
 .hood-group__arrow {
-  font-size: 8px;
+  font-size: var(--text-2xs);
   transition: transform var(--dur-fast) var(--ease-out);
   opacity: 0.5;
 }
@@ -1014,7 +1005,7 @@
   flex-direction: column;
   align-items: center;
   flex-shrink: 0;
-  gap: 2px;
+  gap: var(--space-2xs);
   padding: var(--space-2xs) var(--space-xs);
   cursor: pointer;
 }
@@ -1101,7 +1092,7 @@
 .match-mini__brand {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--space-2xs);
   line-height: 1;
 }
 
@@ -1138,52 +1129,6 @@
 .match-mini:hover .match-mini__hint {
   opacity: 1;
   transform: translateY(1px);
-}
-
-/* ── Quick Tags (cuisine + price snap-decision helpers) ── */
-.quick-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2xs);
-  align-items: center;
-}
-
-.quick-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2xs);
-  padding: 2px var(--space-xs);
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  font-family: var(--font-data);
-  font-size: var(--text-xs);
-  color: var(--fg2);
-  line-height: 1;
-  min-height: 22px;
-  white-space: nowrap;
-}
-
-.quick-tag svg {
-  width: 12px;
-  height: 12px;
-  color: var(--fg3);
-}
-
-/* ── Interactive Quick Tags (badge popouts) ── */
-.quick-tag--interactive {
-  cursor: pointer;
-  transition: background var(--dur-fast) var(--ease-out), transform 150ms var(--spring);
-}
-.quick-tag--interactive:active {
-  transform: scale(0.95);
-}
-.quick-tag--interactive:hover {
-  background: var(--bg2);
-}
-.quick-tag--interactive[aria-expanded="true"] {
-  background: var(--bg2);
-  border-color: var(--fg3);
 }
 
 /* ── Badge Popout — glass morphism panel (fixed to viewport to escape overflow:hidden) ── */
@@ -1279,67 +1224,60 @@
   gap: var(--space-2xs);
 }
 
-/* ---- Known-For Popout (dishes + highlights) ---- */
-.badge-popout--known-for {
-  min-width: 200px;
-  max-width: 280px;
+/* ---- Hours Popout — Clean Table Layout ---- */
+.badge-popout--hours {
+  min-width: 190px;
+  max-width: 220px;
+  padding: var(--space-sm);
 }
-
-.badge-popout__dishes {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2xs);
-}
-
-.badge-popout__dish-row {
+.hours-table {
   display: flex;
   flex-direction: column;
   gap: 1px;
-  padding: var(--space-2xs) 0;
-  border-bottom: 1px solid var(--border);
-  opacity: 0;
-  transform: translateY(4px);
-  animation: popoutItemIn 250ms var(--ease-out) forwards;
 }
-
-.badge-popout__dish-row:last-child {
-  border-bottom: none;
-}
-
-/* Stagger dish rows */
-.badge-popout__dish-row:nth-child(1) { animation-delay: 50ms; }
-.badge-popout__dish-row:nth-child(2) { animation-delay: 100ms; }
-.badge-popout__dish-row:nth-child(3) { animation-delay: 150ms; }
-
-.badge-popout__dish-name {
-  font-family: var(--font-structural);
+.hours-table__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: 3px 0;
   font-size: var(--text-xs);
-  font-weight: 600;
+  color: var(--fg2);
+  line-height: 1.3;
+}
+.hours-table__row--today {
   color: var(--fg);
-  line-height: 1.3;
+  font-weight: 600;
+  position: relative;
 }
-
-.badge-popout__dish-why {
+.hours-table__row--today::before {
+  content: '';
+  position: absolute;
+  left: calc(var(--space-xs) * -1);
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--ac);
+}
+.hours-table__day {
+  flex-shrink: 0;
+  width: 28px;
   font-family: var(--font-data);
-  font-size: 0.6rem;
-  color: var(--fg3);
-  line-height: 1.3;
+  font-size: var(--text-2xs);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.hours-table__time {
+  text-align: right;
+  white-space: nowrap;
+  font-family: var(--font-data);
+  font-size: var(--text-2xs);
+  color: inherit;
 }
 
-/* Stagger pills in known-for popout */
-.badge-popout--known-for .badge-popout__pill {
-  opacity: 0;
-  transform: scale(0.9);
-  animation: popoutPillIn 200ms var(--spring) forwards;
-}
-
-.badge-popout--known-for .badge-popout__pill:nth-child(1) { animation-delay: 180ms; }
-.badge-popout--known-for .badge-popout__pill:nth-child(2) { animation-delay: 220ms; }
-.badge-popout--known-for .badge-popout__pill:nth-child(3) { animation-delay: 260ms; }
-.badge-popout--known-for .badge-popout__pill:nth-child(4) { animation-delay: 300ms; }
-.badge-popout--known-for .badge-popout__pill:nth-child(5) { animation-delay: 340ms; }
-
-/* Stagger hours pills too for consistency */
+/* Stagger hours pills */
 .badge-popout__pills .badge-popout__pill {
   opacity: 0;
   transform: translateY(3px);
@@ -1423,9 +1361,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .badge-popout { transition: none; }
-  .badge-popout__dish-row,
-  .badge-popout__pills .badge-popout__pill,
-  .badge-popout--known-for .badge-popout__pill {
+  .badge-popout__pills .badge-popout__pill {
     animation: none;
     opacity: 1;
     transform: none;
@@ -1435,24 +1371,25 @@
 /* ══════════════════════════════════════════
    Cuisine Drawer — bottom sheet (mobile) / glass panel (desktop)
    ══════════════════════════════════════════ */
+/* ---- Cuisine Drawer — Bottom Sheet (Compact, Premium) ---- */
 .cuisine-drawer {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
   z-index: var(--z-modal);
-  max-height: 70vh;
+  max-height: 55vh;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   background: var(--glass);
   backdrop-filter: blur(var(--glass-blur));
   -webkit-backdrop-filter: blur(var(--glass-blur));
-  border-top: 1px solid var(--border);
+  border-top: 2px solid var(--ac);
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  padding: var(--space-md);
+  padding: var(--space-sm) var(--space-md) var(--space-md);
   transform: translateY(100%);
   transition: transform var(--dur-normal) var(--spring);
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 -4px 24px hsl(0 0% 0% / 0.12);
 }
 
 .cuisine-drawer--open {
@@ -1477,15 +1414,15 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-bottom: var(--space-sm);
-  border-bottom: 1px solid var(--border);
+  padding-bottom: var(--space-xs);
   margin-bottom: var(--space-xs);
 }
 
 .cuisine-drawer__cuisine-label {
+  font-family: var(--font-emotional);
   font-weight: 600;
   color: var(--fg);
-  font-size: var(--text-base);
+  font-size: var(--text-md);
 }
 
 .cuisine-drawer__close {
@@ -1500,22 +1437,22 @@
   background: transparent;
   border: none;
   border-radius: var(--radius-sm);
-  color: var(--fg2);
+  color: var(--fg3);
   cursor: pointer;
-  transition: background var(--dur-fast) var(--ease-out);
+  transition: color var(--dur-fast) var(--ease-out);
 }
 
 .cuisine-drawer__close:hover {
-  background: var(--bg2);
+  color: var(--fg);
 }
 
-/* Sections — consistent spacing */
+/* Sections — tight spacing */
 .cuisine-drawer__section {
-  padding: var(--space-sm) 0;
+  padding: var(--space-xs) 0;
 }
 
 .cuisine-drawer__section + .cuisine-drawer__section {
-  border-top: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--border) 40%, transparent);
 }
 
 .cuisine-drawer__section-label {
@@ -1524,35 +1461,39 @@
   font-size: var(--text-2xs);
   color: var(--fg3);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  margin-bottom: var(--space-xs);
+  letter-spacing: 0.05em;
+  margin-bottom: var(--space-2xs);
   line-height: 1;
 }
 
-/* What to Order — dish cards */
+/* What to Order — compact dish rows */
 .cuisine-drawer__dishes {
   display: flex;
   flex-direction: column;
-  gap: var(--space-xs);
+  gap: 2px;
 }
 
 .cuisine-drawer__dish {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: var(--space-2xs) 0;
+  align-items: baseline;
+  gap: var(--space-xs);
+  padding: 3px 0;
 }
 
 .cuisine-drawer__dish-name {
-  font-weight: 500;
+  font-weight: 600;
   color: var(--fg);
   font-size: var(--text-sm);
+  flex-shrink: 0;
 }
 
 .cuisine-drawer__dish-why {
   color: var(--fg3);
   font-size: var(--text-xs);
-  line-height: 1.4;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Popular Items + Flavor Profile — pill wrap */
@@ -1567,12 +1508,12 @@
 .cuisine-drawer__flavor-tag {
   display: inline-flex;
   align-items: center;
-  padding: 3px 8px;
+  padding: 2px 8px;
   background: var(--bg2);
   color: var(--fg2);
   border: 1px solid var(--border);
   border-radius: var(--radius-pill);
-  font-size: var(--text-xs);
+  font-size: var(--text-2xs);
   line-height: 1.3;
   white-space: nowrap;
 }
@@ -1580,7 +1521,7 @@
 /* Desktop: centered panel instead of full-width bottom sheet */
 @media (min-width: 768px) {
   .cuisine-drawer {
-    max-width: 400px;
+    max-width: 360px;
     left: 50%;
     right: auto;
     transform: translateX(-50%) translateY(100%);
@@ -1596,23 +1537,6 @@
   .cuisine-drawer__backdrop { transition: none; }
 }
 
-/* ── Action Quick Tags (Reserve, Share) ── */
-.quick-tag--action {
-  background: transparent;
-  border: 1px dashed var(--border);
-  color: var(--fg3);
-  cursor: pointer;
-  transition: color var(--dur-fast) var(--ease-out),
-              border-color var(--dur-fast) var(--ease-out),
-              background var(--dur-fast) var(--ease-out);
-  text-decoration: none;
-}
-.quick-tag--action:hover {
-  color: var(--fg);
-  border-color: var(--fg3);
-  background: var(--bg2);
-}
-
 /* ── Result Meta (cuisine + open/closed pills — inline with name) ── */
 .result-meta {
   display: flex;
@@ -1624,17 +1548,17 @@
 .result-meta__pill {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 2px 10px;
+  gap: var(--space-2xs);
+  padding: var(--space-2xs) var(--space-sm);
   font-family: var(--font-data);
-  font-size: 0.65rem;
+  font-size: var(--text-2xs);
   color: var(--fg2);
   background: var(--bg2);
   border: 1px solid var(--border);
   border-radius: var(--radius-pill);
   cursor: pointer;
   text-decoration: none;
-  transition: background 200ms var(--ease-out), border-color 200ms var(--ease-out);
+  transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
   position: relative;
 }
 
@@ -1675,6 +1599,10 @@
   margin-top: -2px;
   opacity: 0.5;
   transition: transform var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out);
+}
+/* Suppress chevron on cuisine pill — opens drawer, not popout */
+.result-meta__pill--interactive[data-action="open-cuisine-drawer"]::after {
+  display: none;
 }
 .result-meta__pill--interactive:hover {
   background: var(--bg3);
@@ -2354,8 +2282,8 @@
 .score-hero__signal-pill {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 2px 10px;
+  gap: var(--space-2xs);
+  padding: var(--space-2xs) var(--space-sm);
   font-family: var(--font-structural);
   font-size: var(--text-xs);
   color: var(--fg2);
@@ -2387,11 +2315,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 6px 12px;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
   background: var(--bg2);
-  border-radius: var(--radius-pill, 100px);
-  margin: 8px 0 12px;
+  border-radius: var(--radius-pill);
+  margin: var(--space-xs) 0 var(--space-sm);
   overflow: visible;
   position: relative;
   opacity: 0;
@@ -2407,11 +2335,11 @@
 .v9-formula__gate {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-2xs);
   background: color-mix(in srgb, var(--gate-color, var(--bg2)) 15%, transparent);
   border: 1px solid color-mix(in srgb, var(--gate-color, var(--border)) 30%, transparent);
-  border-radius: var(--radius-pill, 100px);
-  padding: 2px 10px;
+  border-radius: var(--radius-pill);
+  padding: var(--space-2xs) var(--space-sm);
   cursor: pointer;
   position: relative;
   transition: background 150ms var(--ease-out);
@@ -2428,8 +2356,8 @@
 .v9-formula__bonus-pill {
   display: inline-flex;
   align-items: center;
-  padding: 2px 10px;
-  border-radius: var(--radius-pill, 100px);
+  padding: var(--space-2xs) var(--space-sm);
+  border-radius: var(--radius-pill);
   font-family: var(--font-data);
   font-size: var(--text-xs);
   font-weight: 500;
@@ -2463,10 +2391,10 @@
   z-index: 50;
   background: var(--bg1);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 12px;
+  border-radius: var(--radius-sm);
+  padding: var(--space-sm);
   width: 220px;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+  box-shadow: var(--shadow-md);
   opacity: 0;
   transform: translateY(-4px);
   pointer-events: none;
@@ -2557,14 +2485,12 @@
 .result-card--crossfading .result-name,
 .result-card--crossfading .result-oneliner,
 .result-card--crossfading .result-meta,
-.result-card--crossfading .quick-tags,
 .result-card--crossfading .quick-actions,
 .result-card--crossfading .glance-nav,
 .result-card--crossfading .donde-blurb__text,
 .result-card--crossfading .result-photos,
 .result-card--crossfading .match-mini__score,
-.result-card--crossfading .match-mini__verdict,
-.result-card--crossfading .match-headline {
+.result-card--crossfading .match-mini__verdict {
   opacity: 0;
   transition: opacity 250ms var(--ease-out);
 }
@@ -2684,7 +2610,7 @@
 .factor-row-wrapper {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-2xs);
 }
 
 /* Individual factor row — tappable button — V9: more breathing room */
@@ -2736,7 +2662,7 @@
 .factor-row:focus-visible {
   outline: 2px solid var(--ac);
   outline-offset: 2px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 .factor-row__icon {
@@ -3077,7 +3003,7 @@
 
 /* Weight-importance pips (●/●●/●●●) next to factor label */
 .factor-row__weight-pips {
-  font-size: 6px;
+  font-size: var(--text-2xs);
   letter-spacing: 2px;
   color: var(--fg3);
   opacity: 0.5;
@@ -3086,7 +3012,7 @@
 
 /* Strongest factor "Top match" badge */
 .factor-row__top-badge {
-  font-size: 9px;
+  font-size: var(--text-2xs);
   font-weight: 600;
   color: var(--ac);
   letter-spacing: 0.04em;
@@ -3463,8 +3389,8 @@
   padding-left: 24px;
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  padding-top: 2px;
+  gap: var(--space-2xs);
+  padding-top: var(--space-2xs);
   padding-bottom: var(--space-2xs);
 }
 .tile-expand__subfactor {
@@ -3500,7 +3426,7 @@
   grid-column: 1 / -1;
   color: var(--fg3);
   font-style: italic;
-  font-size: 10px;
+  font-size: var(--text-2xs);
   line-height: 1.3;
   padding-bottom: 1px;
 }
@@ -4685,19 +4611,6 @@
   border-radius: var(--radius) 0 0 0;
 }
 
-/* Open/Closed quick tag — RAG tokens for consistency */
-.quick-tag--open {
-  background: var(--rag-green-soft);
-  color: var(--rag-green);
-  font-weight: 600;
-}
-
-.quick-tag--closed {
-  background: var(--rag-red-soft);
-  color: var(--rag-red);
-  font-weight: 600;
-}
-
 /* ---- F3: Enhanced Map Navigation (replaced by .glance-nav__pill) ---- */
 
 .glance-nav__map-icon {
@@ -4817,14 +4730,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
+  min-width: 44px;
+  min-height: 44px;
   border-radius: 50%;
   border: 1px solid var(--border);
   background: var(--bg2);
   color: var(--fg2);
   cursor: pointer;
-  transition: all 200ms var(--ease-out);
+  transition: all var(--dur-fast) var(--ease-out);
 }
 
 .feedback-btn:hover {
@@ -4961,8 +4876,8 @@
 .card-footer__primary-row .cta-btn {
   flex: 1;
   min-width: 0;
-  font-size: var(--text-xs);
-  padding: var(--space-xs) var(--space-sm);
+  font-size: var(--text-sm);
+  padding: var(--space-sm) var(--space-md);
 }
 
 /* ---- V10: Card Footer Secondary Row (Feedback + Start Over) ---- */
@@ -4984,7 +4899,7 @@
 .cta-btn--neutral {
   background: transparent;
   color: var(--fg3);
-  border: 1.5px solid color-mix(in srgb, var(--border) 80%, transparent);
+  border: 2px solid color-mix(in srgb, var(--border) 80%, transparent);
   border-radius: var(--radius-pill);
   font-family: var(--font-structural);
   font-weight: 600;
@@ -5928,67 +5843,6 @@
 }
 
 /* ============================================
-   V6.1: Match Reason Headline (inside glance-hero__info)
-   ============================================ */
-.match-headline {
-  font-family: var(--font-structural, 'Inter', sans-serif);
-  font-size: var(--text-sm);
-  font-style: normal;
-  font-weight: 500;
-  color: var(--fg2);
-  margin: 0;
-  padding: 0;
-  line-height: 1.4;
-  letter-spacing: 0.01em;
-}
-
-/* ============================================
-   V6.1: Signal Chips — inline with quick-tags
-   ============================================ */
-.signal-chips {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 3px;
-  align-items: center;
-}
-
-.signal-chip {
-  display: inline-flex;
-  align-items: center;
-  padding: 1px 6px;
-  border-radius: var(--radius-pill, 100px);
-  background: var(--bg3);
-  color: var(--fg2);
-  border: 1px solid var(--border);
-  font-size: 0.65rem;
-  letter-spacing: 0.02em;
-  white-space: nowrap;
-  line-height: 1.3;
-}
-
-/* V9: Caveat signal chip — transparency note for weak spots */
-.signal-chip--caveat-label {
-  background: transparent;
-  border-color: transparent;
-  color: var(--rag-amber);
-  font-weight: 600;
-  font-size: var(--text-2xs);
-  letter-spacing: 0.03em;
-  width: 100%;
-  text-align: center;
-  padding: var(--space-2xs) 0 0;
-}
-
-.signal-chip--caveat {
-  background: var(--rag-amber-soft);
-  border-color: color-mix(in srgb, var(--rag-amber) 30%, transparent);
-  color: var(--rag-amber);
-  font-style: italic;
-  font-size: var(--text-2xs);
-}
-
-
-/* ============================================
    V6.1: Factor Narrative Sentence — Hero treatment
    ============================================ */
 .factor-detail__narrative {
@@ -6106,87 +5960,6 @@
   font-family: var(--font-structural);
   font-size: var(--text-2xs, 10px);
   letter-spacing: 0.03em;
-}
-
-/* ── V9.1: Signature Dishes Showcase — horizontal scroll strip ── */
-.known-for {
-  padding: 0 var(--space-sm);
-}
-
-.known-for__label {
-  font-size: var(--text-xs);
-  color: var(--fg3);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin-bottom: var(--space-2xs);
-}
-
-.known-for__strip {
-  display: flex;
-  gap: var(--space-xs);
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  padding-bottom: var(--space-2xs);
-}
-
-.known-for__strip::-webkit-scrollbar { display: none; }
-
-.known-for__card {
-  flex: 0 0 auto;
-  min-width: 120px;
-  max-width: 160px;
-  padding: var(--space-xs) var(--space-sm);
-  background: var(--bg2);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border);
-  scroll-snap-align: start;
-  transition: transform 150ms var(--ease-out), box-shadow 150ms var(--ease-out);
-}
-
-.known-for__card:active {
-  transform: scale(0.97);
-}
-
-.known-for__dish-name {
-  font-family: var(--font-structural);
-  font-weight: 600;
-  font-size: var(--text-sm);
-  color: var(--fg);
-  line-height: 1.3;
-}
-
-.known-for__dish-why {
-  font-family: var(--font-emotional);
-  font-style: italic;
-  font-size: var(--text-xs);
-  color: var(--fg3);
-  line-height: 1.3;
-  margin-top: 2px;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-/* Fallback: menu highlights as simple pills */
-.known-for__pills {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2xs);
-}
-
-.known-for__pill {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 10px;
-  background: var(--bg2);
-  color: var(--fg2);
-  border-radius: var(--radius-pill);
-  font-family: var(--font-structural);
-  font-size: var(--text-xs);
-  border: 1px solid var(--border);
 }
 
 /* ── V9.1: Photo Hero Layout ── */

@@ -411,10 +411,6 @@ function renderSmartChips() {
 
   $container.classList.add('smart-chips--visible');
 
-  // Show framing label when chips appear (hide on first chip tap)
-  const $chipLabel = document.getElementById('smart-chips-label');
-  if ($chipLabel && chips.length > 0) $chipLabel.hidden = false;
-
   startChipRotation();
 }
 
@@ -727,9 +723,6 @@ function wireEvents() {
           setState({ craving: $cravingInput.value });
           updateCtaState();
         }
-        // Hide chip framing label on first tap
-        const $chipLabel = document.getElementById('smart-chips-label');
-        if ($chipLabel) $chipLabel.hidden = true;
         // Spring feedback
         btn.classList.add('smart-chip--active');
         btn.addEventListener('animationend',
@@ -1125,11 +1118,7 @@ function wireEvents() {
                 $rec.textContent = recText;
                 $rec.style.opacity = '1';
 
-                // Also update match headline and insider tip if available
-                const $headline = document.getElementById('match-headline');
-                if ($headline && blurbData.match_headline) {
-                  $headline.textContent = blurbData.match_headline;
-                }
+                // Also update insider tip if available
                 const $tip = document.getElementById('story-tip-text');
                 if ($tip && blurbData.insider_tip) {
                   $tip.textContent = blurbData.insider_tip.replace(/\u2014/g, ', ').replace(/ , /g, ', ');
@@ -2600,20 +2589,6 @@ function renderResult(data) {
     }
   }
 
-  // V10: One-liner removed from Tier 1 — blurb is the editorial voice
-  const $oneliner = document.getElementById('result-oneliner');
-  if ($oneliner) $oneliner.style.display = 'none';
-
-  // V9.1: Quick tags removed from Tier 1 — detail metrics moved to Tier 2 score area
-  const $quickTags = document.getElementById('quick-tags');
-  if ($quickTags) {
-    $quickTags.innerHTML = '';
-    $quickTags.style.display = 'none';
-  }
-  // V9.1: Open Now badge moved to Tier 2 signal chips
-  const $signalChipsTier1 = document.getElementById('signal-chips');
-  if ($signalChipsTier1) { $signalChipsTier1.innerHTML = ''; $signalChipsTier1.style.display = 'none'; }
-
   // Restaurant meta: website, cuisine, what to order, open/closed pills
   renderResultMeta(data);
 
@@ -2648,13 +2623,6 @@ function renderResult(data) {
 
   // V5: Relaxation notice — shown above result card when filters were expanded
   renderRelaxationNotice(data);
-
-  // V10: Match headline removed from Tier 1 — blurb communicates WHY
-  const $matchHeadline = document.getElementById('match-headline');
-  if ($matchHeadline) $matchHeadline.style.display = 'none';
-
-  // V10: Signal chips removed from Tier 1 — factor bars are sufficient
-  // (renderSignalChips call removed)
 
   // DondeAI Recommendation blurb — the editorial voice in Tier 1
   const $rec = document.getElementById('result-recommendation');
@@ -3036,29 +3004,6 @@ function renderQuickActions(data) {
   $actions.style.display = items.length > 0 ? '' : 'none';
 }
 
-/* ---- Shorten hours text: "Monday: 11:00 AM – 10:00 PM" → "Mon 11a–10p" ---- */
-function _shortenHoursLine(line) {
-  const dayMap = {
-    monday: 'Mon', tuesday: 'Tue', wednesday: 'Wed', thursday: 'Thu',
-    friday: 'Fri', saturday: 'Sat', sunday: 'Sun',
-  };
-  // Split "Day: time" or return as-is
-  const colonIdx = line.indexOf(':');
-  if (colonIdx < 0) return line;
-  const dayPart = line.slice(0, colonIdx).trim().toLowerCase();
-  const timePart = line.slice(colonIdx + 1).trim();
-  const shortDay = dayMap[dayPart] || line.slice(0, 3);
-
-  // Shorten time: "11:00 AM" → "11a", "2:30 PM" → "2:30p", "Closed" stays
-  const shortened = timePart.replace(/(\d{1,2}):00\s*(AM|PM)/gi, (_, h, ampm) =>
-    `${h}${ampm[0].toLowerCase()}`
-  ).replace(/(\d{1,2}:\d{2})\s*(AM|PM)/gi, (_, t, ampm) =>
-    `${t}${ampm[0].toLowerCase()}`
-  ).replace(/\s*[–—-]\s*/g, '–');
-
-  return `${shortDay} ${shortened}`;
-}
-
 /* ---- Result Meta: website, cuisine, what to order, open/closed pills ---- */
 function renderResultMeta(data) {
   const $meta = document.getElementById('result-meta');
@@ -3068,59 +3013,15 @@ function renderResultMeta(data) {
   const r = data.restaurant || {};
   const dp = data.deep_context || {};
 
-  // 1. Cuisine pill → badge-popout with Known For items (signature dishes + highlights)
+  // 1. Cuisine pill → opens cuisine drawer (bottom sheet with signature dishes)
   if (r.cuisine_type) {
     const pill = document.createElement('span');
     pill.className = 'result-meta__pill result-meta__pill--interactive type-data--sm';
     pill.setAttribute('role', 'button');
     pill.setAttribute('tabindex', '0');
-    pill.setAttribute('aria-expanded', 'false');
-    pill.setAttribute('aria-haspopup', 'true');
-    pill.setAttribute('data-action', 'toggle-badge-popout');
+    pill.setAttribute('aria-haspopup', 'dialog');
+    pill.setAttribute('data-action', 'open-cuisine-drawer');
     pill.innerHTML = `${svgIcon('plate', 11)} ${r.cuisine_type}`;
-
-    // Build known-for popout from signature dishes + menu highlights
-    const hasDishes = dp.signature_dishes?.length > 0;
-    const hasHighlights = dp.menu_highlights?.length > 0;
-    if (hasDishes || hasHighlights) {
-      const popout = document.createElement('div');
-      popout.className = 'badge-popout badge-popout--known-for';
-      popout.setAttribute('role', 'tooltip');
-
-      const title = document.createElement('span');
-      title.className = 'badge-popout__title';
-      title.textContent = 'Known For';
-      popout.appendChild(title);
-
-      // Top signature dishes (max 3) — name + short reason
-      if (hasDishes) {
-        const dishesWrap = document.createElement('div');
-        dishesWrap.className = 'badge-popout__dishes';
-        dp.signature_dishes.slice(0, 3).forEach(d => {
-          const row = document.createElement('div');
-          row.className = 'badge-popout__dish-row';
-          row.innerHTML = `<span class="badge-popout__dish-name">${d.dish}</span>${d.why ? `<span class="badge-popout__dish-why">${d.why}</span>` : ''}`;
-          dishesWrap.appendChild(row);
-        });
-        popout.appendChild(dishesWrap);
-      }
-
-      // Menu highlights as compact pills (max 5)
-      if (hasHighlights) {
-        const pillsWrap = document.createElement('div');
-        pillsWrap.className = 'badge-popout__pills';
-        dp.menu_highlights.slice(0, 5).forEach(item => {
-          const p = document.createElement('span');
-          p.className = 'badge-popout__pill badge-popout__pill--dish';
-          p.textContent = item;
-          pillsWrap.appendChild(p);
-        });
-        popout.appendChild(pillsWrap);
-      }
-
-      pill.appendChild(popout);
-    }
-
     $meta.appendChild(pill);
   }
 
@@ -3136,28 +3037,41 @@ function renderResultMeta(data) {
     pill.setAttribute('data-action', 'toggle-badge-popout');
     pill.textContent = oh.open_now ? 'Open Now' : 'Closed';
 
-    // Build hours popout if weekday_text available
+    // Build hours popout — clean table layout (Google Maps style)
     if (oh.weekday_text?.length) {
       const popout = document.createElement('div');
-      popout.className = 'badge-popout';
+      popout.className = 'badge-popout badge-popout--hours';
       popout.setAttribute('role', 'tooltip');
       const title = document.createElement('span');
       title.className = 'badge-popout__title';
       title.textContent = 'Hours';
       popout.appendChild(title);
       const today = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
-      const pillsWrap = document.createElement('div');
-      pillsWrap.className = 'badge-popout__pills';
+      const table = document.createElement('div');
+      table.className = 'hours-table';
       oh.weekday_text.forEach(line => {
-        const p = document.createElement('span');
-        p.className = 'badge-popout__pill';
-        if (line.toLowerCase().startsWith(today)) {
-          p.classList.add('badge-popout__pill--today');
-        }
-        p.textContent = _shortenHoursLine(line);
-        pillsWrap.appendChild(p);
+        const colonIdx = line.indexOf(':');
+        if (colonIdx < 0) return;
+        const dayPart = line.slice(0, colonIdx).trim();
+        const timePart = line.slice(colonIdx + 1).trim();
+        const isToday = dayPart.toLowerCase() === today;
+        const row = document.createElement('div');
+        row.className = `hours-table__row${isToday ? ' hours-table__row--today' : ''}`;
+        const dayEl = document.createElement('span');
+        dayEl.className = 'hours-table__day';
+        dayEl.textContent = dayPart.slice(0, 3);
+        const timeEl = document.createElement('span');
+        timeEl.className = 'hours-table__time';
+        // Shorten time format: "11:00 AM – 10:00 PM" → "11a – 10p"
+        timeEl.textContent = timePart
+          .replace(/(\d{1,2}):00\s*(AM|PM)/gi, (_, h, ap) => `${h}${ap[0].toLowerCase()}`)
+          .replace(/(\d{1,2}:\d{2})\s*(AM|PM)/gi, (_, t, ap) => `${t}${ap[0].toLowerCase()}`)
+          .replace(/\s*[–—-]\s*/g, ' – ');
+        row.appendChild(dayEl);
+        row.appendChild(timeEl);
+        table.appendChild(row);
       });
-      popout.appendChild(pillsWrap);
+      popout.appendChild(table);
       pill.appendChild(popout);
     }
 
@@ -3501,103 +3415,6 @@ function renderDishMatchChip(data) {
   if ($blurb) $blurb.insertAdjacentElement('afterend', chip);
 }
 
-/* ---- V6.1: Match Reason Headline ---- */
-function renderMatchHeadline(data) {
-  const $headline = document.getElementById('match-headline');
-  if (!$headline) return;
-  const headlineText = data.match_headline || '';
-  $headline.textContent = headlineText;
-  $headline.style.display = headlineText ? '' : 'none';
-}
-
-/* ---- V9.1: Signal Chips — moved to Tier 2 Score Hero area ---- */
-function renderSignalChips(data) {
-  // V9.1: Output to Tier 2 score-hero__signals (moved from Tier 1 per CEO feedback)
-  const $chips = document.getElementById('score-hero-signals');
-  if (!$chips) return;
-  $chips.innerHTML = '';
-
-  const chips = [];
-  const sv5 = data.scoring_v9 || data.scoring || null;
-  const r = data.restaurant;
-  const narrative = data.match_narrative;
-
-  // V9: Primary source — match_narrative.key_signals (most relevant)
-  if (narrative?.key_signals?.length > 0) {
-    narrative.key_signals.slice(0, 3).forEach((signal, i) => {
-      chips.push({ text: signal, priority: 15 - i });
-    });
-  }
-
-  // V9: Supplementary signals from relevance data (replaces stale V7 factor_details reads)
-  const sv9 = data.scoring_v9;
-
-  // Cuisine match — V9 uses relevance_type
-  if (sv9?.relevance_type === 'cuisine' && sv9.relevance_score >= 0.7) {
-    const cuisineLabel = r.cuisine_type || 'Cuisine';
-    const cuisineText = sv9.relevance_score >= 0.95 ? cuisineLabel + ' \u2713' : cuisineLabel;
-    if (!chips.some(c => c.text.toLowerCase().includes('cuisine'))) {
-      chips.push({ text: cuisineText, priority: 10 });
-    }
-  }
-
-  // Dish match — V9 uses relevance_type
-  if (sv9?.relevance_type === 'dish' && sv9.relevance_score >= 0.7) {
-    if (!chips.some(c => c.text.toLowerCase().includes('dish'))) {
-      chips.push({ text: 'Dish Match \u2713', priority: 12 });
-    }
-  }
-
-  // Open now
-  if (r.opening_hours?.open_now === true) {
-    if (!chips.some(c => c.text.toLowerCase().includes('open'))) {
-      chips.push({ text: 'Open Now', priority: 6 });
-    }
-  }
-
-  // V9: Awards (from deep_context — promote top award)
-  const topAward = data.deep_context?.awards_recognition?.[0];
-  if (topAward && !chips.some(c => c.text === topAward)) {
-    chips.push({ text: topAward, priority: 8 });
-  }
-
-  // 5. High vibe match — removed: "Great Vibe" chip was redundant with scoring;
-  //    vibe signal is already reflected in the donde match score.
-
-  // Sort by priority (highest first), take top 4
-  chips.sort((a, b) => b.priority - a.priority);
-  const topChips = chips.slice(0, 4);
-
-  if (topChips.length === 0) {
-    $chips.style.display = 'none';
-    return;
-  }
-
-  topChips.forEach(c => {
-    const span = document.createElement('span');
-    span.className = 'signal-chip type-data--sm';
-    span.textContent = c.text;
-    $chips.appendChild(span);
-  });
-
-  // Weak spots — transparency builds trust
-  if (narrative?.weak_spots?.length > 0) {
-    const caveats = narrative.weak_spots.slice(0, 2);
-    const label = document.createElement('span');
-    label.className = 'signal-chip signal-chip--caveat-label type-data--sm';
-    label.textContent = 'Watch out for';
-    $chips.appendChild(label);
-    caveats.forEach(ws => {
-      const note = document.createElement('span');
-      note.className = 'signal-chip signal-chip--caveat type-data--sm';
-      note.textContent = ws;
-      $chips.appendChild(note);
-    });
-  }
-
-  $chips.style.display = '';
-}
-
 /* ---- V5: Intent Boost Badge ---- */
 function renderIntentBoostBadge(data) {
   // Remove any previous boost badge
@@ -3689,48 +3506,6 @@ function renderRelaxationNotice(data) {
       notice.addEventListener('animationend', () => notice.remove(), { once: true });
     }
   }, 5000));
-}
-
-function renderOpenNowTag(data) {
-  const $quickTags = document.getElementById('quick-tags');
-  if (!$quickTags) return;
-  const oh = data.restaurant?.opening_hours;
-  if (oh?.open_now == null) return;
-
-  const tag = document.createElement('span');
-  tag.className = `quick-tag ${oh.open_now ? 'quick-tag--open' : 'quick-tag--closed'} quick-tag--interactive type-data--sm`;
-  tag.setAttribute('role', 'button');
-  tag.setAttribute('tabindex', '0');
-  tag.setAttribute('aria-expanded', 'false');
-  tag.setAttribute('aria-haspopup', 'true');
-  tag.setAttribute('data-action', 'toggle-badge-popout');
-  tag.textContent = oh.open_now ? 'Open' : 'Closed';
-
-  if (oh.weekday_text?.length) {
-    const popout = document.createElement('div');
-    popout.className = 'badge-popout';
-    popout.setAttribute('role', 'tooltip');
-    const title = document.createElement('span');
-    title.className = 'badge-popout__title';
-    title.textContent = 'Hours';
-    popout.appendChild(title);
-    const today = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
-    const pillsWrap = document.createElement('div');
-    pillsWrap.className = 'badge-popout__pills';
-    oh.weekday_text.forEach(line => {
-      const pill = document.createElement('span');
-      pill.className = 'badge-popout__pill';
-      if (line.toLowerCase().startsWith(today)) {
-        pill.classList.add('badge-popout__pill--today');
-      }
-      pill.textContent = _shortenHoursLine(line);
-      pillsWrap.appendChild(pill);
-    });
-    popout.appendChild(pillsWrap);
-    tag.appendChild(popout);
-  }
-
-  $quickTags.insertBefore(tag, $quickTags.firstChild);
 }
 
 /* ---- F3: Enhanced Map Navigation Tile ---- */
@@ -4209,38 +3984,6 @@ function renderQuickStats(data) {
   }
 
   $stats.style.display = '';
-}
-
-/* ---- V9.1: Known For — Signature Dishes Showcase in Tier 1 ---- */
-function renderKnownFor(data) {
-  const $section = document.getElementById('known-for');
-  const $strip = document.getElementById('known-for-strip');
-  if (!$section || !$strip) return;
-
-  const dp = data.deep_context || {};
-  const dishes = dp.signature_dishes;
-  const highlights = dp.menu_highlights;
-
-  // V10: Inline pills in Tier 2 — "Known for: Dish · Dish · Dish"
-  const items = dishes?.length > 0
-    ? dishes.slice(0, 4).map(d => d.dish)
-    : highlights?.length > 0
-      ? highlights.slice(0, 6)
-      : [];
-
-  if (items.length > 0) {
-    $strip.innerHTML = '';
-    $strip.className = 'known-for__pills';
-    items.forEach(item => {
-      const pill = document.createElement('span');
-      pill.className = 'known-for__pill type-data--sm';
-      pill.textContent = item;
-      $strip.appendChild(pill);
-    });
-    $section.style.display = '';
-  } else {
-    $section.style.display = 'none';
-  }
 }
 
 /* ---- V8: Cuisine Drawer — populates bottom-sheet / anchored panel ---- */
