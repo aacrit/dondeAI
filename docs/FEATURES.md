@@ -11,7 +11,7 @@ Last updated: 2026-03-02
 - [x] CTA disabled until craving entered
 - [x] V10 loading: instant slide + 300ms fade (score count-up only animation)
 - [x] Result card: photos → score + name → blurb → address → actions → footer
-- [x] Try Another — instant from ranked queue (V7), API fallback when exhausted
+- [x] Try Another — instant from ranked queue, API fallback when exhausted
 - [x] Start Over — reset to canvas
 
 ## Scoring & Display
