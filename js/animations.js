@@ -205,12 +205,19 @@ export function renderScoreHero(dondeMatch, scores, scoringData, sentiment, time
     const ringColor = getScoreThresholdColor(pct);
     $ringFill.style.stroke = ringColor;
 
+    // Ink trail dot — traces the leading edge of the arc
+    const $inkDot = document.getElementById('score-hero-ink-dot');
+    const ringRadius = 52; // SVG r attribute
+    const ringCenter = 60; // SVG cx/cy
+
     if (REDUCED.matches) {
       $ringFill.style.strokeDashoffset = String(target);
       if ($number) { $number.textContent = pct; $number.style.color = ringColor; }
+      if ($inkDot) $inkDot.classList.remove('score-hero__ink-dot--active');
     } else {
       // Start empty
       $ringFill.style.strokeDashoffset = String(circumference);
+      if ($inkDot) $inkDot.classList.add('score-hero__ink-dot--active');
 
       const duration = 600;
       timers.push(setTimeout(() => {
@@ -226,8 +233,26 @@ export function renderScoreHero(dondeMatch, scores, scoringData, sentiment, time
           $ringFill.style.strokeDashoffset = String(currentOffset);
           if ($number) { $number.textContent = currentPct; $number.style.color = getScoreThresholdColor(currentPct); }
 
-          if (progress < 1) requestAnimationFrame(tick);
-          else if ($number) { $number.textContent = pct; $number.style.color = ringColor; }
+          // Position ink dot at leading edge of arc
+          if ($inkDot) {
+            const angle = -90 + (360 * (currentPct / 100)); // Start at top (-90deg)
+            const rad = angle * (Math.PI / 180);
+            // Position relative to ring-wrap center (percentage-based)
+            const dotX = 50 + (ringRadius / (ringCenter * 2)) * 100 * Math.cos(rad);
+            const dotY = 50 + (ringRadius / (ringCenter * 2)) * 100 * Math.sin(rad);
+            $inkDot.style.left = dotX + '%';
+            $inkDot.style.top = dotY + '%';
+          }
+
+          if (progress < 1) {
+            requestAnimationFrame(tick);
+          } else {
+            if ($number) { $number.textContent = pct; $number.style.color = ringColor; }
+            // Fade out ink dot on completion
+            if ($inkDot) {
+              setTimeout(() => $inkDot.classList.remove('score-hero__ink-dot--active'), 200);
+            }
+          }
         }
         requestAnimationFrame(tick);
       }, 100));
