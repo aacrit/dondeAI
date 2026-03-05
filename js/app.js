@@ -411,10 +411,6 @@ function renderSmartChips() {
 
   $container.classList.add('smart-chips--visible');
 
-  // Show framing label when chips appear (hide on first chip tap)
-  const $chipLabel = document.getElementById('smart-chips-label');
-  if ($chipLabel && chips.length > 0) $chipLabel.hidden = false;
-
   startChipRotation();
 }
 
@@ -727,9 +723,6 @@ function wireEvents() {
           setState({ craving: $cravingInput.value });
           updateCtaState();
         }
-        // Hide chip framing label on first tap
-        const $chipLabel = document.getElementById('smart-chips-label');
-        if ($chipLabel) $chipLabel.hidden = true;
         // Spring feedback
         btn.classList.add('smart-chip--active');
         btn.addEventListener('animationend',
@@ -3036,29 +3029,6 @@ function renderQuickActions(data) {
   $actions.style.display = items.length > 0 ? '' : 'none';
 }
 
-/* ---- Shorten hours text: "Monday: 11:00 AM – 10:00 PM" → "Mon 11a–10p" ---- */
-function _shortenHoursLine(line) {
-  const dayMap = {
-    monday: 'Mon', tuesday: 'Tue', wednesday: 'Wed', thursday: 'Thu',
-    friday: 'Fri', saturday: 'Sat', sunday: 'Sun',
-  };
-  // Split "Day: time" or return as-is
-  const colonIdx = line.indexOf(':');
-  if (colonIdx < 0) return line;
-  const dayPart = line.slice(0, colonIdx).trim().toLowerCase();
-  const timePart = line.slice(colonIdx + 1).trim();
-  const shortDay = dayMap[dayPart] || line.slice(0, 3);
-
-  // Shorten time: "11:00 AM" → "11a", "2:30 PM" → "2:30p", "Closed" stays
-  const shortened = timePart.replace(/(\d{1,2}):00\s*(AM|PM)/gi, (_, h, ampm) =>
-    `${h}${ampm[0].toLowerCase()}`
-  ).replace(/(\d{1,2}:\d{2})\s*(AM|PM)/gi, (_, t, ampm) =>
-    `${t}${ampm[0].toLowerCase()}`
-  ).replace(/\s*[–—-]\s*/g, '–');
-
-  return `${shortDay} ${shortened}`;
-}
-
 /* ---- Result Meta: website, cuisine, what to order, open/closed pills ---- */
 function renderResultMeta(data) {
   const $meta = document.getElementById('result-meta');
@@ -3068,59 +3038,15 @@ function renderResultMeta(data) {
   const r = data.restaurant || {};
   const dp = data.deep_context || {};
 
-  // 1. Cuisine pill → badge-popout with Known For items (signature dishes + highlights)
+  // 1. Cuisine pill → opens cuisine drawer (bottom sheet with signature dishes)
   if (r.cuisine_type) {
     const pill = document.createElement('span');
     pill.className = 'result-meta__pill result-meta__pill--interactive type-data--sm';
     pill.setAttribute('role', 'button');
     pill.setAttribute('tabindex', '0');
-    pill.setAttribute('aria-expanded', 'false');
-    pill.setAttribute('aria-haspopup', 'true');
-    pill.setAttribute('data-action', 'toggle-badge-popout');
+    pill.setAttribute('aria-haspopup', 'dialog');
+    pill.setAttribute('data-action', 'open-cuisine-drawer');
     pill.innerHTML = `${svgIcon('plate', 11)} ${r.cuisine_type}`;
-
-    // Build known-for popout from signature dishes + menu highlights
-    const hasDishes = dp.signature_dishes?.length > 0;
-    const hasHighlights = dp.menu_highlights?.length > 0;
-    if (hasDishes || hasHighlights) {
-      const popout = document.createElement('div');
-      popout.className = 'badge-popout badge-popout--known-for';
-      popout.setAttribute('role', 'tooltip');
-
-      const title = document.createElement('span');
-      title.className = 'badge-popout__title';
-      title.textContent = 'Known For';
-      popout.appendChild(title);
-
-      // Top signature dishes (max 3) — name + short reason
-      if (hasDishes) {
-        const dishesWrap = document.createElement('div');
-        dishesWrap.className = 'badge-popout__dishes';
-        dp.signature_dishes.slice(0, 3).forEach(d => {
-          const row = document.createElement('div');
-          row.className = 'badge-popout__dish-row';
-          row.innerHTML = `<span class="badge-popout__dish-name">${d.dish}</span>${d.why ? `<span class="badge-popout__dish-why">${d.why}</span>` : ''}`;
-          dishesWrap.appendChild(row);
-        });
-        popout.appendChild(dishesWrap);
-      }
-
-      // Menu highlights as compact pills (max 5)
-      if (hasHighlights) {
-        const pillsWrap = document.createElement('div');
-        pillsWrap.className = 'badge-popout__pills';
-        dp.menu_highlights.slice(0, 5).forEach(item => {
-          const p = document.createElement('span');
-          p.className = 'badge-popout__pill badge-popout__pill--dish';
-          p.textContent = item;
-          pillsWrap.appendChild(p);
-        });
-        popout.appendChild(pillsWrap);
-      }
-
-      pill.appendChild(popout);
-    }
-
     $meta.appendChild(pill);
   }
 
@@ -3136,28 +3062,41 @@ function renderResultMeta(data) {
     pill.setAttribute('data-action', 'toggle-badge-popout');
     pill.textContent = oh.open_now ? 'Open Now' : 'Closed';
 
-    // Build hours popout if weekday_text available
+    // Build hours popout — clean table layout (Google Maps style)
     if (oh.weekday_text?.length) {
       const popout = document.createElement('div');
-      popout.className = 'badge-popout';
+      popout.className = 'badge-popout badge-popout--hours';
       popout.setAttribute('role', 'tooltip');
       const title = document.createElement('span');
       title.className = 'badge-popout__title';
       title.textContent = 'Hours';
       popout.appendChild(title);
       const today = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
-      const pillsWrap = document.createElement('div');
-      pillsWrap.className = 'badge-popout__pills';
+      const table = document.createElement('div');
+      table.className = 'hours-table';
       oh.weekday_text.forEach(line => {
-        const p = document.createElement('span');
-        p.className = 'badge-popout__pill';
-        if (line.toLowerCase().startsWith(today)) {
-          p.classList.add('badge-popout__pill--today');
-        }
-        p.textContent = _shortenHoursLine(line);
-        pillsWrap.appendChild(p);
+        const colonIdx = line.indexOf(':');
+        if (colonIdx < 0) return;
+        const dayPart = line.slice(0, colonIdx).trim();
+        const timePart = line.slice(colonIdx + 1).trim();
+        const isToday = dayPart.toLowerCase() === today;
+        const row = document.createElement('div');
+        row.className = `hours-table__row${isToday ? ' hours-table__row--today' : ''}`;
+        const dayEl = document.createElement('span');
+        dayEl.className = 'hours-table__day';
+        dayEl.textContent = dayPart.slice(0, 3);
+        const timeEl = document.createElement('span');
+        timeEl.className = 'hours-table__time';
+        // Shorten time format: "11:00 AM – 10:00 PM" → "11a – 10p"
+        timeEl.textContent = timePart
+          .replace(/(\d{1,2}):00\s*(AM|PM)/gi, (_, h, ap) => `${h}${ap[0].toLowerCase()}`)
+          .replace(/(\d{1,2}:\d{2})\s*(AM|PM)/gi, (_, t, ap) => `${t}${ap[0].toLowerCase()}`)
+          .replace(/\s*[–—-]\s*/g, ' – ');
+        row.appendChild(dayEl);
+        row.appendChild(timeEl);
+        table.appendChild(row);
       });
-      popout.appendChild(pillsWrap);
+      popout.appendChild(table);
       pill.appendChild(popout);
     }
 
@@ -3708,25 +3647,37 @@ function renderOpenNowTag(data) {
 
   if (oh.weekday_text?.length) {
     const popout = document.createElement('div');
-    popout.className = 'badge-popout';
+    popout.className = 'badge-popout badge-popout--hours';
     popout.setAttribute('role', 'tooltip');
     const title = document.createElement('span');
     title.className = 'badge-popout__title';
     title.textContent = 'Hours';
     popout.appendChild(title);
     const today = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
-    const pillsWrap = document.createElement('div');
-    pillsWrap.className = 'badge-popout__pills';
+    const table = document.createElement('div');
+    table.className = 'hours-table';
     oh.weekday_text.forEach(line => {
-      const pill = document.createElement('span');
-      pill.className = 'badge-popout__pill';
-      if (line.toLowerCase().startsWith(today)) {
-        pill.classList.add('badge-popout__pill--today');
-      }
-      pill.textContent = _shortenHoursLine(line);
-      pillsWrap.appendChild(pill);
+      const colonIdx = line.indexOf(':');
+      if (colonIdx < 0) return;
+      const dayPart = line.slice(0, colonIdx).trim();
+      const timePart = line.slice(colonIdx + 1).trim();
+      const isToday = dayPart.toLowerCase() === today;
+      const row = document.createElement('div');
+      row.className = `hours-table__row${isToday ? ' hours-table__row--today' : ''}`;
+      const dayEl = document.createElement('span');
+      dayEl.className = 'hours-table__day';
+      dayEl.textContent = dayPart.slice(0, 3);
+      const timeEl = document.createElement('span');
+      timeEl.className = 'hours-table__time';
+      timeEl.textContent = timePart
+        .replace(/(\d{1,2}):00\s*(AM|PM)/gi, (_, h, ap) => `${h}${ap[0].toLowerCase()}`)
+        .replace(/(\d{1,2}:\d{2})\s*(AM|PM)/gi, (_, t, ap) => `${t}${ap[0].toLowerCase()}`)
+        .replace(/\s*[–—-]\s*/g, ' – ');
+      row.appendChild(dayEl);
+      row.appendChild(timeEl);
+      table.appendChild(row);
     });
-    popout.appendChild(pillsWrap);
+    popout.appendChild(table);
     tag.appendChild(popout);
   }
 
