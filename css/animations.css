@@ -601,6 +601,33 @@
   animation: ringCelebrate 800ms ease-out;
 }
 
+/* ---- Heart Pop (bookmark/like feedback button) ---- */
+@keyframes heartPop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+
+/* ---- Arrow Bounce (Show More idle hint) ---- */
+@keyframes arrowBounce {
+  0%, 100% { transform: translateY(0); }
+  30%      { transform: translateY(3px); }
+  60%      { transform: translateY(0); }
+  80%      { transform: translateY(2px); }
+}
+
+/* ---- Sparkle Rotate (Surprise Me icon hover) ---- */
+@keyframes sparkleRotate {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ---- Ring Completion Pulse (match-mini score ring) ---- */
+@keyframes ringPulse {
+  from { box-shadow: 0 0 0 0 var(--pulse-color, var(--ac)); }
+  to   { box-shadow: 0 0 0 6px transparent; }
+}
+
 /* ---- V7: Card Swap Out (flicked off desk — slight rotation) ---- */
 @keyframes cardSwapOut {
   from { opacity: 1; transform: translateX(0) scale(1) rotate(0deg); }
@@ -814,6 +841,16 @@
     transition: none !important;
   }
   .score-hero__ring-wrap--celebrating {
+    animation: none !important;
+  }
+
+  .feedback-btn--bookmark.feedback-btn--active,
+  .match-mini__score-wrap--pulsing {
+    animation: none !important;
+  }
+
+  .result-card--revealing .result-name {
+    clip-path: none !important;
     animation: none !important;
   }
 

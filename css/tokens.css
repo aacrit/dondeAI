@@ -91,6 +91,20 @@
   --glass-tip:      var(--glass);
   --glass-score:    var(--glass);
 
+  /* ---- Border Radius ---- */
+  --radius-sm:   8px;
+  --radius-md:   12px;
+  --radius-lg:   16px;
+  --radius-pill: 9999px;
+
+  /* ---- Focus Ring (double-ring for contrast on any bg) ---- */
+  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--ac);
+
+  /* ---- Transition Presets ---- */
+  --transition-fast:   150ms var(--ease-out);
+  --transition-normal: 300ms var(--ease-out);
+  --transition-spring: 300ms var(--spring);
+
   /* ---- Layout ---- */
   --content-max: 640px;
   --header-h:    48px;
