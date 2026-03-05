@@ -1,10 +1,10 @@
 # Frontend Architecture
 
-Last updated: 2026-03-02
+Last updated: 2026-03-05
 
 ## Tech Stack
 
-Vanilla HTML/CSS/JS, ES modules (`type="module"`), no build step. Custom pub/sub store (`js/state.js`). 2-view sliding cockpit (`js/router.js`). 5 cultures × 2 modes = 10 CSS theme variants. Backend: Supabase Edge Function V7.
+Vanilla HTML/CSS/JS, ES modules (`type="module"`), no build step. Custom pub/sub store (`js/state.js`). 2-view sliding cockpit (`js/router.js`). 5 cultures × 2 modes = 10 CSS theme variants. Backend: Supabase Edge Function V9.
 
 ## File Tree
 
@@ -23,7 +23,7 @@ js/
   app.js                # Orchestrator (~3800 lines): init, event delegation, rendering, loading flow
   state.js              # Pub/sub: getState(), setState(patch), subscribe(fn)
   router.js             # Canvas↔Result via translateX
-  api.js                # Supabase client + V7 response normalization
+  api.js                # Supabase client + V9 response normalization
   animations.js         # Score hero ring, factor bars, particles
   theme.js              # Theme engine + labels + wash transition
   audio.js              # Web Audio chimes per culture
@@ -64,7 +64,7 @@ Single delegation handler on `document` via `data-action` attributes. All intera
 
 **Removed in V10:** `renderScaffold()`, `startScaffoldPulse()`, `startPhraseCarousel()`, `wordGroupReveal()`, staggered manifest reveals.
 
-## Try Again Flow (V7 Instant Queue)
+## Try Again Flow (Ranked Queue)
 
 1. API returns `ranked_queue` (top 2-5 pre-computed)
 2. Try Again: if queue has items → instant render (no API call)
