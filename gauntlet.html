@@ -706,6 +706,13 @@ async function loadRunFromSupabase(runId) {
       }
     }
 
+    // Relevance types
+    const relevanceTypes = {};
+    for (const r of results) {
+      const rt = r.relevance_type || 'unknown';
+      relevanceTypes[rt] = (relevanceTypes[rt] || 0) + 1;
+    }
+
     // Gap types
     const gapTypeCounts = {};
     const gapTypeImpact = {};
@@ -744,6 +751,29 @@ async function loadRunFromSupabase(runId) {
         reputation: Number(r.reputation), convenience: Number(r.convenience),
       }));
 
+    // Tiers
+    const tierNames = { 1: 'Must-Visit', 2: 'Neighborhood Gem', 3: 'Solid Option' };
+    const tierAcc = {};
+    for (const r of results) {
+      const t = r.tier || 0;
+      if (!tierAcc[t]) tierAcc[t] = { total: 0, sumDM: 0, pass60: 0, pass80: 0, gaps: 0 };
+      tierAcc[t].total++;
+      tierAcc[t].sumDM += r.donde_match;
+      if (r.donde_match >= 60) tierAcc[t].pass60++;
+      if (r.donde_match >= 80) tierAcc[t].pass80++;
+      if (r.gap_type) tierAcc[t].gaps++;
+    }
+    const tiers = {};
+    for (const [t, acc] of Object.entries(tierAcc)) {
+      tiers[t] = {
+        name: tierNames[t] || `Tier ${t}`, total: acc.total,
+        avg_dm: Math.round(acc.sumDM / acc.total * 10) / 10,
+        pass_rate_60: Math.round(acc.pass60 / acc.total * 100),
+        excellence_rate: Math.round(acc.pass80 / acc.total * 100),
+        gap_count: acc.gaps,
+      };
+    }
+
     // Score distribution
     const buckets = [
       { label: '90-100', min: 90, max: 100 }, { label: '80-89', min: 80, max: 89 },
@@ -777,10 +807,11 @@ async function loadRunFromSupabase(runId) {
         stddev: Math.round(Math.sqrt(variance) * 10) / 10,
       },
       factor_averages: runData.factor_averages || {},
-      tiers: {},
+      tiers,
       categories,
       gap_types: gapTypeCounts,
       gap_impact: gapImpact,
+      relevance_types: relevanceTypes,
       recommendations: [],
       all_gaps: allGaps,
       score_distribution: scoreDist,
@@ -1766,10 +1797,10 @@ async function loadHistoryTab() {
     h += '<div class="section"><h3>Compare Runs</h3>';
     h += '<div class="filter-bar">';
     h += '<label>Run A:</label><select id="compare-a" class="filter-select">';
-    for (const r of timeline) h += `<option value="${r.run_id}">${r.run_id} (DM: ${r.avg_dm})</option>`;
+    for (const r of timeline) h += `<option value="${r.run_id}">${r.run_id} — ${r.total}q, DM ${r.avg_dm} [${(r.dataset_hash || '').substring(0, 6)}]</option>`;
     h += '</select>';
     h += '<label>vs Run B:</label><select id="compare-b" class="filter-select">';
-    for (const r of timeline) h += `<option value="${r.run_id}"${r.run_id === (timeline[1]?.run_id || '') ? ' selected' : ''}>${r.run_id} (DM: ${r.avg_dm})</option>`;
+    for (const r of timeline) h += `<option value="${r.run_id}"${r.run_id === (timeline[1]?.run_id || '') ? ' selected' : ''}>${r.run_id} — ${r.total}q, DM ${r.avg_dm} [${(r.dataset_hash || '').substring(0, 6)}]</option>`;
     h += '</select>';
     h += '<button class="fix-btn" onclick="window._loadComparison()">Compare</button>';
     h += '</div>';
@@ -1794,52 +1825,169 @@ window._loadComparison = async function() {
 
   try {
     const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
-    const sb = createClient('https://vwbzkgsxmgwcvmvuxnbe.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3YnprZ3N4bWd3Y3ZtdnV4bmJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk5NjUzNTYsImV4cCI6MjA4NTU0MTM1Nn0.YBhmusYxc28TD5FOZv4TBpFpDVHHk1V894wUkNtJtcc');
+    const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    const { data, error } = await sb.rpc('get_run_comparison', { p_run_a: runA, p_run_b: runB });
-    if (error) throw error;
-    if (!data || data.length === 0) { el.innerHTML = '<p style="color:var(--text-3)">No comparable queries found.</p>'; return; }
+    // Fetch dataset_hash for both runs to determine comparison mode
+    const { data: runMeta } = await sb
+      .from('gauntlet_runs')
+      .select('run_id, dataset_hash, dataset_size, total')
+      .in('run_id', [runA, runB]);
 
-    const improved = data.filter(r => r.delta > 0).length;
-    const regressed = data.filter(r => r.delta < 0).length;
-    const unchanged = data.filter(r => r.delta === 0).length;
-    const avgDelta = (data.reduce((s, r) => s + (r.delta || 0), 0) / data.length).toFixed(1);
+    const metaA = runMeta?.find(r => r.run_id === runA);
+    const metaB = runMeta?.find(r => r.run_id === runB);
+    const sameDataset = metaA && metaB && metaA.dataset_hash === metaB.dataset_hash;
 
-    let h = `<div class="card-row" style="margin:12px 0">`;
-    h += `<div class="card"><div class="card-value">${data.length}</div><div class="card-label">Queries</div></div>`;
+    let rows;
+    let comparisonMode;
+
+    if (sameDataset) {
+      // Same dataset — use RPC join on query_id (exact match)
+      comparisonMode = 'same_dataset';
+      const { data, error } = await sb.rpc('get_run_comparison', { p_run_a: runA, p_run_b: runB });
+      if (error) throw error;
+      rows = data || [];
+    } else {
+      // Different datasets — fetch both result sets and match by normalized query text
+      comparisonMode = 'cross_dataset';
+      const [resA, resB] = await Promise.all([
+        sb.from('gauntlet_results').select('query_id, query, category, donde_match, gap_type, restaurant_name').eq('run_id', runA),
+        sb.from('gauntlet_results').select('query_id, query, category, donde_match, gap_type, restaurant_name').eq('run_id', runB),
+      ]);
+      const dataA = resA.data || [];
+      const dataB = resB.data || [];
+
+      // Normalize query text for fuzzy matching
+      const normalize = (q) => (q || '').toLowerCase().trim().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ');
+
+      // Build map from normalized query -> result for run B
+      const mapB = new Map();
+      for (const r of dataB) mapB.set(normalize(r.query), r);
+
+      // Build map from normalized query -> result for run A
+      const mapA = new Map();
+      for (const r of dataA) mapA.set(normalize(r.query), r);
+
+      rows = [];
+      const seen = new Set();
+
+      // Match A -> B
+      for (const a of dataA) {
+        const key = normalize(a.query);
+        const b = mapB.get(key);
+        seen.add(key);
+        rows.push({
+          query_id: a.query_id,
+          query: a.query,
+          category: a.category,
+          dm_a: a.donde_match,
+          dm_b: b ? b.donde_match : null,
+          delta: b ? b.donde_match - a.donde_match : null,
+          gap_a: a.gap_type,
+          gap_b: b ? b.gap_type : null,
+          restaurant_a: a.restaurant_name,
+          restaurant_b: b ? b.restaurant_name : null,
+          match_type: b ? 'matched' : 'only_a',
+        });
+      }
+
+      // B-only queries (not in A)
+      for (const b of dataB) {
+        const key = normalize(b.query);
+        if (seen.has(key)) continue;
+        rows.push({
+          query_id: b.query_id,
+          query: b.query,
+          category: b.category,
+          dm_a: null,
+          dm_b: b.donde_match,
+          delta: null,
+          gap_a: null,
+          gap_b: b.gap_type,
+          restaurant_a: null,
+          restaurant_b: b.restaurant_name,
+          match_type: 'only_b',
+        });
+      }
+    }
+
+    if (!rows || rows.length === 0) { el.innerHTML = '<p style="color:var(--text-3)">No results found for these runs.</p>'; return; }
+
+    // Separate matched vs unmatched
+    const matched = rows.filter(r => r.dm_a != null && r.dm_b != null);
+    const onlyA = rows.filter(r => r.dm_b == null);
+    const onlyB = rows.filter(r => r.dm_a == null);
+
+    const improved = matched.filter(r => r.delta > 0).length;
+    const regressed = matched.filter(r => r.delta < 0).length;
+    const unchanged = matched.filter(r => r.delta === 0).length;
+    const avgDelta = matched.length > 0 ? (matched.reduce((s, r) => s + (r.delta || 0), 0) / matched.length).toFixed(1) : '0';
+
+    let h = '';
+
+    // Dataset context banner
+    if (!sameDataset) {
+      h += `<div class="section-note" style="margin:8px 0;padding:8px 12px;background:var(--surface);border-left:3px solid var(--rag-amber);border-radius:4px">`;
+      h += `<strong>Cross-dataset comparison</strong> — These runs used different test data (${metaA?.total || '?'} vs ${metaB?.total || '?'} queries). `;
+      h += `Matched ${matched.length} queries by text. ${onlyA.length} only in Run A, ${onlyB.length} only in Run B.`;
+      h += `</div>`;
+    } else {
+      h += `<div class="section-note" style="margin:8px 0;padding:8px 12px;background:var(--surface);border-left:3px solid var(--rag-green);border-radius:4px">`;
+      h += `<strong>Same dataset comparison</strong> — Both runs used identical test queries (${metaA?.total || '?'} queries). Direct apples-to-apples comparison.`;
+      h += `</div>`;
+    }
+
+    // Summary cards — only for matched queries
+    h += `<div class="card-row" style="margin:12px 0">`;
+    h += `<div class="card"><div class="card-value">${matched.length}</div><div class="card-label">Matched</div></div>`;
     h += `<div class="card"><div class="card-value rag-green">${improved}</div><div class="card-label">Improved</div></div>`;
     h += `<div class="card"><div class="card-value rag-red">${regressed}</div><div class="card-label">Regressed</div></div>`;
     h += `<div class="card"><div class="card-value">${unchanged}</div><div class="card-label">Unchanged</div></div>`;
     h += `<div class="card"><div class="card-value ${Number(avgDelta) > 0 ? 'rag-green' : Number(avgDelta) < 0 ? 'rag-red' : ''}">${Number(avgDelta) > 0 ? '+' : ''}${avgDelta}</div><div class="card-label">Avg Δ</div></div>`;
+    if (!sameDataset) {
+      h += `<div class="card"><div class="card-value" style="font-size:0.8rem">${onlyA.length} / ${onlyB.length}</div><div class="card-label">Only A / B</div></div>`;
+    }
     h += '</div>';
 
-    h += '<div class="table-wrap"><table><thead><tr>';
-    h += '<th>Query</th><th>Cat</th><th>DM (A)</th><th>DM (B)</th><th>Δ</th><th>Gap (A)</th><th>Gap (B)</th><th>Status</th>';
-    h += '</tr></thead><tbody>';
+    // Render comparison table
+    const renderTable = (tableRows, title, showDelta) => {
+      if (tableRows.length === 0) return '';
+      let t = `<div style="margin-top:16px"><h4 style="font-size:0.75rem;color:var(--text-2);margin-bottom:6px">${title} (${tableRows.length})</h4>`;
+      t += '<div class="table-wrap"><table><thead><tr>';
+      t += '<th>Query</th><th>Cat</th><th>DM (A)</th><th>DM (B)</th>';
+      if (showDelta) t += '<th>Δ</th>';
+      t += '<th>Gap (A)</th><th>Gap (B)</th><th>Status</th>';
+      t += '</tr></thead><tbody>';
 
-    // Sort by delta ascending (worst regressions first)
-    const sorted = [...data].sort((a, b) => (a.delta || 0) - (b.delta || 0));
-    for (const r of sorted) {
-      const d = r.delta || 0;
-      let status, statusClass;
-      if (r.gap_a && !r.gap_b) { status = 'Fixed'; statusClass = 'rag-green'; }
-      else if (!r.gap_a && r.gap_b) { status = 'New Gap'; statusClass = 'rag-red'; }
-      else if (d > 3) { status = 'Improved'; statusClass = 'rag-green'; }
-      else if (d < -3) { status = 'Regressed'; statusClass = 'rag-red'; }
-      else { status = 'Stable'; statusClass = ''; }
+      const sorted = [...tableRows].sort((a, b) => (a.delta || 0) - (b.delta || 0));
+      for (const r of sorted) {
+        const d = r.delta || 0;
+        let status, statusClass;
+        if (r.dm_a == null) { status = 'New in B'; statusClass = ''; }
+        else if (r.dm_b == null) { status = 'Not in B'; statusClass = ''; }
+        else if (r.gap_a && !r.gap_b) { status = 'Fixed'; statusClass = 'rag-green'; }
+        else if (!r.gap_a && r.gap_b) { status = 'New Gap'; statusClass = 'rag-red'; }
+        else if (d > 3) { status = 'Improved'; statusClass = 'rag-green'; }
+        else if (d < -3) { status = 'Regressed'; statusClass = 'rag-red'; }
+        else { status = 'Stable'; statusClass = ''; }
 
-      h += '<tr>';
-      h += `<td title="${r.query || ''}">${(r.query || '').substring(0, 35)}</td>`;
-      h += `<td>${r.category || '—'}</td>`;
-      h += `<td class="dm-cell ${r.dm_a ? (r.dm_a >= 80 ? 'rag-green' : r.dm_a >= 60 ? 'rag-amber' : 'rag-red') : ''}">${r.dm_a ?? '—'}</td>`;
-      h += `<td class="dm-cell ${r.dm_b ? (r.dm_b >= 80 ? 'rag-green' : r.dm_b >= 60 ? 'rag-amber' : 'rag-red') : ''}">${r.dm_b ?? '—'}</td>`;
-      h += `<td style="color:${d > 0 ? 'var(--rag-green)' : d < 0 ? 'var(--rag-red)' : 'var(--text-3)'};font-weight:500;font-family:var(--font-mono)">${d > 0 ? '+' : ''}${d}</td>`;
-      h += `<td>${r.gap_a || '—'}</td>`;
-      h += `<td>${r.gap_b || '—'}</td>`;
-      h += `<td><span class="badge ${statusClass ? 'badge-' + statusClass.replace('rag-', '') : ''}" style="${statusClass ? 'color:var(--' + statusClass + ')' : ''}">${status}</span></td>`;
-      h += '</tr>';
-    }
-    h += '</tbody></table></div>';
+        t += '<tr>';
+        t += `<td title="${r.query || ''}">${(r.query || '').substring(0, 35)}</td>`;
+        t += `<td>${r.category || '—'}</td>`;
+        t += `<td class="dm-cell ${r.dm_a != null ? (r.dm_a >= 80 ? 'rag-green' : r.dm_a >= 60 ? 'rag-amber' : 'rag-red') : ''}">${r.dm_a ?? '—'}</td>`;
+        t += `<td class="dm-cell ${r.dm_b != null ? (r.dm_b >= 80 ? 'rag-green' : r.dm_b >= 60 ? 'rag-amber' : 'rag-red') : ''}">${r.dm_b ?? '—'}</td>`;
+        if (showDelta) t += `<td style="color:${d > 0 ? 'var(--rag-green)' : d < 0 ? 'var(--rag-red)' : 'var(--text-3)'};font-weight:500;font-family:var(--font-mono)">${d > 0 ? '+' : ''}${d}</td>`;
+        t += `<td>${r.gap_a || '—'}</td>`;
+        t += `<td>${r.gap_b || '—'}</td>`;
+        t += `<td><span class="badge ${statusClass ? 'badge-' + statusClass.replace('rag-', '') : ''}" style="${statusClass ? 'color:var(--' + statusClass + ')' : ''}">${status}</span></td>`;
+        t += '</tr>';
+      }
+      t += '</tbody></table></div></div>';
+      return t;
+    };
+
+    h += renderTable(matched, 'Matched Queries', true);
+    if (onlyA.length > 0) h += renderTable(onlyA, 'Only in Run A', false);
+    if (onlyB.length > 0) h += renderTable(onlyB, 'Only in Run B', false);
 
     el.innerHTML = h;
   } catch (e) {
