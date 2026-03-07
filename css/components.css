@@ -2043,6 +2043,59 @@
   border-style: dashed;
 }
 
+/* ---- V11: Perfect For Scenarios ---- */
+.perfect-for {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2xs);
+  margin-top: var(--space-xs);
+}
+
+.perfect-for__label {
+  color: var(--fg3);
+  font-style: italic;
+  white-space: nowrap;
+}
+
+.perfect-for__pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--space-xs);
+  background: color-mix(in srgb, var(--ac) 12%, var(--bg2));
+  border: 1px solid color-mix(in srgb, var(--ac) 25%, var(--border));
+  border-radius: var(--radius-sm);
+  color: var(--fg2);
+  white-space: nowrap;
+}
+
+/* ---- V11: Comparable Restaurants Line ---- */
+.comparable-line {
+  color: var(--fg3);
+  font-style: italic;
+  margin: var(--space-3xs) 0 0;
+  padding-left: var(--space-2xs);
+}
+
+/* ---- V11: Semantic Concept Tags (factor drill-down) ---- */
+.factor-detail__concepts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: var(--space-2xs);
+  padding-top: var(--space-2xs);
+  border-top: 1px solid var(--border);
+}
+
+.factor-detail__concept-tag {
+  display: inline-block;
+  padding: 1px var(--space-2xs);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--fg3);
+  opacity: 0.7;
+}
+
 /* .result-recommendation styles moved into .donde-blurb__text above */
 
 /* ---- Score Section (legacy container — now part of tier system) ---- */

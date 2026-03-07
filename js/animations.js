@@ -837,6 +837,17 @@ function buildFactorDetail(factorKey, scoring) {
     items += contextHtml;
   }
 
+  // V11: Semantic descriptors — show matched concepts in vibe/food drill-down
+  if (factorKey === 'vibe' || factorKey === 'food') {
+    const descriptors = _lastRestaurantData?.deep_context?.semantic_descriptors;
+    if (descriptors?.length > 0) {
+      const tags = descriptors.slice(0, 4).map(d =>
+        `<span class="factor-detail__concept-tag type-data--xs">${d}</span>`
+      ).join('');
+      items += `<div class="factor-detail__concepts">${tags}</div>`;
+    }
+  }
+
   const narrative = buildFactorNarrative(factorKey, scoring);
   const googleRow = _buildGoogleRow();
 

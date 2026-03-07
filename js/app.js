@@ -4056,10 +4056,50 @@ function updateFeedbackSubmitState() {
   if ($submit) $submit.disabled = !(hasCat && hasText);
 }
 
+/* ---- V11: Perfect For scenarios + Comparable restaurants ---- */
+function renderPerfectFor(data) {
+  const $wrap = document.getElementById('perfect-for-scenarios');
+  const $comp = document.getElementById('comparable-line');
+  if (!$wrap) return;
+  $wrap.innerHTML = '';
+
+  const scenarios = data.deep_context?.best_for_scenarios;
+  if (!scenarios?.length) {
+    $wrap.style.display = 'none';
+    if ($comp) $comp.style.display = 'none';
+    return;
+  }
+
+  const label = document.createElement('span');
+  label.className = 'perfect-for__label type-data--sm';
+  label.textContent = 'Perfect for';
+  $wrap.appendChild(label);
+
+  scenarios.slice(0, 3).forEach(s => {
+    const pill = document.createElement('span');
+    pill.className = 'perfect-for__pill type-data--sm';
+    pill.textContent = s;
+    $wrap.appendChild(pill);
+  });
+  $wrap.style.display = '';
+
+  // Comparable restaurants — subtle line below
+  const comparables = data.deep_context?.comparable_restaurants;
+  if ($comp && comparables?.length > 0) {
+    $comp.textContent = comparables.slice(0, 2).join(' \u00b7 ');
+    $comp.style.display = '';
+  } else if ($comp) {
+    $comp.style.display = 'none';
+  }
+}
+
 /* ---- 1D: Render Deep Context Extras (USP, Wow Factors, Origin Story) ---- */
 function renderDeepContextExtras(data) {
   const dc = data.deep_context;
   if (!dc) return;
+
+  // V11: "Perfect for" scenario pills + "Similar to" comparables
+  renderPerfectFor(data);
 
   // Quick Stats ribbon — compact deep-context data strip (includes wow factors)
   renderQuickStats(data);
