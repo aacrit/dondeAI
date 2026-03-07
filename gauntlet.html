@@ -608,6 +608,193 @@ async function loadData() {
   dashData = data;
   document.getElementById('subtitle').textContent = `${data.source} — ${data.summary.total} queries — ${data.generated.substring(0, 19)}`;
   renderDashboard(app, data);
+  // Load run selector from Supabase
+  loadRunSelector();
+}
+
+async function loadRunSelector() {
+  try {
+    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+    const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const { data: runs } = await sb
+      .from('gauntlet_runs')
+      .select('run_id, total, gap_count, avg_dm, created_at, mode, dataset_size')
+      .order('created_at', { ascending: false })
+      .limit(20);
+    if (!runs || runs.length === 0) return;
+
+    const subtitleEl = document.getElementById('subtitle');
+    const sel = document.createElement('select');
+    sel.id = 'run-selector';
+    sel.style.cssText = 'margin-left:12px;padding:2px 6px;font-size:0.7rem;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:4px;cursor:pointer;';
+    sel.innerHTML = '<option value="">Load run from DB...</option>';
+    for (const r of runs) {
+      const date = new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      sel.innerHTML += `<option value="${r.run_id}">${r.run_id} — ${r.total} queries, DM ${r.avg_dm}, ${r.gap_count} gaps (${date})</option>`;
+    }
+    sel.addEventListener('change', () => { if (sel.value) loadRunFromSupabase(sel.value); });
+    subtitleEl.appendChild(sel);
+  } catch (_) {}
+}
+
+async function loadRunFromSupabase(runId) {
+  const app = document.getElementById('app');
+  document.getElementById('subtitle').textContent = 'Loading run from Supabase...';
+
+  try {
+    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+    const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // Fetch run summary
+    const { data: runData } = await sb
+      .from('gauntlet_runs')
+      .select('*')
+      .eq('run_id', runId)
+      .single();
+    if (!runData) throw new Error('Run not found');
+
+    // Fetch all results
+    const { data: results } = await sb
+      .from('gauntlet_results')
+      .select('*')
+      .eq('run_id', runId)
+      .order('donde_match', { ascending: true });
+    if (!results) throw new Error('No results');
+
+    // Build dashboard-data.json shape from Supabase data
+    const total = runData.total;
+    const passed60 = runData.passed_60;
+    const passed80 = runData.passed_80;
+    const passed90 = runData.passed_90 || 0;
+    const avgDM = Number(runData.avg_dm);
+
+    // Category stats
+    const catStats = runData.category_stats || {};
+    const categories = {};
+    for (const [cat, s] of Object.entries(catStats)) {
+      categories[cat] = {
+        total: s.total, avg_dm: s.avg_dm, pass_rate_60: s.pass_rate, gap_count: s.gaps,
+        excellence_rate: 0, weak_rate: 0, stddev: 0, p25: 0, p50: 0, p75: 0,
+        factor_averages: { food: 0, vibe: 0, service: 0, reputation: 0, convenience: 0 },
+        gap_type_breakdown: {},
+      };
+    }
+
+    // Build per-category factor averages and gap breakdowns from results
+    const catAcc = {};
+    for (const r of results) {
+      const cat = r.category || 'unknown';
+      if (!catAcc[cat]) catAcc[cat] = { sumF: 0, sumV: 0, sumS: 0, sumR: 0, sumC: 0, n: 0, gaps: {} };
+      catAcc[cat].sumF += Number(r.food || 0);
+      catAcc[cat].sumV += Number(r.vibe || 0);
+      catAcc[cat].sumS += Number(r.service || 0);
+      catAcc[cat].sumR += Number(r.reputation || 0);
+      catAcc[cat].sumC += Number(r.convenience || 0);
+      catAcc[cat].n++;
+      if (r.gap_type) catAcc[cat].gaps[r.gap_type] = (catAcc[cat].gaps[r.gap_type] || 0) + 1;
+    }
+    for (const [cat, acc] of Object.entries(catAcc)) {
+      if (categories[cat]) {
+        categories[cat].factor_averages = {
+          food: Math.round(acc.sumF / acc.n * 10) / 10,
+          vibe: Math.round(acc.sumV / acc.n * 10) / 10,
+          service: Math.round(acc.sumS / acc.n * 10) / 10,
+          reputation: Math.round(acc.sumR / acc.n * 10) / 10,
+          convenience: Math.round(acc.sumC / acc.n * 10) / 10,
+        };
+        categories[cat].gap_type_breakdown = acc.gaps;
+      }
+    }
+
+    // Gap types
+    const gapTypeCounts = {};
+    const gapTypeImpact = {};
+    for (const r of results) {
+      if (!r.gap_type) continue;
+      gapTypeCounts[r.gap_type] = (gapTypeCounts[r.gap_type] || 0) + 1;
+      if (!gapTypeImpact[r.gap_type]) gapTypeImpact[r.gap_type] = { count: 0, sumDM: 0 };
+      gapTypeImpact[r.gap_type].count++;
+      gapTypeImpact[r.gap_type].sumDM += r.donde_match;
+    }
+
+    const gapImpact = {};
+    const fixabilityMap = { intent: 'auto', scoring: 'tuning', relevance_ceiling: 'architectural', db_coverage: 'auto' };
+    for (const [gt, info] of Object.entries(gapTypeImpact)) {
+      const avgGapDM = info.sumDM / info.count;
+      gapImpact[gt] = {
+        count: info.count,
+        avg_dm: Math.round(avgGapDM * 10) / 10,
+        fixability: fixabilityMap[gt] || 'tuning',
+        projected_dm_gain: Math.round((60 - avgGapDM) * info.count / total * 10) / 10,
+        projected_pass_rate_gain: Math.round(info.count / total * 100 * 10) / 10,
+      };
+    }
+
+    // All gaps
+    const allGaps = results
+      .filter(r => r.gap_type)
+      .map(r => ({
+        query: r.query, dm: r.donde_match, gap_type: r.gap_type,
+        gap_severity: r.gap_severity || 'P2', category: r.category,
+        restaurant: r.restaurant_name, impact_score: 0,
+        fix_action: r.gap_type === 'intent' ? 'Add keyword to intent-classifier-v5.ts dictionaries'
+          : r.gap_type === 'scoring' ? 'Review weight profiles — potential tuning needed for this query pattern'
+          : 'Analyze relevance multiplier for this category',
+        food: Number(r.food), vibe: Number(r.vibe), service: Number(r.service),
+        reputation: Number(r.reputation), convenience: Number(r.convenience),
+      }));
+
+    // Score distribution
+    const buckets = [
+      { label: '90-100', min: 90, max: 100 }, { label: '80-89', min: 80, max: 89 },
+      { label: '70-79', min: 70, max: 79 }, { label: '60-69', min: 60, max: 69 },
+      { label: '50-59', min: 50, max: 59 }, { label: '40-49', min: 40, max: 49 },
+      { label: '30-39', min: 30, max: 39 }, { label: '0-29', min: 0, max: 29 },
+    ];
+    const scoreDist = buckets.map(b => ({
+      label: b.label,
+      count: results.filter(r => r.donde_match >= b.min && r.donde_match <= b.max).length,
+    }));
+
+    // DM values for statistics
+    const dmVals = results.map(r => r.donde_match).sort((a, b) => a - b);
+    const percentile = (arr, p) => arr[Math.floor(arr.length * p)] || 0;
+    const mean = dmVals.reduce((a, b) => a + b, 0) / dmVals.length;
+    const variance = dmVals.reduce((s, v) => s + (v - mean) ** 2, 0) / dmVals.length;
+
+    const data = {
+      generated: runData.created_at,
+      source: `Supabase: ${runId}`,
+      summary: {
+        total, successful: total, passed60, passed80, passed90,
+        avg_dm: avgDM, gap_count: runData.gap_count,
+        avg_response_ms: runData.avg_response_ms || 0,
+        mode: runData.mode,
+      },
+      statistics: {
+        min: dmVals[0] || 0, max: dmVals[dmVals.length - 1] || 0,
+        p25: percentile(dmVals, 0.25), p50: percentile(dmVals, 0.5), p75: percentile(dmVals, 0.75),
+        stddev: Math.round(Math.sqrt(variance) * 10) / 10,
+      },
+      factor_averages: runData.factor_averages || {},
+      tiers: {},
+      categories,
+      gap_types: gapTypeCounts,
+      gap_impact: gapImpact,
+      recommendations: [],
+      all_gaps: allGaps,
+      score_distribution: scoreDist,
+      run_history: null,
+    };
+
+    dashData = data;
+    historyLoaded = false;
+    document.getElementById('subtitle').textContent = `${runId} — ${total} queries — ${new Date(runData.created_at).toISOString().substring(0, 19)}`;
+    renderDashboard(app, data);
+    loadRunSelector();
+  } catch (e) {
+    document.getElementById('subtitle').textContent = `Failed to load run: ${e.message}`;
+  }
 }
 
 async function loadGapDetails() {
