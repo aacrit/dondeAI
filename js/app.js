@@ -4645,6 +4645,12 @@ function updateAuthUI() {
       $userName.classList.remove('header__user-name--visible');
     }
   }
+
+  // Admin: show Gauntlet Dashboard link only for admin user
+  const $gauntletLink = document.getElementById('admin-gauntlet-link');
+  if ($gauntletLink) {
+    $gauntletLink.style.display = (user && user.email === 'aacrit@gmail.com') ? '' : 'none';
+  }
 }
 
 // SSO: Subscribe to auth state changes

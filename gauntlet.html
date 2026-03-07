@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Donde Gauntlet — Search Quality Dashboard</title>
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --surface: #141414;
+      --surface-2: #1e1e1e;
+      --border: #2a2a2a;
+      --text: #e8e8e8;
+      --text-2: #999;
+      --accent: #f5c542;
+      --green: #4ade80;
+      --amber: #fbbf24;
+      --red: #f87171;
+      --blue: #60a5fa;
+      --radius: 12px;
+      --font: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      padding: 24px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    h1 { font-size: 1.4rem; font-weight: 700; margin-bottom: 4px; }
+    h2 { font-size: 1.1rem; font-weight: 600; margin: 32px 0 16px; color: var(--accent); }
+    h3 { font-size: 0.95rem; font-weight: 600; margin: 24px 0 12px; }
+
+    .subtitle { font-size: 0.85rem; color: var(--text-2); margin-bottom: 24px; }
+
+    /* ─── Summary Cards ───────────────────────────────────── */
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      text-align: center;
+    }
+
+    .card-value {
+      font-size: 2rem;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    .card-label {
+      font-size: 0.75rem;
+      color: var(--text-2);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 4px;
+    }
+
+    .card-value.green { color: var(--green); }
+    .card-value.amber { color: var(--amber); }
+    .card-value.red { color: var(--red); }
+    .card-value.blue { color: var(--blue); }
+    .card-value.accent { color: var(--accent); }
+
+    /* ─── Tables ──────────────────────────────────────────── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+      margin-bottom: 24px;
+    }
+
+    th, td {
+      padding: 8px 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      background: var(--surface);
+      color: var(--text-2);
+      font-weight: 600;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      position: sticky;
+      top: 0;
+    }
+
+    tr:hover td { background: var(--surface); }
+
+    .dm-cell {
+      font-weight: 700;
+      text-align: center;
+      width: 50px;
+    }
+
+    .dm-cell.green { color: var(--green); }
+    .dm-cell.amber { color: var(--amber); }
+    .dm-cell.red { color: var(--red); }
+
+    /* ─── Score Bar ───────────────────────────────────────── */
+    .bar-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .bar {
+      height: 8px;
+      border-radius: 4px;
+      transition: width 0.5s ease;
+    }
+
+    .bar.green { background: var(--green); }
+    .bar.amber { background: var(--amber); }
+    .bar.red { background: var(--red); }
+
+    .bar-label {
+      font-size: 0.75rem;
+      color: var(--text-2);
+      min-width: 40px;
+    }
+
+    /* ─── Distribution Chart ──────────────────────────────── */
+    .dist-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 6px;
+    }
+
+    .dist-label {
+      font-size: 0.75rem;
+      width: 140px;
+      text-align: right;
+      color: var(--text-2);
+    }
+
+    .dist-bar {
+      height: 20px;
+      border-radius: 4px;
+      min-width: 2px;
+      transition: width 0.5s ease;
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      font-size: 0.7rem;
+      font-weight: 600;
+    }
+
+    /* ─── Gap Badge ───────────────────────────────────────── */
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 600;
+    }
+
+    .badge-p0 { background: rgba(248,113,113,0.2); color: var(--red); }
+    .badge-p1 { background: rgba(251,191,36,0.2); color: var(--amber); }
+    .badge-p2 { background: rgba(96,165,250,0.2); color: var(--blue); }
+
+    /* ─── Loading ─────────────────────────────────────────── */
+    .loading {
+      text-align: center;
+      padding: 60px;
+      color: var(--text-2);
+    }
+
+    .loading-spinner {
+      width: 24px;
+      height: 24px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 12px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error { color: var(--red); text-align: center; padding: 40px; }
+
+    /* ─── Grid Layout ─────────────────────────────────────── */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    @media (max-width: 768px) {
+      .grid-2 { grid-template-columns: 1fr; }
+      .cards { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    /* ─── Section ─────────────────────────────────────────── */
+    .section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    .section h3 { margin-top: 0; }
+
+    /* ─── Header ──────────────────────────────────────────── */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 24px;
+    }
+
+    .refresh-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: var(--font);
+      font-size: 0.8rem;
+    }
+
+    .refresh-btn:hover { border-color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Donde Gauntlet Dashboard</h1>
+    <p class="subtitle" id="subtitle">Loading...</p>
+  </div>
+  <button class="refresh-btn" onclick="loadData()">Refresh</button>
+</header>
+
+<div id="app">
+  <div class="loading">
+    <div class="loading-spinner"></div>
+    <p>Loading dashboard data...</p>
+  </div>
+</div>
+
+<script type="module">
+/* ---- Auth Gate ---- */
+const SUPABASE_URL = 'https://vwbzkgsxmgwcvmvuxnbe.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3YnprZ3N4bWd3Y3ZtdnV4bmJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk5NjUzNTYsImV4cCI6MjA4NTU0MTM1Nn0.YBhmusYxc28TD5FOZv4TBpFpDVHHk1V894wUkNtJtcc';
+const ADMIN_EMAIL = 'aacrit@gmail.com';
+
+async function checkAuth() {
+  const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+  const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const { data: { session } } = await sb.auth.getSession();
+
+  if (session?.user?.email === ADMIN_EMAIL) {
+    loadData();
+  } else {
+    showAccessDenied(sb, session);
+  }
+}
+
+function showAccessDenied(sb, session) {
+  const app = document.getElementById('app');
+  const subtitle = document.getElementById('subtitle');
+  subtitle.textContent = 'Admin access required';
+
+  const msg = session
+    ? `Signed in as ${session.user.email} — you don't have admin access.`
+    : 'Sign in with your Google account to continue.';
+
+  app.innerHTML = `<div style="text-align:center;padding:80px 20px;">
+    <h2 style="color:var(--red);margin-bottom:12px;">Access Denied</h2>
+    <p style="color:var(--text-2);margin-bottom:24px;font-size:0.9rem;">${msg}</p>
+    <button id="admin-sign-in-btn" style="
+      background:var(--surface);border:1px solid var(--border);color:var(--text);
+      padding:12px 24px;border-radius:8px;cursor:pointer;font-family:var(--font);font-size:0.85rem;
+    ">${session ? 'Sign in with a different account' : 'Sign in with Google'}</button>
+  </div>`;
+
+  document.getElementById('admin-sign-in-btn').addEventListener('click', async () => {
+    if (session) await sb.auth.signOut();
+    await sb.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.href },
+    });
+  });
+}
+
+/* ---- Dashboard ---- */
+const DATA_URL = '../dondeBackend/tests/gauntlet-results/dashboard-data.json';
+
+function dmColor(dm) {
+  if (dm >= 80) return 'green';
+  if (dm >= 60) return 'amber';
+  return 'red';
+}
+
+function pct(n, d) {
+  return d === 0 ? '0' : (n / d * 100).toFixed(1);
+}
+
+async function loadData() {
+  const app = document.getElementById('app');
+  const subtitle = document.getElementById('subtitle');
+
+  try {
+    const resp = await fetch(DATA_URL);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
+    const data = await resp.json();
+
+    subtitle.textContent = `${data.source} — Generated ${data.generated.substring(0, 19)}`;
+    renderDashboard(app, data);
+  } catch (err) {
+    app.innerHTML = `<div class="error">
+      <p>Could not load dashboard data.</p>
+      <p style="font-size:0.8rem;margin-top:8px;color:var(--text-2)">
+        Run the gauntlet first: <code>./tests/gauntlet.sh --tier 1 --sample 50</code>
+      </p>
+      <p style="font-size:0.75rem;margin-top:4px;color:var(--text-2)">${err.message}</p>
+    </div>`;
+  }
+}
+
+function renderDashboard(el, data) {
+  const s = data.summary;
+  let html = '';
+
+  // ─── Summary Cards ────────────────────────────────────
+  html += '<div class="cards">';
+  html += card(s.total, 'Queries Tested', 'accent');
+  html += card(s.avg_dm, 'Avg DondeMatch', dmColor(s.avg_dm));
+  html += card(pct(s.passed60, s.total) + '%', 'Pass Rate (≥60)', s.passed60/s.total >= 0.8 ? 'green' : 'amber');
+  html += card(pct(s.passed80, s.total) + '%', 'Excellence (≥80)', 'blue');
+  html += card(s.gap_count, 'Gaps Found', s.gap_count > 20 ? 'red' : s.gap_count > 10 ? 'amber' : 'green');
+  html += card(s.avg_response_ms + 'ms', 'Avg Response', 'accent');
+  html += '</div>';
+
+  // ─── Grid: Distribution + Gap Types ───────────────────
+  html += '<div class="grid-2">';
+
+  // Score Distribution
+  html += '<div class="section"><h3>Score Distribution</h3>';
+  const maxCount = Math.max(...data.score_distribution.map(b => b.count));
+  const colors = ['var(--green)', 'var(--green)', '#22c55e', 'var(--amber)', '#f59e0b', 'var(--red)', '#dc2626'];
+  for (const [i, bucket] of data.score_distribution.entries()) {
+    const w = maxCount > 0 ? (bucket.count / maxCount * 100) : 0;
+    html += `<div class="dist-row">
+      <span class="dist-label">${bucket.label}</span>
+      <div class="dist-bar" style="width:${Math.max(w, 2)}%;background:${colors[i]}">${bucket.count}</div>
+    </div>`;
+  }
+  html += '</div>';
+
+  // Gap Types
+  html += '<div class="section"><h3>Gap Types</h3>';
+  if (data.gap_types && Object.keys(data.gap_types).length > 0) {
+    html += '<table><tr><th>Type</th><th>Count</th></tr>';
+    for (const [type, count] of Object.entries(data.gap_types).sort((a,b) => b[1] - a[1])) {
+      html += `<tr><td>${type}</td><td>${count}</td></tr>`;
+    }
+    html += '</table>';
+  } else {
+    html += '<p style="color:var(--text-2);font-size:0.85rem">No gaps detected</p>';
+  }
+  html += '</div>';
+  html += '</div>';
+
+  // ─── Tier Performance ──────────────────────────────────
+  html += '<h2>Tier Performance</h2>';
+  html += '<table><tr><th>Tier</th><th>Name</th><th>Queries</th><th>Avg DM</th><th>Pass (≥60)</th><th>Excel (≥80)</th><th>Gaps</th></tr>';
+  for (const [tier, t] of Object.entries(data.tiers).sort((a,b) => Number(a[0]) - Number(b[0]))) {
+    html += `<tr>
+      <td>${tier}</td>
+      <td>${t.name}</td>
+      <td>${t.total}</td>
+      <td class="dm-cell ${dmColor(t.avg_dm)}">${t.avg_dm}</td>
+      <td>${t.pass_rate_60}%</td>
+      <td>${t.excellence_rate}%</td>
+      <td>${t.gap_count}</td>
+    </tr>`;
+  }
+  html += '</table>';
+
+  // ─── Category Performance ──────────────────────────────
+  html += '<h2>Category Performance</h2>';
+  html += '<table><tr><th>Category</th><th>Queries</th><th>Avg DM</th><th>Pass (≥60)</th><th>Excel (≥80)</th><th>Weak (<40)</th><th>Gaps</th></tr>';
+  const sortedCats = Object.entries(data.categories).sort((a,b) => b[1].total - a[1].total);
+  for (const [cat, c] of sortedCats) {
+    html += `<tr>
+      <td>${cat}</td>
+      <td>${c.total}</td>
+      <td class="dm-cell ${dmColor(c.avg_dm)}">${c.avg_dm}</td>
+      <td>${c.pass_rate_60}%</td>
+      <td>${c.excellence_rate}%</td>
+      <td style="color:${c.weak_rate > 10 ? 'var(--red)' : 'inherit'}">${c.weak_rate}%</td>
+      <td>${c.gap_count}</td>
+    </tr>`;
+  }
+  html += '</table>';
+
+  // ─── Relevance Type Distribution ──────────────────────
+  html += '<h2>Relevance Classification</h2>';
+  html += '<table><tr><th>Type</th><th>Count</th><th>%</th></tr>';
+  const totalRel = Object.values(data.relevance_types).reduce((s, c) => s + c, 0);
+  for (const [type, count] of Object.entries(data.relevance_types).sort((a,b) => b[1] - a[1])) {
+    html += `<tr><td>${type}</td><td>${count}</td><td>${pct(count, totalRel)}%</td></tr>`;
+  }
+  html += '</table>';
+
+  // ─── Top Gaps ──────────────────────────────────────────
+  if (data.top_gaps && data.top_gaps.length > 0) {
+    html += '<h2>Top Gaps (Lowest Scores)</h2>';
+    html += '<table><tr><th>#</th><th>Query</th><th>DM</th><th>Gap Type</th><th>Category</th><th>Restaurant</th></tr>';
+    for (const [i, g] of data.top_gaps.slice(0, 30).entries()) {
+      const sevClass = g.dm < 40 ? 'badge-p0' : g.dm < 60 ? 'badge-p1' : 'badge-p2';
+      html += `<tr>
+        <td>${i + 1}</td>
+        <td title="${g.query}">${g.query.substring(0, 40)}</td>
+        <td class="dm-cell ${dmColor(g.dm)}">${g.dm}</td>
+        <td><span class="badge ${sevClass}">${g.gap_type}</span></td>
+        <td>${g.category}</td>
+        <td>${(g.restaurant || '—').substring(0, 25)}</td>
+      </tr>`;
+    }
+    html += '</table>';
+  }
+
+  el.innerHTML = html;
+}
+
+function card(value, label, colorClass) {
+  return `<div class="card">
+    <div class="card-value ${colorClass}">${value}</div>
+    <div class="card-label">${label}</div>
+  </div>`;
+}
+
+// Load on page ready — auth gate first
+checkAuth();
+</script>
+
+</body>
+</html>
