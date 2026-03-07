@@ -424,7 +424,7 @@
       transition: background 0.15s, color 0.15s, border-color 0.15s;
     }
     .fix-btn:hover { background: var(--accent); color: var(--bg); }
-    .fix-btn.copied { background: var(--rag-green); color: var(--bg); border-color: var(--rag-green); pointer-events: none; }
+    .fix-btn.copied { background: var(--rag-green); color: #fff; border-color: var(--rag-green); pointer-events: none; }
     .clear-btn {
       background: transparent;
       color: var(--text-3);
@@ -853,8 +853,8 @@ function renderDashboard(el, data) {
   // Bulk action bar (hidden until checkboxes selected)
   html += '<div class="bulk-bar" id="bulk-bar" style="display:none">';
   html += '<span id="bulk-count">0 selected</span>';
-  html += '<button class="fix-btn bulk-fix-btn" onclick="copyBulkFixPrompt()">Copy Combined Fix Prompt</button>';
-  html += '<button class="clear-btn" onclick="clearSelection()">Clear</button>';
+  html += '<button class="fix-btn bulk-fix-btn" onclick="window._generateBulkFixSession()">Generate Combined Fix Session</button>';
+  html += '<button class="clear-btn" onclick="window._clearSelection()">Clear</button>';
   html += '</div>';
 
   // Gaps table
@@ -900,7 +900,7 @@ function renderDashboard(el, data) {
           <span>Convenience: <strong>${g.convenience}</strong></span>
         </div>`;
       }
-      html += `<button class="fix-btn" data-idx="${i}" onclick="event.stopPropagation(); copyFixPrompt(${i})">Copy Fix Prompt</button>`;
+      html += `<button class="fix-btn" data-idx="${i}" onclick="event.stopPropagation(); window._generateFixSession(${i})">Generate Fix Session</button>`;
       html += '</div></td></tr>';
     }
   }
@@ -1299,30 +1299,32 @@ function buildBulkFixPrompt(gaps) {
   return prompt;
 }
 
-async function copyFixPrompt(idx) {
-  const prompt = buildFixPrompt(allGapsRef[idx]);
-  await navigator.clipboard.writeText(prompt);
-  const btn = document.querySelector(`.fix-btn[data-idx="${idx}"]`);
+function openFixSession(prompt, btn, label) {
+  const encoded = encodeURIComponent(prompt);
+  const url = `https://claude.ai/code?prompt=${encoded}`;
+  navigator.clipboard.writeText(prompt).catch(() => {});
+  window.open(url, '_blank');
   if (btn) {
     btn.classList.add('copied');
-    btn.textContent = 'Copied!';
-    setTimeout(() => { btn.classList.remove('copied'); btn.textContent = 'Copy Fix Prompt'; }, 1500);
+    btn.textContent = 'Session opened!';
+    setTimeout(() => { btn.classList.remove('copied'); btn.textContent = label; }, 2000);
   }
 }
 
-async function copyBulkFixPrompt() {
+window._generateFixSession = function(idx) {
+  const prompt = buildFixPrompt(allGapsRef[idx]);
+  const btn = document.querySelector(`.fix-btn[data-idx="${idx}"]`);
+  openFixSession(prompt, btn, 'Generate Fix Session');
+};
+
+window._generateBulkFixSession = function() {
   const checks = document.querySelectorAll('.gap-check:checked');
   const gaps = [...checks].map(c => allGapsRef[parseInt(c.dataset.idx)]);
   if (!gaps.length) return;
   const prompt = buildBulkFixPrompt(gaps);
-  await navigator.clipboard.writeText(prompt);
   const btn = document.querySelector('.bulk-fix-btn');
-  if (btn) {
-    btn.classList.add('copied');
-    btn.textContent = 'Copied!';
-    setTimeout(() => { btn.classList.remove('copied'); btn.textContent = 'Copy Combined Fix Prompt'; }, 1500);
-  }
-}
+  openFixSession(prompt, btn, 'Generate Combined Fix Session');
+};
 
 function updateBulkBar() {
   const count = document.querySelectorAll('.gap-check:checked').length;
@@ -1332,11 +1334,11 @@ function updateBulkBar() {
   document.getElementById('bulk-count').textContent = `${count} selected`;
 }
 
-function clearSelection() {
+window._clearSelection = function() {
   document.querySelectorAll('.gap-check').forEach(c => { c.checked = false; });
   document.querySelectorAll('tr.gap-selected').forEach(r => r.classList.remove('gap-selected'));
   updateBulkBar();
-}
+};
 
 function initGapCheckboxes() {
   const selectAll = document.getElementById('gap-select-all');
