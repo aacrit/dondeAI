@@ -258,7 +258,52 @@
   </div>
 </div>
 
-<script>
+<script type="module">
+/* ---- Auth Gate ---- */
+const SUPABASE_URL = 'https://vwbzkgsxmgwcvmvuxnbe.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3YnprZ3N4bWd3Y3ZtdnV4bmJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk5NjUzNTYsImV4cCI6MjA4NTU0MTM1Nn0.YBhmusYxc28TD5FOZv4TBpFpDVHHk1V894wUkNtJtcc';
+const ADMIN_EMAIL = 'aacrit@gmail.com';
+
+async function checkAuth() {
+  const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+  const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const { data: { session } } = await sb.auth.getSession();
+
+  if (session?.user?.email === ADMIN_EMAIL) {
+    loadData();
+  } else {
+    showAccessDenied(sb, session);
+  }
+}
+
+function showAccessDenied(sb, session) {
+  const app = document.getElementById('app');
+  const subtitle = document.getElementById('subtitle');
+  subtitle.textContent = 'Admin access required';
+
+  const msg = session
+    ? `Signed in as ${session.user.email} — you don't have admin access.`
+    : 'Sign in with your Google account to continue.';
+
+  app.innerHTML = `<div style="text-align:center;padding:80px 20px;">
+    <h2 style="color:var(--red);margin-bottom:12px;">Access Denied</h2>
+    <p style="color:var(--text-2);margin-bottom:24px;font-size:0.9rem;">${msg}</p>
+    <button id="admin-sign-in-btn" style="
+      background:var(--surface);border:1px solid var(--border);color:var(--text);
+      padding:12px 24px;border-radius:8px;cursor:pointer;font-family:var(--font);font-size:0.85rem;
+    ">${session ? 'Sign in with a different account' : 'Sign in with Google'}</button>
+  </div>`;
+
+  document.getElementById('admin-sign-in-btn').addEventListener('click', async () => {
+    if (session) await sb.auth.signOut();
+    await sb.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.href },
+    });
+  });
+}
+
+/* ---- Dashboard ---- */
 const DATA_URL = '../dondeBackend/tests/gauntlet-results/dashboard-data.json';
 
 function dmColor(dm) {
@@ -407,8 +452,8 @@ function card(value, label, colorClass) {
   </div>`;
 }
 
-// Load on page ready
-loadData();
+// Load on page ready — auth gate first
+checkAuth();
 </script>
 
 </body>
