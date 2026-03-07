@@ -706,6 +706,13 @@ async function loadRunFromSupabase(runId) {
       }
     }
 
+    // Relevance types
+    const relevanceTypes = {};
+    for (const r of results) {
+      const rt = r.relevance_type || 'unknown';
+      relevanceTypes[rt] = (relevanceTypes[rt] || 0) + 1;
+    }
+
     // Gap types
     const gapTypeCounts = {};
     const gapTypeImpact = {};
@@ -744,6 +751,29 @@ async function loadRunFromSupabase(runId) {
         reputation: Number(r.reputation), convenience: Number(r.convenience),
       }));
 
+    // Tiers
+    const tierNames = { 1: 'Must-Visit', 2: 'Neighborhood Gem', 3: 'Solid Option' };
+    const tierAcc = {};
+    for (const r of results) {
+      const t = r.tier || 0;
+      if (!tierAcc[t]) tierAcc[t] = { total: 0, sumDM: 0, pass60: 0, pass80: 0, gaps: 0 };
+      tierAcc[t].total++;
+      tierAcc[t].sumDM += r.donde_match;
+      if (r.donde_match >= 60) tierAcc[t].pass60++;
+      if (r.donde_match >= 80) tierAcc[t].pass80++;
+      if (r.gap_type) tierAcc[t].gaps++;
+    }
+    const tiers = {};
+    for (const [t, acc] of Object.entries(tierAcc)) {
+      tiers[t] = {
+        name: tierNames[t] || `Tier ${t}`, total: acc.total,
+        avg_dm: Math.round(acc.sumDM / acc.total * 10) / 10,
+        pass_rate_60: Math.round(acc.pass60 / acc.total * 100),
+        excellence_rate: Math.round(acc.pass80 / acc.total * 100),
+        gap_count: acc.gaps,
+      };
+    }
+
     // Score distribution
     const buckets = [
       { label: '90-100', min: 90, max: 100 }, { label: '80-89', min: 80, max: 89 },
@@ -777,10 +807,11 @@ async function loadRunFromSupabase(runId) {
         stddev: Math.round(Math.sqrt(variance) * 10) / 10,
       },
       factor_averages: runData.factor_averages || {},
-      tiers: {},
+      tiers,
       categories,
       gap_types: gapTypeCounts,
       gap_impact: gapImpact,
+      relevance_types: relevanceTypes,
       recommendations: [],
       all_gaps: allGaps,
       score_distribution: scoreDist,
