@@ -629,15 +629,6 @@
       <div class="loading-state" id="loading-state" style="display: none;" role="status" aria-label="Finding your spot">
         <canvas class="particle-canvas" id="particle-canvas" aria-hidden="true"></canvas>
         <div class="loading-logo" id="loading-logo" aria-hidden="true">
-          <!-- Ink Resolve: Progress ring around logo -->
-          <svg class="loading-logo__ring" id="loading-ring" viewBox="0 0 80 80" width="80" height="80">
-            <circle class="loading-logo__ring-track" cx="40" cy="40" r="36" fill="none"
-                    stroke="var(--bg3)" stroke-width="1.5" opacity="0.3"/>
-            <circle class="loading-logo__ring-fill" id="loading-ring-fill" cx="40" cy="40" r="36" fill="none"
-                    stroke="var(--ac)" stroke-width="1.5" stroke-linecap="round"
-                    stroke-dasharray="226.2" stroke-dashoffset="226.2"
-                    transform="rotate(-90 40 40)"/>
-          </svg>
           <svg class="logo-mark logo-mark--loading" viewBox="0 0 32 44" width="48" height="66">
             <path class="logo-mark__tine logo-mark__tine--left logo-mark__tine--draw"
                   d="M10.5 1 C10.5 1, 10 8.5, 12.5 11.5 Q14 13, 14.5 13.5"
@@ -649,6 +640,13 @@
                   d="M16 13.5 C22 11, 29 14, 28 21 C27 27, 19 29, 16 31 L16 34"
                   fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>
             <circle class="logo-mark__dot logo-mark__dot--draw" cx="16" cy="40" r="2.8" fill="var(--ac)"/>
+          </svg>
+          <!-- Ink Pulse: Oscillating calligraphic line below logo -->
+          <svg class="ink-pulse" id="ink-pulse" viewBox="0 0 120 12" width="120" height="12" aria-hidden="true">
+            <path class="ink-pulse__stroke" id="ink-pulse-stroke"
+                  d="M10 6 Q30 6, 40 6 T60 6 T80 6 T110 6"
+                  fill="none" stroke="var(--ac)" stroke-width="1.8"
+                  stroke-linecap="round"/>
           </svg>
         </div>
         <p class="loading-status type-structural" id="loading-status" aria-live="polite"></p>

@@ -1016,7 +1016,7 @@ let _drawLoopId = null;
 let _drawLoopRunning = false;
 let _wordRotationId = null;
 let _pathData = []; // { el, len, delayMs, drawMs }
-let _ringAnimId = null;
+let _inkPulseId = null;
 let _statusPhase = 0;
 
 // Timing (total cycle ≈ 2400ms: draw 800ms + hold 400ms + erase 800ms + pause 400ms)
@@ -1147,30 +1147,89 @@ export function initLogoAnimation(craving) {
 
   _drawLoopId = requestAnimationFrame(tick);
 
-  // Ink Resolve: Animate progress ring (non-deterministic fill)
-  _startProgressRing();
+  // Ink Pulse: Start oscillating calligraphic line
+  _startInkPulse();
   _startStatusText(craving);
 }
 
-/** Ink Resolve: Progress ring fills non-deterministically during loading */
-function _startProgressRing() {
-  const ringFill = document.getElementById('loading-ring-fill');
-  if (!ringFill) return;
+/** Ink Pulse: Oscillating calligraphic line below the fork logo */
+function _startInkPulse() {
+  const svg = document.getElementById('ink-pulse');
+  const stroke = document.getElementById('ink-pulse-stroke');
+  if (!svg || !stroke) return;
 
-  const circumference = 226.2; // 2 * π * 36
-  let progress = 0; // 0 to 1
+  svg.classList.add('ink-pulse--active');
+
+  const baseY = 6;
+  const startX = 10;
+  const endX = 110;
+  const segments = 8;
   const start = performance.now();
 
-  // Non-deterministic: fast at first, then slows down asymptotically
-  function ringTick(now) {
+  function pulseTick(now) {
     if (!_drawLoopRunning) return;
-    const elapsed = (now - start) / 1000; // seconds
-    // Asymptotic curve: quick to ~60%, then crawls toward ~85%
-    progress = Math.min(0.85, 1 - 1 / (1 + elapsed * 0.4));
-    ringFill.style.strokeDashoffset = circumference * (1 - progress);
-    _ringAnimId = requestAnimationFrame(ringTick);
+
+    const elapsed = (now - start) / 1000;
+
+    // Breathing amplitude: swells and recedes (~1.25s period)
+    const breath = Math.sin(elapsed * 0.8) * 0.5 + 0.5;
+    const maxAmp = 2.5 + breath * 1.5;
+
+    let d = `M${startX} ${baseY}`;
+    for (let i = 1; i <= segments; i++) {
+      const t = i / segments;
+      const x = startX + (endX - startX) * t;
+      // Each point oscillates at a slightly different frequency → traveling wave
+      const freq = 2.5 + i * 0.3;
+      const phase = elapsed * freq - i * 0.7;
+      const amp = maxAmp * Math.sin(t * Math.PI); // taper at edges
+      const y = baseY + Math.sin(phase) * amp;
+
+      const cpX = startX + (endX - startX) * (t - 0.5 / segments);
+      const cpY = baseY + Math.sin(phase - 0.3) * amp * 0.6;
+      d += ` Q${cpX.toFixed(1)} ${cpY.toFixed(1)}, ${x.toFixed(1)} ${y.toFixed(1)}`;
+    }
+
+    stroke.setAttribute('d', d);
+
+    // Stroke width breathes slightly (ink pressure variation)
+    const widthPulse = 1.8 + Math.sin(elapsed * 1.2) * 0.3;
+    stroke.style.strokeWidth = widthPulse;
+
+    _inkPulseId = requestAnimationFrame(pulseTick);
   }
-  _ringAnimId = requestAnimationFrame(ringTick);
+
+  _inkPulseId = requestAnimationFrame(pulseTick);
+}
+
+/** Ink Pulse: Animate oscillating path back to flat (resolve) */
+function _animateInkResolve(stroke, startTime) {
+  const duration = 400;
+  const baseY = 6;
+
+  function resolveTick(now) {
+    const t = Math.min(1, (now - startTime) / duration);
+    const eased = easeOutCubic(t);
+    const remainingAmp = (1 - eased) * 3;
+
+    let d = 'M10 6';
+    for (let i = 1; i <= 8; i++) {
+      const segT = i / 8;
+      const x = 10 + 100 * segT;
+      const y = baseY + Math.sin(i * 1.5) * remainingAmp * Math.sin(segT * Math.PI);
+      const cpX = 10 + 100 * (segT - 0.0625);
+      d += ` Q${cpX.toFixed(1)} ${y.toFixed(1)}, ${x.toFixed(1)} ${y.toFixed(1)}`;
+    }
+    stroke.setAttribute('d', d);
+
+    if (t < 1) {
+      requestAnimationFrame(resolveTick);
+    } else {
+      stroke.setAttribute('d', 'M10 6 Q35 6, 60 6 Q85 6, 110 6');
+    }
+  }
+
+  requestAnimationFrame(resolveTick);
 }
 
 /** Ink Resolve: Status text fades between states */
@@ -1281,24 +1340,24 @@ export function resolveLogoToFound(restaurantName) {
   const logo = document.getElementById('loading-logo');
   if (!logo) return Promise.resolve();
 
-  // Stop the draw loop + ring animation
+  // Stop the draw loop + ink pulse animation
   _drawLoopRunning = false;
   if (_drawLoopId) {
     cancelAnimationFrame(_drawLoopId);
     _drawLoopId = null;
   }
-  if (_ringAnimId) {
-    cancelAnimationFrame(_ringAnimId);
-    _ringAnimId = null;
+  if (_inkPulseId) {
+    cancelAnimationFrame(_inkPulseId);
+    _inkPulseId = null;
   }
   stopWordRotation();
 
   if (REDUCED.matches) {
     logo.style.transform = '';
     logo.style.opacity = '1';
-    // Snap ring + show status instantly
-    const ringFill = document.getElementById('loading-ring-fill');
-    if (ringFill) ringFill.style.strokeDashoffset = '0';
+    // Show resolved ink pulse + status instantly
+    const inkSvg = document.getElementById('ink-pulse');
+    if (inkSvg) inkSvg.classList.add('ink-pulse--resolved');
     const statusEl = document.getElementById('loading-status');
     if (statusEl && restaurantName) statusEl.textContent = restaurantName;
     return Promise.resolve();
@@ -1309,11 +1368,13 @@ export function resolveLogoToFound(restaurantName) {
   const dot = document.querySelector('.logo-mark--loading .logo-mark__dot--draw');
   if (dot) { dot.style.opacity = '1'; dot.style.transform = 'scale(1)'; }
 
-  // Ink Resolve: Snap progress ring to full
-  const ringSvg = document.getElementById('loading-ring');
-  if (ringSvg) ringSvg.classList.add('loading-logo__ring--resolved');
-  const ringFill = document.getElementById('loading-ring-fill');
-  if (ringFill) ringFill.style.strokeDashoffset = '0';
+  // Ink Pulse: Resolve — line settles to confident flat stroke
+  const inkSvg = document.getElementById('ink-pulse');
+  const inkStroke = document.getElementById('ink-pulse-stroke');
+  if (inkSvg && inkStroke) {
+    inkSvg.classList.add('ink-pulse--resolved');
+    _animateInkResolve(inkStroke, performance.now());
+  }
 
   // Status text: show restaurant name
   const statusEl = document.getElementById('loading-status');
@@ -1356,9 +1417,9 @@ export function cleanupLoadingLogo() {
     cancelAnimationFrame(_drawLoopId);
     _drawLoopId = null;
   }
-  if (_ringAnimId) {
-    cancelAnimationFrame(_ringAnimId);
-    _ringAnimId = null;
+  if (_inkPulseId) {
+    cancelAnimationFrame(_inkPulseId);
+    _inkPulseId = null;
   }
   stopWordRotation();
   _pathData = [];
@@ -1369,11 +1430,14 @@ export function cleanupLoadingLogo() {
     logo.style.opacity = '';
   }
 
-  // Reset progress ring
-  const ringFill = document.getElementById('loading-ring-fill');
-  if (ringFill) ringFill.style.strokeDashoffset = '226.2';
-  const ringSvg = document.getElementById('loading-ring');
-  if (ringSvg) ringSvg.classList.remove('loading-logo__ring--resolved');
+  // Reset ink pulse
+  const inkSvg = document.getElementById('ink-pulse');
+  if (inkSvg) inkSvg.classList.remove('ink-pulse--active', 'ink-pulse--resolved');
+  const inkStroke = document.getElementById('ink-pulse-stroke');
+  if (inkStroke) {
+    inkStroke.setAttribute('d', 'M10 6 Q30 6, 40 6 T60 6 T80 6 T110 6');
+    inkStroke.style.strokeWidth = '';
+  }
 
   // Reset status text
   const statusEl = document.getElementById('loading-status');
