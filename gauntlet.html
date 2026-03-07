@@ -456,6 +456,12 @@
     }
     .gap-check { accent-color: var(--accent); cursor: pointer; }
     tr.gap-selected > td { background: rgba(107,159,255,0.06) !important; }
+    .trend-charts { display: flex; gap: 16px; flex-wrap: wrap; }
+    .trend-chart { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; }
+    .trend-label { font-size: 0.68rem; font-weight: 600; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 4px; }
+    .gap-sparkline { margin-top: 8px; min-height: 0; }
+    .gap-sparkline svg { display: block; }
+    .gap-sparkline .sparkline-label { font-size: 0.62rem; color: var(--text-3); margin-bottom: 2px; }
 
     /* ─── Impact Chart ────────────────────────────────────── */
     .impact-row {
@@ -658,6 +664,7 @@ function renderDashboard(el, data) {
     <div class="tab" data-tab="categories">Categories</div>
     <div class="tab" data-tab="gaps">Gaps (${allGaps.length})</div>
     <div class="tab" data-tab="analysis">Analysis</div>
+    <div class="tab" data-tab="history">History</div>
   </div>`;
 
   // ─── OVERVIEW TAB ────────────────────────────────────────────────────
@@ -908,6 +915,7 @@ function renderDashboard(el, data) {
           <span>Convenience: <strong>${g.convenience}</strong></span>
         </div>`;
       }
+      html += `<div class="gap-sparkline" data-query="${esc(g.query)}" id="sparkline-${i}"></div>`;
       html += `<button class="fix-btn" data-idx="${i}" onclick="event.stopPropagation(); window._generateFixSession(${i})">Generate Fix Session</button>`;
       html += '</div></td></tr>';
     }
@@ -1011,8 +1019,162 @@ function renderDashboard(el, data) {
 
   html += '</div>'; // end analysis tab
 
+  // ─── HISTORY TAB ──────────────────────────────────────────────────────
+  const history = data.run_history || {};
+  const timeline = history.timeline || [];
+  const regressions = history.regressions || [];
+  const improvements = history.improvements || [];
+
+  html += '<div class="tab-content" data-tab="history">';
+
+  if (timeline.length === 0) {
+    html += '<div class="section"><p style="color:var(--text-3)">No run history available. Run the gauntlet with Supabase persistence enabled to start tracking improvements.</p></div>';
+  } else {
+    // Delta summary cards (current vs previous)
+    if (history.delta) {
+      html += '<div class="section"><h3>Changes Since Last Comparable Run</h3>';
+      html += '<div class="card-row">';
+      const dAvg = history.delta.avg_dm;
+      const dPass = history.delta.passed_60;
+      const dGap = history.delta.gap_count;
+      html += mkCard((dAvg > 0 ? '+' : '') + dAvg, 'Avg DM Change', dAvg > 0 ? 'rag-green' : dAvg < 0 ? 'rag-red' : '');
+      html += mkCard((dPass > 0 ? '+' : '') + dPass, 'Pass Rate Δ', dPass > 0 ? 'rag-green' : dPass < 0 ? 'rag-red' : '');
+      html += mkCard((dGap > 0 ? '+' : '') + dGap, 'Gap Count Δ', dGap < 0 ? 'rag-green' : dGap > 0 ? 'rag-red' : '');
+      html += '</div></div>';
+    }
+
+    // Trend charts
+    if (timeline.length >= 2) {
+      html += '<div class="section"><h3>Trends</h3>';
+      html += '<div class="trend-charts">';
+      html += renderTrendChart(timeline.slice().reverse(), 'avg_dm', 'Avg DM', 100);
+      html += renderTrendChart(timeline.slice().reverse(), 'passed_60', 'Passed (60+)', Math.max(...timeline.map(r => r.dataset_size || r.passed_60 + 20)));
+      html += renderTrendChart(timeline.slice().reverse(), 'gap_count', 'Gap Count', Math.max(...timeline.map(r => r.gap_count + 10)));
+      html += '</div></div>';
+    }
+
+    // Run timeline table
+    html += '<div class="section"><h3>Run History</h3>';
+    html += '<div class="table-wrap"><table><thead><tr>';
+    html += '<th>Date</th><th>Run ID</th><th>Queries</th><th>Mode</th>';
+    html += '<th>Avg DM</th><th>Δ</th><th>Pass 60+</th><th>Δ</th><th>Gaps</th><th>Δ</th><th>Dataset</th>';
+    html += '</tr></thead><tbody>';
+
+    for (const r of timeline) {
+      const date = r.created_at ? new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+      const isCurrent = r.run_id === (history.current?.run_id || '');
+      html += `<tr${isCurrent ? ' style="font-weight:600"' : ''}>`;
+      html += `<td>${date}</td>`;
+      html += `<td style="font-family:var(--font-mono);font-size:0.68rem">${esc(r.run_id.substring(0, 25))}</td>`;
+      html += `<td>${r.dataset_size || '—'}</td>`;
+      html += `<td><span class="badge">${r.mode || '—'}</span></td>`;
+      html += `<td class="dm-cell ${ragClass(r.avg_dm)}">${r.avg_dm}</td>`;
+      html += deltaCell(r.delta_avg_dm);
+      html += `<td>${r.passed_60}</td>`;
+      html += deltaCell(r.delta_passed_60);
+      html += `<td>${r.gap_count}</td>`;
+      html += deltaCell(r.delta_gap_count, true);
+      html += `<td style="font-family:var(--font-mono);font-size:0.62rem;color:var(--text-3)">${(r.dataset_hash || '').substring(0, 8)}</td>`;
+      html += '</tr>';
+    }
+    html += '</tbody></table></div></div>';
+
+    // Regressions
+    if (regressions.length > 0) {
+      html += '<div class="section"><h3 style="color:var(--rag-red)">Regressions</h3>';
+      html += '<div class="table-wrap"><table><thead><tr>';
+      html += '<th>Query</th><th>Previous DM</th><th>Current DM</th><th>Δ</th><th>Gap Type</th>';
+      html += '</tr></thead><tbody>';
+      for (const r of regressions) {
+        html += `<tr>`;
+        html += `<td title="${esc(r.query)}">${esc(r.query.substring(0, 40))}</td>`;
+        html += `<td class="dm-cell ${ragClass(r.prev_dm)}">${r.prev_dm}</td>`;
+        html += `<td class="dm-cell ${ragClass(r.curr_dm)}">${r.curr_dm}</td>`;
+        html += `<td style="color:var(--rag-red);font-weight:600">${r.delta}</td>`;
+        html += `<td>${r.gap_type || '—'}</td>`;
+        html += '</tr>';
+      }
+      html += '</tbody></table></div></div>';
+    }
+
+    // Improvements
+    if (improvements.length > 0) {
+      html += '<div class="section"><h3 style="color:var(--rag-green)">Improvements</h3>';
+      html += '<div class="table-wrap"><table><thead><tr>';
+      html += '<th>Query</th><th>Previous DM</th><th>Current DM</th><th>Δ</th><th>Gap Fixed?</th>';
+      html += '</tr></thead><tbody>';
+      for (const r of improvements) {
+        const fixed = r.prev_gap && !r.curr_gap ? 'Yes' : r.prev_gap && r.curr_gap ? 'No' : '—';
+        html += `<tr>`;
+        html += `<td title="${esc(r.query)}">${esc(r.query.substring(0, 40))}</td>`;
+        html += `<td class="dm-cell ${ragClass(r.prev_dm)}">${r.prev_dm}</td>`;
+        html += `<td class="dm-cell ${ragClass(r.curr_dm)}">${r.curr_dm}</td>`;
+        html += `<td style="color:var(--rag-green);font-weight:600">+${r.delta}</td>`;
+        html += `<td>${fixed}</td>`;
+        html += '</tr>';
+      }
+      html += '</tbody></table></div></div>';
+    }
+
+    // Comparison view
+    html += '<div class="section"><h3>Compare Runs</h3>';
+    html += '<div class="filter-bar">';
+    html += '<label>Run A:</label><select id="compare-a" class="filter-select">';
+    for (const r of timeline) html += `<option value="${r.run_id}">${r.run_id} (DM: ${r.avg_dm})</option>`;
+    html += '</select>';
+    html += '<label>vs Run B:</label><select id="compare-b" class="filter-select">';
+    for (const r of timeline) html += `<option value="${r.run_id}"${r.run_id === (timeline[1]?.run_id || '') ? ' selected' : ''}>${r.run_id} (DM: ${r.avg_dm})</option>`;
+    html += '</select>';
+    html += '<button class="fix-btn" onclick="window._loadComparison()">Compare</button>';
+    html += '</div>';
+    html += '<div id="comparison-results"></div>';
+    html += '</div>';
+  }
+
+  html += '</div>'; // end history tab
+
   el.innerHTML = html;
   initInteractivity();
+}
+
+function deltaCell(val, invert) {
+  if (val === null || val === undefined) return '<td style="color:var(--text-3)">—</td>';
+  const positive = invert ? val < 0 : val > 0;
+  const negative = invert ? val > 0 : val < 0;
+  const color = positive ? 'var(--rag-green)' : negative ? 'var(--rag-red)' : 'var(--text-3)';
+  const prefix = val > 0 ? '+' : '';
+  return `<td style="color:${color};font-weight:500;font-family:var(--font-mono)">${prefix}${val}</td>`;
+}
+
+function renderTrendChart(data, key, label, maxVal) {
+  if (!data || data.length < 2) return '';
+  const W = 280, H = 100, PAD = 24;
+  const plotW = W - PAD * 2, plotH = H - PAD * 2;
+  const n = data.length;
+  const max = maxVal || Math.max(...data.map(d => d[key] || 0)) * 1.1;
+
+  let points = '';
+  let dots = '';
+  for (let i = 0; i < n; i++) {
+    const x = PAD + (i / Math.max(n - 1, 1)) * plotW;
+    const y = PAD + plotH - ((data[i][key] || 0) / max) * plotH;
+    points += `${x},${y} `;
+    const color = key === 'gap_count' ? 'var(--rag-amber)' : ragClass(data[i][key]) === 'rag-green' ? 'var(--rag-green)' : ragClass(data[i][key]) === 'rag-amber' ? 'var(--rag-amber)' : 'var(--rag-red)';
+    dots += `<circle cx="${x}" cy="${y}" r="3" fill="${color}"><title>${data[i].run_id}: ${data[i][key]}</title></circle>`;
+  }
+
+  return `<div class="trend-chart">
+    <div class="trend-label">${label}</div>
+    <svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">
+      <line x1="${PAD}" y1="${PAD + plotH}" x2="${PAD + plotW}" y2="${PAD + plotH}" stroke="var(--border)" stroke-width="1"/>
+      <polyline points="${points}" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linejoin="round"/>
+      ${dots}
+      <text x="${PAD}" y="${H - 2}" font-size="8" fill="var(--text-3)">${data[0]?.run_id?.substring(4,14) || ''}</text>
+      <text x="${PAD + plotW}" y="${H - 2}" font-size="8" fill="var(--text-3)" text-anchor="end">${data[n-1]?.run_id?.substring(4,14) || ''}</text>
+      <text x="${PAD - 2}" y="${PAD + 4}" font-size="8" fill="var(--text-3)" text-anchor="end">${max}</text>
+      <text x="${PAD - 2}" y="${PAD + plotH}" font-size="8" fill="var(--text-3)" text-anchor="end">0</text>
+    </svg>
+  </div>`;
 }
 
 function mkCard(value, label, colorClass) {
@@ -1156,12 +1318,71 @@ function initGapExpand() {
   document.querySelectorAll('tr.expandable').forEach(row => {
     row.addEventListener('click', () => {
       const idx = row.querySelectorAll('td')[1]?.textContent;
-      const detail = document.querySelector(`tr.gap-detail-row[data-parent="${parseInt(idx) - 1}"]`);
+      const parentIdx = parseInt(idx) - 1;
+      const detail = document.querySelector(`tr.gap-detail-row[data-parent="${parentIdx}"]`);
       if (detail) {
-        detail.style.display = detail.style.display === 'none' ? '' : 'none';
+        const isOpening = detail.style.display === 'none';
+        detail.style.display = isOpening ? '' : 'none';
+        // Lazy-load sparkline on first open
+        if (isOpening) {
+          const sparkEl = document.getElementById(`sparkline-${parentIdx}`);
+          if (sparkEl && !sparkEl.dataset.loaded) {
+            sparkEl.dataset.loaded = '1';
+            loadQuerySparkline(sparkEl, sparkEl.dataset.query);
+          }
+        }
       }
     });
   });
+}
+
+async function loadQuerySparkline(el, query) {
+  if (!query) return;
+  try {
+    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+    const sb = createClient('https://vwbzkgsxmgwcvmvuxnbe.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3YnprZ3N4bWd3Y3ZtdnV4bmJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk5NjUzNTYsImV4cCI6MjA4NTU0MTM1Nn0.YBhmusYxc28TD5FOZv4TBpFpDVHHk1V894wUkNtJtcc');
+
+    // Look up by query text since we don't have query_id in gap data
+    const { data } = await sb
+      .from('gauntlet_results')
+      .select('donde_match, run_id, gap_type')
+      .eq('query', query)
+      .order('run_id', { ascending: true })
+      .limit(30);
+
+    if (!data || data.length < 2) {
+      el.innerHTML = '<div class="sparkline-label">No history (single run)</div>';
+      return;
+    }
+
+    // Render inline sparkline
+    const W = 160, H = 28;
+    const max = 100;
+    const n = data.length;
+    let points = '';
+    let dots = '';
+    for (let i = 0; i < n; i++) {
+      const x = 2 + (i / Math.max(n - 1, 1)) * (W - 4);
+      const y = 2 + (H - 4) - ((data[i].donde_match || 0) / max) * (H - 4);
+      points += `${x},${y} `;
+      const c = data[i].donde_match >= 80 ? 'var(--rag-green)' : data[i].donde_match >= 60 ? 'var(--rag-amber)' : 'var(--rag-red)';
+      dots += `<circle cx="${x}" cy="${y}" r="2" fill="${c}"><title>${data[i].run_id}: DM ${data[i].donde_match}</title></circle>`;
+    }
+
+    const first = data[0].donde_match;
+    const last = data[n - 1].donde_match;
+    const delta = last - first;
+    const deltaStr = delta > 0 ? `+${delta}` : `${delta}`;
+    const deltaColor = delta > 0 ? 'var(--rag-green)' : delta < 0 ? 'var(--rag-red)' : 'var(--text-3)';
+
+    el.innerHTML = `<div class="sparkline-label">DM History (${n} runs, ${deltaStr} overall) <span style="color:${deltaColor};font-weight:600">${deltaStr}</span></div>
+      <svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">
+        <polyline points="${points}" fill="none" stroke="var(--accent)" stroke-width="1" stroke-linejoin="round"/>
+        ${dots}
+      </svg>`;
+  } catch (e) {
+    el.innerHTML = '';
+  }
 }
 
 // Recommendation card links
@@ -1380,6 +1601,70 @@ window._clearSelection = function() {
   if (selectAll) selectAll.checked = false;
   document.querySelectorAll('tr.gap-selected').forEach(r => r.classList.remove('gap-selected'));
   updateBulkBar();
+};
+
+window._loadComparison = async function() {
+  const runA = document.getElementById('compare-a')?.value;
+  const runB = document.getElementById('compare-b')?.value;
+  const el = document.getElementById('comparison-results');
+  if (!runA || !runB || !el) return;
+  if (runA === runB) { el.innerHTML = '<p style="color:var(--text-3)">Select two different runs to compare.</p>'; return; }
+
+  el.innerHTML = '<p style="color:var(--text-3)">Loading comparison...</p>';
+
+  try {
+    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+    const sb = createClient('https://vwbzkgsxmgwcvmvuxnbe.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3YnprZ3N4bWd3Y3ZtdnV4bmJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk5NjUzNTYsImV4cCI6MjA4NTU0MTM1Nn0.YBhmusYxc28TD5FOZv4TBpFpDVHHk1V894wUkNtJtcc');
+
+    const { data, error } = await sb.rpc('get_run_comparison', { p_run_a: runA, p_run_b: runB });
+    if (error) throw error;
+    if (!data || data.length === 0) { el.innerHTML = '<p style="color:var(--text-3)">No comparable queries found.</p>'; return; }
+
+    const improved = data.filter(r => r.delta > 0).length;
+    const regressed = data.filter(r => r.delta < 0).length;
+    const unchanged = data.filter(r => r.delta === 0).length;
+    const avgDelta = (data.reduce((s, r) => s + (r.delta || 0), 0) / data.length).toFixed(1);
+
+    let h = `<div class="card-row" style="margin:12px 0">`;
+    h += `<div class="card"><div class="card-value">${data.length}</div><div class="card-label">Queries</div></div>`;
+    h += `<div class="card"><div class="card-value rag-green">${improved}</div><div class="card-label">Improved</div></div>`;
+    h += `<div class="card"><div class="card-value rag-red">${regressed}</div><div class="card-label">Regressed</div></div>`;
+    h += `<div class="card"><div class="card-value">${unchanged}</div><div class="card-label">Unchanged</div></div>`;
+    h += `<div class="card"><div class="card-value ${Number(avgDelta) > 0 ? 'rag-green' : Number(avgDelta) < 0 ? 'rag-red' : ''}">${Number(avgDelta) > 0 ? '+' : ''}${avgDelta}</div><div class="card-label">Avg Δ</div></div>`;
+    h += '</div>';
+
+    h += '<div class="table-wrap"><table><thead><tr>';
+    h += '<th>Query</th><th>Cat</th><th>DM (A)</th><th>DM (B)</th><th>Δ</th><th>Gap (A)</th><th>Gap (B)</th><th>Status</th>';
+    h += '</tr></thead><tbody>';
+
+    // Sort by delta ascending (worst regressions first)
+    const sorted = [...data].sort((a, b) => (a.delta || 0) - (b.delta || 0));
+    for (const r of sorted) {
+      const d = r.delta || 0;
+      let status, statusClass;
+      if (r.gap_a && !r.gap_b) { status = 'Fixed'; statusClass = 'rag-green'; }
+      else if (!r.gap_a && r.gap_b) { status = 'New Gap'; statusClass = 'rag-red'; }
+      else if (d > 3) { status = 'Improved'; statusClass = 'rag-green'; }
+      else if (d < -3) { status = 'Regressed'; statusClass = 'rag-red'; }
+      else { status = 'Stable'; statusClass = ''; }
+
+      h += '<tr>';
+      h += `<td title="${r.query || ''}">${(r.query || '').substring(0, 35)}</td>`;
+      h += `<td>${r.category || '—'}</td>`;
+      h += `<td class="dm-cell ${r.dm_a ? (r.dm_a >= 80 ? 'rag-green' : r.dm_a >= 60 ? 'rag-amber' : 'rag-red') : ''}">${r.dm_a ?? '—'}</td>`;
+      h += `<td class="dm-cell ${r.dm_b ? (r.dm_b >= 80 ? 'rag-green' : r.dm_b >= 60 ? 'rag-amber' : 'rag-red') : ''}">${r.dm_b ?? '—'}</td>`;
+      h += `<td style="color:${d > 0 ? 'var(--rag-green)' : d < 0 ? 'var(--rag-red)' : 'var(--text-3)'};font-weight:500;font-family:var(--font-mono)">${d > 0 ? '+' : ''}${d}</td>`;
+      h += `<td>${r.gap_a || '—'}</td>`;
+      h += `<td>${r.gap_b || '—'}</td>`;
+      h += `<td><span class="badge ${statusClass ? 'badge-' + statusClass.replace('rag-', '') : ''}" style="${statusClass ? 'color:var(--' + statusClass + ')' : ''}">${status}</span></td>`;
+      h += '</tr>';
+    }
+    h += '</tbody></table></div>';
+
+    el.innerHTML = h;
+  } catch (e) {
+    el.innerHTML = `<p style="color:var(--rag-red)">Comparison failed: ${e.message}</p>`;
+  }
 };
 
 function initGapCheckboxes() {
