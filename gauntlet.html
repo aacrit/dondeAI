@@ -410,6 +410,45 @@
     .gap-detail-factors { display: flex; gap: 12px; margin-top: 6px; }
     .gap-detail-factors span { font-family: var(--font-mono); font-size: 0.68rem; }
 
+    /* ─── Fix Prompt Buttons ─────────────────────────────── */
+    .fix-btn {
+      background: rgba(107,159,255,0.08);
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      border-radius: 4px;
+      padding: 4px 10px;
+      font-size: 0.7rem;
+      font-weight: 500;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .fix-btn:hover { background: var(--accent); color: var(--bg); }
+    .fix-btn.copied { background: var(--rag-green); color: var(--bg); border-color: var(--rag-green); pointer-events: none; }
+    .clear-btn {
+      background: transparent;
+      color: var(--text-3);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 4px 10px;
+      font-size: 0.7rem;
+      cursor: pointer;
+    }
+    .clear-btn:hover { color: var(--text); border-color: var(--text-3); }
+    .bulk-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      background: var(--surface-2);
+      border: 1px solid var(--accent);
+      border-radius: var(--radius);
+      margin-bottom: 8px;
+      font-size: 0.75rem;
+    }
+    .gap-check { accent-color: var(--accent); cursor: pointer; }
+    tr.gap-selected > td { background: rgba(107,159,255,0.06) !important; }
+
     /* ─── Impact Chart ────────────────────────────────────── */
     .impact-row {
       display: grid;
@@ -582,6 +621,7 @@ function renderDashboard(el, data) {
   const recs = data.recommendations || [];
   const gapImpact = data.gap_impact || {};
   const allGaps = data.all_gaps || data.top_gaps || [];
+  allGapsRef = allGaps;
 
   let html = '';
 
@@ -810,16 +850,24 @@ function renderDashboard(el, data) {
   html += '<span class="filter-count" id="gap-count"></span>';
   html += '</div>';
 
+  // Bulk action bar (hidden until checkboxes selected)
+  html += '<div class="bulk-bar" id="bulk-bar" style="display:none">';
+  html += '<span id="bulk-count">0 selected</span>';
+  html += '<button class="fix-btn bulk-fix-btn" onclick="copyBulkFixPrompt()">Copy Combined Fix Prompt</button>';
+  html += '<button class="clear-btn" onclick="clearSelection()">Clear</button>';
+  html += '</div>';
+
   // Gaps table
   html += '<div class="table-wrap"><table id="gaps-table"><thead><tr>';
-  html += '<th class="sortable" data-col="0" data-type="num">#</th>';
-  html += '<th class="sortable" data-col="1" data-type="str">Query</th>';
-  html += '<th class="sortable" data-col="2" data-type="num">DM</th>';
-  html += '<th class="sortable" data-col="3" data-type="str">Type</th>';
-  html += '<th class="sortable" data-col="4" data-type="str">Sev</th>';
-  html += '<th class="sortable" data-col="5" data-type="str">Category</th>';
+  html += '<th style="width:28px"><input type="checkbox" id="gap-select-all" class="gap-check"></th>';
+  html += '<th class="sortable" data-col="1" data-type="num">#</th>';
+  html += '<th class="sortable" data-col="2" data-type="str">Query</th>';
+  html += '<th class="sortable" data-col="3" data-type="num">DM</th>';
+  html += '<th class="sortable" data-col="4" data-type="str">Type</th>';
+  html += '<th class="sortable" data-col="5" data-type="str">Sev</th>';
+  html += '<th class="sortable" data-col="6" data-type="str">Category</th>';
   html += '<th>Restaurant</th>';
-  html += '<th class="sortable" data-col="7" data-type="num">Impact</th>';
+  html += '<th class="sortable" data-col="8" data-type="num">Impact</th>';
   html += '<th>Fix</th>';
   html += '</tr></thead><tbody>';
   for (const [i, g] of allGaps.entries()) {
@@ -827,6 +875,7 @@ function renderDashboard(el, data) {
     const fix = gapImpact[g.gap_type]?.fixability || '';
     const fixClass = fix === 'auto' ? 'badge-auto' : fix === 'tuning' ? 'badge-tuning' : fix === 'architectural' ? 'badge-architectural' : '';
     html += `<tr class="gap-row expandable" data-type="${g.gap_type}" data-cat="${g.category}" data-sev="${g.gap_severity || ''}" data-query="${esc(g.query.toLowerCase())}">
+      <td><input type="checkbox" class="gap-check" data-idx="${i}" onclick="event.stopPropagation()"></td>
       <td>${i + 1}</td>
       <td title="${esc(g.query)}">${esc(g.query.substring(0, 45))}</td>
       <td class="dm-cell ${ragClass(g.dm)}">${g.dm}</td>
@@ -840,7 +889,7 @@ function renderDashboard(el, data) {
     // Expandable detail row (hidden by default)
     if (g.fix_action || g.food !== undefined) {
       html += `<tr class="gap-detail-row" style="display:none" data-parent="${i}">
-        <td colspan="9"><div class="gap-detail-content">`;
+        <td colspan="10"><div class="gap-detail-content">`;
       if (g.fix_action) html += `<strong>Fix:</strong> ${esc(g.fix_action)}<br>`;
       if (g.food !== undefined) {
         html += `<div class="gap-detail-factors">
@@ -851,6 +900,7 @@ function renderDashboard(el, data) {
           <span>Convenience: <strong>${g.convenience}</strong></span>
         </div>`;
       }
+      html += `<button class="fix-btn" data-idx="${i}" onclick="event.stopPropagation(); copyFixPrompt(${i})">Copy Fix Prompt</button>`;
       html += '</div></td></tr>';
     }
   }
@@ -978,6 +1028,7 @@ function initInteractivity() {
   initGapFilters();
   initCollapsibles();
   initGapExpand();
+  initGapCheckboxes();
   initRecLinks();
 }
 
@@ -1031,7 +1082,8 @@ function initSortable() {
       // Re-append rows (and their detail rows)
       for (const row of rows) {
         tbody.appendChild(row);
-        const parent = row.querySelector('td')?.textContent;
+        const cells = row.querySelectorAll('td');
+        const parent = (cells[1] || cells[0])?.textContent;
         const detailRow = tbody.querySelector(`tr.gap-detail-row[data-parent="${parseInt(parent) - 1}"]`);
         if (detailRow) tbody.appendChild(detailRow);
       }
@@ -1063,12 +1115,18 @@ function initGapFilters() {
         && (!search || row.dataset.query.includes(search));
       row.style.display = show ? '' : 'none';
       // Hide detail rows too
-      const idx = row.querySelector('td')?.textContent;
+      const idx = row.querySelectorAll('td')[1]?.textContent;
       const detail = document.querySelector(`tr.gap-detail-row[data-parent="${parseInt(idx) - 1}"]`);
       if (detail) detail.style.display = 'none';
+      // Uncheck hidden rows
+      if (!show) {
+        const cb = row.querySelector('.gap-check');
+        if (cb) { cb.checked = false; row.classList.remove('gap-selected'); }
+      }
       if (show) visible++;
     });
     countEl.textContent = `${visible} gaps shown`;
+    updateBulkBar();
   }
 
   [fType, fCat, fSev].forEach(el => el.addEventListener('change', applyFilters));
@@ -1089,7 +1147,7 @@ function initCollapsibles() {
 function initGapExpand() {
   document.querySelectorAll('tr.expandable').forEach(row => {
     row.addEventListener('click', () => {
-      const idx = row.querySelector('td')?.textContent;
+      const idx = row.querySelectorAll('td')[1]?.textContent;
       const detail = document.querySelector(`tr.gap-detail-row[data-parent="${parseInt(idx) - 1}"]`);
       if (detail) {
         detail.style.display = detail.style.display === 'none' ? '' : 'none';
@@ -1107,6 +1165,200 @@ function initRecLinks() {
       const tabName = tabMap[section] || 'overview';
       document.querySelector(`.tab[data-tab="${tabName}"]`)?.click();
     });
+  });
+}
+
+/* ── Fix Prompt Generation ────────────────────────────────────────────────── */
+let allGapsRef = [];
+
+function identifyWeakFactor(g) {
+  const factors = { food: g.food, vibe: g.vibe, service: g.service, reputation: g.reputation, convenience: g.convenience };
+  let weakest = 'food', min = Infinity;
+  for (const [k, v] of Object.entries(factors)) {
+    if (v < min) { min = v; weakest = k; }
+  }
+  return { name: weakest, score: min };
+}
+
+function buildFixPrompt(g) {
+  const factors = `Food: ${g.food}/10 | Vibe: ${g.vibe}/10 | Service: ${g.service}/10 | Reputation: ${g.reputation}/10 | Convenience: ${g.convenience}/10`;
+
+  if (g.gap_type === 'intent') {
+    return `Fix an intent classification gap in the DondeAI scoring engine.
+
+## Problem
+The query "${g.query}" scored DM ${g.dm} (needs 60+). The intent classifier failed to route this query correctly. Restaurant returned: "${g.restaurant}" (category: ${g.category}).
+
+## Factor Scores
+${factors}
+
+## Fix Required
+File: /home/user/dondeBackend/supabase/functions/recommend/_shared/intent-classifier-v5.ts
+
+Add the appropriate keyword(s) from the query "${g.query}" to the correct dictionary. The file has these dictionaries:
+- FLAVOR_WORDS (line ~29): taste/flavor descriptors
+- VIBE_WORDS (line ~36): atmosphere descriptors like "intimate", "lively", "cozy"
+- CONSTRAINT_PATTERNS (line ~43): practical constraints (walk-in, byob, outdoor, etc.)
+- EMOTIONAL_INTENT_PATTERNS (line ~62): emotional contexts (impress, celebrate, indulge, explore, comfort)
+- CONTEXT_PATTERNS (line ~249): semantic context patterns (pre-event, instagram-worthy, etc.)
+
+Identify which words from the query are not being matched, then add them to the appropriate dictionary. After making the change, verify by running:
+cd /home/user/dondeBackend && npx supabase functions serve recommend --no-verify-jwt &
+sleep 3
+curl -s -X POST http://localhost:54321/functions/v1/recommend -H "Content-Type: application/json" -d '{"special_request": "${g.query}"}' | jq '.donde_match'`;
+  }
+
+  if (g.gap_type === 'scoring') {
+    const weak = identifyWeakFactor(g);
+    return `Fix a scoring weight gap in the DondeAI scoring engine.
+
+## Problem
+The query "${g.query}" scored DM ${g.dm} (needs 60+). The restaurant "${g.restaurant}" was matched but scored too low due to weight profile mismatch (category: ${g.category}).
+
+## Factor Scores
+${factors}
+
+## Analysis
+"${weak.name}" is the weakest factor at ${weak.score}/10. This suggests the weight profile may be over/under-weighting this dimension for queries like "${g.query}".
+
+## Fix Required
+File: /home/user/dondeBackend/supabase/functions/recommend/_shared/scoring-v9.ts
+
+Review the QUALITY_WEIGHTS profiles (line ~483). Current profiles:
+- dish: food=0.40, reputation=0.30, vibe=0.10, service=0.10, convenience=0.10
+- cuisine: food=0.35, reputation=0.30, vibe=0.12, service=0.12, convenience=0.11
+- vibe: food=0.15, reputation=0.25, vibe=0.35, service=0.15, convenience=0.10
+- reputation: food=0.20, reputation=0.50, vibe=0.10, service=0.10, convenience=0.10
+- open_ended: food=0.18, reputation=0.45, vibe=0.15, service=0.12, convenience=0.10
+
+Determine which profile is being applied to this query, then adjust weights so the dominant factor for this query type has more influence. After making the change, verify:
+cd /home/user/dondeBackend && npx supabase functions serve recommend --no-verify-jwt &
+sleep 3
+curl -s -X POST http://localhost:54321/functions/v1/recommend -H "Content-Type: application/json" -d '{"special_request": "${g.query}"}' | jq '.donde_match'`;
+  }
+
+  // relevance_ceiling (default)
+  return `Fix a relevance ceiling gap in the DondeAI scoring engine.
+
+## Problem
+The query "${g.query}" scored DM ${g.dm}, stuck in the 60-69 range due to the relevance multiplier cap. Restaurant: "${g.restaurant}" (category: ${g.category}). The match is correct but the relevance score is capping the final DM.
+
+## Factor Scores
+${factors}
+
+## Fix Required
+File: /home/user/dondeBackend/supabase/functions/recommend/_shared/scoring-v9.ts
+
+The relevance multiplier (0.0-1.0) gates the quality score: DM = Relevance × Quality + OccasionBonus. For this query, relevance is likely 0.60-0.69, capping the score regardless of quality.
+
+Options to investigate:
+1. Check computeSemanticRelevance() — are semantic_tags from the restaurant matching the query intent?
+2. Check the relevance type classification — is the query being classified as the right type (dish/cuisine/vibe/semantic)?
+3. If vibe-based: the dynamic vibe floor is 0.45 for 3+ signals, 0.65 for fewer. Could this query benefit from more semantic tag coverage?
+4. Consider if DISH_SYNONYMS (line ~150+) or query expansion in expandQueryConcepts() could improve the relevance classification.
+
+After investigating, verify:
+cd /home/user/dondeBackend && npx supabase functions serve recommend --no-verify-jwt &
+sleep 3
+curl -s -X POST http://localhost:54321/functions/v1/recommend -H "Content-Type: application/json" -d '{"special_request": "${g.query}"}' | jq '.donde_match'`;
+}
+
+function buildBulkFixPrompt(gaps) {
+  const intent = gaps.filter(g => g.gap_type === 'intent');
+  const scoring = gaps.filter(g => g.gap_type === 'scoring');
+  const ceiling = gaps.filter(g => g.gap_type === 'relevance_ceiling');
+
+  let prompt = `Fix ${gaps.length} gaps in the DondeAI scoring engine.\n`;
+
+  if (intent.length) {
+    prompt += `\n## Intent Gaps (${intent.length})\n\n| Query | DM | Category | Restaurant |\n|-------|-----|----------|------------|\n`;
+    for (const g of intent) prompt += `| ${g.query} | ${g.dm} | ${g.category} | ${g.restaurant} |\n`;
+    prompt += `\nFile: /home/user/dondeBackend/supabase/functions/recommend/_shared/intent-classifier-v5.ts\nAdd keywords from these queries to the appropriate dictionaries (FLAVOR_WORDS, VIBE_WORDS, CONSTRAINT_PATTERNS, EMOTIONAL_INTENT_PATTERNS, or CONTEXT_PATTERNS).\n`;
+  }
+
+  if (scoring.length) {
+    prompt += `\n## Scoring Gaps (${scoring.length})\n\n| Query | DM | Category | Weakest Factor | Score |\n|-------|-----|----------|----------------|-------|\n`;
+    for (const g of scoring) {
+      const w = identifyWeakFactor(g);
+      prompt += `| ${g.query} | ${g.dm} | ${g.category} | ${w.name} | ${w.score} |\n`;
+    }
+    prompt += `\nFile: /home/user/dondeBackend/supabase/functions/recommend/_shared/scoring-v9.ts (QUALITY_WEIGHTS, line ~483)\nReview weight profiles for these query patterns.\n`;
+  }
+
+  if (ceiling.length) {
+    prompt += `\n## Relevance Ceiling Gaps (${ceiling.length})\n\n| Query | DM | Category | Restaurant |\n|-------|-----|----------|------------|\n`;
+    for (const g of ceiling) prompt += `| ${g.query} | ${g.dm} | ${g.category} | ${g.restaurant} |\n`;
+    prompt += `\nFile: /home/user/dondeBackend/supabase/functions/recommend/_shared/scoring-v9.ts (relevance multiplier)\nInvestigate relevance classification and semantic tag coverage.\n`;
+  }
+
+  prompt += `\n## Verification\nAfter all changes, run:\ncd /home/user/dondeBackend\nnpx supabase functions serve recommend --no-verify-jwt &\nsleep 3\n`;
+  for (const g of gaps) {
+    prompt += `curl -s -X POST http://localhost:54321/functions/v1/recommend -H "Content-Type: application/json" -d '{"special_request": "${g.query}"}' | jq '.donde_match'\n`;
+  }
+
+  return prompt;
+}
+
+async function copyFixPrompt(idx) {
+  const prompt = buildFixPrompt(allGapsRef[idx]);
+  await navigator.clipboard.writeText(prompt);
+  const btn = document.querySelector(`.fix-btn[data-idx="${idx}"]`);
+  if (btn) {
+    btn.classList.add('copied');
+    btn.textContent = 'Copied!';
+    setTimeout(() => { btn.classList.remove('copied'); btn.textContent = 'Copy Fix Prompt'; }, 1500);
+  }
+}
+
+async function copyBulkFixPrompt() {
+  const checks = document.querySelectorAll('.gap-check:checked');
+  const gaps = [...checks].map(c => allGapsRef[parseInt(c.dataset.idx)]);
+  if (!gaps.length) return;
+  const prompt = buildBulkFixPrompt(gaps);
+  await navigator.clipboard.writeText(prompt);
+  const btn = document.querySelector('.bulk-fix-btn');
+  if (btn) {
+    btn.classList.add('copied');
+    btn.textContent = 'Copied!';
+    setTimeout(() => { btn.classList.remove('copied'); btn.textContent = 'Copy Combined Fix Prompt'; }, 1500);
+  }
+}
+
+function updateBulkBar() {
+  const count = document.querySelectorAll('.gap-check:checked').length;
+  const bar = document.getElementById('bulk-bar');
+  if (!bar) return;
+  bar.style.display = count > 0 ? 'flex' : 'none';
+  document.getElementById('bulk-count').textContent = `${count} selected`;
+}
+
+function clearSelection() {
+  document.querySelectorAll('.gap-check').forEach(c => { c.checked = false; });
+  document.querySelectorAll('tr.gap-selected').forEach(r => r.classList.remove('gap-selected'));
+  updateBulkBar();
+}
+
+function initGapCheckboxes() {
+  const selectAll = document.getElementById('gap-select-all');
+  if (!selectAll) return;
+
+  selectAll.addEventListener('change', () => {
+    const checked = selectAll.checked;
+    document.querySelectorAll('tr.gap-row').forEach(row => {
+      if (row.style.display === 'none') return;
+      const cb = row.querySelector('.gap-check');
+      if (cb) {
+        cb.checked = checked;
+        row.classList.toggle('gap-selected', checked);
+      }
+    });
+    updateBulkBar();
+  });
+
+  document.getElementById('gaps-table')?.addEventListener('change', (e) => {
+    if (!e.target.classList.contains('gap-check')) return;
+    e.target.closest('tr')?.classList.toggle('gap-selected', e.target.checked);
+    updateBulkBar();
   });
 }
 
