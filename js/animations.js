@@ -837,6 +837,17 @@ function buildFactorDetail(factorKey, scoring) {
     items += contextHtml;
   }
 
+  // V11: Semantic descriptors — show matched concepts in vibe/food drill-down
+  if (factorKey === 'vibe' || factorKey === 'food') {
+    const descriptors = _lastRestaurantData?.deep_context?.semantic_descriptors;
+    if (descriptors?.length > 0) {
+      const tags = descriptors.slice(0, 4).map(d =>
+        `<span class="factor-detail__concept-tag type-data--xs">${d}</span>`
+      ).join('');
+      items += `<div class="factor-detail__concepts">${tags}</div>`;
+    }
+  }
+
   const narrative = buildFactorNarrative(factorKey, scoring);
   const googleRow = _buildGoogleRow();
 
@@ -1005,7 +1016,7 @@ let _drawLoopId = null;
 let _drawLoopRunning = false;
 let _wordRotationId = null;
 let _pathData = []; // { el, len, delayMs, drawMs }
-let _ringAnimId = null;
+let _inkPulseId = null;
 let _statusPhase = 0;
 
 // Timing (total cycle ≈ 2400ms: draw 800ms + hold 400ms + erase 800ms + pause 400ms)
@@ -1136,30 +1147,119 @@ export function initLogoAnimation(craving) {
 
   _drawLoopId = requestAnimationFrame(tick);
 
-  // Ink Resolve: Animate progress ring (non-deterministic fill)
-  _startProgressRing();
+  // Ink Pulse: Start oscillating calligraphic line
+  _startInkPulse();
   _startStatusText(craving);
 }
 
-/** Ink Resolve: Progress ring fills non-deterministically during loading */
-function _startProgressRing() {
-  const ringFill = document.getElementById('loading-ring-fill');
-  if (!ringFill) return;
+/** Ink Pulse: Oscillating calligraphic line below the fork logo */
+function _startInkPulse() {
+  const svg = document.getElementById('ink-pulse');
+  const stroke = document.getElementById('ink-pulse-stroke');
+  if (!svg || !stroke) return;
 
-  const circumference = 226.2; // 2 * π * 36
-  let progress = 0; // 0 to 1
+  svg.classList.add('ink-pulse--active');
+
+  const baseY = 6;
+  const startX = 10;
+  const endX = 110;
+  const totalLen = endX - startX;
+  const segments = 8;
+  const segLen = totalLen / segments;
   const start = performance.now();
 
-  // Non-deterministic: fast at first, then slows down asymptotically
-  function ringTick(now) {
+  function pulseTick(now) {
     if (!_drawLoopRunning) return;
-    const elapsed = (now - start) / 1000; // seconds
-    // Asymptotic curve: quick to ~60%, then crawls toward ~85%
-    progress = Math.min(0.85, 1 - 1 / (1 + elapsed * 0.4));
-    ringFill.style.strokeDashoffset = circumference * (1 - progress);
-    _ringAnimId = requestAnimationFrame(ringTick);
+
+    const elapsed = (now - start) / 1000;
+
+    // Progress: asymptotic curve 0→~0.85 (quick to ~60%, crawls toward ~85%)
+    const progress = Math.min(0.85, 1 - 1 / (1 + elapsed * 0.4));
+
+    // Amplitude decays with progress: wild at 0%, gentle tremor at 85%
+    const ampScale = 1 - progress * 0.85;
+    const breath = Math.sin(elapsed * 0.8) * 0.5 + 0.5;
+    const maxAmp = (2.5 + breath * 1.5) * ampScale;
+
+    // Stroke extends rightward with progress (starts at 15% so always visible)
+    const drawEnd = startX + totalLen * (0.15 + progress * 0.85);
+
+    // Build path only up to drawEnd
+    let d = `M${startX} ${baseY}`;
+    let lastDrawnX = startX;
+    for (let i = 1; i <= segments; i++) {
+      const t = i / segments;
+      const x = startX + totalLen * t;
+      if (x > drawEnd) break;
+
+      const freq = 2.5 + i * 0.3;
+      const phase = elapsed * freq - i * 0.7;
+      const taper = Math.sin(t * Math.PI);
+      const amp = maxAmp * taper;
+      const y = baseY + Math.sin(phase) * amp;
+
+      const cpX = startX + totalLen * (t - 0.5 / segments);
+      const cpY = baseY + Math.sin(phase - 0.3) * amp * 0.6;
+      d += ` Q${cpX.toFixed(1)} ${cpY.toFixed(1)}, ${x.toFixed(1)} ${y.toFixed(1)}`;
+      lastDrawnX = x;
+    }
+
+    // Extend to exact drawEnd if it falls between segments
+    if (drawEnd > lastDrawnX + 1) {
+      const finalT = (drawEnd - startX) / totalLen;
+      const finalAmp = maxAmp * Math.sin(finalT * Math.PI);
+      const finalY = baseY + Math.sin(elapsed * 3.5) * finalAmp;
+      d += ` L${drawEnd.toFixed(1)} ${finalY.toFixed(1)}`;
+    }
+
+    stroke.setAttribute('d', d);
+
+    // Stroke width breathes slightly (ink pressure variation)
+    const widthPulse = 1.8 + Math.sin(elapsed * 1.2) * 0.3;
+    stroke.style.strokeWidth = widthPulse;
+
+    _inkPulseId = requestAnimationFrame(pulseTick);
   }
-  _ringAnimId = requestAnimationFrame(ringTick);
+
+  _inkPulseId = requestAnimationFrame(pulseTick);
+}
+
+/** Ink Pulse: Animate from current progress to full width + flat (resolve) */
+function _animateInkResolve(stroke, startTime) {
+  const duration = 400;
+  const baseY = 6;
+  const startX = 10;
+  const endX = 110;
+  const totalLen = endX - startX;
+
+  function resolveTick(now) {
+    const t = Math.min(1, (now - startTime) / duration);
+    const eased = easeOutCubic(t);
+
+    // Extend stroke to full width over the resolve duration
+    const drawEnd = startX + totalLen * (0.85 + 0.15 * eased);
+    // Amplitude settles to zero (starts small since progress already calmed it)
+    const remainingAmp = (1 - eased) * 1.5;
+
+    let d = `M${startX} ${baseY}`;
+    for (let i = 1; i <= 8; i++) {
+      const segT = i / 8;
+      const x = startX + totalLen * segT;
+      if (x > drawEnd) break;
+      const y = baseY + Math.sin(i * 1.5) * remainingAmp * Math.sin(segT * Math.PI);
+      const cpX = startX + totalLen * (segT - 0.0625);
+      d += ` Q${cpX.toFixed(1)} ${y.toFixed(1)}, ${x.toFixed(1)} ${y.toFixed(1)}`;
+    }
+    stroke.setAttribute('d', d);
+
+    if (t < 1) {
+      requestAnimationFrame(resolveTick);
+    } else {
+      stroke.setAttribute('d', 'M10 6 Q35 6, 60 6 Q85 6, 110 6');
+    }
+  }
+
+  requestAnimationFrame(resolveTick);
 }
 
 /** Ink Resolve: Status text fades between states */
@@ -1270,24 +1370,24 @@ export function resolveLogoToFound(restaurantName) {
   const logo = document.getElementById('loading-logo');
   if (!logo) return Promise.resolve();
 
-  // Stop the draw loop + ring animation
+  // Stop the draw loop + ink pulse animation
   _drawLoopRunning = false;
   if (_drawLoopId) {
     cancelAnimationFrame(_drawLoopId);
     _drawLoopId = null;
   }
-  if (_ringAnimId) {
-    cancelAnimationFrame(_ringAnimId);
-    _ringAnimId = null;
+  if (_inkPulseId) {
+    cancelAnimationFrame(_inkPulseId);
+    _inkPulseId = null;
   }
   stopWordRotation();
 
   if (REDUCED.matches) {
     logo.style.transform = '';
     logo.style.opacity = '1';
-    // Snap ring + show status instantly
-    const ringFill = document.getElementById('loading-ring-fill');
-    if (ringFill) ringFill.style.strokeDashoffset = '0';
+    // Show resolved ink pulse + status instantly
+    const inkSvg = document.getElementById('ink-pulse');
+    if (inkSvg) inkSvg.classList.add('ink-pulse--resolved');
     const statusEl = document.getElementById('loading-status');
     if (statusEl && restaurantName) statusEl.textContent = restaurantName;
     return Promise.resolve();
@@ -1298,11 +1398,13 @@ export function resolveLogoToFound(restaurantName) {
   const dot = document.querySelector('.logo-mark--loading .logo-mark__dot--draw');
   if (dot) { dot.style.opacity = '1'; dot.style.transform = 'scale(1)'; }
 
-  // Ink Resolve: Snap progress ring to full
-  const ringSvg = document.getElementById('loading-ring');
-  if (ringSvg) ringSvg.classList.add('loading-logo__ring--resolved');
-  const ringFill = document.getElementById('loading-ring-fill');
-  if (ringFill) ringFill.style.strokeDashoffset = '0';
+  // Ink Pulse: Resolve — line settles to confident flat stroke
+  const inkSvg = document.getElementById('ink-pulse');
+  const inkStroke = document.getElementById('ink-pulse-stroke');
+  if (inkSvg && inkStroke) {
+    inkSvg.classList.add('ink-pulse--resolved');
+    _animateInkResolve(inkStroke, performance.now());
+  }
 
   // Status text: show restaurant name
   const statusEl = document.getElementById('loading-status');
@@ -1345,9 +1447,9 @@ export function cleanupLoadingLogo() {
     cancelAnimationFrame(_drawLoopId);
     _drawLoopId = null;
   }
-  if (_ringAnimId) {
-    cancelAnimationFrame(_ringAnimId);
-    _ringAnimId = null;
+  if (_inkPulseId) {
+    cancelAnimationFrame(_inkPulseId);
+    _inkPulseId = null;
   }
   stopWordRotation();
   _pathData = [];
@@ -1358,11 +1460,14 @@ export function cleanupLoadingLogo() {
     logo.style.opacity = '';
   }
 
-  // Reset progress ring
-  const ringFill = document.getElementById('loading-ring-fill');
-  if (ringFill) ringFill.style.strokeDashoffset = '226.2';
-  const ringSvg = document.getElementById('loading-ring');
-  if (ringSvg) ringSvg.classList.remove('loading-logo__ring--resolved');
+  // Reset ink pulse
+  const inkSvg = document.getElementById('ink-pulse');
+  if (inkSvg) inkSvg.classList.remove('ink-pulse--active', 'ink-pulse--resolved');
+  const inkStroke = document.getElementById('ink-pulse-stroke');
+  if (inkStroke) {
+    inkStroke.setAttribute('d', 'M10 6 Q30 6, 40 6 T60 6 T80 6 T110 6');
+    inkStroke.style.strokeWidth = '';
+  }
 
   // Reset status text
   const statusEl = document.getElementById('loading-status');
