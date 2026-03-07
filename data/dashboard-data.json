@@ -1,0 +1,458 @@
+{
+  "generated": "2026-03-07T03:48:54.571Z",
+  "source": "V8_200_RAW_RESULTS.jsonl",
+  "summary": {
+    "total": 200,
+    "successful": 200,
+    "passed60": 158,
+    "passed80": 1,
+    "passed90": 0,
+    "avg_dm": 62.2,
+    "gap_count": 186,
+    "avg_response_ms": 0,
+    "mode": "full-fidelity",
+    "cost_estimate": 3.6
+  },
+  "tiers": {
+    "0": {
+      "name": "Gold Standard",
+      "total": 200,
+      "avg_dm": 62.2,
+      "pass_rate_60": 79,
+      "excellence_rate": 0.5,
+      "gap_count": 186
+    }
+  },
+  "categories": {
+    "reputation": {
+      "total": 40,
+      "avg_dm": 62.2,
+      "pass_rate_60": 85,
+      "excellence_rate": 0,
+      "weak_rate": 0,
+      "gap_count": 40
+    },
+    "food": {
+      "total": 40,
+      "avg_dm": 59.4,
+      "pass_rate_60": 50,
+      "excellence_rate": 0,
+      "weak_rate": 0,
+      "gap_count": 33
+    },
+    "convenience": {
+      "total": 40,
+      "avg_dm": 63.4,
+      "pass_rate_60": 90,
+      "excellence_rate": 0,
+      "weak_rate": 0,
+      "gap_count": 39
+    },
+    "vibe": {
+      "total": 40,
+      "avg_dm": 62.5,
+      "pass_rate_60": 80,
+      "excellence_rate": 2.5,
+      "weak_rate": 0,
+      "gap_count": 36
+    },
+    "service": {
+      "total": 40,
+      "avg_dm": 63.6,
+      "pass_rate_60": 90,
+      "excellence_rate": 0,
+      "weak_rate": 0,
+      "gap_count": 38
+    }
+  },
+  "relevance_types": {
+    "unknown": 200
+  },
+  "gap_types": {
+    "intent": 11,
+    "scoring": 31,
+    "relevance_ceiling": 144
+  },
+  "top_gaps": [
+    {
+      "query": "relaxed brunch spot",
+      "dm": 45,
+      "gap_type": "intent",
+      "category": "vibe",
+      "restaurant": "Twin Anchors Restaurant & Tavern"
+    },
+    {
+      "query": "james beard outstanding chef",
+      "dm": 47,
+      "gap_type": "intent",
+      "category": "reputation",
+      "restaurant": "The Gundis Kurdish Kitchen"
+    },
+    {
+      "query": "craft beer",
+      "dm": 47,
+      "gap_type": "intent",
+      "category": "food",
+      "restaurant": "The Gundis Kurdish Kitchen"
+    },
+    {
+      "query": "sunday morning cafe",
+      "dm": 48,
+      "gap_type": "intent",
+      "category": "vibe",
+      "restaurant": "Mirella’s Tavern"
+    },
+    {
+      "query": "soul food",
+      "dm": 48,
+      "gap_type": "intent",
+      "category": "food",
+      "restaurant": "Tepalcates"
+    },
+    {
+      "query": "cozy brunch",
+      "dm": 48,
+      "gap_type": "intent",
+      "category": "vibe",
+      "restaurant": "Geraldine's"
+    },
+    {
+      "query": "valentine's day dinner",
+      "dm": 48,
+      "gap_type": "scoring",
+      "category": "service",
+      "restaurant": "The Gundis Kurdish Kitchen"
+    },
+    {
+      "query": "wheelchair accessible",
+      "dm": 48,
+      "gap_type": "scoring",
+      "category": "convenience",
+      "restaurant": "The Gundis Kurdish Kitchen"
+    },
+    {
+      "query": "boba tea",
+      "dm": 48,
+      "gap_type": "scoring",
+      "category": "food",
+      "restaurant": "The Gundis Kurdish Kitchen"
+    },
+    {
+      "query": "best vietnamese chicago",
+      "dm": 49,
+      "gap_type": "scoring",
+      "category": "reputation",
+      "restaurant": "The Gundis Kurdish Kitchen"
+    },
+    {
+      "query": "drag brunch",
+      "dm": 50,
+      "gap_type": "intent",
+      "category": "vibe",
+      "restaurant": "Geraldine's"
+    },
+    {
+      "query": "cajun food",
+      "dm": 50,
+      "gap_type": "scoring",
+      "category": "food",
+      "restaurant": "S & T Steakhouse"
+    },
+    {
+      "query": "private chef consultation",
+      "dm": 50,
+      "gap_type": "intent",
+      "category": "service",
+      "restaurant": "MingHin Cuisine"
+    },
+    {
+      "query": "hot pot",
+      "dm": 50,
+      "gap_type": "scoring",
+      "category": "food",
+      "restaurant": "Sochi Saigonese Kitchen"
+    },
+    {
+      "query": "macarons",
+      "dm": 51,
+      "gap_type": "scoring",
+      "category": "food",
+      "restaurant": "Suda's"
+    },
+    {
+      "query": "korean bbq",
+      "dm": 51,
+      "gap_type": "scoring",
+      "category": "food",
+      "restaurant": "Sochi Saigonese Kitchen"
+    },
+    {
+      "query": "most awarded chicago chef",
+      "dm": 51,
+      "gap_type": "intent",
+      "category": "reputation",
+      "restaurant": "MingHin Cuisine"
+    },
+    {
+      "query": "yelp top rated brunch",
+      "dm": 51,
+      "gap_type": "intent",
+      "category": "reputation",
+      "restaurant": "Geraldine's"
+    },
+    {
+      "query": "house butchery",
+      "dm": 51,
+      "gap_type": "scoring",
+      "category": "service",
+      "restaurant": "MingHin Cuisine"
+    },
+    {
+      "query": "oxtail stew",
+      "dm": 51,
+      "gap_type": "scoring",
+      "category": "food",
+      "restaurant": "The Gundis Kurdish Kitchen"
+    },
+    {
+      "query": "oxtail",
+      "dm": 51,
+      "gap_type": "scoring",
+      "category": "food",
+      "restaurant": "Tepalcates"
+    },
+    {
+      "query": "pierogi",
+      "dm": 51,
+      "gap_type": "scoring",
+      "category": "food",
+      "restaurant": "Suda's"
+    },
+    {
+      "query": "ethiopian restaurant",
+      "dm": 52,
+      "gap_type": "scoring",
+      "category": "food",
+      "restaurant": "The Gundis Kurdish Kitchen"
+    },
+    {
+      "query": "french food",
+      "dm": 52,
+      "gap_type": "scoring",
+      "category": "food",
+      "restaurant": "The Gundis Kurdish Kitchen"
+    },
+    {
+      "query": "sake bar",
+      "dm": 53,
+      "gap_type": "scoring",
+      "category": "food",
+      "restaurant": "Indie Cafe Sushi Thai"
+    },
+    {
+      "query": "vegan tasting menu",
+      "dm": 53,
+      "gap_type": "intent",
+      "category": "service",
+      "restaurant": "HaiSous Vietnamese Kitchen"
+    },
+    {
+      "query": "best sushi chicago",
+      "dm": 54,
+      "gap_type": "scoring",
+      "category": "reputation",
+      "restaurant": "Indie Cafe Sushi Thai"
+    },
+    {
+      "query": "teppanyaki",
+      "dm": 54,
+      "gap_type": "scoring",
+      "category": "food",
+      "restaurant": "Indie Cafe Sushi Thai"
+    },
+    {
+      "query": "matcha desserts",
+      "dm": 54,
+      "gap_type": "scoring",
+      "category": "food",
+      "restaurant": "Indie Cafe Sushi Thai"
+    },
+    {
+      "query": "sushi omakase",
+      "dm": 54,
+      "gap_type": "scoring",
+      "category": "food",
+      "restaurant": "Indie Cafe Sushi Thai"
+    },
+    {
+      "query": "udon",
+      "dm": 54,
+      "gap_type": "scoring",
+      "category": "food",
+      "restaurant": "Indie Cafe Sushi Thai"
+    },
+    {
+      "query": "shabu shabu",
+      "dm": 54,
+      "gap_type": "scoring",
+      "category": "food",
+      "restaurant": "Indie Cafe Sushi Thai"
+    },
+    {
+      "query": "greektown heritage",
+      "dm": 55,
+      "gap_type": "scoring",
+      "category": "vibe",
+      "restaurant": "The Gundis Kurdish Kitchen"
+    },
+    {
+      "query": "best burger chicago",
+      "dm": 55,
+      "gap_type": "scoring",
+      "category": "reputation",
+      "restaurant": "La Scarola"
+    },
+    {
+      "query": "greektown restaurant",
+      "dm": 55,
+      "gap_type": "scoring",
+      "category": "convenience",
+      "restaurant": "The Gundis Kurdish Kitchen"
+    },
+    {
+      "query": "near thalia hall",
+      "dm": 56,
+      "gap_type": "scoring",
+      "category": "convenience",
+      "restaurant": "Chiya Chai Logan Square"
+    },
+    {
+      "query": "poke bowl",
+      "dm": 57,
+      "gap_type": "scoring",
+      "category": "food",
+      "restaurant": "Hugo's Frog Bar & Fish House"
+    },
+    {
+      "query": "new american cuisine",
+      "dm": 57,
+      "gap_type": "scoring",
+      "category": "food",
+      "restaurant": "La Scarola"
+    },
+    {
+      "query": "bustling brasserie",
+      "dm": 58,
+      "gap_type": "scoring",
+      "category": "vibe",
+      "restaurant": "Norman's Bistro"
+    },
+    {
+      "query": "michelin dining room",
+      "dm": 59,
+      "gap_type": "scoring",
+      "category": "vibe",
+      "restaurant": "Sochi Saigonese Kitchen"
+    },
+    {
+      "query": "client dinner",
+      "dm": 59,
+      "gap_type": "scoring",
+      "category": "vibe",
+      "restaurant": "Gene & Georgetti"
+    },
+    {
+      "query": "cheap eats",
+      "dm": 59,
+      "gap_type": "scoring",
+      "category": "convenience",
+      "restaurant": "Sochi Saigonese Kitchen"
+    },
+    {
+      "query": "indian food",
+      "dm": 60,
+      "gap_type": "relevance_ceiling",
+      "category": "food",
+      "restaurant": "Chiya Chai Logan Square"
+    },
+    {
+      "query": "near lakefront trail",
+      "dm": 60,
+      "gap_type": "relevance_ceiling",
+      "category": "convenience",
+      "restaurant": "Tepalcates"
+    },
+    {
+      "query": "best lakeview restaurant",
+      "dm": 60,
+      "gap_type": "relevance_ceiling",
+      "category": "reputation",
+      "restaurant": "Tepalcates"
+    },
+    {
+      "query": "michelin atmosphere",
+      "dm": 60,
+      "gap_type": "relevance_ceiling",
+      "category": "vibe",
+      "restaurant": "HaiSous Vietnamese Kitchen"
+    },
+    {
+      "query": "most reviewed restaurant",
+      "dm": 60,
+      "gap_type": "relevance_ceiling",
+      "category": "reputation",
+      "restaurant": "Tepalcates"
+    },
+    {
+      "query": "best rooftop bar chicago",
+      "dm": 61,
+      "gap_type": "relevance_ceiling",
+      "category": "reputation",
+      "restaurant": "Le Colonial Chicago"
+    },
+    {
+      "query": "working lunch",
+      "dm": 61,
+      "gap_type": "relevance_ceiling",
+      "category": "vibe",
+      "restaurant": "The Gundis Kurdish Kitchen"
+    },
+    {
+      "query": "festive holiday restaurant",
+      "dm": 61,
+      "gap_type": "relevance_ceiling",
+      "category": "vibe",
+      "restaurant": "The Gundis Kurdish Kitchen"
+    }
+  ],
+  "score_distribution": [
+    {
+      "label": "90-99 (Outstanding)",
+      "count": 0
+    },
+    {
+      "label": "80-89 (Excellent)",
+      "count": 1
+    },
+    {
+      "label": "70-79 (Strong)",
+      "count": 13
+    },
+    {
+      "label": "60-69 (Solid)",
+      "count": 144
+    },
+    {
+      "label": "50-59 (Marginal)",
+      "count": 32
+    },
+    {
+      "label": "40-49 (Weak)",
+      "count": 10
+    },
+    {
+      "label": "< 40 (Critical)",
+      "count": 0
+    }
+  ]
+}
