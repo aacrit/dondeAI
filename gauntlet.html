@@ -867,7 +867,7 @@ function renderDashboard(el, data) {
 
   // Gaps table
   html += '<div class="table-wrap"><table id="gaps-table"><thead><tr>';
-  html += '<th style="width:28px"><input type="checkbox" id="gap-select-all" class="gap-check"></th>';
+  html += '<th style="width:28px"><input type="checkbox" id="gap-select-all"></th>';
   html += '<th class="sortable" data-col="1" data-type="num">#</th>';
   html += '<th class="sortable" data-col="2" data-type="str">Query</th>';
   html += '<th class="sortable" data-col="3" data-type="num">DM</th>';
@@ -1343,8 +1343,8 @@ window._generateFixSession = function(idx) {
 };
 
 window._generateBulkFixSession = function() {
-  const checks = document.querySelectorAll('.gap-check:checked');
-  const gaps = [...checks].map(c => allGapsRef[parseInt(c.dataset.idx)]);
+  const checks = document.querySelectorAll('.gap-check[data-idx]:checked');
+  const gaps = [...checks].map(c => allGapsRef[parseInt(c.dataset.idx)]).filter(Boolean);
   if (!gaps.length) return;
   const prompt = buildBulkFixPrompt(gaps);
   const btn = document.querySelector('.bulk-fix-btn');
@@ -1352,7 +1352,7 @@ window._generateBulkFixSession = function() {
 };
 
 function updateBulkBar() {
-  const count = document.querySelectorAll('.gap-check:checked').length;
+  const count = document.querySelectorAll('.gap-check[data-idx]:checked').length;
   const bar = document.getElementById('bulk-bar');
   if (!bar) return;
   bar.style.display = count > 0 ? 'flex' : 'none';
@@ -1360,7 +1360,9 @@ function updateBulkBar() {
 }
 
 window._clearSelection = function() {
-  document.querySelectorAll('.gap-check').forEach(c => { c.checked = false; });
+  document.querySelectorAll('.gap-check[data-idx]').forEach(c => { c.checked = false; });
+  const selectAll = document.getElementById('gap-select-all');
+  if (selectAll) selectAll.checked = false;
   document.querySelectorAll('tr.gap-selected').forEach(r => r.classList.remove('gap-selected'));
   updateBulkBar();
 };
