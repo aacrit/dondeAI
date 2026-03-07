@@ -397,91 +397,6 @@
   animation: progressSlide 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
-/* ---- Taste Memory (recent searches on canvas) ---- */
-.taste-memory {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-xs);
-  width: 100%;
-  margin-top: var(--space-sm);
-  opacity: 0;
-  transition: opacity 300ms var(--ease-out);
-}
-
-.taste-memory--visible {
-  opacity: 1;
-}
-
-.taste-memory__label {
-  color: var(--fg3);
-}
-
-.taste-memory__list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-xs);
-  justify-content: center;
-}
-
-.taste-memory__chip {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2xs);
-  padding: var(--space-2xs) var(--space-sm);
-  background: transparent;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-pill);
-  color: var(--fg2);
-  font-family: var(--font-structural);
-  font-size: var(--text-sm);
-  cursor: pointer;
-  opacity: 0;
-  transform: translateY(6px);
-  transition: background var(--dur-fast) var(--ease-out),
-              border-color var(--dur-fast) var(--ease-out),
-              color var(--dur-fast) var(--ease-out);
-}
-
-.taste-memory--visible .taste-memory__chip {
-  animation: chipReveal 200ms var(--ease-out) forwards;
-}
-
-.taste-memory--visible .taste-memory__chip:nth-child(1) { animation-delay: 0ms; }
-.taste-memory--visible .taste-memory__chip:nth-child(2) { animation-delay: 60ms; }
-.taste-memory--visible .taste-memory__chip:nth-child(3) { animation-delay: 120ms; }
-
-.taste-memory__chip:hover {
-  background: var(--ac-soft);
-  border-color: var(--ac-soft);
-  color: var(--ac);
-}
-
-.taste-memory__chip:active {
-  transform: scale(0.95);
-}
-
-.taste-memory__icon {
-  display: flex;
-  align-items: center;
-  width: 14px;
-  height: 14px;
-  flex-shrink: 0;
-  color: var(--fg3);
-}
-
-.taste-memory__icon svg {
-  width: 14px;
-  height: 14px;
-}
-
-.taste-memory__time {
-  color: var(--fg3);
-  font-family: var(--font-data);
-  font-size: var(--text-xs);
-  margin-left: var(--space-2xs);
-}
-
 /* ---- V10: Combined "Your Spots" section ---- */
 .your-spots {
   display: flex;
@@ -3409,12 +3324,12 @@
   width: 100%;
   height: 3px;
   background: var(--border);
-  border-radius: 2px;
+  border-radius: 3px;
   overflow: hidden;
 }
 .tile-expand__subfactor-fill {
   height: 100%;
-  border-radius: 2px;
+  border-radius: 3px;
 }
 .tile-expand__subfactor-score {
   color: var(--fg2);
@@ -4660,56 +4575,6 @@
   flex-shrink: 0;
 }
 
-/* ---- F4: Saved Spots ---- */
-.saved-spots {
-  padding-top: var(--space-sm);
-}
-
-.saved-spots__label {
-  color: var(--fg3);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  display: block;
-  margin-bottom: var(--space-xs);
-}
-
-.saved-spots__list {
-  display: flex;
-  gap: var(--space-xs);
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  padding-bottom: var(--space-xs);
-}
-
-.saved-spots__list::-webkit-scrollbar { display: none; }
-
-.saved-spot {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: var(--space-xs) var(--space-sm);
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background 150ms var(--ease-out);
-  min-width: 0;
-  flex-shrink: 0;
-}
-
-.saved-spot:hover { background: var(--bg3); }
-
-.saved-spot__name {
-  font-weight: 500;
-  color: var(--fg);
-  font-size: var(--text-sm);
-}
-
-.saved-spot__meta {
-  color: var(--fg3);
-}
-
 /* ---- F5: Dietary toggle pills ---- */
 .filter-pill--toggle[aria-checked="true"] {
   background: var(--ac);
@@ -4915,65 +4780,6 @@
 .cta-btn--neutral:focus-visible { outline: 2px solid var(--fg3); outline-offset: 2px; }
 
 /* V10: card-footer__feedback removed — feedback icons now in secondary row */
-
-/* ---- Visited Spots (landing page) ---- */
-.visited-spots {
-  padding-top: var(--space-sm);
-}
-
-.visited-spots__label {
-  color: var(--fg3);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  font-size: var(--text-xs);
-  display: block;
-  margin-bottom: var(--space-xs);
-}
-
-.visited-spots__list {
-  display: flex;
-  gap: var(--space-xs);
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  padding-bottom: var(--space-xs);
-}
-
-.visited-spots__list::-webkit-scrollbar { display: none; }
-
-.visited-spot {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: var(--space-xs) var(--space-sm);
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  cursor: pointer;
-  transition: background var(--dur-fast) var(--ease-out);
-  min-width: 120px;
-  max-width: 180px;
-  flex-shrink: 0;
-}
-
-.visited-spot:hover { background: var(--bg3); }
-
-.visited-spot__name {
-  font-weight: 500;
-  color: var(--fg);
-  font-size: var(--text-sm);
-}
-
-.visited-spot__meta {
-  color: var(--fg3);
-}
-
-.visited-spot__pin {
-  color: var(--ac);
-  font-size: var(--text-xs);
-  display: flex;
-  align-items: center;
-  gap: 2px;
-}
 
 /* ---- App Feedback Sheet ---- */
 .feedback-sheet {
@@ -5255,9 +5061,6 @@
   .canvas-layout { padding-top: var(--space-sm); }
   .step__title { font-size: var(--text-lg); }
   .smart-chips { display: none; }
-  .taste-memory { display: none; }
-  .saved-spots { display: none; }
-  .visited-spots { display: none; }
   .surprise-btn { display: none; }
 }
 
@@ -6095,8 +5898,7 @@
   animation: inkDissolve var(--dur-morph) var(--ease-out) 60ms forwards;
   pointer-events: none;
 }
-.canvas-layout--morphing .smart-chips,
-.canvas-layout--morphing .taste-memory {
+.canvas-layout--morphing .smart-chips {
   animation: inkDissolve var(--dur-morph) var(--ease-out) 120ms forwards;
   pointer-events: none;
 }
@@ -6106,7 +5908,6 @@
   pointer-events: none;
 }
 .canvas-layout--morphing .surprise-btn,
-.canvas-layout--morphing .saved-spots,
 .canvas-layout--morphing .empty-state {
   animation: inkDissolve var(--dur-morph) var(--ease-out) 240ms forwards;
   pointer-events: none;
@@ -6185,10 +5986,8 @@
 .canvas-layout--restoring .craving-wrap,
 .canvas-layout--restoring .filter-drawer,
 .canvas-layout--restoring .smart-chips,
-.canvas-layout--restoring .taste-memory,
 .canvas-layout--restoring .cta-hint,
 .canvas-layout--restoring .surprise-btn,
-.canvas-layout--restoring .saved-spots,
 .canvas-layout--restoring .step__title,
 .canvas-layout--restoring .empty-state {
   opacity: 0;

@@ -662,7 +662,6 @@
   .ink-write,
   .canvas-layout--morphing .filter-drawer,
   .canvas-layout--morphing .smart-chips,
-  .canvas-layout--morphing .taste-memory,
   .canvas-layout--morphing .cta-hint,
   .canvas-layout--morphing .step__title,
   .canvas-layout--morphing .surprise-btn,
@@ -745,10 +744,8 @@
   .canvas-layout--restoring .craving-wrap,
   .canvas-layout--restoring .filter-drawer,
   .canvas-layout--restoring .smart-chips,
-  .canvas-layout--restoring .taste-memory,
   .canvas-layout--restoring .cta-hint,
   .canvas-layout--restoring .surprise-btn,
-  .canvas-layout--restoring .saved-spots,
   .canvas-layout--restoring .step__title,
   .canvas-layout--restoring .empty-state,
   .canvas-layout--restoring .cta-btn {

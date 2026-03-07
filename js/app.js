@@ -598,41 +598,6 @@ function updateChipsForInput(query) {
   });
 }
 
-/* ---- Taste Memory (recent searches on canvas) ---- */
-function renderTasteMemory() {
-  const $container = document.getElementById('taste-memory');
-  const $list = document.getElementById('taste-memory-list');
-  if (!$container || !$list) return;
-
-  const { history } = getState();
-  if (!history || history.length === 0) {
-    $container.classList.remove('taste-memory--visible');
-    return;
-  }
-
-  $list.innerHTML = '';
-  history.slice(0, 3).forEach(entry => {
-    const btn = document.createElement('button');
-    btn.className = 'taste-memory__chip';
-    btn.setAttribute('data-action', 'taste-memory');
-    btn.setAttribute('data-payload', JSON.stringify(entry.payload));
-
-    const iconHtml = entry.cuisineIcon
-      ? `<span class="taste-memory__icon">${svgIcon(entry.cuisineIcon, 14)}</span>`
-      : '';
-
-    const label = entry.label.length > 22 ? entry.label.slice(0, 20) + '…' : entry.label;
-    const time = entry.timestamp ? relativeTime(entry.timestamp) : '';
-
-    btn.innerHTML = `${iconHtml}<span>${label}</span>${time ? `<span class="taste-memory__time">${time}</span>` : ''}`;
-    $list.appendChild(btn);
-  });
-
-  $container.classList.remove('taste-memory--visible');
-  void $container.offsetWidth;
-  $container.classList.add('taste-memory--visible');
-}
-
 /* ---- Ambient Blob Interaction Pulse ---- */
 function pulseAmbient() {
   const blobs = document.querySelectorAll('.ambient__blob');
@@ -735,22 +700,7 @@ function wireEvents() {
         break;
       }
 
-      case 'taste-memory': {
-        try {
-          const payload = JSON.parse(btn.dataset.payload);
-          if ($cravingInput && payload.special_request) {
-            $cravingInput.value = payload.special_request;
-            setState({
-              craving: payload.special_request,
-              occasion: payload.occasion || 'Any',
-              neighborhood: payload.neighborhood || 'Anywhere',
-              priceLevel: payload.price_level || 'Any',
-            });
-            updateCtaState();
-          }
-        } catch { /* ignore parse errors */ }
-        break;
-      }
+
 
       case 'select-occasion':
         selectFilter('occasion', btn);
@@ -3621,37 +3571,6 @@ function updateBookmarkBtn(restaurantId) {
   $btn.classList.toggle('feedback-btn--active', saved);
 }
 
-/* ---- F4: Render Saved Spots on Canvas ---- */
-function renderSavedSpots() {
-  const $container = document.getElementById('saved-spots');
-  const $list = document.getElementById('saved-spots-list');
-  if (!$container || !$list) return;
-  const bookmarks = loadBookmarks();
-  if (bookmarks.length === 0) {
-    $container.style.display = 'none';
-    return;
-  }
-  $list.innerHTML = '';
-  bookmarks.slice(0, 5).forEach(b => {
-    const item = document.createElement('button');
-    item.className = 'saved-spot type-structural';
-    item.innerHTML = `
-      <span class="saved-spot__name">${b.name}</span>
-      ${b.cuisine_type ? `<span class="saved-spot__meta type-data--sm">${b.cuisine_type}</span>` : ''}
-    `;
-    item.addEventListener('click', () => {
-      if ($cravingInput) {
-        $cravingInput.value = b.name;
-        setState({ craving: b.name });
-        updateCtaState();
-      }
-    });
-    $list.appendChild(item);
-  });
-  $container.style.display = '';
-}
-
-
 /* ---- F11: Render Feedback Button State ---- */
 function renderFeedbackState(restaurantId) {
   const existing = loadFeedback(restaurantId);
@@ -3676,33 +3595,6 @@ function updateGoingBtn(restaurantId) {
     if ($text) $text.textContent = labels.goingHere || "I'm Going Here!";
     $btn.setAttribute('aria-label', labels.goingHere || "I'm Going Here!");
   }
-}
-
-/* ---- Visited Spots on Landing ---- */
-function renderVisitedSpots() {
-  const $container = document.getElementById('visited-spots');
-  const $list = document.getElementById('visited-spots-list');
-  if (!$container || !$list) return;
-  const visits = loadVisits();
-  if (visits.length === 0) {
-    $container.style.display = 'none';
-    return;
-  }
-  $list.innerHTML = '';
-  visits.slice(0, 5).forEach(v => {
-    const item = document.createElement('button');
-    item.className = 'visited-spot type-structural';
-    item.innerHTML = `
-      <span class="visited-spot__pin type-data--sm">
-        <svg viewBox="0 0 256 256" width="10" height="10"><path fill="currentColor" d="M128,16a88.1,88.1,0,0,0-88,88c0,75.3,80,132.17,83.41,134.55a8,8,0,0,0,9.18,0C136,236.17,216,179.3,216,104A88.1,88.1,0,0,0,128,16Zm0,56a32,32,0,1,1-32,32A32,32,0,0,1,128,72Z"/></svg>
-        Been
-      </span>
-      <span class="visited-spot__name">${v.name}</span>
-      <span class="visited-spot__meta type-data--sm">${v.cuisine_type || v.neighborhood_name || ''}</span>
-    `;
-    $list.appendChild(item);
-  });
-  $container.style.display = '';
 }
 
 /* ---- V10: Combined "Your Spots" — merges recent + saved + visited ---- */
