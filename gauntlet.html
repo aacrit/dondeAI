@@ -424,7 +424,15 @@
       transition: background 0.15s, color 0.15s, border-color 0.15s;
     }
     .fix-btn:hover { background: var(--accent); color: var(--bg); }
-    .fix-btn.copied { background: var(--rag-green); color: #fff; border-color: var(--rag-green); pointer-events: none; }
+    .fix-btn.copied { background: var(--rag-green); color: #fff; border-color: var(--rag-green); }
+    .fix-session-link {
+      color: #fff;
+      text-decoration: underline;
+      font-weight: 600;
+      cursor: pointer;
+      pointer-events: auto;
+    }
+    .fix-session-link:hover { opacity: 0.85; }
     .clear-btn {
       background: transparent;
       color: var(--text-3);
@@ -1300,15 +1308,32 @@ function buildBulkFixPrompt(gaps) {
 }
 
 function openFixSession(prompt, btn, label) {
-  const encoded = encodeURIComponent(prompt);
-  const url = `https://claude.ai/code?prompt=${encoded}`;
-  navigator.clipboard.writeText(prompt).catch(() => {});
-  window.open(url, '_blank');
-  if (btn) {
-    btn.classList.add('copied');
-    btn.textContent = 'Session opened!';
-    setTimeout(() => { btn.classList.remove('copied'); btn.textContent = label; }, 2000);
-  }
+  navigator.clipboard.writeText(prompt).then(() => {
+    if (btn) {
+      const link = document.createElement('a');
+      link.href = 'https://claude.ai/code';
+      link.target = '_blank';
+      link.rel = 'noopener';
+      link.className = 'fix-session-link';
+      link.textContent = 'Open Claude Code →';
+      btn.classList.add('copied');
+      btn.textContent = 'Prompt copied! ';
+      btn.appendChild(link);
+      link.addEventListener('click', (e) => e.stopPropagation());
+      setTimeout(() => {
+        btn.classList.remove('copied');
+        btn.textContent = label;
+      }, 8000);
+    }
+  }).catch(() => {
+    // Fallback: select prompt text in a temporary textarea
+    const ta = document.createElement('textarea');
+    ta.value = prompt;
+    ta.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:60vw;height:40vh;z-index:9999;font-size:12px;padding:12px;';
+    document.body.appendChild(ta);
+    ta.select();
+    ta.addEventListener('keydown', (e) => { if (e.key === 'Escape') ta.remove(); });
+  });
 }
 
 window._generateFixSession = function(idx) {
