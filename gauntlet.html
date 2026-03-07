@@ -1308,32 +1308,47 @@ function buildBulkFixPrompt(gaps) {
 }
 
 function openFixSession(prompt, btn, label) {
-  navigator.clipboard.writeText(prompt).then(() => {
-    if (btn) {
-      const link = document.createElement('a');
-      link.href = 'https://claude.ai/code';
-      link.target = '_blank';
-      link.rel = 'noopener';
-      link.className = 'fix-session-link';
-      link.textContent = 'Open Claude Code →';
-      btn.classList.add('copied');
-      btn.textContent = 'Prompt copied! ';
-      btn.appendChild(link);
-      link.addEventListener('click', (e) => e.stopPropagation());
-      setTimeout(() => {
-        btn.classList.remove('copied');
-        btn.textContent = label;
-      }, 8000);
+  // Try clipboard, but don't gate everything on it
+  let copied = false;
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(prompt).then(() => { copied = true; }).catch(() => {});
     }
-  }).catch(() => {
-    // Fallback: select prompt text in a temporary textarea
-    const ta = document.createElement('textarea');
-    ta.value = prompt;
-    ta.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:60vw;height:40vh;z-index:9999;font-size:12px;padding:12px;';
-    document.body.appendChild(ta);
-    ta.select();
-    ta.addEventListener('keydown', (e) => { if (e.key === 'Escape') ta.remove(); });
-  });
+  } catch(e) {}
+
+  // Fallback: copy via execCommand
+  if (!copied) {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = prompt;
+      ta.style.cssText = 'position:fixed;opacity:0;';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+      copied = true;
+    } catch(e) {}
+  }
+
+  // Always show feedback + link regardless of clipboard success
+  if (btn) {
+    const link = document.createElement('a');
+    link.href = 'https://claude.ai/code';
+    link.target = '_blank';
+    link.rel = 'noopener';
+    link.className = 'fix-session-link';
+    link.textContent = 'Open Claude Code \u2192';
+    link.addEventListener('click', (e) => e.stopPropagation());
+
+    btn.classList.add('copied');
+    btn.textContent = 'Prompt copied! ';
+    btn.appendChild(link);
+
+    setTimeout(() => {
+      btn.classList.remove('copied');
+      btn.textContent = label;
+    }, 8000);
+  }
 }
 
 window._generateFixSession = function(idx) {
@@ -1384,10 +1399,12 @@ function initGapCheckboxes() {
     updateBulkBar();
   });
 
-  document.getElementById('gaps-table')?.addEventListener('change', (e) => {
-    if (!e.target.classList.contains('gap-check')) return;
-    e.target.closest('tr')?.classList.toggle('gap-selected', e.target.checked);
-    updateBulkBar();
+  // Attach change listener directly to each checkbox (delegation can miss events)
+  document.querySelectorAll('.gap-check[data-idx]').forEach(cb => {
+    cb.addEventListener('change', () => {
+      cb.closest('tr')?.classList.toggle('gap-selected', cb.checked);
+      updateBulkBar();
+    });
   });
 }
 
