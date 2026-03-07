@@ -3,22 +3,30 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Donde Gauntlet — Search Quality Dashboard</title>
+  <title>Donde Gauntlet — Search Quality Command Center</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #0a0a0a;
-      --surface: #141414;
-      --surface-2: #1e1e1e;
-      --border: #2a2a2a;
-      --text: #e8e8e8;
-      --text-2: #999;
-      --accent: #f5c542;
-      --green: #4ade80;
-      --amber: #fbbf24;
-      --red: #f87171;
-      --blue: #60a5fa;
-      --radius: 12px;
-      --font: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+      --bg: #0c0d0f;
+      --surface: #16181c;
+      --surface-2: #1e2028;
+      --surface-3: #262830;
+      --border: #2e3038;
+      --border-focus: #454854;
+      --text: #d4d5d9;
+      --text-2: #7c7f8a;
+      --text-3: #52545e;
+      --accent: #8b8ff5;
+      --accent-dim: rgba(139,143,245,0.12);
+      --rag-green: #34d399;
+      --rag-amber: #f0a63a;
+      --rag-red: #ef6461;
+      --info: #6b9fff;
+      --radius: 8px;
+      --font: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      --font-mono: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -29,62 +37,139 @@
       color: var(--text);
       line-height: 1.5;
       padding: 24px;
-      max-width: 1400px;
+      max-width: 1440px;
       margin: 0 auto;
     }
 
-    h1 { font-size: 1.4rem; font-weight: 700; margin-bottom: 4px; }
-    h2 { font-size: 1.1rem; font-weight: 600; margin: 32px 0 16px; color: var(--accent); }
-    h3 { font-size: 0.95rem; font-weight: 600; margin: 24px 0 12px; }
+    h1 { font-size: 1.3rem; font-weight: 700; }
+    h2 { font-size: 1rem; font-weight: 600; margin: 0 0 14px; color: var(--text); }
+    h3 { font-size: 0.88rem; font-weight: 600; margin: 0 0 10px; color: var(--text); }
 
-    .subtitle { font-size: 0.85rem; color: var(--text-2); margin-bottom: 24px; }
+    .subtitle { font-size: 0.78rem; color: var(--text-2); margin-top: 2px; }
+
+    /* ─── Header ──────────────────────────────────────────── */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .refresh-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text-2);
+      padding: 6px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: var(--font);
+      font-size: 0.75rem;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .refresh-btn:hover { border-color: var(--border-focus); color: var(--text); }
+
+    /* ─── Tabs ────────────────────────────────────────────── */
+    .tab-bar {
+      display: flex;
+      gap: 0;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 20px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .tab {
+      padding: 10px 18px;
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: var(--text-2);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: color 0.15s, border-color 0.15s;
+      white-space: nowrap;
+      user-select: none;
+    }
+    .tab:hover { color: var(--text); }
+    .tab.active { color: var(--text); border-bottom-color: var(--accent); }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
 
     /* ─── Summary Cards ───────────────────────────────────── */
     .cards {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 12px;
-      margin-bottom: 32px;
+      grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+      gap: 10px;
+      margin-bottom: 20px;
     }
 
     .card {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: 16px;
+      padding: 14px;
       text-align: center;
     }
 
     .card-value {
-      font-size: 2rem;
+      font-size: 1.7rem;
       font-weight: 700;
       line-height: 1.2;
+      font-family: var(--font-mono);
+      color: var(--text);
     }
 
     .card-label {
-      font-size: 0.75rem;
+      font-size: 0.68rem;
       color: var(--text-2);
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.4px;
       margin-top: 4px;
     }
 
-    .card-value.green { color: var(--green); }
-    .card-value.amber { color: var(--amber); }
-    .card-value.red { color: var(--red); }
-    .card-value.blue { color: var(--blue); }
-    .card-value.accent { color: var(--accent); }
+    .card-value.rag-green { color: var(--rag-green); }
+    .card-value.rag-amber { color: var(--rag-amber); }
+    .card-value.rag-red { color: var(--rag-red); }
+
+    /* ─── Recommendation Cards ────────────────────────────── */
+    .rec-list { margin-bottom: 20px; }
+    .rec-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      margin-bottom: 6px;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .rec-card:hover { background: var(--surface-2); border-left-color: var(--accent); }
+    .rec-header { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+    .rec-priority {
+      font-size: 0.62rem;
+      font-weight: 600;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      background: var(--accent-dim);
+      padding: 2px 6px;
+      border-radius: 3px;
+    }
+    .rec-action { font-size: 0.82rem; font-weight: 500; color: var(--text); }
+    .rec-detail { display: flex; gap: 16px; font-size: 0.72rem; margin-top: 4px; }
+    .rec-impact { color: var(--rag-green); }
+    .rec-rationale { color: var(--text-2); flex: 1; }
 
     /* ─── Tables ──────────────────────────────────────────── */
+    .table-wrap { overflow-x: auto; margin-bottom: 16px; }
     table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 0.82rem;
-      margin-bottom: 24px;
+      font-size: 0.78rem;
     }
 
     th, td {
-      padding: 8px 12px;
+      padding: 7px 10px;
       text-align: left;
       border-bottom: 1px solid var(--border);
     }
@@ -93,159 +178,291 @@
       background: var(--surface);
       color: var(--text-2);
       font-weight: 600;
-      font-size: 0.75rem;
+      font-size: 0.68rem;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.3px;
       position: sticky;
       top: 0;
+      z-index: 1;
     }
 
     tr:hover td { background: var(--surface); }
+    tr.expandable { cursor: pointer; }
+    tr.expandable:hover td { background: var(--surface-2); }
 
     .dm-cell {
-      font-weight: 700;
+      font-weight: 600;
       text-align: center;
       width: 50px;
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
     }
 
-    .dm-cell.green { color: var(--green); }
-    .dm-cell.amber { color: var(--amber); }
-    .dm-cell.red { color: var(--red); }
+    .dm-cell.rag-green { color: var(--rag-green); }
+    .dm-cell.rag-amber { color: var(--rag-amber); }
+    .dm-cell.rag-red { color: var(--rag-red); }
 
-    /* ─── Score Bar ───────────────────────────────────────── */
-    .bar-container {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
+    /* Sortable */
+    th.sortable { cursor: pointer; user-select: none; }
+    th.sortable:hover { color: var(--text); }
+    th.sortable::after { content: ' \2195'; font-size: 0.6rem; opacity: 0.3; }
+    th.sortable.asc::after { content: ' \2191'; opacity: 0.8; }
+    th.sortable.desc::after { content: ' \2193'; opacity: 0.8; }
 
-    .bar {
-      height: 8px;
-      border-radius: 4px;
-      transition: width 0.5s ease;
-    }
-
-    .bar.green { background: var(--green); }
-    .bar.amber { background: var(--amber); }
-    .bar.red { background: var(--red); }
-
-    .bar-label {
-      font-size: 0.75rem;
-      color: var(--text-2);
-      min-width: 40px;
-    }
-
-    /* ─── Distribution Chart ──────────────────────────────── */
+    /* ─── Score Distribution ──────────────────────────────── */
     .dist-row {
       display: flex;
       align-items: center;
-      gap: 12px;
-      margin-bottom: 6px;
+      gap: 10px;
+      margin-bottom: 4px;
     }
 
     .dist-label {
-      font-size: 0.75rem;
-      width: 140px;
+      font-size: 0.7rem;
+      width: 130px;
       text-align: right;
       color: var(--text-2);
+      flex-shrink: 0;
+    }
+
+    .dist-bar-track {
+      flex: 1;
+      height: 18px;
+      background: var(--surface-2);
+      border-radius: 3px;
+      overflow: hidden;
+      position: relative;
     }
 
     .dist-bar {
-      height: 20px;
-      border-radius: 4px;
+      height: 100%;
+      border-radius: 3px;
       min-width: 2px;
       transition: width 0.5s ease;
       display: flex;
       align-items: center;
-      padding: 0 8px;
-      font-size: 0.7rem;
+      padding: 0 6px;
+      font-size: 0.65rem;
       font-weight: 600;
+      font-family: var(--font-mono);
+      color: var(--bg);
     }
+
+    .dist-count {
+      font-size: 0.68rem;
+      color: var(--text-2);
+      font-family: var(--font-mono);
+      width: 30px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .dist-pct {
+      font-size: 0.65rem;
+      color: var(--text-3);
+      width: 40px;
+      flex-shrink: 0;
+    }
+
+    .percentile-markers {
+      display: flex;
+      gap: 12px;
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid var(--border);
+      font-size: 0.7rem;
+    }
+    .percentile-markers span { color: var(--text-2); }
+    .percentile-markers strong { color: var(--text); font-family: var(--font-mono); }
 
     /* ─── Gap Badge ───────────────────────────────────────── */
     .badge {
       display: inline-block;
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-size: 0.7rem;
+      padding: 1px 7px;
+      border-radius: 3px;
+      font-size: 0.65rem;
       font-weight: 600;
     }
 
-    .badge-p0 { background: rgba(248,113,113,0.2); color: var(--red); }
-    .badge-p1 { background: rgba(251,191,36,0.2); color: var(--amber); }
-    .badge-p2 { background: rgba(96,165,250,0.2); color: var(--blue); }
+    .badge-p0 { background: rgba(239,100,97,0.15); color: var(--rag-red); }
+    .badge-p1 { background: rgba(240,166,58,0.15); color: var(--rag-amber); }
+    .badge-p2 { background: rgba(107,159,255,0.12); color: var(--info); }
+    .badge-auto { background: rgba(52,211,153,0.12); color: var(--rag-green); }
+    .badge-tuning { background: rgba(240,166,58,0.12); color: var(--rag-amber); }
+    .badge-architectural { background: rgba(107,159,255,0.12); color: var(--info); }
 
-    /* ─── Loading ─────────────────────────────────────────── */
-    .loading {
-      text-align: center;
-      padding: 60px;
-      color: var(--text-2);
+    /* ─── Filter Bar ──────────────────────────────────────── */
+    .filter-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+      align-items: center;
     }
-
-    .loading-spinner {
-      width: 24px;
-      height: 24px;
-      border: 2px solid var(--border);
-      border-top-color: var(--accent);
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      margin: 0 auto 12px;
+    .filter-bar label { font-size: 0.7rem; color: var(--text-2); }
+    .filter-select, .filter-input {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 5px 8px;
+      border-radius: 5px;
+      font-size: 0.72rem;
+      font-family: var(--font);
     }
-
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    .error { color: var(--red); text-align: center; padding: 40px; }
-
-    /* ─── Grid Layout ─────────────────────────────────────── */
-    .grid-2 {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 24px;
-    }
-
-    @media (max-width: 768px) {
-      .grid-2 { grid-template-columns: 1fr; }
-      .cards { grid-template-columns: repeat(2, 1fr); }
-    }
+    .filter-select:focus, .filter-input:focus { border-color: var(--accent); outline: none; }
+    .filter-input { width: 180px; }
+    .filter-count { font-size: 0.7rem; color: var(--text-3); margin-left: auto; }
 
     /* ─── Section ─────────────────────────────────────────── */
     .section {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: 20px;
-      margin-bottom: 16px;
+      padding: 16px;
+      margin-bottom: 12px;
     }
 
     .section h3 { margin-top: 0; }
 
-    /* ─── Header ──────────────────────────────────────────── */
-    header {
+    .section-note {
+      font-size: 0.72rem;
+      color: var(--text-2);
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid var(--border);
+      line-height: 1.6;
+    }
+
+    .section-note strong { color: var(--text); }
+
+    /* ─── Grid Layout ─────────────────────────────────────── */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+    }
+
+    @media (max-width: 900px) {
+      .grid-3 { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 768px) {
+      .grid-2 { grid-template-columns: 1fr; }
+      .cards { grid-template-columns: repeat(3, 1fr); }
+      body { padding: 12px; }
+    }
+
+    /* ─── Factor Bars ─────────────────────────────────────── */
+    .factor-bars { margin: 8px 0; }
+    .factor-row {
+      display: grid;
+      grid-template-columns: 80px 1fr 36px;
+      gap: 6px;
+      align-items: center;
+      margin-bottom: 3px;
+    }
+    .factor-label { font-size: 0.68rem; color: var(--text-2); text-align: right; }
+    .factor-track {
+      height: 5px;
+      background: var(--surface-2);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .factor-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.4s ease;
+    }
+    .factor-value {
+      font-size: 0.68rem;
+      color: var(--text-2);
+      font-family: var(--font-mono);
+    }
+
+    /* ─── Collapsible ─────────────────────────────────────── */
+    .collapsible { border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 6px; overflow: hidden; }
+    .collapsible-header {
       display: flex;
       justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 24px;
-    }
-
-    .refresh-btn {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      color: var(--text);
-      padding: 8px 16px;
-      border-radius: 8px;
+      align-items: center;
+      padding: 10px 14px;
       cursor: pointer;
-      font-family: var(--font);
+      user-select: none;
+      background: var(--surface);
+      transition: background 0.15s;
       font-size: 0.8rem;
+      font-weight: 500;
+    }
+    .collapsible-header:hover { background: var(--surface-2); }
+    .collapsible-chevron { color: var(--text-3); font-size: 0.7rem; transition: transform 0.2s; }
+    .collapsible.open .collapsible-chevron { transform: rotate(90deg); }
+    .collapsible-body { display: none; padding: 12px 14px; border-top: 1px solid var(--border); background: var(--bg); }
+    .collapsible.open .collapsible-body { display: block; }
+
+    /* ─── Expanded Gap Row ────────────────────────────────── */
+    .gap-detail-row td { background: var(--surface) !important; padding: 10px 14px; }
+    .gap-detail-content { font-size: 0.72rem; color: var(--text-2); line-height: 1.6; }
+    .gap-detail-content strong { color: var(--text); }
+    .gap-detail-factors { display: flex; gap: 12px; margin-top: 6px; }
+    .gap-detail-factors span { font-family: var(--font-mono); font-size: 0.68rem; }
+
+    /* ─── Impact Chart ────────────────────────────────────── */
+    .impact-row {
+      display: grid;
+      grid-template-columns: 120px 1fr 100px 80px;
+      gap: 8px;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.75rem;
+    }
+    .impact-row:last-child { border-bottom: none; }
+    .impact-type { font-weight: 500; }
+    .impact-bar-track {
+      height: 8px;
+      background: var(--surface-2);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .impact-bar {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.4s ease;
     }
 
-    .refresh-btn:hover { border-color: var(--accent); }
+    /* ─── Stat Grid ───────────────────────────────────────── */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+      gap: 8px;
+    }
+    .stat-item { text-align: center; padding: 10px; background: var(--surface-2); border-radius: var(--radius); }
+    .stat-value { font-size: 1.1rem; font-weight: 600; font-family: var(--font-mono); color: var(--text); }
+    .stat-label { font-size: 0.62rem; color: var(--text-3); text-transform: uppercase; margin-top: 2px; }
+
+    /* ─── Loading & Error ─────────────────────────────────── */
+    .loading { text-align: center; padding: 60px; color: var(--text-2); }
+    .loading-spinner {
+      width: 20px; height: 20px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .error { color: var(--rag-red); text-align: center; padding: 40px; }
   </style>
 </head>
 <body>
 
 <header>
   <div>
-    <h1>Donde Gauntlet Dashboard</h1>
+    <h1>Donde Gauntlet — Command Center</h1>
     <p class="subtitle" id="subtitle">Loading...</p>
   </div>
   <button class="refresh-btn" id="refresh-btn">Refresh</button>
@@ -259,7 +476,7 @@
 </div>
 
 <script type="module">
-/* ---- Auth Gate ---- */
+/* ── Auth Gate ────────────────────────────────────────────────────────────── */
 const SUPABASE_URL = 'https://vwbzkgsxmgwcvmvuxnbe.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3YnprZ3N4bWd3Y3ZtdnV4bmJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk5NjUzNTYsImV4cCI6MjA4NTU0MTM1Nn0.YBhmusYxc28TD5FOZv4TBpFpDVHHk1V894wUkNtJtcc';
 const ADMIN_EMAIL = 'aacrit@gmail.com';
@@ -268,7 +485,6 @@ async function checkAuth() {
   const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
   const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   const { data: { session } } = await sb.auth.getSession();
-
   if (session?.user?.email === ADMIN_EMAIL) {
     loadData();
   } else {
@@ -278,190 +494,624 @@ async function checkAuth() {
 
 function showAccessDenied(sb, session) {
   const app = document.getElementById('app');
-  const subtitle = document.getElementById('subtitle');
-  subtitle.textContent = 'Admin access required';
-
+  document.getElementById('subtitle').textContent = 'Admin access required';
   const msg = session
     ? `Signed in as ${session.user.email} — you don't have admin access.`
     : 'Sign in with your Google account to continue.';
-
   app.innerHTML = `<div style="text-align:center;padding:80px 20px;">
-    <h2 style="color:var(--red);margin-bottom:12px;">Access Denied</h2>
-    <p style="color:var(--text-2);margin-bottom:24px;font-size:0.9rem;">${msg}</p>
+    <h2 style="color:var(--rag-red);margin-bottom:12px;">Access Denied</h2>
+    <p style="color:var(--text-2);margin-bottom:24px;font-size:0.85rem;">${msg}</p>
     <button id="admin-sign-in-btn" style="
       background:var(--surface);border:1px solid var(--border);color:var(--text);
-      padding:12px 24px;border-radius:8px;cursor:pointer;font-family:var(--font);font-size:0.85rem;
+      padding:10px 20px;border-radius:6px;cursor:pointer;font-family:var(--font);font-size:0.8rem;
     ">${session ? 'Sign in with a different account' : 'Sign in with Google'}</button>
   </div>`;
-
   document.getElementById('admin-sign-in-btn').addEventListener('click', async () => {
     if (session) await sb.auth.signOut();
-    await sb.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: window.location.href },
-    });
+    await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.href } });
   });
 }
 
-/* ---- Dashboard ---- */
-const DATA_URLS = [
-  'data/dashboard-data.json',
-  '../dondeBackend/tests/gauntlet-results/dashboard-data.json',
-];
+/* ── Helpers ──────────────────────────────────────────────────────────────── */
+const DATA_URLS = ['data/dashboard-data.json', '../dondeBackend/tests/gauntlet-results/dashboard-data.json'];
 
-function dmColor(dm) {
-  if (dm >= 80) return 'green';
-  if (dm >= 60) return 'amber';
-  return 'red';
+function ragClass(dm) {
+  if (dm >= 80) return 'rag-green';
+  if (dm >= 60) return 'rag-amber';
+  return 'rag-red';
 }
 
-function pct(n, d) {
-  return d === 0 ? '0' : (n / d * 100).toFixed(1);
+function ragColor(dm) {
+  if (dm >= 80) return 'var(--rag-green)';
+  if (dm >= 60) return 'var(--rag-amber)';
+  return 'var(--rag-red)';
 }
+
+function pct(n, d) { return d === 0 ? '0' : (n / d * 100).toFixed(1); }
+function r1(n) { return Math.round(n * 10) / 10; }
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function factorColor(v) {
+  if (v >= 7) return 'var(--rag-green)';
+  if (v >= 5) return 'var(--rag-amber)';
+  return 'var(--rag-red)';
+}
+
+/* ── Data Loading ─────────────────────────────────────────────────────────── */
+let dashData = null;
+let gapDetailsData = null;
+let gapDetailsLoaded = false;
 
 async function loadData() {
   const app = document.getElementById('app');
-  const subtitle = document.getElementById('subtitle');
-
   let data = null;
   for (const url of DATA_URLS) {
-    try {
-      const resp = await fetch(url);
-      if (resp.ok) { data = await resp.json(); break; }
-    } catch (_) { /* try next */ }
+    try { const r = await fetch(url); if (r.ok) { data = await r.json(); break; } } catch (_) {}
   }
-
-  if (data) {
-    subtitle.textContent = `${data.source} — Generated ${data.generated.substring(0, 19)}`;
-    renderDashboard(app, data);
-  } else {
-    app.innerHTML = `<div class="error">
-      <p>Could not load dashboard data.</p>
-      <p style="font-size:0.8rem;margin-top:8px;color:var(--text-2)">
-        Run the gauntlet first: <code>./tests/gauntlet.sh --tier 1 --sample 50</code>
-      </p>
-    </div>`;
+  if (!data) {
+    app.innerHTML = `<div class="error"><p>Could not load dashboard data.</p>
+      <p style="font-size:0.75rem;margin-top:8px;color:var(--text-2)">Run: <code>./tests/gauntlet.sh --tier 1 --sample 50</code></p></div>`;
+    return;
   }
+  dashData = data;
+  document.getElementById('subtitle').textContent = `${data.source} — ${data.summary.total} queries — ${data.generated.substring(0, 19)}`;
+  renderDashboard(app, data);
 }
 
+async function loadGapDetails() {
+  if (gapDetailsLoaded) return gapDetailsData;
+  gapDetailsLoaded = true;
+  for (const base of ['data/', '../dondeBackend/tests/gauntlet-results/']) {
+    try {
+      const r = await fetch(base + 'gap-details.json');
+      if (r.ok) { gapDetailsData = await r.json(); return gapDetailsData; }
+    } catch (_) {}
+    if (dashData?.gap_details_file) {
+      try {
+        const r = await fetch(base + dashData.gap_details_file);
+        if (r.ok) { gapDetailsData = await r.json(); return gapDetailsData; }
+      } catch (_) {}
+    }
+  }
+  return null;
+}
+
+/* ── Main Render ──────────────────────────────────────────────────────────── */
 function renderDashboard(el, data) {
   const s = data.summary;
+  const stats = data.statistics || {};
+  const recs = data.recommendations || [];
+  const gapImpact = data.gap_impact || {};
+  const allGaps = data.all_gaps || data.top_gaps || [];
+
   let html = '';
 
-  // ─── Summary Cards ────────────────────────────────────
+  // ─── Executive Action Items ──────────────────────────────────────────
+  if (recs.length > 0) {
+    html += '<div class="rec-list">';
+    html += '<h2>Priority Actions</h2>';
+    for (const rec of recs) {
+      html += `<div class="rec-card" data-section="${rec.section}">
+        <div class="rec-header">
+          <span class="rec-priority">P${rec.priority}</span>
+          <span class="rec-action">${esc(rec.action)}</span>
+        </div>
+        <div class="rec-detail">
+          <span class="rec-impact">${esc(rec.expected_impact)}</span>
+          <span class="rec-rationale">${esc(rec.rationale)}</span>
+        </div>
+      </div>`;
+    }
+    html += '</div>';
+  }
+
+  // ─── Tab Bar ─────────────────────────────────────────────────────────
+  html += `<div class="tab-bar">
+    <div class="tab active" data-tab="overview">Overview</div>
+    <div class="tab" data-tab="categories">Categories</div>
+    <div class="tab" data-tab="gaps">Gaps (${allGaps.length})</div>
+    <div class="tab" data-tab="analysis">Analysis</div>
+  </div>`;
+
+  // ─── OVERVIEW TAB ────────────────────────────────────────────────────
+  html += '<div class="tab-content active" data-tab="overview">';
+
+  // Summary Cards
   html += '<div class="cards">';
-  html += card(s.total, 'Queries Tested', 'accent');
-  html += card(s.avg_dm, 'Avg DondeMatch', dmColor(s.avg_dm));
-  html += card(pct(s.passed60, s.total) + '%', 'Pass Rate (≥60)', s.passed60/s.total >= 0.8 ? 'green' : 'amber');
-  html += card(pct(s.passed80, s.total) + '%', 'Excellence (≥80)', 'blue');
-  html += card(s.gap_count, 'Gaps Found', s.gap_count > 20 ? 'red' : s.gap_count > 10 ? 'amber' : 'green');
-  html += card(s.avg_response_ms + 'ms', 'Avg Response', 'accent');
+  html += mkCard(s.total, 'Queries', '');
+  html += mkCard(s.avg_dm, 'Avg DM', ragClass(s.avg_dm));
+  html += mkCard(pct(s.passed60, s.total) + '%', 'Pass ≥60', s.passed60/s.total >= 0.8 ? 'rag-green' : 'rag-amber');
+  html += mkCard(pct(s.passed80, s.total) + '%', 'Excel ≥80', '');
+  html += mkCard(s.gap_count, 'Gaps', s.gap_count > 50 ? 'rag-red' : s.gap_count > 20 ? 'rag-amber' : '');
+  if (stats.p50 !== undefined) html += mkCard(stats.p50, 'Median DM', ragClass(stats.p50));
+  if (stats.stddev !== undefined) html += mkCard(stats.stddev, 'Std Dev', '');
+  html += mkCard(s.mode === 'lightweight' ? 'LW' : 'Full', 'Mode', '');
   html += '</div>';
 
-  // ─── Grid: Distribution + Gap Types ───────────────────
+  // Grid: Score Distribution + Gap Impact
   html += '<div class="grid-2">';
 
   // Score Distribution
   html += '<div class="section"><h3>Score Distribution</h3>';
   const maxCount = Math.max(...data.score_distribution.map(b => b.count));
-  const colors = ['var(--green)', 'var(--green)', '#22c55e', 'var(--amber)', '#f59e0b', 'var(--red)', '#dc2626'];
+  const distColors = ['var(--rag-green)', 'var(--rag-green)', 'var(--rag-green)', 'var(--rag-amber)', 'var(--rag-amber)', 'var(--rag-red)', 'var(--rag-red)'];
   for (const [i, bucket] of data.score_distribution.entries()) {
     const w = maxCount > 0 ? (bucket.count / maxCount * 100) : 0;
     html += `<div class="dist-row">
       <span class="dist-label">${bucket.label}</span>
-      <div class="dist-bar" style="width:${Math.max(w, 2)}%;background:${colors[i]}">${bucket.count}</div>
+      <div class="dist-bar-track"><div class="dist-bar" style="width:${Math.max(w, 1)}%;background:${distColors[i]}">${bucket.count > 0 ? bucket.count : ''}</div></div>
+      <span class="dist-count">${bucket.count}</span>
+      <span class="dist-pct">${pct(bucket.count, s.total)}%</span>
+    </div>`;
+  }
+  if (stats.p25 !== undefined) {
+    html += `<div class="percentile-markers">
+      <span>P25: <strong>${stats.p25}</strong></span>
+      <span>P50: <strong>${stats.p50}</strong></span>
+      <span>P75: <strong>${stats.p75}</strong></span>
+      <span>P95: <strong>${stats.p95}</strong></span>
+      <span>Range: <strong>${stats.min}–${stats.max}</strong></span>
     </div>`;
   }
   html += '</div>';
 
-  // Gap Types
-  html += '<div class="section"><h3>Gap Types</h3>';
-  if (data.gap_types && Object.keys(data.gap_types).length > 0) {
-    html += '<table><tr><th>Type</th><th>Count</th></tr>';
-    for (const [type, count] of Object.entries(data.gap_types).sort((a,b) => b[1] - a[1])) {
-      html += `<tr><td>${type}</td><td>${count}</td></tr>`;
+  // Gap Impact Analysis
+  html += '<div class="section"><h3>Gap Impact & ROI</h3>';
+  if (Object.keys(gapImpact).length > 0) {
+    const sortedImpact = Object.entries(gapImpact).sort((a,b) => b[1].projected_pass_rate_gain - a[1].projected_pass_rate_gain);
+    const maxGain = Math.max(...sortedImpact.map(([,v]) => v.projected_pass_rate_gain), 1);
+    for (const [type, imp] of sortedImpact) {
+      const w = (imp.projected_pass_rate_gain / maxGain * 100);
+      const badgeClass = imp.fixability === 'auto' ? 'badge-auto' : imp.fixability === 'tuning' ? 'badge-tuning' : 'badge-architectural';
+      html += `<div class="impact-row">
+        <span class="impact-type">${type}</span>
+        <div class="impact-bar-track"><div class="impact-bar" style="width:${Math.max(w, 2)}%;background:${ragColor(imp.avg_dm)}"></div></div>
+        <span style="font-size:0.7rem;font-family:var(--font-mono)">+${imp.projected_pass_rate_gain}% pass</span>
+        <span class="badge ${badgeClass}">${imp.fixability}</span>
+      </div>`;
     }
-    html += '</table>';
+    // Cumulative narrative
+    let cumDM = 0;
+    let cumPass = 0;
+    const narrative = sortedImpact.map(([type, imp]) => {
+      cumDM += imp.projected_dm_gain;
+      cumPass += imp.projected_pass_rate_gain;
+      return `Fix ${type} (${imp.count}): +${r1(cumPass)}% cumulative`;
+    }).join(' → ');
+    html += `<div class="section-note">${narrative}</div>`;
   } else {
-    html += '<p style="color:var(--text-2);font-size:0.85rem">No gaps detected</p>';
+    html += '<p style="color:var(--text-2);font-size:0.78rem">No gap impact data</p>';
   }
   html += '</div>';
-  html += '</div>';
+  html += '</div>'; // grid-2
 
-  // ─── Tier Performance ──────────────────────────────────
-  html += '<h2>Tier Performance</h2>';
-  html += '<table><tr><th>Tier</th><th>Name</th><th>Queries</th><th>Avg DM</th><th>Pass (≥60)</th><th>Excel (≥80)</th><th>Gaps</th></tr>';
+  // Tier Performance
+  html += '<div class="section"><h3>Tier Performance</h3><div class="table-wrap">';
+  html += '<table id="tier-table"><thead><tr>';
+  html += '<th class="sortable" data-col="0" data-type="num">Tier</th>';
+  html += '<th>Name</th>';
+  html += '<th class="sortable" data-col="2" data-type="num">Queries</th>';
+  html += '<th class="sortable" data-col="3" data-type="num">Avg DM</th>';
+  html += '<th class="sortable" data-col="4" data-type="num">Pass ≥60</th>';
+  html += '<th class="sortable" data-col="5" data-type="num">Excel ≥80</th>';
+  html += '<th class="sortable" data-col="6" data-type="num">Gaps</th>';
+  html += '</tr></thead><tbody>';
   for (const [tier, t] of Object.entries(data.tiers).sort((a,b) => Number(a[0]) - Number(b[0]))) {
     html += `<tr>
-      <td>${tier}</td>
-      <td>${t.name}</td>
-      <td>${t.total}</td>
-      <td class="dm-cell ${dmColor(t.avg_dm)}">${t.avg_dm}</td>
-      <td>${t.pass_rate_60}%</td>
-      <td>${t.excellence_rate}%</td>
-      <td>${t.gap_count}</td>
+      <td>${tier}</td><td>${t.name}</td><td>${t.total}</td>
+      <td class="dm-cell ${ragClass(t.avg_dm)}">${t.avg_dm}</td>
+      <td>${t.pass_rate_60}%</td><td>${t.excellence_rate}%</td><td>${t.gap_count}</td>
     </tr>`;
   }
-  html += '</table>';
+  html += '</tbody></table></div></div>';
 
-  // ─── Category Performance ──────────────────────────────
-  html += '<h2>Category Performance</h2>';
-  html += '<table><tr><th>Category</th><th>Queries</th><th>Avg DM</th><th>Pass (≥60)</th><th>Excel (≥80)</th><th>Weak (<40)</th><th>Gaps</th></tr>';
-  const sortedCats = Object.entries(data.categories).sort((a,b) => b[1].total - a[1].total);
+  html += '</div>'; // end overview tab
+
+  // ─── CATEGORIES TAB ──────────────────────────────────────────────────
+  html += '<div class="tab-content" data-tab="categories">';
+  html += '<div class="section"><h3>Category Performance</h3><div class="table-wrap">';
+  html += '<table id="cat-table"><thead><tr>';
+  html += '<th class="sortable" data-col="0" data-type="str">Category</th>';
+  html += '<th class="sortable" data-col="1" data-type="num">Queries</th>';
+  html += '<th class="sortable" data-col="2" data-type="num">Avg DM</th>';
+  html += '<th class="sortable" data-col="3" data-type="num">Pass ≥60</th>';
+  html += '<th class="sortable" data-col="4" data-type="num">Excel ≥80</th>';
+  html += '<th class="sortable" data-col="5" data-type="num">Weak</th>';
+  html += '<th class="sortable" data-col="6" data-type="num">Gaps</th>';
+  html += '<th>Median</th><th>StdDev</th>';
+  html += '</tr></thead><tbody>';
+  const sortedCats = Object.entries(data.categories).sort((a,b) => a[1].avg_dm - b[1].avg_dm);
   for (const [cat, c] of sortedCats) {
     html += `<tr>
-      <td>${cat}</td>
-      <td>${c.total}</td>
-      <td class="dm-cell ${dmColor(c.avg_dm)}">${c.avg_dm}</td>
-      <td>${c.pass_rate_60}%</td>
-      <td>${c.excellence_rate}%</td>
-      <td style="color:${c.weak_rate > 10 ? 'var(--red)' : 'inherit'}">${c.weak_rate}%</td>
+      <td><strong>${cat}</strong></td><td>${c.total}</td>
+      <td class="dm-cell ${ragClass(c.avg_dm)}">${c.avg_dm}</td>
+      <td>${c.pass_rate_60}%</td><td>${c.excellence_rate}%</td>
+      <td style="color:${c.weak_rate > 10 ? 'var(--rag-red)' : 'inherit'}">${c.weak_rate}%</td>
       <td>${c.gap_count}</td>
+      <td style="font-family:var(--font-mono);font-size:0.72rem">${c.p50 ?? '—'}</td>
+      <td style="font-family:var(--font-mono);font-size:0.72rem;color:var(--text-2)">${c.stddev ?? '—'}</td>
     </tr>`;
   }
-  html += '</table>';
+  html += '</tbody></table></div></div>';
 
-  // ─── Relevance Type Distribution ──────────────────────
-  html += '<h2>Relevance Classification</h2>';
-  html += '<table><tr><th>Type</th><th>Count</th><th>%</th></tr>';
+  // Per-category deep dives
+  for (const [cat, c] of sortedCats) {
+    html += `<div class="collapsible" data-cat="${cat}">
+      <div class="collapsible-header">
+        <span><strong>${cat}</strong> — ${c.total} queries, avg ${c.avg_dm} DM</span>
+        <span class="collapsible-chevron">&#9654;</span>
+      </div>
+      <div class="collapsible-body">`;
+
+    // Factor averages
+    if (c.factor_averages) {
+      html += '<h3>Factor Performance</h3>';
+      html += '<div class="factor-bars">';
+      for (const [f, v] of Object.entries(c.factor_averages)) {
+        const w = (v / 10 * 100);
+        html += `<div class="factor-row">
+          <span class="factor-label">${f}</span>
+          <div class="factor-track"><div class="factor-fill" style="width:${w}%;background:${factorColor(v)}"></div></div>
+          <span class="factor-value">${v}</span>
+        </div>`;
+      }
+      html += '</div>';
+    }
+
+    // Gap type breakdown
+    if (c.gap_type_breakdown && Object.keys(c.gap_type_breakdown).length > 0) {
+      html += '<h3 style="margin-top:12px">Gap Breakdown</h3>';
+      html += '<div style="display:flex;gap:12px;flex-wrap:wrap">';
+      for (const [gt, count] of Object.entries(c.gap_type_breakdown).sort((a,b) => b[1] - a[1])) {
+        const fix = gapImpact[gt]?.fixability || 'manual';
+        html += `<div style="font-size:0.72rem;color:var(--text-2)"><strong style="color:var(--text)">${count}</strong> ${gt} <span class="badge badge-${fix}" style="margin-left:2px">${fix}</span></div>`;
+      }
+      html += '</div>';
+    }
+
+    // Percentile info
+    if (c.p25 !== undefined) {
+      html += `<div class="percentile-markers" style="margin-top:12px">
+        <span>P25: <strong>${c.p25}</strong></span>
+        <span>P50: <strong>${c.p50}</strong></span>
+        <span>P75: <strong>${c.p75}</strong></span>
+      </div>`;
+    }
+
+    // Category recommendation
+    const catRec = recs.find(r => r.section === 'categories' && r.action.toLowerCase().includes(cat));
+    if (catRec) {
+      html += `<div class="section-note" style="margin-top:10px"><strong>Recommendation:</strong> ${esc(catRec.action)} — ${esc(catRec.rationale)}</div>`;
+    }
+
+    html += '</div></div>';
+  }
+
+  html += '</div>'; // end categories tab
+
+  // ─── GAPS TAB ────────────────────────────────────────────────────────
+  html += '<div class="tab-content" data-tab="gaps">';
+
+  // Filter bar
+  const gapTypes = [...new Set(allGaps.map(g => g.gap_type))].filter(Boolean).sort();
+  const gapCats = [...new Set(allGaps.map(g => g.category))].filter(Boolean).sort();
+  const gapSevs = [...new Set(allGaps.map(g => g.gap_severity))].filter(Boolean).sort();
+
+  html += '<div class="filter-bar">';
+  html += '<label>Type:</label><select class="filter-select" id="f-type"><option value="">All</option>';
+  for (const t of gapTypes) html += `<option>${t}</option>`;
+  html += '</select>';
+  html += '<label>Category:</label><select class="filter-select" id="f-cat"><option value="">All</option>';
+  for (const c of gapCats) html += `<option>${c}</option>`;
+  html += '</select>';
+  html += '<label>Severity:</label><select class="filter-select" id="f-sev"><option value="">All</option>';
+  for (const sv of gapSevs) html += `<option>${sv}</option>`;
+  html += '</select>';
+  html += '<input class="filter-input" id="f-search" placeholder="Search queries...">';
+  html += '<span class="filter-count" id="gap-count"></span>';
+  html += '</div>';
+
+  // Gaps table
+  html += '<div class="table-wrap"><table id="gaps-table"><thead><tr>';
+  html += '<th class="sortable" data-col="0" data-type="num">#</th>';
+  html += '<th class="sortable" data-col="1" data-type="str">Query</th>';
+  html += '<th class="sortable" data-col="2" data-type="num">DM</th>';
+  html += '<th class="sortable" data-col="3" data-type="str">Type</th>';
+  html += '<th class="sortable" data-col="4" data-type="str">Sev</th>';
+  html += '<th class="sortable" data-col="5" data-type="str">Category</th>';
+  html += '<th>Restaurant</th>';
+  html += '<th class="sortable" data-col="7" data-type="num">Impact</th>';
+  html += '<th>Fix</th>';
+  html += '</tr></thead><tbody>';
+  for (const [i, g] of allGaps.entries()) {
+    const sevClass = g.gap_severity === 'P0' ? 'badge-p0' : g.gap_severity === 'P1' ? 'badge-p1' : 'badge-p2';
+    const fix = gapImpact[g.gap_type]?.fixability || '';
+    const fixClass = fix === 'auto' ? 'badge-auto' : fix === 'tuning' ? 'badge-tuning' : fix === 'architectural' ? 'badge-architectural' : '';
+    html += `<tr class="gap-row expandable" data-type="${g.gap_type}" data-cat="${g.category}" data-sev="${g.gap_severity || ''}" data-query="${esc(g.query.toLowerCase())}">
+      <td>${i + 1}</td>
+      <td title="${esc(g.query)}">${esc(g.query.substring(0, 45))}</td>
+      <td class="dm-cell ${ragClass(g.dm)}">${g.dm}</td>
+      <td><span class="badge ${sevClass}">${g.gap_type}</span></td>
+      <td>${g.gap_severity || '—'}</td>
+      <td>${g.category}</td>
+      <td>${esc((g.restaurant || '—').substring(0, 22))}</td>
+      <td style="font-family:var(--font-mono);text-align:center">${g.impact_score || '—'}</td>
+      <td>${fix ? `<span class="badge ${fixClass}">${fix}</span>` : '—'}</td>
+    </tr>`;
+    // Expandable detail row (hidden by default)
+    if (g.fix_action || g.food !== undefined) {
+      html += `<tr class="gap-detail-row" style="display:none" data-parent="${i}">
+        <td colspan="9"><div class="gap-detail-content">`;
+      if (g.fix_action) html += `<strong>Fix:</strong> ${esc(g.fix_action)}<br>`;
+      if (g.food !== undefined) {
+        html += `<div class="gap-detail-factors">
+          <span>Food: <strong>${g.food}</strong></span>
+          <span>Vibe: <strong>${g.vibe}</strong></span>
+          <span>Service: <strong>${g.service}</strong></span>
+          <span>Reputation: <strong>${g.reputation}</strong></span>
+          <span>Convenience: <strong>${g.convenience}</strong></span>
+        </div>`;
+      }
+      html += '</div></td></tr>';
+    }
+  }
+  html += '</tbody></table></div>';
+  html += '</div>'; // end gaps tab
+
+  // ─── ANALYSIS TAB ────────────────────────────────────────────────────
+  html += '<div class="tab-content" data-tab="analysis">';
+
+  // Statistical Summary
+  if (stats.p25 !== undefined) {
+    html += '<div class="section"><h3>Statistical Summary</h3>';
+    html += '<div class="stat-grid">';
+    html += statItem(stats.min, 'Min');
+    html += statItem(stats.p25, 'P25');
+    html += statItem(stats.p50, 'Median');
+    html += statItem(s.avg_dm, 'Mean');
+    html += statItem(stats.p75, 'P75');
+    html += statItem(stats.p95, 'P95');
+    html += statItem(stats.max, 'Max');
+    html += statItem(stats.stddev, 'Std Dev');
+    html += '</div>';
+
+    // Distribution shape narrative
+    const skew = s.avg_dm > stats.p50 ? 'right-skewed (tail of high scores)' : s.avg_dm < stats.p50 ? 'left-skewed (tail of low scores)' : 'symmetric';
+    const iqr = stats.p75 - stats.p25;
+    html += `<div class="section-note">
+      <strong>Distribution shape:</strong> ${skew}. IQR = ${iqr} (P25–P75 spread).
+      ${iqr < 10 ? 'Tight clustering — most scores fall in a narrow band. Improvement requires shifting the entire distribution.' : 'Wide spread — significant variation in match quality across queries.'}
+      ${stats.stddev < 5 ? ' Low variance indicates consistent but potentially mediocre performance.' : stats.stddev > 10 ? ' High variance suggests inconsistent matching — some queries work great, others fail.' : ''}
+    </div>`;
+    html += '</div>';
+  }
+
+  // Factor Performance
+  if (data.factor_averages) {
+    html += '<div class="section"><h3>Global Factor Performance</h3>';
+    html += '<div class="factor-bars">';
+    const factors = Object.entries(data.factor_averages).sort((a,b) => a[1] - b[1]);
+    for (const [f, v] of factors) {
+      html += `<div class="factor-row">
+        <span class="factor-label">${f}</span>
+        <div class="factor-track"><div class="factor-fill" style="width:${v/10*100}%;background:${factorColor(v)}"></div></div>
+        <span class="factor-value">${v}/10</span>
+      </div>`;
+    }
+    html += '</div>';
+    const weakest = factors[0];
+    const strongest = factors[factors.length - 1];
+    html += `<div class="section-note">
+      <strong>Weakest factor:</strong> ${weakest[0]} (${weakest[1]}/10) — this factor drags down overall DM most.
+      <strong>Strongest:</strong> ${strongest[0]} (${strongest[1]}/10).
+      ${weakest[1] < 5 ? `<br><strong>Action:</strong> Investigate data completeness for "${weakest[0]}" signals. Missing review data or poor signal extraction likely cause.` : ''}
+    </div>`;
+    html += '</div>';
+  }
+
+  // Impact & ROI Deep Dive
+  html += '<div class="section"><h3>Cumulative Impact Projection</h3>';
+  if (Object.keys(gapImpact).length > 0) {
+    const sorted = Object.entries(gapImpact).sort((a,b) => b[1].projected_pass_rate_gain - a[1].projected_pass_rate_gain);
+    let cumPass = 0;
+    let cumDM = 0;
+    html += '<table><thead><tr><th>Gap Type</th><th>Count</th><th>Avg DM</th><th>Fixability</th><th>Pass Rate Gain</th><th>DM Gain</th><th>Cumulative Pass</th></tr></thead><tbody>';
+    for (const [type, imp] of sorted) {
+      cumPass += imp.projected_pass_rate_gain;
+      cumDM += imp.projected_dm_gain;
+      html += `<tr>
+        <td><strong>${type}</strong></td>
+        <td>${imp.count}</td>
+        <td class="dm-cell ${ragClass(imp.avg_dm)}">${imp.avg_dm}</td>
+        <td><span class="badge badge-${imp.fixability}">${imp.fixability}</span></td>
+        <td style="color:var(--rag-green);font-family:var(--font-mono)">+${imp.projected_pass_rate_gain}%</td>
+        <td style="font-family:var(--font-mono)">+${imp.projected_dm_gain}</td>
+        <td style="font-family:var(--font-mono);font-weight:600">+${r1(cumPass)}%</td>
+      </tr>`;
+    }
+    html += '</tbody></table>';
+    html += `<div class="section-note">
+      <strong>If all fixable gaps resolved:</strong> +${r1(cumPass)}% pass rate, +${r1(cumDM)} avg DM.
+      <br><strong>Recommended sequence:</strong> ${sorted.map(([t, i]) => `${t} (${i.fixability})`).join(' → ')}
+      <br><strong>Quick wins:</strong> ${sorted.filter(([,i]) => i.fixability === 'auto').map(([t, i]) => `${t} (${i.count} gaps, auto-fix)`).join(', ') || 'None — all require manual intervention'}
+    </div>`;
+  }
+  html += '</div>';
+
+  // Relevance Classification
+  html += '<div class="section"><h3>Relevance Classification</h3>';
+  html += '<table><thead><tr><th>Type</th><th>Count</th><th>%</th></tr></thead><tbody>';
   const totalRel = Object.values(data.relevance_types).reduce((s, c) => s + c, 0);
   for (const [type, count] of Object.entries(data.relevance_types).sort((a,b) => b[1] - a[1])) {
     html += `<tr><td>${type}</td><td>${count}</td><td>${pct(count, totalRel)}%</td></tr>`;
   }
-  html += '</table>';
-
-  // ─── Top Gaps ──────────────────────────────────────────
-  if (data.top_gaps && data.top_gaps.length > 0) {
-    html += '<h2>Top Gaps (Lowest Scores)</h2>';
-    html += '<table><tr><th>#</th><th>Query</th><th>DM</th><th>Gap Type</th><th>Category</th><th>Restaurant</th></tr>';
-    for (const [i, g] of data.top_gaps.slice(0, 30).entries()) {
-      const sevClass = g.dm < 40 ? 'badge-p0' : g.dm < 60 ? 'badge-p1' : 'badge-p2';
-      html += `<tr>
-        <td>${i + 1}</td>
-        <td title="${g.query}">${g.query.substring(0, 40)}</td>
-        <td class="dm-cell ${dmColor(g.dm)}">${g.dm}</td>
-        <td><span class="badge ${sevClass}">${g.gap_type}</span></td>
-        <td>${g.category}</td>
-        <td>${(g.restaurant || '—').substring(0, 25)}</td>
-      </tr>`;
-    }
-    html += '</table>';
+  html += '</tbody></table>';
+  const unknownPct = (data.relevance_types['unknown'] || 0) / totalRel * 100;
+  if (unknownPct > 50) {
+    html += `<div class="section-note"><strong>Warning:</strong> ${unknownPct.toFixed(0)}% of queries classified as "unknown" relevance. This suggests the intent classifier is not recognizing most query patterns. High priority: expand keyword dictionaries in intent-classifier-v5.ts.</div>`;
   }
+  html += '</div>';
+
+  html += '</div>'; // end analysis tab
 
   el.innerHTML = html;
+  initInteractivity();
 }
 
-function card(value, label, colorClass) {
+function mkCard(value, label, colorClass) {
   return `<div class="card">
     <div class="card-value ${colorClass}">${value}</div>
     <div class="card-label">${label}</div>
   </div>`;
 }
 
-// Wire refresh button (module scope — onclick won't work)
-document.getElementById('refresh-btn').addEventListener('click', () => loadData());
+function statItem(value, label) {
+  return `<div class="stat-item">
+    <div class="stat-value">${value}</div>
+    <div class="stat-label">${label}</div>
+  </div>`;
+}
 
-// Load on page ready — auth gate first
+/* ── Interactivity ────────────────────────────────────────────────────────── */
+function initInteractivity() {
+  initTabs();
+  initSortable();
+  initGapFilters();
+  initCollapsibles();
+  initGapExpand();
+  initRecLinks();
+}
+
+// Tabs
+function initTabs() {
+  const tabs = document.querySelectorAll('.tab');
+  const hash = window.location.hash.replace('#', '');
+  if (hash) {
+    tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === hash));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.toggle('active', c.dataset.tab === hash));
+  }
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      tab.classList.add('active');
+      document.querySelector(`.tab-content[data-tab="${tab.dataset.tab}"]`).classList.add('active');
+      window.location.hash = tab.dataset.tab;
+      // Lazy-load gap details
+      if (tab.dataset.tab === 'gaps' && !gapDetailsLoaded) loadGapDetails();
+    });
+  });
+}
+
+// Sortable tables
+function initSortable() {
+  document.querySelectorAll('th.sortable').forEach(th => {
+    th.addEventListener('click', () => {
+      const table = th.closest('table');
+      const tbody = table.querySelector('tbody');
+      const col = parseInt(th.dataset.col);
+      const isNum = th.dataset.type === 'num';
+      const isAsc = th.classList.contains('asc');
+
+      // Reset other headers in same table
+      table.querySelectorAll('th.sortable').forEach(h => { h.classList.remove('asc', 'desc'); });
+      th.classList.add(isAsc ? 'desc' : 'asc');
+
+      const rows = Array.from(tbody.querySelectorAll('tr:not(.gap-detail-row)'));
+      rows.sort((a, b) => {
+        let va = a.cells[col]?.textContent.trim().replace('%', '') || '';
+        let vb = b.cells[col]?.textContent.trim().replace('%', '') || '';
+        if (isNum) {
+          va = parseFloat(va) || 0;
+          vb = parseFloat(vb) || 0;
+          return isAsc ? vb - va : va - vb;
+        }
+        return isAsc ? vb.localeCompare(va) : va.localeCompare(vb);
+      });
+
+      // Re-append rows (and their detail rows)
+      for (const row of rows) {
+        tbody.appendChild(row);
+        const parent = row.querySelector('td')?.textContent;
+        const detailRow = tbody.querySelector(`tr.gap-detail-row[data-parent="${parseInt(parent) - 1}"]`);
+        if (detailRow) tbody.appendChild(detailRow);
+      }
+    });
+  });
+}
+
+// Gap filters
+function initGapFilters() {
+  const fType = document.getElementById('f-type');
+  const fCat = document.getElementById('f-cat');
+  const fSev = document.getElementById('f-sev');
+  const fSearch = document.getElementById('f-search');
+  const countEl = document.getElementById('gap-count');
+
+  if (!fType) return;
+
+  function applyFilters() {
+    const type = fType.value;
+    const cat = fCat.value;
+    const sev = fSev.value;
+    const search = fSearch.value.toLowerCase();
+    let visible = 0;
+
+    document.querySelectorAll('tr.gap-row').forEach(row => {
+      const show = (!type || row.dataset.type === type)
+        && (!cat || row.dataset.cat === cat)
+        && (!sev || row.dataset.sev === sev)
+        && (!search || row.dataset.query.includes(search));
+      row.style.display = show ? '' : 'none';
+      // Hide detail rows too
+      const idx = row.querySelector('td')?.textContent;
+      const detail = document.querySelector(`tr.gap-detail-row[data-parent="${parseInt(idx) - 1}"]`);
+      if (detail) detail.style.display = 'none';
+      if (show) visible++;
+    });
+    countEl.textContent = `${visible} gaps shown`;
+  }
+
+  [fType, fCat, fSev].forEach(el => el.addEventListener('change', applyFilters));
+  fSearch.addEventListener('input', applyFilters);
+  applyFilters();
+}
+
+// Collapsibles
+function initCollapsibles() {
+  document.querySelectorAll('.collapsible-header').forEach(header => {
+    header.addEventListener('click', () => {
+      header.closest('.collapsible').classList.toggle('open');
+    });
+  });
+}
+
+// Expandable gap rows
+function initGapExpand() {
+  document.querySelectorAll('tr.expandable').forEach(row => {
+    row.addEventListener('click', () => {
+      const idx = row.querySelector('td')?.textContent;
+      const detail = document.querySelector(`tr.gap-detail-row[data-parent="${parseInt(idx) - 1}"]`);
+      if (detail) {
+        detail.style.display = detail.style.display === 'none' ? '' : 'none';
+      }
+    });
+  });
+}
+
+// Recommendation card links
+function initRecLinks() {
+  document.querySelectorAll('.rec-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const section = card.dataset.section;
+      const tabMap = { overview: 'overview', categories: 'categories', gaps: 'gaps', analysis: 'analysis' };
+      const tabName = tabMap[section] || 'overview';
+      document.querySelector(`.tab[data-tab="${tabName}"]`)?.click();
+    });
+  });
+}
+
+/* ── Init ─────────────────────────────────────────────────────────────────── */
+document.getElementById('refresh-btn').addEventListener('click', () => loadData());
 checkAuth();
 </script>
 
