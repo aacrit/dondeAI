@@ -4302,6 +4302,7 @@
   will-change: opacity;
 }
 .ink-pulse--active { opacity: 1; }
+.ink-pulse__track { will-change: opacity; }
 .ink-pulse__stroke { will-change: d, stroke-width; }
 .ink-pulse--resolved .ink-pulse__stroke {
   stroke-width: 2.4;
