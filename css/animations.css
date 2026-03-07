@@ -720,6 +720,10 @@
     transition: none !important;
   }
 
+  /* Ink Pulse — show static flat line */
+  .ink-pulse { opacity: 1; }
+  .ink-pulse__stroke { transition: none; }
+
   /* Ink Manifests — instant transitions */
   .ink-write {
     clip-path: none !important;
