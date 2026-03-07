@@ -248,7 +248,7 @@
     <h1>Donde Gauntlet Dashboard</h1>
     <p class="subtitle" id="subtitle">Loading...</p>
   </div>
-  <button class="refresh-btn" onclick="loadData()">Refresh</button>
+  <button class="refresh-btn" id="refresh-btn">Refresh</button>
 </header>
 
 <div id="app">
@@ -304,7 +304,10 @@ function showAccessDenied(sb, session) {
 }
 
 /* ---- Dashboard ---- */
-const DATA_URL = 'data/dashboard-data.json';
+const DATA_URLS = [
+  'data/dashboard-data.json',
+  '../dondeBackend/tests/gauntlet-results/dashboard-data.json',
+];
 
 function dmColor(dm) {
   if (dm >= 80) return 'green';
@@ -320,20 +323,23 @@ async function loadData() {
   const app = document.getElementById('app');
   const subtitle = document.getElementById('subtitle');
 
-  try {
-    const resp = await fetch(DATA_URL);
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
-    const data = await resp.json();
+  let data = null;
+  for (const url of DATA_URLS) {
+    try {
+      const resp = await fetch(url);
+      if (resp.ok) { data = await resp.json(); break; }
+    } catch (_) { /* try next */ }
+  }
 
+  if (data) {
     subtitle.textContent = `${data.source} — Generated ${data.generated.substring(0, 19)}`;
     renderDashboard(app, data);
-  } catch (err) {
+  } else {
     app.innerHTML = `<div class="error">
       <p>Could not load dashboard data.</p>
       <p style="font-size:0.8rem;margin-top:8px;color:var(--text-2)">
         Run the gauntlet first: <code>./tests/gauntlet.sh --tier 1 --sample 50</code>
       </p>
-      <p style="font-size:0.75rem;margin-top:4px;color:var(--text-2)">${err.message}</p>
     </div>`;
   }
 }
@@ -451,6 +457,9 @@ function card(value, label, colorClass) {
     <div class="card-label">${label}</div>
   </div>`;
 }
+
+// Wire refresh button (module scope — onclick won't work)
+document.getElementById('refresh-btn').addEventListener('click', () => loadData());
 
 // Load on page ready — auth gate first
 checkAuth();
