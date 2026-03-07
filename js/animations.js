@@ -1163,7 +1163,9 @@ function _startInkPulse() {
   const baseY = 6;
   const startX = 10;
   const endX = 110;
+  const totalLen = endX - startX;
   const segments = 8;
+  const segLen = totalLen / segments;
   const start = performance.now();
 
   function pulseTick(now) {
@@ -1171,23 +1173,43 @@ function _startInkPulse() {
 
     const elapsed = (now - start) / 1000;
 
-    // Breathing amplitude: swells and recedes (~1.25s period)
-    const breath = Math.sin(elapsed * 0.8) * 0.5 + 0.5;
-    const maxAmp = 2.5 + breath * 1.5;
+    // Progress: asymptotic curve 0→~0.85 (quick to ~60%, crawls toward ~85%)
+    const progress = Math.min(0.85, 1 - 1 / (1 + elapsed * 0.4));
 
+    // Amplitude decays with progress: wild at 0%, gentle tremor at 85%
+    const ampScale = 1 - progress * 0.85;
+    const breath = Math.sin(elapsed * 0.8) * 0.5 + 0.5;
+    const maxAmp = (2.5 + breath * 1.5) * ampScale;
+
+    // Stroke extends rightward with progress (starts at 15% so always visible)
+    const drawEnd = startX + totalLen * (0.15 + progress * 0.85);
+
+    // Build path only up to drawEnd
     let d = `M${startX} ${baseY}`;
+    let lastDrawnX = startX;
     for (let i = 1; i <= segments; i++) {
       const t = i / segments;
-      const x = startX + (endX - startX) * t;
-      // Each point oscillates at a slightly different frequency → traveling wave
+      const x = startX + totalLen * t;
+      if (x > drawEnd) break;
+
       const freq = 2.5 + i * 0.3;
       const phase = elapsed * freq - i * 0.7;
-      const amp = maxAmp * Math.sin(t * Math.PI); // taper at edges
+      const taper = Math.sin(t * Math.PI);
+      const amp = maxAmp * taper;
       const y = baseY + Math.sin(phase) * amp;
 
-      const cpX = startX + (endX - startX) * (t - 0.5 / segments);
+      const cpX = startX + totalLen * (t - 0.5 / segments);
       const cpY = baseY + Math.sin(phase - 0.3) * amp * 0.6;
       d += ` Q${cpX.toFixed(1)} ${cpY.toFixed(1)}, ${x.toFixed(1)} ${y.toFixed(1)}`;
+      lastDrawnX = x;
+    }
+
+    // Extend to exact drawEnd if it falls between segments
+    if (drawEnd > lastDrawnX + 1) {
+      const finalT = (drawEnd - startX) / totalLen;
+      const finalAmp = maxAmp * Math.sin(finalT * Math.PI);
+      const finalY = baseY + Math.sin(elapsed * 3.5) * finalAmp;
+      d += ` L${drawEnd.toFixed(1)} ${finalY.toFixed(1)}`;
     }
 
     stroke.setAttribute('d', d);
@@ -1202,22 +1224,30 @@ function _startInkPulse() {
   _inkPulseId = requestAnimationFrame(pulseTick);
 }
 
-/** Ink Pulse: Animate oscillating path back to flat (resolve) */
+/** Ink Pulse: Animate from current progress to full width + flat (resolve) */
 function _animateInkResolve(stroke, startTime) {
   const duration = 400;
   const baseY = 6;
+  const startX = 10;
+  const endX = 110;
+  const totalLen = endX - startX;
 
   function resolveTick(now) {
     const t = Math.min(1, (now - startTime) / duration);
     const eased = easeOutCubic(t);
-    const remainingAmp = (1 - eased) * 3;
 
-    let d = 'M10 6';
+    // Extend stroke to full width over the resolve duration
+    const drawEnd = startX + totalLen * (0.85 + 0.15 * eased);
+    // Amplitude settles to zero (starts small since progress already calmed it)
+    const remainingAmp = (1 - eased) * 1.5;
+
+    let d = `M${startX} ${baseY}`;
     for (let i = 1; i <= 8; i++) {
       const segT = i / 8;
-      const x = 10 + 100 * segT;
+      const x = startX + totalLen * segT;
+      if (x > drawEnd) break;
       const y = baseY + Math.sin(i * 1.5) * remainingAmp * Math.sin(segT * Math.PI);
-      const cpX = 10 + 100 * (segT - 0.0625);
+      const cpX = startX + totalLen * (segT - 0.0625);
       d += ` Q${cpX.toFixed(1)} ${y.toFixed(1)}, ${x.toFixed(1)} ${y.toFixed(1)}`;
     }
     stroke.setAttribute('d', d);
