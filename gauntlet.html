@@ -52,67 +52,89 @@
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      margin-bottom: 20px;
-      padding-bottom: 16px;
+      margin-bottom: 24px;
+      padding-bottom: 18px;
       border-bottom: 1px solid var(--border);
     }
+
+    #run-selector {
+      padding: 5px 10px;
+      font-size: 0.75rem;
+      background: var(--surface-2);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: var(--font);
+      min-width: 260px;
+      transition: border-color 0.15s;
+    }
+    #run-selector:hover { border-color: var(--accent); }
+    #run-selector:focus { border-color: var(--accent); outline: none; }
 
     .refresh-btn {
       background: var(--surface);
       border: 1px solid var(--border);
       color: var(--text-2);
-      padding: 6px 14px;
+      padding: 7px 16px;
       border-radius: 6px;
       cursor: pointer;
       font-family: var(--font);
       font-size: 0.75rem;
-      transition: border-color 0.15s, color 0.15s;
+      transition: border-color 0.15s, color 0.15s, background 0.15s;
     }
     .refresh-btn:hover { border-color: var(--border-focus); color: var(--text); }
 
     /* ─── Tabs ────────────────────────────────────────────── */
     .tab-bar {
       display: flex;
-      gap: 0;
+      gap: 2px;
       border-bottom: 1px solid var(--border);
-      margin-bottom: 20px;
+      margin-bottom: 24px;
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
     }
     .tab {
-      padding: 10px 18px;
+      padding: 11px 20px;
       font-size: 0.78rem;
       font-weight: 500;
       color: var(--text-2);
       cursor: pointer;
       border-bottom: 2px solid transparent;
-      transition: color 0.15s, border-color 0.15s;
+      transition: color 0.2s, border-color 0.2s, background 0.2s;
       white-space: nowrap;
       user-select: none;
+      border-radius: 6px 6px 0 0;
     }
-    .tab:hover { color: var(--text); }
-    .tab.active { color: var(--text); border-bottom-color: var(--accent); }
-    .tab-content { display: none; }
+    .tab:hover { color: var(--text); background: var(--surface); }
+    .tab.active { color: var(--text); border-bottom-color: var(--accent); background: var(--surface); }
+    .tab-content { display: none; animation: tabFadeIn 0.25s ease-out; }
     .tab-content.active { display: block; }
+    @keyframes tabFadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 
     /* ─── Summary Cards ───────────────────────────────────── */
     .cards {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
-      gap: 10px;
-      margin-bottom: 20px;
+      gap: 12px;
+      margin-bottom: 24px;
     }
 
     .card {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: 14px;
+      padding: 16px;
       text-align: center;
+      transition: border-color 0.2s, transform 0.15s;
+    }
+    .card:hover {
+      border-color: var(--border-focus);
+      transform: translateY(-1px);
     }
 
     .card-value {
-      font-size: 1.7rem;
+      font-size: 1.8rem;
       font-weight: 700;
       line-height: 1.2;
       font-family: var(--font-mono);
@@ -123,8 +145,8 @@
       font-size: 0.68rem;
       color: var(--text-2);
       text-transform: uppercase;
-      letter-spacing: 0.4px;
-      margin-top: 4px;
+      letter-spacing: 0.5px;
+      margin-top: 6px;
     }
 
     .card-value.rag-green { color: var(--rag-green); }
@@ -161,15 +183,18 @@
     .rec-rationale { color: var(--text-2); flex: 1; }
 
     /* ─── Tables ──────────────────────────────────────────── */
-    .table-wrap { overflow-x: auto; margin-bottom: 16px; }
+    .table-wrap { overflow-x: auto; margin-bottom: 16px; border-radius: var(--radius); }
     table {
       width: 100%;
       border-collapse: collapse;
       font-size: 0.78rem;
     }
 
+    tbody tr { transition: background 0.15s; }
+    tbody tr:hover { background: var(--surface-2); }
+
     th, td {
-      padding: 7px 10px;
+      padding: 8px 12px;
       text-align: left;
       border-bottom: 1px solid var(--border);
     }
@@ -318,9 +343,11 @@
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: 16px;
-      margin-bottom: 12px;
+      padding: 18px;
+      margin-bottom: 14px;
+      transition: border-color 0.2s;
     }
+    .section:hover { border-color: var(--border-focus); }
 
     .section h3 { margin-top: 0; }
 
@@ -498,25 +525,47 @@
     .stat-label { font-size: 0.62rem; color: var(--text-3); text-transform: uppercase; margin-top: 2px; }
 
     /* ─── Loading & Error ─────────────────────────────────── */
-    .loading { text-align: center; padding: 60px; color: var(--text-2); }
+    .loading { text-align: center; padding: 80px; color: var(--text-2); }
     .loading-spinner {
-      width: 20px; height: 20px;
+      width: 24px; height: 24px;
       border: 2px solid var(--border);
       border-top-color: var(--accent);
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
-      margin: 0 auto 12px;
+      margin: 0 auto 14px;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .error { color: var(--rag-red); text-align: center; padding: 40px; }
+    .error { color: var(--rag-red); text-align: center; padding: 60px; }
+
+    /* ─── Gap severity dots ────────────────────────────────── */
+    .severity-dot {
+      display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px;
+    }
+    .severity-dot.p0 { background: var(--rag-red); }
+    .severity-dot.p1 { background: var(--rag-amber); }
+    .severity-dot.p2 { background: var(--text-3); }
+
+    /* ─── Score badge ──────────────────────────────────────── */
+    .dm-badge {
+      display: inline-block; padding: 2px 8px; border-radius: 4px; font-weight: 600;
+      font-family: var(--font-mono); font-size: 0.75rem;
+    }
+    .dm-badge.rag-green { background: rgba(52,211,153,0.12); color: var(--rag-green); }
+    .dm-badge.rag-amber { background: rgba(240,166,58,0.12); color: var(--rag-amber); }
+    .dm-badge.rag-red { background: rgba(239,100,97,0.12); color: var(--rag-red); }
   </style>
 </head>
 <body>
 
 <header>
-  <div>
+  <div style="flex:1">
     <h1>Donde Gauntlet — Command Center</h1>
-    <p class="subtitle" id="subtitle">Loading...</p>
+    <div id="header-meta" style="display:flex;align-items:center;gap:10px;margin-top:6px;flex-wrap:wrap;">
+      <select id="run-selector" style="padding:5px 10px;font-size:0.75rem;background:var(--surface-2);color:var(--text);border:1px solid var(--border);border-radius:6px;cursor:pointer;font-family:var(--font);min-width:260px;">
+        <option value="">Loading runs...</option>
+      </select>
+      <div id="run-badges" style="display:flex;gap:6px;align-items:center;"></div>
+    </div>
   </div>
   <button class="refresh-btn" id="refresh-btn">Refresh</button>
 </header>
@@ -547,7 +596,7 @@ async function checkAuth() {
 
 function showAccessDenied(sb, session) {
   const app = document.getElementById('app');
-  document.getElementById('subtitle').textContent = 'Admin access required';
+  document.getElementById('run-selector').innerHTML = '<option>Admin access required</option>';
   const msg = session
     ? `Signed in as ${session.user.email} — you don't have admin access.`
     : 'Sign in with your Google account to continue.';
@@ -596,6 +645,12 @@ let gapDetailsLoaded = false;
 
 async function loadData() {
   const app = document.getElementById('app');
+  // Try Supabase first — auto-select latest run
+  try {
+    const loaded = await loadRunSelector();
+    if (loaded) return; // Successfully loaded latest run from Supabase
+  } catch (_) {}
+  // Fallback: load from local JSON
   let data = null;
   for (const url of DATA_URLS) {
     try { const r = await fetch(url); if (r.ok) { data = await r.json(); break; } } catch (_) {}
@@ -606,10 +661,21 @@ async function loadData() {
     return;
   }
   dashData = data;
-  document.getElementById('subtitle').textContent = `${data.source} — ${data.summary.total} queries — ${data.generated.substring(0, 19)}`;
+  updateRunBadges(data.summary);
   renderDashboard(app, data);
-  // Load run selector from Supabase
-  loadRunSelector();
+}
+
+function updateRunBadges(summary) {
+  const badges = document.getElementById('run-badges');
+  if (!badges || !summary) return;
+  const avgDM = summary.avg_dm || 0;
+  const passRate = summary.total > 0 ? Math.round(summary.passed60 / summary.total * 100) : 0;
+  badges.innerHTML = `
+    <span style="font-size:0.7rem;padding:3px 8px;border-radius:4px;background:var(--surface-2);color:var(--text-2);font-family:var(--font-mono);">${summary.total} queries</span>
+    <span style="font-size:0.7rem;padding:3px 8px;border-radius:4px;background:var(--surface-2);color:${ragColor(avgDM)};font-family:var(--font-mono);">DM ${avgDM}</span>
+    <span style="font-size:0.7rem;padding:3px 8px;border-radius:4px;background:var(--surface-2);color:${passRate >= 80 ? 'var(--rag-green)' : 'var(--rag-amber)'};font-family:var(--font-mono);">${passRate}% pass</span>
+    <span style="font-size:0.7rem;padding:3px 8px;border-radius:4px;background:var(--surface-2);color:${summary.gap_count > 50 ? 'var(--rag-red)' : 'var(--rag-amber)'};font-family:var(--font-mono);">${summary.gap_count} gaps</span>
+  `;
 }
 
 async function loadRunSelector() {
@@ -621,25 +687,30 @@ async function loadRunSelector() {
       .select('run_id, total, gap_count, avg_dm, created_at, mode, dataset_size')
       .order('created_at', { ascending: false })
       .limit(20);
-    if (!runs || runs.length === 0) return;
+    if (!runs || runs.length === 0) return false;
 
-    const subtitleEl = document.getElementById('subtitle');
-    const sel = document.createElement('select');
-    sel.id = 'run-selector';
-    sel.style.cssText = 'margin-left:12px;padding:2px 6px;font-size:0.7rem;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:4px;cursor:pointer;';
-    sel.innerHTML = '<option value="">Load run from DB...</option>';
-    for (const r of runs) {
-      const date = new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      sel.innerHTML += `<option value="${r.run_id}">${r.run_id} — ${r.total} queries, DM ${r.avg_dm}, ${r.gap_count} gaps (${date})</option>`;
+    const sel = document.getElementById('run-selector');
+    sel.innerHTML = '';
+    for (let i = 0; i < runs.length; i++) {
+      const r = runs[i];
+      const date = new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+      const latest = i === 0 ? ' (latest)' : '';
+      sel.innerHTML += `<option value="${r.run_id}">${r.total}q | DM ${r.avg_dm} | ${r.gap_count} gaps — ${date}${latest}</option>`;
     }
     sel.addEventListener('change', () => { if (sel.value) loadRunFromSupabase(sel.value); });
-    subtitleEl.appendChild(sel);
-  } catch (_) {}
+    // Auto-load the latest run
+    sel.value = runs[0].run_id;
+    await loadRunFromSupabase(runs[0].run_id);
+    return true;
+  } catch (e) {
+    console.error('loadRunSelector error:', e);
+    return false;
+  }
 }
 
 async function loadRunFromSupabase(runId) {
   const app = document.getElementById('app');
-  document.getElementById('subtitle').textContent = 'Loading run from Supabase...';
+  document.getElementById('run-badges').innerHTML = '<span style="font-size:0.7rem;color:var(--text-3)">Loading...</span>';
 
   try {
     const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
@@ -803,7 +874,7 @@ async function loadRunFromSupabase(runId) {
       },
       statistics: {
         min: dmVals[0] || 0, max: dmVals[dmVals.length - 1] || 0,
-        p25: percentile(dmVals, 0.25), p50: percentile(dmVals, 0.5), p75: percentile(dmVals, 0.75),
+        p25: percentile(dmVals, 0.25), p50: percentile(dmVals, 0.5), p75: percentile(dmVals, 0.75), p95: percentile(dmVals, 0.95),
         stddev: Math.round(Math.sqrt(variance) * 10) / 10,
       },
       factor_averages: runData.factor_averages || {},
@@ -820,11 +891,11 @@ async function loadRunFromSupabase(runId) {
 
     dashData = data;
     historyLoaded = false;
-    document.getElementById('subtitle').textContent = `${runId} — ${total} queries — ${new Date(runData.created_at).toISOString().substring(0, 19)}`;
+    updateRunBadges(data.summary);
     renderDashboard(app, data);
-    loadRunSelector();
   } catch (e) {
-    document.getElementById('subtitle').textContent = `Failed to load run: ${e.message}`;
+    const app = document.getElementById('app');
+    app.innerHTML = `<div class="error"><p>Failed to load run: ${e.message}</p></div>`;
   }
 }
 
@@ -856,25 +927,6 @@ function renderDashboard(el, data) {
   allGapsRef = allGaps;
 
   let html = '';
-
-  // ─── Executive Action Items ──────────────────────────────────────────
-  if (recs.length > 0) {
-    html += '<div class="rec-list">';
-    html += '<h2>Priority Actions</h2>';
-    for (const rec of recs) {
-      html += `<div class="rec-card" data-section="${rec.section}">
-        <div class="rec-header">
-          <span class="rec-priority">P${rec.priority}</span>
-          <span class="rec-action">${esc(rec.action)}</span>
-        </div>
-        <div class="rec-detail">
-          <span class="rec-impact">${esc(rec.expected_impact)}</span>
-          <span class="rec-rationale">${esc(rec.rationale)}</span>
-        </div>
-      </div>`;
-    }
-    html += '</div>';
-  }
 
   // ─── Tab Bar ─────────────────────────────────────────────────────────
   html += `<div class="tab-bar">
@@ -1111,9 +1163,9 @@ function renderDashboard(el, data) {
       <td><input type="checkbox" class="gap-check" data-idx="${i}" onclick="event.stopPropagation()"></td>
       <td>${i + 1}</td>
       <td title="${esc(g.query)}">${esc(g.query.substring(0, 45))}</td>
-      <td class="dm-cell ${ragClass(g.dm)}">${g.dm}</td>
+      <td><span class="dm-badge ${ragClass(g.dm)}">${g.dm}</span></td>
       <td><span class="badge ${sevClass}">${g.gap_type}</span></td>
-      <td>${g.gap_severity || '—'}</td>
+      <td><span class="severity-dot ${(g.gap_severity || 'p2').toLowerCase()}"></span>${g.gap_severity || '—'}</td>
       <td>${g.category}</td>
       <td>${esc((g.restaurant || '—').substring(0, 22))}</td>
       <td style="font-family:var(--font-mono);text-align:center">${g.impact_score || '—'}</td>
@@ -1241,6 +1293,25 @@ function renderDashboard(el, data) {
   html += '<div class="tab-content" data-tab="history">';
   html += '<div id="history-content"><p style="color:var(--text-3)">Loading run history...</p></div>';
   html += '</div>'; // end history tab
+
+  // ─── Priority Actions (bottom of page) ─────────────────────────────
+  if (recs.length > 0) {
+    html += '<div class="rec-list" style="margin-top:32px;padding-top:24px;border-top:1px solid var(--border);">';
+    html += '<h2 style="color:var(--text-2);">Priority Actions</h2>';
+    for (const rec of recs) {
+      html += `<div class="rec-card" data-section="${rec.section}">
+        <div class="rec-header">
+          <span class="rec-priority">P${rec.priority}</span>
+          <span class="rec-action">${esc(rec.action)}</span>
+        </div>
+        <div class="rec-detail">
+          <span class="rec-impact">${esc(rec.expected_impact)}</span>
+          <span class="rec-rationale">${esc(rec.rationale)}</span>
+        </div>
+      </div>`;
+    }
+    html += '</div>';
+  }
 
   el.innerHTML = html;
   initInteractivity();
