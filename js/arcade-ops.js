@@ -1,6 +1,6 @@
 /**
- * ARCADE OPS — DondeAI Testing Command Center
- * Dashboard logic, agent controls, gamification, real-time polling
+ * DondeAI Test Operations — Executive Dashboard
+ * Agent controls, quality monitoring, real-time polling
  */
 
 // ═══════════════════════════════════════════════════════════════════
@@ -15,11 +15,11 @@ const MAX_LOG_ENTRIES = 100;
 const API_BASE = 'https://vwbzkgsxmgwcvmvuxnbe.supabase.co/functions/v1/recommend';
 
 const AGENT_DEFS = {
-  atlas:    { name: 'ATLAS',    title: 'The Map Maker', budget: 20, color: '#00ffff' },
-  qaudit:   { name: 'QAUDIT',   title: 'The Critic',    budget: 0,  color: '#ff00ff' },
-  sentinel: { name: 'SENTINEL', title: 'The Watchman',  budget: 15, color: '#ffd700' },
-  hunter:   { name: 'HUNTER',   title: 'The Rogue',     budget: 10, color: '#ff6600' },
-  guardian: { name: 'GUARDIAN', title: 'The Sage',      budget: 5,  color: '#00ff41' },
+  atlas:    { name: 'Atlas',    title: 'Search Coverage',   budget: 20, color: '#3b82f6' },
+  qaudit:   { name: 'QAudit',   title: 'Blurb Quality',     budget: 0,  color: '#8b5cf6' },
+  sentinel: { name: 'Sentinel', title: 'Regression Watch',  budget: 15, color: '#f59e0b' },
+  hunter:   { name: 'Hunter',   title: 'Edge Cases',        budget: 10, color: '#ef4444' },
+  guardian: { name: 'Guardian', title: 'Data Integrity',    budget: 5,  color: '#22c55e' },
 };
 
 const BANNED_PATTERNS = [
@@ -169,7 +169,7 @@ function updateClock() {
     const h = String(Math.floor(elapsed / 3600)).padStart(2, '0');
     const m = String(Math.floor((elapsed % 3600) / 60)).padStart(2, '0');
     const s = String(elapsed % 60).padStart(2, '0');
-    document.getElementById('uptime').textContent = `UPTIME: ${h}:${m}:${s}`;
+    document.getElementById('uptime').textContent = `Uptime: ${h}:${m}:${s}`;
   }
 }
 
@@ -229,10 +229,10 @@ function handleStart() {
   document.getElementById('btn-pause').disabled = false;
   document.getElementById('btn-stop').disabled = false;
 
-  updateSystemStatus('ONLINE', 'green');
+  updateSystemStatus('Online', 'green');
   document.getElementById('paused-overlay').classList.remove('paused-overlay--visible');
 
-  addLog('SYSTEM', 'All agents deployed. ARCADE OPS is LIVE.', 'star');
+  addLog('SYSTEM', 'All agents deployed. Monitoring active.', 'star');
 
   // Start agent cycles
   startAgentCycles();
@@ -255,7 +255,7 @@ function handlePause() {
   document.getElementById('btn-start').disabled = false;
   document.getElementById('btn-pause').disabled = true;
 
-  updateSystemStatus('PAUSED', 'amber');
+  updateSystemStatus('Paused', 'amber');
   document.getElementById('paused-overlay').classList.add('paused-overlay--visible');
 
   // Pause agent cycles
@@ -265,7 +265,7 @@ function handlePause() {
   if (state.pollTimer) clearInterval(state.pollTimer);
   state.pollTimer = setInterval(pollAgentStatus, POLL_INTERVAL_PAUSED);
 
-  addLog('SYSTEM', 'All agents paused. Awaiting orders.', 'warn');
+  addLog('SYSTEM', 'All agents paused.', 'warn');
 
   Object.keys(state.agents).forEach(id => {
     if (state.agents[id].status === 'running') {
@@ -284,7 +284,7 @@ function handleStop() {
   document.getElementById('btn-pause').disabled = true;
   document.getElementById('btn-stop').disabled = true;
 
-  updateSystemStatus('OFFLINE', 'red');
+  updateSystemStatus('Stopped', 'red');
   document.getElementById('paused-overlay').classList.remove('paused-overlay--visible');
 
   // Stop all cycles
@@ -295,7 +295,7 @@ function handleStop() {
   // Show game over
   showGameOver();
 
-  addLog('SYSTEM', 'GAME OVER. All agents recalled.', 'fail');
+  addLog('SYSTEM', 'Session ended. All agents stopped.', 'fail');
 
   Object.keys(state.agents).forEach(id => {
     state.agents[id].status = 'idle';
@@ -346,7 +346,7 @@ async function runAtlasCycle() {
     if (agent.status !== 'budget_paused') {
       agent.status = 'budget_paused';
       addLog('atlas', 'Budget limit reached (20/20). Requesting additional calls.', 'warn');
-      addNotification('budget_request', 'ATLAS requests 10 additional API calls for broader coverage.', 'atlas');
+      addNotification('budget_request', 'Atlas requests 10 additional API calls for broader coverage.', 'atlas');
     }
     return;
   }
@@ -374,7 +374,7 @@ async function runAtlasCycle() {
       agent.gaps++;
       if (dm < 40) {
         addLog('atlas', `CRITICAL: "${query}" -> DM ${dm}`, 'fail');
-        addNotification('critical', `ATLAS detected critical gap: "${query}" scored DM ${dm}`, 'atlas');
+        addNotification('critical', `Atlas detected critical gap: "${query}" scored DM ${dm}`, 'atlas');
       } else {
         addLog('atlas', `WEAK: "${query}" -> DM ${dm}`, 'warn');
       }
@@ -619,7 +619,7 @@ function awardXP(agentId, amount) {
   agent.level = Math.floor(agent.xp / XP_PER_LEVEL) + 1;
 
   if (agent.level > oldLevel) {
-    addLog(agentId, `LEVEL UP! Now Level ${agent.level}!`, 'star');
+    addLog(agentId, `Reached Level ${agent.level}`, 'star');
     const levelEl = document.getElementById(`${agentId}-level`);
     if (levelEl) {
       levelEl.classList.add('level-up');
@@ -638,7 +638,7 @@ function updateSystemStatus(text, color) {
   txt.textContent = text;
 
   dot.className = 'header__status-dot';
-  if (color === 'green') { dot.classList.add(''); txt.classList.add('glow'); }
+  if (color === 'green') { /* default green dot */ }
   else if (color === 'amber') { dot.classList.add('header__status-dot--paused'); }
   else { dot.classList.add('header__status-dot--offline'); }
 }
@@ -652,20 +652,20 @@ function updateAgentStatusUI(agentId) {
   switch (agent.status) {
     case 'running':
       el.classList.add('agent-card__status--running');
-      el.textContent = 'RUNNING...';
+      el.textContent = 'Running';
       break;
     case 'paused':
     case 'budget_paused':
       el.classList.add('agent-card__status--paused');
-      el.textContent = agent.status === 'budget_paused' ? 'BUDGET LIMIT' : 'PAUSED';
+      el.textContent = agent.status === 'budget_paused' ? 'Budget Limit' : 'Paused';
       break;
     case 'error':
       el.classList.add('agent-card__status--error');
-      el.textContent = 'ERROR';
+      el.textContent = 'Error';
       break;
     default:
       el.classList.add('agent-card__status--idle');
-      el.textContent = 'IDLE';
+      el.textContent = 'Idle';
   }
 }
 
@@ -674,7 +674,7 @@ function updateAgentCardUI(agentId) {
 
   // Level
   const levelEl = document.getElementById(`${agentId}-level`);
-  if (levelEl) levelEl.textContent = `LVL ${a.level}`;
+  if (levelEl) levelEl.textContent = `Lvl ${a.level}`;
 
   // HP bar
   const hpFill = document.getElementById(`${agentId}-hp-fill`);
@@ -690,7 +690,7 @@ function updateAgentCardUI(agentId) {
 
   // XP
   const xpEl = document.getElementById(`${agentId}-xp`);
-  if (xpEl) xpEl.textContent = `XP: ${a.xp.toLocaleString()} / ${(a.level * XP_PER_LEVEL).toLocaleString()}`;
+  if (xpEl) xpEl.textContent = `Score: ${a.xp.toLocaleString()}`;
 
   // Per-agent stats
   switch (agentId) {
@@ -740,8 +740,9 @@ function setText(id, value, colorClass) {
 function updateBudgetUI() {
   const remaining = DAILY_BUDGET - state.budgetUsed;
   const pct = Math.round((remaining / DAILY_BUDGET) * 100);
-  document.getElementById('budget-text').textContent = `${state.budgetUsed} / ${DAILY_BUDGET} CALLS`;
-  document.getElementById('budget-pct').textContent = `${pct}%`;
+  document.getElementById('budget-text').textContent = `${state.budgetUsed} / ${DAILY_BUDGET} calls`;
+  const pctEl = document.getElementById('budget-pct');
+  if (pctEl) pctEl.textContent = `${pct}%`;
 
   const fill = document.getElementById('budget-fill');
   fill.style.width = `${pct}%`;
@@ -758,10 +759,10 @@ function updateBossBar() {
   const bossHp = Math.max(0, Math.round((1 - passRate) * 100));
 
   document.getElementById('boss-fill').style.width = `${bossHp}%`;
-  document.getElementById('boss-hp').textContent = `HP: ${bossHp}%`;
+  document.getElementById('boss-hp').textContent = `${bossHp}%`;
 
   if (bossHp === 0) {
-    addLog('SYSTEM', 'BOSS DEFEATED! Search quality is excellent!', 'star');
+    addLog('SYSTEM', 'All quality checks passing. Search quality is excellent.', 'star');
   }
 }
 
@@ -882,11 +883,11 @@ function renderNotifications() {
       <span class="notification-item__text">${escapeHtml(n.message)}</span>
       <div class="notification-item__actions">
         ${n.type === 'budget_request' ? `
-          <button class="notification-btn notification-btn--approve" onclick="handleNotifAction(${n.id}, 'approve')">APPROVE</button>
-          <button class="notification-btn notification-btn--deny" onclick="handleNotifAction(${n.id}, 'deny')">DENY</button>
-          <button class="notification-btn notification-btn--defer" onclick="handleNotifAction(${n.id}, 'defer')">DEFER</button>
+          <button class="notification-btn notification-btn--approve" onclick="handleNotifAction(${n.id}, 'approve')">Approve</button>
+          <button class="notification-btn notification-btn--deny" onclick="handleNotifAction(${n.id}, 'deny')">Deny</button>
+          <button class="notification-btn notification-btn--defer" onclick="handleNotifAction(${n.id}, 'defer')">Later</button>
         ` : `
-          <button class="notification-btn notification-btn--approve" onclick="handleNotifAction(${n.id}, 'ack')">ACK</button>
+          <button class="notification-btn notification-btn--approve" onclick="handleNotifAction(${n.id}, 'ack')">Dismiss</button>
         `}
       </div>
     </div>
@@ -938,15 +939,15 @@ function showGameOver() {
   const totalXP = Object.values(state.agents).reduce((s, a) => s + a.xp, 0);
 
   statsEl.innerHTML = `
-    TOTAL QUERIES: ${totalQueries}<br>
-    TOTAL XP EARNED: ${totalXP.toLocaleString()}<br>
-    API CALLS USED: ${state.budgetUsed} / ${DAILY_BUDGET}<br>
-    AGENTS DEPLOYED: 5<br>
+    <strong>Total Queries:</strong> ${totalQueries}<br>
+    <strong>Total Score:</strong> ${totalXP.toLocaleString()}<br>
+    <strong>API Calls Used:</strong> ${state.budgetUsed} / ${DAILY_BUDGET}<br>
+    <strong>Agents Active:</strong> 5<br>
     <br>
-    ${state.agents.atlas.total > 0 ? `PASS RATE: ${Math.round((state.agents.atlas.pass / state.agents.atlas.total) * 100)}%` : 'NO PASSES RECORDED'}<br>
-    BLURB GRADE: ${state.agents.qaudit.grade}<br>
-    REGRESSIONS: ${state.agents.sentinel.regressions}<br>
-    VULNERABILITIES: ${state.agents.hunter.vulns}<br>
+    ${state.agents.atlas.total > 0 ? `<strong>Pass Rate:</strong> ${Math.round((state.agents.atlas.pass / state.agents.atlas.total) * 100)}%` : '<em>No passes recorded</em>'}<br>
+    <strong>Blurb Grade:</strong> ${state.agents.qaudit.grade}<br>
+    <strong>Regressions Found:</strong> ${state.agents.sentinel.regressions}<br>
+    <strong>Issues Found:</strong> ${state.agents.hunter.vulns}<br>
   `;
 
   overlay.classList.add('game-over--visible');
@@ -962,7 +963,7 @@ function dismissGameOver() {
 
 document.getElementById('sound-toggle').addEventListener('click', () => {
   state.soundEnabled = !state.soundEnabled;
-  document.getElementById('sound-toggle').textContent = state.soundEnabled ? 'SND:ON' : 'SND:OFF';
+  document.getElementById('sound-toggle').textContent = state.soundEnabled ? 'Sound On' : 'Sound Off';
   document.getElementById('sound-toggle').classList.toggle('sound-toggle--on', state.soundEnabled);
 });
 
@@ -990,7 +991,7 @@ function updateCEOProfile() {
   const ranks = ['Recruit', 'Operator', 'Commander', 'Director', 'Admiral', 'Legend'];
   const rank = ranks[Math.min(ceoLevel - 1, ranks.length - 1)];
 
-  document.getElementById('ceo-rank').textContent = `LVL ${ceoLevel} — ${rank}`;
+  document.getElementById('ceo-rank').textContent = `Level ${ceoLevel} — ${rank}`;
 }
 
 // ═══════════════════════════════════════════════════════════════════
