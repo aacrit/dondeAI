@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ARCADE OPS — DondeAI Testing Command Center</title>
+  <link rel="stylesheet" href="css/arcade-ops.css">
+  <style>
+    /* Splash screen */
+    .splash {
+      position: fixed;
+      inset: 0;
+      background: #0a0a0a;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      transition: opacity 0.6s ease;
+    }
+    .splash--hidden { opacity: 0; pointer-events: none; }
+    .splash__ascii {
+      font-family: 'VT323', 'Courier New', monospace;
+      font-size: 14px;
+      color: #00ff41;
+      text-shadow: 0 0 8px rgba(0, 255, 65, 0.4);
+      white-space: pre;
+      line-height: 1.2;
+      text-align: center;
+    }
+    .splash__prompt {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 12px;
+      color: #00ffff;
+      margin-top: 32px;
+      animation: blink 1.2s infinite;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.2; }
+    }
+  </style>
+</head>
+<body class="crt-flicker">
+
+  <!-- ═══ Splash Screen ═══ -->
+  <div class="splash" id="splash" onclick="dismissSplash()">
+    <pre class="splash__ascii">
+    ___    ____  _________    ____  ______   ____  ____  _____
+   /   |  / __ \/ ____/   |  / __ \/ ____/  / __ \/ __ \/ ___/
+  / /| | / /_/ / /   / /| | / / / / __/    / / / / /_/ /\__ \
+ / ___ |/ _, _/ /___/ ___ |/ /_/ / /___   / /_/ / ____/___/ /
+/_/  |_/_/ |_|\____/_/  |_/_____/_____/   \____/_/    /____/
+
+  ╔══════════════════════════════════════════════════════════╗
+  ║     DondeAI Automated Testing Command Center            ║
+  ║                                                         ║
+  ║     5 Agents  ·  50 API Calls/Day  ·  375+ Queries     ║
+  ║                                                         ║
+  ║     "The search for perfect food never stops."          ║
+  ╚══════════════════════════════════════════════════════════╝
+    </pre>
+    <div class="splash__prompt">[ PRESS ANY KEY TO BEGIN ]</div>
+  </div>
+
+  <!-- ═══ Main App ═══ -->
+  <div class="app" id="app">
+
+    <!-- ─── Header ────────────────────────────────────────── -->
+    <header class="header">
+      <div class="header__title-group">
+        <div class="header__logo glow-cyan">ARCADE OPS</div>
+        <div class="header__subtitle">DondeAI Testing Command Center</div>
+      </div>
+      <div class="header__status">
+        <div class="header__status-dot" id="status-dot"></div>
+        <span class="header__status-text glow" id="status-text">OFFLINE</span>
+        <button class="sound-toggle" id="sound-toggle" title="Toggle Sound">SND:OFF</button>
+      </div>
+      <div class="header__profile" id="ceo-profile">
+        <div class="header__avatar" id="ceo-avatar">CEO</div>
+        <div class="header__profile-info">
+          <div class="header__profile-name" id="ceo-name">COMMANDER</div>
+          <div class="header__profile-rank" id="ceo-rank">LVL 1 — Recruit</div>
+        </div>
+      </div>
+    </header>
+
+    <!-- ─── Notification Bar ──────────────────────────────── -->
+    <div class="notification-bar" id="notification-bar">
+      <div class="notification-bar__header">
+        <span class="notification-bar__title">INCOMING TRANSMISSIONS</span>
+        <span class="notification-bar__badge" id="notif-badge">0</span>
+      </div>
+      <div class="notification-bar__list" id="notification-list">
+        <!-- Notifications injected by JS -->
+      </div>
+    </div>
+
+    <!-- ─── Controls ──────────────────────────────────────── -->
+    <div class="controls">
+      <div class="controls__buttons">
+        <button class="arcade-btn arcade-btn--start" id="btn-start" onclick="handleStart()">
+          <span class="arcade-btn__icon">&#9654;</span> START
+        </button>
+        <button class="arcade-btn arcade-btn--pause" id="btn-pause" onclick="handlePause()" disabled>
+          <span class="arcade-btn__icon">&#9208;</span> PAUSE
+        </button>
+        <button class="arcade-btn arcade-btn--stop" id="btn-stop" onclick="handleStop()" disabled>
+          <span class="arcade-btn__icon">&#9632;</span> STOP
+        </button>
+      </div>
+
+      <div class="controls__budget">
+        <div class="controls__budget-label">
+          <span>API BUDGET</span>
+          <span id="budget-text">0 / 50 CALLS</span>
+        </div>
+        <div class="controls__budget-bar">
+          <div class="controls__budget-fill" id="budget-fill" style="width: 100%"></div>
+          <span class="controls__budget-text" id="budget-pct">100%</span>
+        </div>
+      </div>
+
+      <div class="controls__meta">
+        <div class="controls__clock" id="clock">00:00:00</div>
+        <div class="controls__uptime" id="uptime">UPTIME: --:--:--</div>
+      </div>
+    </div>
+
+    <!-- ─── Boss Fight Bar ────────────────────────────────── -->
+    <div class="boss-bar">
+      <div class="boss-bar__label glow-red">BOSS: BAD SEARCH QUALITY</div>
+      <div class="boss-bar__track">
+        <div class="boss-bar__fill" id="boss-fill" style="width: 60%"></div>
+      </div>
+      <div class="boss-bar__hp-text" id="boss-hp">HP: 60%</div>
+    </div>
+
+    <!-- ─── Agent Arena ───────────────────────────────────── -->
+    <div class="arena">
+      <div class="arena__agents">
+        <div class="arena__title">AGENT ARENA</div>
+
+        <!-- ATLAS -->
+        <div class="agent-card agent-card--atlas" id="card-atlas">
+          <div class="agent-card__header">
+            <div class="agent-card__identity">
+              <div class="agent-card__avatar">&#9978;</div>
+              <div>
+                <div class="agent-card__name">ATLAS</div>
+                <div class="agent-card__subtitle">The Map Maker</div>
+              </div>
+            </div>
+            <div class="agent-card__level" id="atlas-level">LVL 1</div>
+          </div>
+          <div class="hp-bar">
+            <span class="hp-bar__label">HP</span>
+            <div class="hp-bar__track">
+              <div class="hp-bar__fill hp-bar__fill--high" id="atlas-hp-fill" style="width: 100%"></div>
+            </div>
+            <span class="hp-bar__value" id="atlas-hp-val">100%</span>
+          </div>
+          <div class="agent-card__xp" id="atlas-xp">XP: 0 / 500</div>
+          <div class="agent-card__stats">
+            <div class="agent-stat">
+              <span class="agent-stat__label">Queries:</span>
+              <span class="agent-stat__value" id="atlas-queries">0</span>
+            </div>
+            <div class="agent-stat">
+              <span class="agent-stat__label">Pass:</span>
+              <span class="agent-stat__value" id="atlas-pass">--</span>
+            </div>
+            <div class="agent-stat">
+              <span class="agent-stat__label">Avg DM:</span>
+              <span class="agent-stat__value" id="atlas-avg">--</span>
+            </div>
+            <div class="agent-stat">
+              <span class="agent-stat__label">Gaps:</span>
+              <span class="agent-stat__value" id="atlas-gaps">0</span>
+            </div>
+          </div>
+          <div class="agent-card__status agent-card__status--idle" id="atlas-status">IDLE</div>
+        </div>
+
+        <!-- QAUDIT -->
+        <div class="agent-card agent-card--qaudit" id="card-qaudit">
+          <div class="agent-card__header">
+            <div class="agent-card__identity">
+              <div class="agent-card__avatar">&#128270;</div>
+              <div>
+                <div class="agent-card__name">QAUDIT</div>
+                <div class="agent-card__subtitle">The Critic</div>
+              </div>
+            </div>
+            <div class="agent-card__level" id="qaudit-level">LVL 1</div>
+          </div>
+          <div class="hp-bar">
+            <span class="hp-bar__label">HP</span>
+            <div class="hp-bar__track">
+              <div class="hp-bar__fill hp-bar__fill--high" id="qaudit-hp-fill" style="width: 100%"></div>
+            </div>
+            <span class="hp-bar__value" id="qaudit-hp-val">100%</span>
+          </div>
+          <div class="agent-card__xp" id="qaudit-xp">XP: 0 / 500</div>
+          <div class="agent-card__stats">
+            <div class="agent-stat">
+              <span class="agent-stat__label">Audits:</span>
+              <span class="agent-stat__value" id="qaudit-audits">0</span>
+            </div>
+            <div class="agent-stat">
+              <span class="agent-stat__label">Grade:</span>
+              <span class="agent-stat__value" id="qaudit-grade">--</span>
+            </div>
+            <div class="agent-stat">
+              <span class="agent-stat__label">Slop:</span>
+              <span class="agent-stat__value" id="qaudit-slop">0</span>
+            </div>
+            <div class="agent-stat">
+              <span class="agent-stat__label">Clean:</span>
+              <span class="agent-stat__value" id="qaudit-clean">0</span>
+            </div>
+          </div>
+          <div class="agent-card__status agent-card__status--idle" id="qaudit-status">IDLE</div>
+        </div>
+
+        <!-- SENTINEL -->
+        <div class="agent-card agent-card--sentinel" id="card-sentinel">
+          <div class="agent-card__header">
+            <div class="agent-card__identity">
+              <div class="agent-card__avatar">&#128737;</div>
+              <div>
+                <div class="agent-card__name">SENTINEL</div>
+                <div class="agent-card__subtitle">The Watchman</div>
+              </div>
+            </div>
+            <div class="agent-card__level" id="sentinel-level">LVL 1</div>
+          </div>
+          <div class="hp-bar">
+            <span class="hp-bar__label">HP</span>
+            <div class="hp-bar__track">
+              <div class="hp-bar__fill hp-bar__fill--high" id="sentinel-hp-fill" style="width: 100%"></div>
+            </div>
+            <span class="hp-bar__value" id="sentinel-hp-val">100%</span>
+          </div>
+          <div class="agent-card__xp" id="sentinel-xp">XP: 0 / 500</div>
+          <div class="agent-card__stats">
+            <div class="agent-stat">
+              <span class="agent-stat__label">Checks:</span>
+              <span class="agent-stat__value" id="sentinel-checks">0</span>
+            </div>
+            <div class="agent-stat">
+              <span class="agent-stat__label">Regs:</span>
+              <span class="agent-stat__value" id="sentinel-regs">0</span>
+            </div>
+            <div class="agent-stat">
+              <span class="agent-stat__label">Baseline:</span>
+              <span class="agent-stat__value" id="sentinel-baseline">--</span>
+            </div>
+            <div class="agent-stat">
+              <span class="agent-stat__label">Delta:</span>
+              <span class="agent-stat__value" id="sentinel-delta">--</span>
+            </div>
+          </div>
+          <div class="agent-card__status agent-card__status--idle" id="sentinel-status">IDLE</div>
+        </div>
+
+        <!-- HUNTER -->
+        <div class="agent-card agent-card--hunter" id="card-hunter">
+          <div class="agent-card__header">
+            <div class="agent-card__identity">
+              <div class="agent-card__avatar">&#9876;</div>
+              <div>
+                <div class="agent-card__name">HUNTER</div>
+                <div class="agent-card__subtitle">The Rogue</div>
+              </div>
+            </div>
+            <div class="agent-card__level" id="hunter-level">LVL 1</div>
+          </div>
+          <div class="hp-bar">
+            <span class="hp-bar__label">HP</span>
+            <div class="hp-bar__track">
+              <div class="hp-bar__fill hp-bar__fill--high" id="hunter-hp-fill" style="width: 100%"></div>
+            </div>
+            <span class="hp-bar__value" id="hunter-hp-val">100%</span>
+          </div>
+          <div class="agent-card__xp" id="hunter-xp">XP: 0 / 500</div>
+          <div class="agent-card__stats">
+            <div class="agent-stat">
+              <span class="agent-stat__label">Probes:</span>
+              <span class="agent-stat__value" id="hunter-probes">0</span>
+            </div>
+            <div class="agent-stat">
+              <span class="agent-stat__label">Vulns:</span>
+              <span class="agent-stat__value" id="hunter-vulns">0</span>
+            </div>
+            <div class="agent-stat">
+              <span class="agent-stat__label">Contract:</span>
+              <span class="agent-stat__value" id="hunter-contract">--</span>
+            </div>
+            <div class="agent-stat">
+              <span class="agent-stat__label">Errors:</span>
+              <span class="agent-stat__value" id="hunter-errors">0</span>
+            </div>
+          </div>
+          <div class="agent-card__status agent-card__status--idle" id="hunter-status">IDLE</div>
+        </div>
+
+        <!-- GUARDIAN -->
+        <div class="agent-card agent-card--guardian" id="card-guardian">
+          <div class="agent-card__header">
+            <div class="agent-card__identity">
+              <div class="agent-card__avatar">&#129668;</div>
+              <div>
+                <div class="agent-card__name">GUARDIAN</div>
+                <div class="agent-card__subtitle">The Sage</div>
+              </div>
+            </div>
+            <div class="agent-card__level" id="guardian-level">LVL 1</div>
+          </div>
+          <div class="hp-bar">
+            <span class="hp-bar__label">HP</span>
+            <div class="hp-bar__track">
+              <div class="hp-bar__fill hp-bar__fill--high" id="guardian-hp-fill" style="width: 100%"></div>
+            </div>
+            <span class="hp-bar__value" id="guardian-hp-val">100%</span>
+          </div>
+          <div class="agent-card__xp" id="guardian-xp">XP: 0 / 500</div>
+          <div class="agent-card__stats">
+            <div class="agent-stat">
+              <span class="agent-stat__label">Records:</span>
+              <span class="agent-stat__value" id="guardian-records">0</span>
+            </div>
+            <div class="agent-stat">
+              <span class="agent-stat__label">Issues:</span>
+              <span class="agent-stat__value" id="guardian-issues">0</span>
+            </div>
+            <div class="agent-stat">
+              <span class="agent-stat__label">Orphans:</span>
+              <span class="agent-stat__value" id="guardian-orphans">0</span>
+            </div>
+            <div class="agent-stat">
+              <span class="agent-stat__label">Coverage:</span>
+              <span class="agent-stat__value" id="guardian-coverage">--</span>
+            </div>
+          </div>
+          <div class="agent-card__status agent-card__status--idle" id="guardian-status">IDLE</div>
+        </div>
+      </div>
+
+      <!-- Leaderboard -->
+      <div class="leaderboard">
+        <div class="leaderboard__title">HIGH SCORES</div>
+        <ul class="leaderboard__list" id="leaderboard">
+          <li class="leaderboard__entry">
+            <span class="leaderboard__rank leaderboard__rank--1">1.</span>
+            <span class="leaderboard__name">---</span>
+            <span class="leaderboard__score">0</span>
+          </li>
+          <li class="leaderboard__entry">
+            <span class="leaderboard__rank leaderboard__rank--2">2.</span>
+            <span class="leaderboard__name">---</span>
+            <span class="leaderboard__score">0</span>
+          </li>
+          <li class="leaderboard__entry">
+            <span class="leaderboard__rank leaderboard__rank--3">3.</span>
+            <span class="leaderboard__name">---</span>
+            <span class="leaderboard__score">0</span>
+          </li>
+          <li class="leaderboard__entry">
+            <span class="leaderboard__rank leaderboard__rank--other">4.</span>
+            <span class="leaderboard__name">---</span>
+            <span class="leaderboard__score">0</span>
+          </li>
+          <li class="leaderboard__entry">
+            <span class="leaderboard__rank leaderboard__rank--other">5.</span>
+            <span class="leaderboard__name">---</span>
+            <span class="leaderboard__score">0</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- ─── Battle Log ────────────────────────────────────── -->
+    <div class="battle-log">
+      <div class="battle-log__header">
+        <span class="battle-log__title">BATTLE LOG</span>
+        <div class="battle-log__filters">
+          <button class="battle-log__filter battle-log__filter--active" data-filter="all" onclick="filterLog('all')">ALL</button>
+          <button class="battle-log__filter" data-filter="atlas" onclick="filterLog('atlas')">ATLAS</button>
+          <button class="battle-log__filter" data-filter="qaudit" onclick="filterLog('qaudit')">QAUDIT</button>
+          <button class="battle-log__filter" data-filter="sentinel" onclick="filterLog('sentinel')">SENTINEL</button>
+          <button class="battle-log__filter" data-filter="hunter" onclick="filterLog('hunter')">HUNTER</button>
+          <button class="battle-log__filter" data-filter="guardian" onclick="filterLog('guardian')">GUARDIAN</button>
+        </div>
+      </div>
+      <div class="battle-log__entries" id="battle-log">
+        <div class="log-entry">
+          <span class="log-entry__time">--:--:--</span>
+          <span class="log-entry__agent">SYSTEM</span>
+          <span class="log-entry__message">Awaiting commander orders. Press START to deploy agents.</span>
+          <span class="log-entry__icon">&#9679;</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ═══ Game Over Overlay ═══ -->
+  <div class="game-over" id="game-over">
+    <pre class="game-over__text">
+ ██████   █████  ███    ███ ███████
+██       ██   ██ ████  ████ ██
+██   ███ ███████ ██ ████ ██ █████
+██    ██ ██   ██ ██  ██  ██ ██
+ ██████  ██   ██ ██      ██ ███████
+
+ ██████  ██    ██ ███████ ██████
+██    ██ ██    ██ ██      ██   ██
+██    ██ ██    ██ █████   ██████
+██    ██  ██  ██  ██      ██   ██
+ ██████    ████   ███████ ██   ██
+    </pre>
+    <div class="game-over__stats" id="game-over-stats">
+      Session Stats Loading...
+    </div>
+    <div class="game-over__restart" onclick="dismissGameOver()">[ PRESS TO RETURN TO BASE ]</div>
+  </div>
+
+  <!-- ═══ Paused Overlay ═══ -->
+  <div class="paused-overlay" id="paused-overlay">
+    <div class="paused-overlay__text">= = P A U S E D = =</div>
+  </div>
+
+  <script src="js/arcade-ops.js"></script>
+</body>
+</html>
