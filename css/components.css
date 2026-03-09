@@ -1859,6 +1859,16 @@
   margin: 0;
 }
 
+/* ── Match Signal — strongest factor callout (Ink Rule: neutral, no accent) ── */
+.match-signal {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  letter-spacing: 0.02em;
+  padding: 0 var(--space-md);
+  margin: calc(-1 * var(--space-xs)) 0 var(--space-xs);
+  opacity: 0.7;
+}
+
 /* ── DondeAI Blurb — The editorial recommendation voice ── */
 .donde-blurb {
   position: relative;

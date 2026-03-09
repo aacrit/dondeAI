@@ -1,6 +1,7 @@
 /* ============================================
    DondeAI — Main Orchestrator
    Single-canvas layout: Canvas + Result.
+   Module architecture: globals.js (shared state) → app.js (orchestrator)
    ============================================ */
 
 import { getState, setState, subscribe, resetState } from './state.js';
@@ -21,8 +22,9 @@ import {
   buildGoogleStars, buildMapsUrl, relativeTime, matchCuisine, matchCulture,
   humanizeSnake
 } from './utils.js';
+import { $dom, initDomRefs, _escHtml, haptic, HAPTICS, pushTimer, clearAnimationTimers, setPendingResultData, setPendingCuisine, setTier2Prepared, setTier2Animated, isTier2Prepared, isTier2Animated, getPendingResultData, getPendingCuisine, setSwapInFlight, setCurrentAbort, currentAbort as getGlobalAbort } from './globals.js';
 
-/* ---- Cached DOM Elements ---- */
+/* ---- Cached DOM Elements (legacy aliases — will migrate to $dom) ---- */
 const $app = document.querySelector('.app');
 const $main = document.querySelector('.cockpit');
 const $cravingInput = document.getElementById('craving-input');
@@ -31,33 +33,6 @@ const $toast = document.getElementById('toast');
 const $toastText = document.getElementById('toast-text');
 const $cursorGlow = document.querySelector('.cursor-glow');
 const $suggestions = document.getElementById('craving-suggestions');
-
-/* ---- HTML Escape (for safe innerHTML insertion) ---- */
-function _escHtml(s) {
-  const d = document.createElement('div');
-  d.textContent = s;
-  return d.innerHTML;
-}
-
-/* ---- Haptic Feedback Library ---- */
-function haptic(pattern) {
-  if (navigator.vibrate) navigator.vibrate(pattern);
-}
-const HAPTICS = {
-  tick:        [10],                   // feedback tap, filter select
-  doublePulse: [30, 20, 30],           // bookmark save
-  reveal:      [50, 30, 50],           // result reveal
-  celebration: [50, 30, 80, 30, 50],   // 90%+ score
-  swipe:       [40],                   // swipe completion
-  factorTap:   [15, 10, 15],           // V9: double-tap feel on factor expand
-  signalPop:   [8],                    // V9: micro-tick on signal pill appear
-  photoSwipe:  [20],                   // V9.1: photo scroll start
-  scoreReveal: [50, 30, 50],           // V9.1: tier 2 score hero appears
-  goingHere:   [50, 30, 80, 30, 50],   // V9.1: "I'm Going Here" celebration
-  drawerOpen:  [15],                   // V9.1: drawer/sheet opens
-  tierExpand:  [30, 15, 30],           // V9.1: show more tap
-  peekPulse:   [15],                   // V9.1: tier 2 peek affordance
-};
 
 /* ---- AbortController for fetch cancellation ---- */
 let currentAbort = null;
@@ -1332,6 +1307,11 @@ function wireEvents() {
         $tier2.addEventListener('transitionend', onDone);
 
         if (!isExpanded) {
+          // Lazy-load Tier 2 content on first expand
+          if (!_tier2Prepared && _pendingResultData) {
+            _tier2Prepared = true;
+            prepareTier2(_pendingResultData, _pendingCuisine);
+          }
           // EXPANDING — set concrete height target then let CSS transition
           $tier2.style.willChange = 'max-height, opacity';
           requestAnimationFrame(() => {
@@ -2646,6 +2626,19 @@ function renderResult(data) {
   // V5: Relaxation notice — shown above result card when filters were expanded
   renderRelaxationNotice(data);
 
+  // Match signal — surface strongest factor in Tier 1 (trust layer)
+  const $matchSignal = document.getElementById('match-signal');
+  if ($matchSignal) {
+    const narrative = data.match_narrative;
+    const label = narrative?.strongest_factor_label || '';
+    if (label) {
+      $matchSignal.textContent = `Matched on: ${label.toLowerCase()}`;
+      $matchSignal.style.display = '';
+    } else {
+      $matchSignal.style.display = 'none';
+    }
+  }
+
   // DondeAI Recommendation blurb — the editorial voice in Tier 1
   const $rec = document.getElementById('result-recommendation');
   const $blurb = document.getElementById('donde-blurb');
@@ -2697,12 +2690,10 @@ function renderResult(data) {
   // TIER 2: LEAN-IN — Prepare content (hidden until expanded)
   // ═══════════════════════════════════════════════════════
 
-  // Store data reference for lazy tier 2/3 rendering
+  // Store data reference for lazy tier 2 rendering (rendered on demand when expanded)
   _pendingResultData = data;
   _pendingCuisine = cuisine;
-
-  // Pre-populate Tier 2 content (DOM ready, revealed on scroll)
-  prepareTier2(data, cuisine);
+  _tier2Prepared = false;
 
   // V9: Photo parallax depth effect
   setupPhotoParallax();
@@ -2854,6 +2845,9 @@ function prepareTier2(data, cuisine) {
 }
 
 
+
+/* ---- Tier 2 lazy-load flag (prepared on first expand) ---- */
+let _tier2Prepared = false;
 
 /* ---- Tier 2 animation trigger (called on first expand) ---- */
 let _tier2Animated = false;
