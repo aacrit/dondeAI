@@ -673,7 +673,9 @@
   .result-card--revealing .donde-blurb,
   .result-card--revealing .glance-nav,
   .result-card--revealing .tell-more-btn,
-  .result-card--revealing .card-footer {
+  .result-card--revealing .card-footer,
+  .try-again-icon--spinning,
+  .going-btn--done {
     animation-duration: 100ms !important;
     animation-timing-function: linear !important;
     opacity: 1;

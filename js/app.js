@@ -12,7 +12,7 @@ import { initVoice, startVoice } from './voice.js';
 import { initShare, shareResult, closeShareSheet, handleShareChannel } from './share.js';
 import { initOffline, isOnline } from './offline.js';
 import { initAccessibility, announce } from './accessibility.js';
-import { fetchRecommendation, fetchBlurb, sendFeedback, sendVisit, sendAppFeedback } from './api.js';
+import { fetchRecommendation, fetchBlurb, sendFeedback, sendVisit, sendAppFeedback, fetchRestaurantById } from './api.js';
 import { initAuth, signIn as signInWith, signOut as authSignOut, isAuthenticated as isAuthAuthenticated, getUser as getAuthUser, addFavoriteToServer, removeFavoriteFromServer, addVisitToServer } from './auth.js';
 import { animateScoreRing, renderPetalRadar, renderSentimentBar, renderScoreBloom, renderScoreHero, renderRelevanceGate, renderFactorBars, toggleBloom, resetBloomState, handlePetalTap, handleBloomRingTap, toggleScoreBreakdown, getBloomState, animateBadge, startParticles, stopParticles, chaosToOrderReveal, initLogoAnimation, startWordRotation, stopWordRotation, resolveLogoToFound, cleanupLoadingLogo, fireCelebration } from './animations.js';
 import {
@@ -120,6 +120,7 @@ function init() {
 
   // V10: Render combined "Your Spots" (recent + saved + visited)
   renderYourSpots();
+  renderTasteProfile();
 
   // F9: Initialize anonymous user ID
   getOrCreateUserId();
@@ -143,8 +144,19 @@ function init() {
   // Init cursor glow (desktop only)
   initCursorGlow();
 
-  // Coach marks: show on first visit after 1.5s (decoupled from auth)
+  // V11: First-visit onboarding — subtitle + smart chips label + deferred score coach
   if (!hasSeenOnboarding()) {
+    const labels = getLabels(getState().theme.culture);
+    // Beat 1: Subtitle below greeting
+    const $subtitle = document.getElementById('onboarding-subtitle');
+    if ($subtitle) {
+      $subtitle.textContent = labels.onboardingSubtitle || 'One craving. One perfect spot. No lists, no scrolling.';
+      $subtitle.style.display = '';
+    }
+    // Beat 2: Smart chips label
+    const $chipsLabel = document.getElementById('smart-chips-label');
+    if ($chipsLabel) $chipsLabel.style.display = '';
+    // Beat 3: Coach marks after 1.5s (theme + input)
     setTimeout(() => showCoachMarks(), 1500);
   }
 
@@ -197,6 +209,12 @@ function init() {
     // Fallback: just remove after 1s
     setTimeout(() => document.body.classList.remove('fonts-loading'), 1000);
   }
+
+  // V11: Deep link check — #/r/{restaurant-id}?dm={score}
+  checkDeepLink();
+
+  // Listen for hash changes (e.g., user pastes deep link while app is open)
+  window.addEventListener('hashchange', () => checkDeepLink());
 }
 
 /* ---- Landing Setup ---- */
@@ -697,6 +715,10 @@ function wireEvents() {
         hideFloatingBar(); // V9: Hide floating bar on reset
         break;
 
+      case 'exit-shared':
+        exitSharedMode();
+        break;
+
       case 'back':
         if (currentAbort) currentAbort.abort();
         if (getState().loading) {
@@ -917,13 +939,23 @@ function wireEvents() {
           clearFeedback(restaurantId);
           setState({ pendingFeedback: null });
           btn.classList.remove('feedback-btn--active');
+          // Remove dimming from all feedback buttons
+          document.querySelectorAll('.feedback-btn').forEach(b => b.classList.remove('feedback-btn--dimmed'));
           sendFeedback(restaurantId, null, userId); // clear on server
           showToast(toasts().feedbackCleared, false);
         } else {
           // Set feedback (or switch from opposite)
           saveFeedback(restaurantId, fb);
           setState({ pendingFeedback: { restaurant_id: restaurantId, feedback: fb } });
-          document.querySelectorAll('.feedback-btn').forEach(b => b.classList.remove('feedback-btn--active'));
+          document.querySelectorAll('.feedback-btn').forEach(b => {
+            b.classList.remove('feedback-btn--active');
+            // Dim non-active feedback buttons (like/dislike only)
+            if (b !== btn && !b.classList.contains('feedback-btn--bookmark')) {
+              b.classList.add('feedback-btn--dimmed');
+            } else {
+              b.classList.remove('feedback-btn--dimmed');
+            }
+          });
           btn.classList.add('feedback-btn--active');
           sendFeedback(restaurantId, fb, userId); // dispatch immediately
           showToast(fb === 'like' ? toasts().feedbackLike : toasts().feedbackDislike, false);
@@ -949,6 +981,7 @@ function wireEvents() {
         }
         updateBookmarkBtn(restaurant.id);
         renderYourSpots();
+        renderTasteProfile();
         const t = toasts();
         const savedMsg = isAuthAuthenticated()
           ? (wasBookmarked ? t.bookmarkRemove : t.bookmarkAddAuth)
@@ -971,6 +1004,7 @@ function wireEvents() {
         if (isAuthAuthenticated()) addVisitToServer(restaurant);
         updateGoingBtn(restaurant.id);
         renderYourSpots();
+        renderTasteProfile();
         showToast(toasts().goingHere, false);
         break;
       }
@@ -1019,6 +1053,12 @@ function wireEvents() {
         // Visual loading state on button during swap
         const $tryBtn = btn.closest('[data-action="try-again"]') || btn;
         $tryBtn.classList.add('cta-btn--loading');
+        // Spin the refresh icon on tap
+        const $tryIcon = document.getElementById('try-again-icon');
+        if ($tryIcon) {
+          $tryIcon.classList.add('try-again-icon--spinning');
+          $tryIcon.addEventListener('animationend', () => $tryIcon.classList.remove('try-again-icon--spinning'), { once: true });
+        }
 
         // Track current restaurant ID so backend can exclude it
         const prevId = getState().result?.restaurant?.id;
@@ -2139,6 +2179,32 @@ let _arrowBounceTimer = null;
 let _sessionResultCount = 0;
 let _swapInFlight = false;
 
+/* ---- V11: Loading Progress Narrative — 3-beat contextual updates ---- */
+function startLoadingProgress(craving, labels) {
+  const $status = document.getElementById('loading-status');
+  const $word = document.getElementById('loading-word');
+  if (!$status) return;
+
+  // Beat 1: instant — searching
+  $status.textContent = labels.loadingBeat1 || 'Searching 900+ Chicago spots\u2026';
+  if ($word) { $word.textContent = ''; $word.style.opacity = '0'; }
+
+  // Beat 2: 1.5s — found matches for craving
+  _scaffoldTimers.push(setTimeout(() => {
+    if ($word) {
+      const truncated = craving.length > 30 ? craving.slice(0, 30) + '\u2026' : craving;
+      const prefix = labels.loadingBeat2Prefix || 'Found matches for';
+      $word.textContent = `${prefix} \u201C${truncated}\u201D`;
+      $word.style.opacity = '1';
+    }
+  }, 1500));
+
+  // Beat 3: 3.5s — picking best match
+  _scaffoldTimers.push(setTimeout(() => {
+    if ($status) $status.textContent = labels.loadingBeat3 || 'Picking your best match\u2026';
+  }, 3500));
+}
+
 /* ---- Phase 1: Canvas Fold ---- */
 function beginCanvasFold() {
   const $canvas = document.querySelector('.canvas-layout');
@@ -2157,7 +2223,7 @@ function beginCanvasFold() {
     $resultCard.classList.remove('result-card--revealing');
   }
 
-  // Show unified loading-state overlay with particles + draw-loop + word rotation
+  // Show unified loading-state overlay with particles + draw-loop + progress narrative
   const $loadingState = document.getElementById('loading-state');
   if ($loadingState) {
     $loadingState.style.display = '';
@@ -2168,9 +2234,10 @@ function beginCanvasFold() {
         const $particleCanvas = document.getElementById('particle-canvas');
         if ($particleCanvas) startParticles($particleCanvas);
         initLogoAnimation(getState().craving);
-        const labels = getLabels(getState().theme.culture);
-        if (labels.loadingPhrases) startWordRotation(labels.loadingPhrases);
       }
+      // 3-beat progress narrative (works even with reduced motion)
+      const labels = getLabels(getState().theme.culture);
+      startLoadingProgress(getState().craving, labels);
     } catch (e) {
       console.error('Loading animation setup failed:', e);
     }
@@ -2215,6 +2282,8 @@ async function manifestResult(data) {
       $resultCard.style.display = '';
       $resultCard.style.opacity = '1';
       $resultCard.classList.remove('result-card--scaffold', 'result-card--loading');
+      const $desktopEmpty = document.getElementById('desktop-empty');
+      if ($desktopEmpty) $desktopEmpty.style.display = 'none';
     }
   } else {
     // Phase 1: Resolve logo (confirmation pulse, 450ms)
@@ -2238,6 +2307,9 @@ async function manifestResult(data) {
         $resultCard.classList.remove('result-card--scaffold', 'result-card--loading');
         $resultCard.classList.add('result-card--revealing');
         $resultCard.style.opacity = '1';
+        // Hide desktop empty state
+        const $desktopEmpty = document.getElementById('desktop-empty');
+        if ($desktopEmpty) $desktopEmpty.style.display = 'none';
 
         // Clean up revealing class after all animations complete
         _scaffoldTimers.push(setTimeout(() => {
@@ -2278,6 +2350,13 @@ async function manifestResult(data) {
 
   // Schedule edge-hint replays
   scheduleEdgeHintReplay();
+
+  // V11: Score coach mark — show after first result for new users
+  if (_sessionResultCount === 1 && !hasSeenOnboarding()) {
+    _scaffoldTimers.push(setTimeout(() => {
+      showScoreCoachMark();
+    }, 2000));
+  }
 
   // Show More arrow bounce hint after 5s idle (if Tier 2 not already opened)
   if (_arrowBounceTimer) clearTimeout(_arrowBounceTimer);
@@ -2671,6 +2750,27 @@ function renderResult(data) {
       $blurb.style.display = recText ? '' : 'none';
       // V5: Boost-aware blurb accent border
       $blurb.classList.toggle('donde-blurb--boosted', !!data.intent_boost?.active);
+    }
+  }
+
+  // V11: "Why This Pick" — compact factor + signal in Tier 1
+  const $whyPick = document.getElementById('why-this-pick');
+  const $whyText = document.getElementById('why-this-pick-text');
+  if ($whyPick) {
+    const mn = data.match_narrative;
+    const factor = mn?.strongest_factor || '';
+    const signal = mn?.key_signals?.[0] || '';
+    if (factor || signal) {
+      const factorIcons = { food: 'plate', vibe: 'moon', service: 'starFull', reputation: 'diamond', convenience: 'home' };
+      const iconName = factorIcons[factor] || 'starFull';
+      const $icon = $whyPick.querySelector('.why-this-pick__icon');
+      if ($icon) $icon.innerHTML = svgIcon(iconName, 16);
+      const factorNames = { food: 'Food', vibe: 'Vibe', service: 'Service', reputation: 'Reputation', convenience: 'Convenience' };
+      const label = factorNames[factor] || factor;
+      if ($whyText) $whyText.textContent = signal ? `${label} match — "${signal}"` : `${label} match`;
+      $whyPick.style.display = '';
+    } else {
+      $whyPick.style.display = 'none';
     }
   }
 
@@ -3811,6 +3911,136 @@ function renderYourSpots() {
   $container.style.display = '';
 }
 
+/* ---- V11: Taste Profile — surface the data flywheel on canvas ---- */
+function renderTasteProfile() {
+  const $container = document.getElementById('taste-profile');
+  const $text = document.getElementById('taste-profile-text');
+  if (!$container || !$text) return;
+
+  const bookmarks = loadBookmarks();
+  const visits = loadVisits();
+  const history = loadHistory();
+  const totalInteractions = history.length + bookmarks.length + visits.length;
+
+  if (totalInteractions < 2) { $container.style.display = 'none'; return; }
+
+  // Find top cuisine from bookmarks + visits
+  const cuisineCounts = {};
+  [...bookmarks, ...visits].forEach(item => {
+    if (item.cuisine_type) cuisineCounts[item.cuisine_type] = (cuisineCounts[item.cuisine_type] || 0) + 1;
+  });
+  const topCuisine = Object.entries(cuisineCounts).sort((a, b) => b[1] - a[1])[0]?.[0];
+
+  // Find top neighborhood
+  const hoodCounts = {};
+  [...bookmarks, ...visits].forEach(item => {
+    if (item.neighborhood_name) hoodCounts[item.neighborhood_name] = (hoodCounts[item.neighborhood_name] || 0) + 1;
+  });
+  const topHood = Object.entries(hoodCounts).sort((a, b) => b[1] - a[1])[0]?.[0];
+
+  let text = `You\u2019ve explored ${totalInteractions} spot${totalInteractions !== 1 ? 's' : ''}.`;
+  if (topCuisine && topHood) {
+    text += ` Donde sees you love ${topCuisine} in ${topHood}.`;
+  } else if (topCuisine) {
+    text += ` Donde sees you love ${topCuisine}.`;
+  } else if (topHood) {
+    text += ` You keep coming back to ${topHood}.`;
+  }
+
+  if (!isAuthAuthenticated() && totalInteractions >= 3) {
+    text += ' Sign in to keep your taste profile.';
+  }
+
+  $text.textContent = text;
+  $container.style.display = '';
+}
+
+/* ---- Deep Link Routing (#9) ---- */
+function checkDeepLink() {
+  const hash = window.location.hash;
+  const match = hash.match(/^#\/r\/([a-f0-9-]+)/);
+  if (!match) return false;
+
+  const restaurantId = match[1];
+  const params = new URLSearchParams(hash.split('?')[1] || '');
+  const score = parseInt(params.get('dm') || '0', 10);
+
+  loadDeepLinkedResult(restaurantId, score);
+  return true;
+}
+
+async function loadDeepLinkedResult(restaurantId, score) {
+  // Show minimal loading in result panel
+  if ($resultCard) {
+    $resultCard.style.display = '';
+    $resultCard.classList.add('result-card--shared');
+  }
+  const $desktopEmpty = document.getElementById('desktop-empty');
+  if ($desktopEmpty) $desktopEmpty.style.display = 'none';
+
+  // Jump to result step
+  goToStepInstant(1);
+
+  try {
+    const restaurant = await fetchRestaurantById(restaurantId);
+    if (!restaurant) {
+      showToast('Could not load this restaurant.', true);
+      goToStep(0);
+      if ($resultCard) { $resultCard.style.display = 'none'; $resultCard.classList.remove('result-card--shared'); }
+      return;
+    }
+
+    // Build a minimal result object for renderResult
+    const data = {
+      restaurant,
+      donde_match: score || 0,
+      recommendation: restaurant.best_for_oneliner || '',
+      insider_tip: null,
+      scoring_v9: null,
+      match_narrative: null,
+      ranked_queue: [],
+      deep_context: {},
+      tags: [],
+      intent_boost: { active: false },
+      _isSharedResult: true,
+    };
+
+    renderResult(data);
+    if ($resultCard) {
+      $resultCard.style.display = '';
+      $resultCard.style.opacity = '1';
+      $resultCard.classList.remove('result-card--scaffold', 'result-card--loading');
+    }
+
+    // Show shared CTA bar, hide interactive footer
+    const $footer = document.getElementById('card-footer');
+    if ($footer) $footer.style.display = 'none';
+    const $cta = document.getElementById('shared-cta');
+    if ($cta) $cta.style.display = '';
+
+  } catch {
+    showToast('Could not load this restaurant.', true);
+    goToStep(0);
+    if ($resultCard) { $resultCard.style.display = 'none'; $resultCard.classList.remove('result-card--shared'); }
+  }
+}
+
+function exitSharedMode() {
+  // Clear hash, restore normal UI
+  history.replaceState(null, '', window.location.pathname);
+  if ($resultCard) {
+    $resultCard.classList.remove('result-card--shared');
+    $resultCard.style.display = 'none';
+  }
+  const $footer = document.getElementById('card-footer');
+  if ($footer) $footer.style.display = '';
+  const $cta = document.getElementById('shared-cta');
+  if ($cta) $cta.style.display = 'none';
+  const $desktopEmpty = document.getElementById('desktop-empty');
+  if ($desktopEmpty) $desktopEmpty.style.display = '';
+  goToStep(0);
+}
+
 /* ---- App Feedback Sheet ---- */
 function openFeedbackSheet() {
   const $sheet = document.getElementById('feedback-sheet');
@@ -4450,6 +4680,40 @@ function renderShareCanvas(format = 'post') {
   ctx.font = `italic 500 14px "Playfair Display", serif`;
   ctx.textAlign = 'right';
   ctx.fillText('via Donde', w - pad, h - pad);
+}
+
+/* ---- V11: Score Coach Mark — one-shot after first result for new users ---- */
+function showScoreCoachMark() {
+  const $mark = document.getElementById('coach-mark');
+  const $text = document.getElementById('coach-mark-text');
+  const $backdrop = document.getElementById('coach-mark-backdrop');
+  const target = document.getElementById('match-pill');
+  if (!$mark || !$text || !$backdrop || !target) return;
+
+  const labels = getLabels(getState().theme.culture);
+  $text.textContent = labels.coachMarks?.score || 'This is your DondeAI Match \u2014 how well this spot fits what you asked for.';
+
+  $backdrop.style.display = '';
+  $mark.style.display = '';
+
+  const rect = target.getBoundingClientRect();
+  $mark.style.left = `${Math.max(16, Math.min(rect.left, window.innerWidth - 296))}px`;
+  $mark.style.top = `${rect.bottom + 12}px`;
+
+  target.style.position = target.style.position || 'relative';
+  target.style.zIndex = '9992';
+  target._coachElevated = true;
+
+  // Auto-dismiss on backdrop click or after 8s
+  const dismiss = () => {
+    $mark.style.display = 'none';
+    $backdrop.style.display = 'none';
+    if (target._coachElevated) { target.style.zIndex = ''; target._coachElevated = false; }
+    setOnboardingSeen();
+    $backdrop.removeEventListener('click', dismiss);
+  };
+  $backdrop.addEventListener('click', dismiss, { once: true });
+  setTimeout(dismiss, 8000);
 }
 
 // Expose for share module
