@@ -24,13 +24,15 @@ AI restaurant recommendations for Chicago. One craving in, one perfect spot out.
 | `docs/TEST-CASES.md` | Full manual test matrix |
 | `_archive/VERSION-HISTORY.md` | Pre-V9/V10 specs, removed features, scoring evolution |
 
-## Skill
+## Skills
 
 **`/frontenddesign`** — auto-activates on UI/animation/layout tasks. See `.claude/skills/frontenddesign/SKILL.md`.
 
 Enforces: Ink Rule, 3-voice typography, motion grammar (spring/ease, symmetric open/close), 2-view cockpit, 10 theme variants, WCAG 2.1 AA, RAG color system, spatial logic.
 
 Code review (7 points): accent usage, type voice, motion curve + symmetry, theme coverage, keyboard nav, reduced-motion, badge neutrality.
+
+**`/ceo-advisor`** — Strategic product advisor. Reads all product docs (frontend + backend) and delivers Top 10 prioritized recommendations or answers specific CEO questions. See `.claude/skills/ceo-advisor/SKILL.md`.
 
 ## Design Philosophy — "Ink & Momentum" (V10)
 
