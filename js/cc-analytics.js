@@ -1,0 +1,804 @@
+/**
+ * DondeAI Command Center — Analytics
+ * Gauntlet data loading, quality rendering, gap analysis, trends, fix prompts
+ */
+
+// ═══════════════════════════════════════════════════════════════════
+// Auth
+// ═══════════════════════════════════════════════════════════════════
+
+async function checkAuth() {
+  try {
+    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+    const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const { data: { session } } = await sb.auth.getSession();
+    if (session?.user?.email === ADMIN_EMAIL) {
+      loadGauntletData();
+    } else {
+      showAccessDenied(sb, session);
+    }
+  } catch (e) {
+    // If Supabase fails, still show agent section
+    console.warn('Auth check failed, showing agents only:', e);
+  }
+}
+
+function showAccessDenied(sb, session) {
+  const gate = document.getElementById('auth-gate');
+  const msg = document.getElementById('auth-message');
+  const btn = document.getElementById('auth-sign-in');
+  gate.style.display = 'block';
+  msg.textContent = session
+    ? `Signed in as ${session.user.email} — admin access required.`
+    : 'Sign in with your Google account to view analytics.';
+  btn.textContent = session ? 'Sign in with a different account' : 'Sign in with Google';
+  btn.addEventListener('click', async () => {
+    if (session) await sb.auth.signOut();
+    await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.href } });
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Data Loading
+// ═══════════════════════════════════════════════════════════════════
+
+async function loadGauntletData() {
+  try {
+    const loaded = await loadRunSelector();
+    if (loaded) return;
+  } catch (_) {}
+  // Fallback to local JSON
+  const DATA_URLS = ['data/dashboard-data.json', '../dondeBackend/tests/gauntlet-results/dashboard-data.json'];
+  let data = null;
+  for (const url of DATA_URLS) {
+    try { const r = await fetch(url); if (r.ok) { data = await r.json(); break; } } catch (_) {}
+  }
+  if (data) {
+    dashData = data;
+    renderQualitySection(data);
+    renderIssuesSection(data);
+    updateHeroKPIsFromGauntlet(data);
+  }
+}
+
+async function loadRunSelector() {
+  const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+  const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const { data: runs } = await sb
+    .from('gauntlet_runs')
+    .select('run_id, total, gap_count, avg_dm, created_at, mode, dataset_size')
+    .order('created_at', { ascending: false })
+    .limit(20);
+  if (!runs || runs.length === 0) return false;
+
+  const sel = document.getElementById('run-selector');
+  sel.innerHTML = '';
+  for (let i = 0; i < runs.length; i++) {
+    const r = runs[i];
+    const date = new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    const latest = i === 0 ? ' (latest)' : '';
+    sel.innerHTML += `<option value="${r.run_id}">${r.total}q | DM ${r.avg_dm} | ${r.gap_count} gaps — ${date}${latest}</option>`;
+  }
+
+  sel.addEventListener('change', () => { if (sel.value) loadRunFromSupabase(sel.value); });
+  sel.value = runs[0].run_id;
+  await loadRunFromSupabase(runs[0].run_id);
+  return true;
+}
+
+async function loadRunFromSupabase(runId) {
+  const qualityEl = document.getElementById('quality-content');
+  const issuesEl = document.getElementById('issues-content');
+  qualityEl.innerHTML = '<div class="cc-loading"><div class="cc-spinner"></div><p>Loading run data...</p></div>';
+
+  try {
+    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+    const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const { data: runData } = await sb.from('gauntlet_runs').select('*').eq('run_id', runId).single();
+    if (!runData) throw new Error('Run not found');
+
+    const { data: results } = await sb.from('gauntlet_results').select('*').eq('run_id', runId).order('donde_match', { ascending: true });
+    if (!results) throw new Error('No results');
+
+    const data = transformRunData(runData, results);
+    dashData = data;
+    historyLoaded = false;
+    allGapsRef = data.all_gaps || [];
+
+    renderQualitySection(data);
+    renderIssuesSection(data);
+    updateHeroKPIsFromGauntlet(data);
+  } catch (e) {
+    qualityEl.innerHTML = `<p style="color:var(--cc-red)">Failed to load run: ${e.message}</p>`;
+  }
+}
+
+function transformRunData(runData, results) {
+  const total = runData.total;
+  const passed60 = runData.passed_60;
+  const passed80 = runData.passed_80;
+  const passed90 = runData.passed_90 || 0;
+  const avgDM = Number(runData.avg_dm);
+
+  // Category stats
+  const catStats = runData.category_stats || {};
+  const categories = {};
+  for (const [cat, s] of Object.entries(catStats)) {
+    categories[cat] = {
+      total: s.total, avg_dm: s.avg_dm, pass_rate_60: s.pass_rate, gap_count: s.gaps,
+      excellence_rate: 0, weak_rate: 0, stddev: 0, p25: 0, p50: 0, p75: 0,
+      factor_averages: { food: 0, vibe: 0, service: 0, reputation: 0, convenience: 0 },
+      gap_type_breakdown: {},
+    };
+  }
+
+  // Per-category factor averages
+  const catAcc = {};
+  for (const r of results) {
+    const cat = r.category || 'unknown';
+    if (!catAcc[cat]) catAcc[cat] = { sumF: 0, sumV: 0, sumS: 0, sumR: 0, sumC: 0, n: 0, gaps: {} };
+    catAcc[cat].sumF += Number(r.food || 0);
+    catAcc[cat].sumV += Number(r.vibe || 0);
+    catAcc[cat].sumS += Number(r.service || 0);
+    catAcc[cat].sumR += Number(r.reputation || 0);
+    catAcc[cat].sumC += Number(r.convenience || 0);
+    catAcc[cat].n++;
+    if (r.gap_type) catAcc[cat].gaps[r.gap_type] = (catAcc[cat].gaps[r.gap_type] || 0) + 1;
+  }
+  for (const [cat, acc] of Object.entries(catAcc)) {
+    if (categories[cat]) {
+      categories[cat].factor_averages = {
+        food: Math.round(acc.sumF / acc.n * 10) / 10,
+        vibe: Math.round(acc.sumV / acc.n * 10) / 10,
+        service: Math.round(acc.sumS / acc.n * 10) / 10,
+        reputation: Math.round(acc.sumR / acc.n * 10) / 10,
+        convenience: Math.round(acc.sumC / acc.n * 10) / 10,
+      };
+      categories[cat].gap_type_breakdown = acc.gaps;
+    }
+  }
+
+  // Relevance types, gap types, gap impact
+  const relevanceTypes = {};
+  const gapTypeCounts = {};
+  const gapTypeImpact = {};
+  for (const r of results) {
+    const rt = r.relevance_type || 'unknown';
+    relevanceTypes[rt] = (relevanceTypes[rt] || 0) + 1;
+    if (!r.gap_type) continue;
+    gapTypeCounts[r.gap_type] = (gapTypeCounts[r.gap_type] || 0) + 1;
+    if (!gapTypeImpact[r.gap_type]) gapTypeImpact[r.gap_type] = { count: 0, sumDM: 0 };
+    gapTypeImpact[r.gap_type].count++;
+    gapTypeImpact[r.gap_type].sumDM += r.donde_match;
+  }
+
+  const gapImpact = {};
+  const fixabilityMap = { intent: 'auto', scoring: 'tuning', relevance_ceiling: 'architectural', db_coverage: 'auto' };
+  for (const [gt, info] of Object.entries(gapTypeImpact)) {
+    const avgGapDM = info.sumDM / info.count;
+    gapImpact[gt] = {
+      count: info.count, avg_dm: Math.round(avgGapDM * 10) / 10,
+      fixability: fixabilityMap[gt] || 'tuning',
+      projected_dm_gain: Math.round((60 - avgGapDM) * info.count / total * 10) / 10,
+      projected_pass_rate_gain: Math.round(info.count / total * 100 * 10) / 10,
+    };
+  }
+
+  // All gaps
+  const allGaps = results.filter(r => r.gap_type).map(r => ({
+    query: r.query, dm: r.donde_match, gap_type: r.gap_type,
+    gap_severity: r.gap_severity || 'P2', category: r.category,
+    restaurant: r.restaurant_name, impact_score: 0,
+    fix_action: r.gap_type === 'intent' ? 'Add keyword to intent-classifier-v5.ts dictionaries'
+      : r.gap_type === 'scoring' ? 'Review weight profiles'
+      : 'Analyze relevance multiplier',
+    food: Number(r.food), vibe: Number(r.vibe), service: Number(r.service),
+    reputation: Number(r.reputation), convenience: Number(r.convenience),
+  }));
+
+  // Tiers
+  const tierNames = { 1: 'Must-Visit', 2: 'Neighborhood Gem', 3: 'Solid Option' };
+  const tierAcc = {};
+  for (const r of results) {
+    const t = r.tier || 0;
+    if (!tierAcc[t]) tierAcc[t] = { total: 0, sumDM: 0, pass60: 0, pass80: 0, gaps: 0 };
+    tierAcc[t].total++;
+    tierAcc[t].sumDM += r.donde_match;
+    if (r.donde_match >= 60) tierAcc[t].pass60++;
+    if (r.donde_match >= 80) tierAcc[t].pass80++;
+    if (r.gap_type) tierAcc[t].gaps++;
+  }
+  const tiers = {};
+  for (const [t, acc] of Object.entries(tierAcc)) {
+    tiers[t] = {
+      name: tierNames[t] || `Tier ${t}`, total: acc.total,
+      avg_dm: Math.round(acc.sumDM / acc.total * 10) / 10,
+      pass_rate_60: Math.round(acc.pass60 / acc.total * 100),
+      excellence_rate: Math.round(acc.pass80 / acc.total * 100),
+      gap_count: acc.gaps,
+    };
+  }
+
+  // Score distribution
+  const buckets = [
+    { label: '90-100', min: 90, max: 100 }, { label: '80-89', min: 80, max: 89 },
+    { label: '70-79', min: 70, max: 79 }, { label: '60-69', min: 60, max: 69 },
+    { label: '50-59', min: 50, max: 59 }, { label: '40-49', min: 40, max: 49 },
+    { label: '30-39', min: 30, max: 39 }, { label: '0-29', min: 0, max: 29 },
+  ];
+  const scoreDist = buckets.map(b => ({
+    label: b.label,
+    count: results.filter(r => r.donde_match >= b.min && r.donde_match <= b.max).length,
+  }));
+
+  // Statistics
+  const dmVals = results.map(r => r.donde_match).sort((a, b) => a - b);
+  const percentile = (arr, p) => arr[Math.floor(arr.length * p)] || 0;
+  const mean = dmVals.reduce((a, b) => a + b, 0) / dmVals.length;
+  const variance = dmVals.reduce((s, v) => s + (v - mean) ** 2, 0) / dmVals.length;
+
+  return {
+    generated: runData.created_at, source: `Supabase: ${runData.run_id}`,
+    summary: { total, successful: total, passed60, passed80, passed90, avg_dm: avgDM, gap_count: runData.gap_count, mode: runData.mode },
+    statistics: {
+      min: dmVals[0] || 0, max: dmVals[dmVals.length - 1] || 0,
+      p25: percentile(dmVals, 0.25), p50: percentile(dmVals, 0.5), p75: percentile(dmVals, 0.75), p95: percentile(dmVals, 0.95),
+      stddev: Math.round(Math.sqrt(variance) * 10) / 10,
+    },
+    factor_averages: runData.factor_averages || {},
+    tiers, categories, gap_types: gapTypeCounts, gap_impact: gapImpact,
+    relevance_types: relevanceTypes, all_gaps: allGaps, score_distribution: scoreDist,
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Quality Section Rendering
+// ═══════════════════════════════════════════════════════════════════
+
+function renderQualitySection(data) {
+  const el = document.getElementById('quality-content');
+  const s = data.summary;
+  const stats = data.statistics || {};
+  const gapImpact = data.gap_impact || {};
+
+  // Update section summary
+  document.getElementById('quality-summary').textContent =
+    `${s.total}q | DM ${s.avg_dm} | ${pct(s.passed60, s.total)}% pass`;
+
+  let html = '';
+
+  // Summary cards
+  html += '<div class="cc-cards">';
+  html += mkCard(s.total, 'Queries', '');
+  html += mkCard(s.avg_dm, 'Avg DM', ragClass(s.avg_dm));
+  html += mkCard(pct(s.passed60, s.total) + '%', 'Pass ≥60', s.passed60/s.total >= 0.8 ? 'rag-green' : 'rag-amber');
+  html += mkCard(pct(s.passed80, s.total) + '%', 'Excel ≥80', '');
+  html += mkCard(s.gap_count, 'Gaps', s.gap_count > 50 ? 'rag-red' : s.gap_count > 20 ? 'rag-amber' : '');
+  if (stats.p50 !== undefined) html += mkCard(stats.p50, 'Median', ragClass(stats.p50));
+  if (stats.stddev !== undefined) html += mkCard(stats.stddev, 'Std Dev', '');
+  html += mkCard(s.mode === 'lightweight' ? 'LW' : 'Full', 'Mode', '');
+  html += '</div>';
+
+  // Grid: Score Distribution + Gap Impact
+  html += '<div class="cc-grid-2">';
+
+  // Score Distribution
+  html += '<div class="cc-subsection"><div class="cc-subsection__title">Score Distribution</div>';
+  const maxCount = Math.max(...data.score_distribution.map(b => b.count));
+  const distColors = ['var(--cc-green)', 'var(--cc-green)', 'var(--cc-green)', 'var(--cc-amber)', 'var(--cc-amber)', 'var(--cc-red)', 'var(--cc-red)', 'var(--cc-red)'];
+  for (const [i, bucket] of data.score_distribution.entries()) {
+    const w = maxCount > 0 ? (bucket.count / maxCount * 100) : 0;
+    html += `<div class="cc-dist-row">
+      <span class="cc-dist-label">${bucket.label}</span>
+      <div class="cc-dist-track"><div class="cc-dist-bar" style="width:${Math.max(w, 1)}%;background:${distColors[i]}">${bucket.count > 0 ? bucket.count : ''}</div></div>
+      <span class="cc-dist-count">${bucket.count}</span>
+      <span class="cc-dist-pct">${pct(bucket.count, s.total)}%</span>
+    </div>`;
+  }
+  if (stats.p25 !== undefined) {
+    html += `<div class="cc-percentiles">
+      <span>P25: <strong>${stats.p25}</strong></span>
+      <span>P50: <strong>${stats.p50}</strong></span>
+      <span>P75: <strong>${stats.p75}</strong></span>
+      <span>P95: <strong>${stats.p95}</strong></span>
+    </div>`;
+  }
+  html += '</div>';
+
+  // Gap Impact
+  html += '<div class="cc-subsection"><div class="cc-subsection__title">Gap Impact & ROI</div>';
+  if (Object.keys(gapImpact).length > 0) {
+    const sortedImpact = Object.entries(gapImpact).sort((a,b) => b[1].projected_pass_rate_gain - a[1].projected_pass_rate_gain);
+    const maxGain = Math.max(...sortedImpact.map(([,v]) => v.projected_pass_rate_gain), 1);
+    for (const [type, imp] of sortedImpact) {
+      const w = (imp.projected_pass_rate_gain / maxGain * 100);
+      const badgeClass = imp.fixability === 'auto' ? 'cc-badge--auto' : imp.fixability === 'tuning' ? 'cc-badge--tuning' : 'cc-badge--architectural';
+      html += `<div class="cc-impact-row">
+        <span class="cc-impact-type">${type}</span>
+        <div class="cc-impact-track"><div class="cc-impact-bar" style="width:${Math.max(w, 2)}%;background:${ragColor(imp.avg_dm)}"></div></div>
+        <span style="font-size:0.68rem;font-family:var(--cc-mono)">+${imp.projected_pass_rate_gain}% pass</span>
+        <span class="cc-badge ${badgeClass}">${imp.fixability}</span>
+      </div>`;
+    }
+  } else {
+    html += '<p class="cc-muted">No gap impact data</p>';
+  }
+  html += '</div>';
+  html += '</div>'; // grid-2
+
+  // Category breakdown (collapsible)
+  const sortedCats = Object.entries(data.categories).sort((a,b) => a[1].avg_dm - b[1].avg_dm);
+  for (const [cat, c] of sortedCats) {
+    html += `<div class="cc-collapsible">
+      <div class="cc-collapsible__header" onclick="this.parentElement.classList.toggle('open')">
+        <span><strong>${cat}</strong> — ${c.total}q, avg ${c.avg_dm} DM, ${c.gap_count} gaps</span>
+        <span class="cc-collapsible__chevron">&#9654;</span>
+      </div>
+      <div class="cc-collapsible__body">`;
+    if (c.factor_averages) {
+      html += '<div class="cc-subsection__title">Factor Performance</div><div class="cc-factor-bars">';
+      for (const [f, v] of Object.entries(c.factor_averages)) {
+        html += `<div class="cc-factor-row">
+          <span class="cc-factor-label">${f}</span>
+          <div class="cc-factor-track"><div class="cc-factor-fill" style="width:${v/10*100}%;background:${factorColor(v)}"></div></div>
+          <span class="cc-factor-value">${v}</span>
+        </div>`;
+      }
+      html += '</div>';
+    }
+    if (c.gap_type_breakdown && Object.keys(c.gap_type_breakdown).length > 0) {
+      html += '<div style="margin-top:8px;display:flex;gap:10px;flex-wrap:wrap">';
+      for (const [gt, count] of Object.entries(c.gap_type_breakdown).sort((a,b) => b[1] - a[1])) {
+        const fix = gapImpact[gt]?.fixability || 'manual';
+        const cls = fix === 'auto' ? 'cc-badge--auto' : fix === 'tuning' ? 'cc-badge--tuning' : 'cc-badge--architectural';
+        html += `<span style="font-size:0.7rem;color:var(--cc-text-2)"><strong style="color:var(--cc-text)">${count}</strong> ${gt} <span class="cc-badge ${cls}">${fix}</span></span>`;
+      }
+      html += '</div>';
+    }
+    html += '</div></div>';
+  }
+
+  // Factor Performance
+  if (data.factor_averages && Object.keys(data.factor_averages).length > 0) {
+    html += '<div class="cc-subsection" style="margin-top:12px"><div class="cc-subsection__title">Global Factor Performance</div>';
+    html += '<div class="cc-factor-bars">';
+    const factors = Object.entries(data.factor_averages).sort((a,b) => a[1] - b[1]);
+    for (const [f, v] of factors) {
+      html += `<div class="cc-factor-row">
+        <span class="cc-factor-label">${f}</span>
+        <div class="cc-factor-track"><div class="cc-factor-fill" style="width:${v/10*100}%;background:${factorColor(v)}"></div></div>
+        <span class="cc-factor-value">${v}/10</span>
+      </div>`;
+    }
+    html += '</div></div>';
+  }
+
+  el.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Issues Section
+// ═══════════════════════════════════════════════════════════════════
+
+function renderIssuesSection(data) {
+  const el = document.getElementById('issues-content');
+  const allGaps = data.all_gaps || [];
+  allGapsRef = allGaps;
+  const gapImpact = data.gap_impact || {};
+
+  document.getElementById('issues-summary').textContent = `${allGaps.length} gaps`;
+
+  if (allGaps.length === 0) {
+    el.innerHTML = '<p class="cc-muted">No gaps found in this run.</p>';
+    return;
+  }
+
+  let html = '';
+
+  // Filter bar
+  const gapTypes = [...new Set(allGaps.map(g => g.gap_type))].filter(Boolean).sort();
+  const gapCats = [...new Set(allGaps.map(g => g.category))].filter(Boolean).sort();
+  const gapSevs = [...new Set(allGaps.map(g => g.gap_severity))].filter(Boolean).sort();
+
+  html += '<div class="cc-filter-bar">';
+  html += '<label>Type:</label><select class="cc-filter-select" id="f-type"><option value="">All</option>';
+  for (const t of gapTypes) html += `<option>${t}</option>`;
+  html += '</select>';
+  html += '<label>Category:</label><select class="cc-filter-select" id="f-cat"><option value="">All</option>';
+  for (const c of gapCats) html += `<option>${c}</option>`;
+  html += '</select>';
+  html += '<label>Severity:</label><select class="cc-filter-select" id="f-sev"><option value="">All</option>';
+  for (const sv of gapSevs) html += `<option>${sv}</option>`;
+  html += '</select>';
+  html += '<input class="cc-filter-input" id="f-search" placeholder="Search queries...">';
+  html += '<span class="cc-filter-count" id="gap-count"></span>';
+  html += '</div>';
+
+  // Bulk action bar
+  html += '<div class="cc-bulk-bar" id="bulk-bar" style="display:none">';
+  html += '<span id="bulk-count">0 selected</span>';
+  html += '<button class="fix-btn" onclick="window._generateBulkFixSession()">Generate Combined Fix Session</button>';
+  html += '<button class="cc-btn" onclick="window._clearSelection()">Clear</button>';
+  html += '</div>';
+
+  // Gap table
+  html += '<div class="cc-table-wrap"><table class="cc-table" id="gaps-table"><thead><tr>';
+  html += '<th style="width:28px"><input type="checkbox" id="gap-select-all"></th>';
+  html += '<th class="sortable" data-col="1" data-type="num">#</th>';
+  html += '<th class="sortable" data-col="2" data-type="str">Query</th>';
+  html += '<th class="sortable" data-col="3" data-type="num">DM</th>';
+  html += '<th class="sortable" data-col="4" data-type="str">Type</th>';
+  html += '<th class="sortable" data-col="5" data-type="str">Sev</th>';
+  html += '<th class="sortable" data-col="6" data-type="str">Category</th>';
+  html += '<th>Restaurant</th>';
+  html += '<th>Fix</th>';
+  html += '</tr></thead><tbody>';
+
+  for (const [i, g] of allGaps.entries()) {
+    const sevClass = g.gap_severity === 'P0' ? 'cc-badge--p0' : g.gap_severity === 'P1' ? 'cc-badge--p1' : 'cc-badge--p2';
+    const fix = gapImpact[g.gap_type]?.fixability || '';
+    const fixClass = fix === 'auto' ? 'cc-badge--auto' : fix === 'tuning' ? 'cc-badge--tuning' : 'cc-badge--architectural';
+    html += `<tr class="gap-row expandable" data-type="${g.gap_type}" data-cat="${g.category}" data-sev="${g.gap_severity || ''}" data-query="${escapeHtml(g.query.toLowerCase())}">
+      <td><input type="checkbox" class="gap-check" data-idx="${i}" onclick="event.stopPropagation()"></td>
+      <td>${i + 1}</td>
+      <td title="${escapeHtml(g.query)}">${escapeHtml(g.query.substring(0, 40))}</td>
+      <td><span class="dm-badge ${ragClass(g.dm)}">${g.dm}</span></td>
+      <td><span class="cc-badge ${sevClass}">${g.gap_type}</span></td>
+      <td><span class="severity-dot ${(g.gap_severity || 'p2').toLowerCase()}"></span>${g.gap_severity || '—'}</td>
+      <td>${g.category}</td>
+      <td>${escapeHtml((g.restaurant || '—').substring(0, 20))}</td>
+      <td>${fix ? `<span class="cc-badge ${fixClass}">${fix}</span>` : '—'}</td>
+    </tr>`;
+    html += `<tr class="gap-detail-row" style="display:none" data-parent="${i}">
+      <td colspan="9"><div class="gap-detail-content">`;
+    if (g.fix_action) html += `<strong>Fix:</strong> ${escapeHtml(g.fix_action)}<br>`;
+    if (g.food !== undefined) {
+      html += `<div class="gap-detail-factors">
+        <span>Food: <strong>${g.food}</strong></span>
+        <span>Vibe: <strong>${g.vibe}</strong></span>
+        <span>Service: <strong>${g.service}</strong></span>
+        <span>Rep: <strong>${g.reputation}</strong></span>
+        <span>Conv: <strong>${g.convenience}</strong></span>
+      </div>`;
+    }
+    html += `<div class="gap-sparkline" data-query="${escapeHtml(g.query)}" id="sparkline-${i}"></div>`;
+    html += `<button class="fix-btn" data-idx="${i}" onclick="event.stopPropagation(); window._generateFixSession(${i})">Generate Fix Session</button>`;
+    html += '</div></td></tr>';
+  }
+  html += '</tbody></table></div>';
+
+  el.innerHTML = html;
+  initGapInteractivity();
+}
+
+function initGapInteractivity() {
+  // Filters
+  const fType = document.getElementById('f-type');
+  const fCat = document.getElementById('f-cat');
+  const fSev = document.getElementById('f-sev');
+  const fSearch = document.getElementById('f-search');
+  const countEl = document.getElementById('gap-count');
+  if (!fType) return;
+
+  function applyFilters() {
+    const type = fType.value, cat = fCat.value, sev = fSev.value, search = fSearch.value.toLowerCase();
+    let visible = 0;
+    document.querySelectorAll('tr.gap-row').forEach(row => {
+      const show = (!type || row.dataset.type === type)
+        && (!cat || row.dataset.cat === cat)
+        && (!sev || row.dataset.sev === sev)
+        && (!search || row.dataset.query.includes(search));
+      row.style.display = show ? '' : 'none';
+      const idx = row.querySelectorAll('td')[1]?.textContent;
+      const detail = document.querySelector(`tr.gap-detail-row[data-parent="${parseInt(idx) - 1}"]`);
+      if (detail) detail.style.display = 'none';
+      if (!show) {
+        const cb = row.querySelector('.gap-check');
+        if (cb) { cb.checked = false; row.classList.remove('gap-selected'); }
+      }
+      if (show) visible++;
+    });
+    countEl.textContent = `${visible} gaps`;
+    updateBulkBar();
+  }
+
+  [fType, fCat, fSev].forEach(el => el.addEventListener('change', applyFilters));
+  fSearch.addEventListener('input', applyFilters);
+  applyFilters();
+
+  // Expandable rows
+  document.querySelectorAll('tr.expandable').forEach(row => {
+    row.addEventListener('click', () => {
+      const idx = row.querySelectorAll('td')[1]?.textContent;
+      const parentIdx = parseInt(idx) - 1;
+      const detail = document.querySelector(`tr.gap-detail-row[data-parent="${parentIdx}"]`);
+      if (detail) {
+        const isOpening = detail.style.display === 'none';
+        detail.style.display = isOpening ? '' : 'none';
+        if (isOpening) {
+          const sparkEl = document.getElementById(`sparkline-${parentIdx}`);
+          if (sparkEl && !sparkEl.dataset.loaded) {
+            sparkEl.dataset.loaded = '1';
+            loadQuerySparkline(sparkEl, sparkEl.dataset.query);
+          }
+        }
+      }
+    });
+  });
+
+  // Sortable
+  document.querySelectorAll('#gaps-table th.sortable').forEach(th => {
+    th.addEventListener('click', () => {
+      const table = th.closest('table');
+      const tbody = table.querySelector('tbody');
+      const col = parseInt(th.dataset.col);
+      const isNum = th.dataset.type === 'num';
+      const isAsc = th.classList.contains('asc');
+      table.querySelectorAll('th.sortable').forEach(h => h.classList.remove('asc', 'desc'));
+      th.classList.add(isAsc ? 'desc' : 'asc');
+      const rows = Array.from(tbody.querySelectorAll('tr:not(.gap-detail-row)'));
+      rows.sort((a, b) => {
+        let va = a.cells[col]?.textContent.trim().replace('%', '') || '';
+        let vb = b.cells[col]?.textContent.trim().replace('%', '') || '';
+        if (isNum) { va = parseFloat(va) || 0; vb = parseFloat(vb) || 0; return isAsc ? vb - va : va - vb; }
+        return isAsc ? vb.localeCompare(va) : va.localeCompare(vb);
+      });
+      for (const row of rows) {
+        tbody.appendChild(row);
+        const cells = row.querySelectorAll('td');
+        const parent = (cells[1] || cells[0])?.textContent;
+        const detailRow = tbody.querySelector(`tr.gap-detail-row[data-parent="${parseInt(parent) - 1}"]`);
+        if (detailRow) tbody.appendChild(detailRow);
+      }
+    });
+  });
+
+  // Checkboxes
+  const selectAll = document.getElementById('gap-select-all');
+  if (selectAll) {
+    selectAll.addEventListener('change', () => {
+      document.querySelectorAll('tr.gap-row').forEach(row => {
+        if (row.style.display === 'none') return;
+        const cb = row.querySelector('.gap-check');
+        if (cb) { cb.checked = selectAll.checked; row.classList.toggle('gap-selected', selectAll.checked); }
+      });
+      updateBulkBar();
+    });
+  }
+  document.querySelectorAll('.gap-check[data-idx]').forEach(cb => {
+    cb.addEventListener('change', () => {
+      cb.closest('tr')?.classList.toggle('gap-selected', cb.checked);
+      updateBulkBar();
+    });
+  });
+}
+
+function updateBulkBar() {
+  const count = document.querySelectorAll('.gap-check[data-idx]:checked').length;
+  const bar = document.getElementById('bulk-bar');
+  if (!bar) return;
+  bar.style.display = count > 0 ? 'flex' : 'none';
+  const countEl = document.getElementById('bulk-count');
+  if (countEl) countEl.textContent = `${count} selected`;
+}
+
+async function loadQuerySparkline(el, query) {
+  if (!query) return;
+  try {
+    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+    const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const { data } = await sb.from('gauntlet_results').select('donde_match, run_id').eq('query', query).order('run_id', { ascending: true }).limit(30);
+    if (!data || data.length < 2) { el.innerHTML = '<div class="sparkline-label">No history</div>'; return; }
+
+    const W = 160, H = 28, n = data.length;
+    let points = '', dots = '';
+    for (let i = 0; i < n; i++) {
+      const x = 2 + (i / Math.max(n - 1, 1)) * (W - 4);
+      const y = 2 + (H - 4) - ((data[i].donde_match || 0) / 100) * (H - 4);
+      points += `${x},${y} `;
+      const c = data[i].donde_match >= 80 ? 'var(--cc-green)' : data[i].donde_match >= 60 ? 'var(--cc-amber)' : 'var(--cc-red)';
+      dots += `<circle cx="${x}" cy="${y}" r="2" fill="${c}"><title>DM ${data[i].donde_match}</title></circle>`;
+    }
+    const delta = data[n-1].donde_match - data[0].donde_match;
+    const deltaStr = delta > 0 ? `+${delta}` : `${delta}`;
+    el.innerHTML = `<div class="sparkline-label">History (${n} runs) <span style="color:${delta > 0 ? 'var(--cc-green)' : 'var(--cc-red)'}; font-weight:600">${deltaStr}</span></div>
+      <svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">
+        <polyline points="${points}" fill="none" stroke="var(--cc-accent)" stroke-width="1" stroke-linejoin="round"/>${dots}
+      </svg>`;
+  } catch (e) { el.innerHTML = ''; }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Fix Prompt Generation
+// ═══════════════════════════════════════════════════════════════════
+
+function identifyWeakFactor(g) {
+  const factors = { food: g.food, vibe: g.vibe, service: g.service, reputation: g.reputation, convenience: g.convenience };
+  let weakest = 'food', min = Infinity;
+  for (const [k, v] of Object.entries(factors)) { if (v < min) { min = v; weakest = k; } }
+  return { name: weakest, score: min };
+}
+
+function buildFixPrompt(g) {
+  const factors = `Food: ${g.food}/10 | Vibe: ${g.vibe}/10 | Service: ${g.service}/10 | Reputation: ${g.reputation}/10 | Convenience: ${g.convenience}/10`;
+  if (g.gap_type === 'intent') {
+    return `Fix intent gap: "${g.query}" scored DM ${g.dm}. Restaurant: "${g.restaurant}" (${g.category}).\nFactors: ${factors}\nFile: /home/user/dondeBackend/supabase/functions/recommend/_shared/intent-classifier-v5.ts\nAdd keywords to FLAVOR_WORDS, VIBE_WORDS, CONSTRAINT_PATTERNS, EMOTIONAL_INTENT_PATTERNS, or CONTEXT_PATTERNS.`;
+  }
+  if (g.gap_type === 'scoring') {
+    const weak = identifyWeakFactor(g);
+    return `Fix scoring gap: "${g.query}" scored DM ${g.dm}. Restaurant: "${g.restaurant}" (${g.category}).\nFactors: ${factors}\nWeakest: ${weak.name} (${weak.score}/10)\nFile: /home/user/dondeBackend/supabase/functions/recommend/_shared/scoring-v9.ts (QUALITY_WEIGHTS, line ~483)`;
+  }
+  return `Fix relevance ceiling: "${g.query}" scored DM ${g.dm}. Restaurant: "${g.restaurant}" (${g.category}).\nFactors: ${factors}\nFile: /home/user/dondeBackend/supabase/functions/recommend/_shared/scoring-v9.ts (relevance multiplier)`;
+}
+
+function buildBulkFixPrompt(gaps) {
+  let prompt = `Fix ${gaps.length} gaps in the DondeAI scoring engine.\n`;
+  const intent = gaps.filter(g => g.gap_type === 'intent');
+  const scoring = gaps.filter(g => g.gap_type === 'scoring');
+  const ceiling = gaps.filter(g => g.gap_type === 'relevance_ceiling');
+  if (intent.length) {
+    prompt += `\n## Intent Gaps (${intent.length})\n`;
+    for (const g of intent) prompt += `- "${g.query}" DM ${g.dm} (${g.category})\n`;
+    prompt += `File: intent-classifier-v5.ts — add keywords to dictionaries.\n`;
+  }
+  if (scoring.length) {
+    prompt += `\n## Scoring Gaps (${scoring.length})\n`;
+    for (const g of scoring) { const w = identifyWeakFactor(g); prompt += `- "${g.query}" DM ${g.dm} (weak: ${w.name} ${w.score})\n`; }
+    prompt += `File: scoring-v9.ts — review QUALITY_WEIGHTS.\n`;
+  }
+  if (ceiling.length) {
+    prompt += `\n## Relevance Ceiling Gaps (${ceiling.length})\n`;
+    for (const g of ceiling) prompt += `- "${g.query}" DM ${g.dm} (${g.category})\n`;
+    prompt += `File: scoring-v9.ts — investigate relevance multiplier.\n`;
+  }
+  return prompt;
+}
+
+function openFixSession(prompt, btn, label) {
+  try { navigator.clipboard.writeText(prompt); } catch(e) {
+    try { const ta = document.createElement('textarea'); ta.value = prompt; ta.style.cssText = 'position:fixed;opacity:0;'; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); } catch(e2) {}
+  }
+  if (btn) {
+    btn.classList.add('copied');
+    btn.innerHTML = 'Copied! <a href="https://claude.ai/code" target="_blank" rel="noopener" class="fix-session-link">Open Claude Code →</a>';
+    setTimeout(() => { btn.classList.remove('copied'); btn.textContent = label; }, 6000);
+  }
+}
+
+window._generateFixSession = function(idx) {
+  const prompt = buildFixPrompt(allGapsRef[idx]);
+  const btn = document.querySelector(`.fix-btn[data-idx="${idx}"]`);
+  openFixSession(prompt, btn, 'Generate Fix Session');
+};
+
+window._generateBulkFixSession = function() {
+  const checks = document.querySelectorAll('.gap-check[data-idx]:checked');
+  const gaps = [...checks].map(c => allGapsRef[parseInt(c.dataset.idx)]).filter(Boolean);
+  if (!gaps.length) return;
+  openFixSession(buildBulkFixPrompt(gaps), document.querySelector('.bulk-fix-btn'), 'Generate Combined Fix Session');
+};
+
+window._clearSelection = function() {
+  document.querySelectorAll('.gap-check[data-idx]').forEach(c => c.checked = false);
+  const sa = document.getElementById('gap-select-all');
+  if (sa) sa.checked = false;
+  document.querySelectorAll('tr.gap-selected').forEach(r => r.classList.remove('gap-selected'));
+  updateBulkBar();
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// Trends Section
+// ═══════════════════════════════════════════════════════════════════
+
+async function loadTrendsSection() {
+  if (historyLoaded) return;
+  historyLoaded = true;
+  const el = document.getElementById('trends-content');
+  try {
+    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+    const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const { data: timeline, error } = await sb
+      .from('gauntlet_runs')
+      .select('run_id, created_at, avg_dm, passed_60, passed_80, gap_count, dataset_hash, dataset_size, mode, delta_avg_dm, delta_passed_60, delta_gap_count, total')
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (error) throw error;
+    if (!timeline || timeline.length === 0) { el.innerHTML = '<p class="cc-muted">No run history found.</p>'; return; }
+
+    let h = '';
+    const latest = timeline[0];
+
+    // Delta summary
+    const prev = timeline.find(r => r.dataset_hash === latest.dataset_hash && r.run_id !== latest.run_id);
+    if (prev) {
+      const dAvg = Number(latest.delta_avg_dm) || Math.round((Number(latest.avg_dm) - Number(prev.avg_dm)) * 10) / 10;
+      const dPass = latest.delta_passed_60 ?? (latest.passed_60 - prev.passed_60);
+      const dGap = latest.delta_gap_count ?? (latest.gap_count - prev.gap_count);
+      h += '<div class="cc-cards" style="margin-bottom:16px">';
+      h += `<div class="cc-card"><div class="cc-card__value ${dAvg > 0 ? 'rag-green' : dAvg < 0 ? 'rag-red' : ''}">${dAvg > 0 ? '+' : ''}${dAvg}</div><div class="cc-card__label">Avg DM Δ</div></div>`;
+      h += `<div class="cc-card"><div class="cc-card__value ${dPass > 0 ? 'rag-green' : dPass < 0 ? 'rag-red' : ''}">${dPass > 0 ? '+' : ''}${dPass}</div><div class="cc-card__label">Pass Rate Δ</div></div>`;
+      h += `<div class="cc-card"><div class="cc-card__value ${dGap < 0 ? 'rag-green' : dGap > 0 ? 'rag-red' : ''}">${dGap > 0 ? '+' : ''}${dGap}</div><div class="cc-card__label">Gap Count Δ</div></div>`;
+      h += '</div>';
+
+      document.getElementById('trends-summary').textContent = `ΔDM ${dAvg > 0 ? '+' : ''}${dAvg} | ΔPass ${dPass > 0 ? '+' : ''}${dPass} | ΔGaps ${dGap > 0 ? '+' : ''}${dGap}`;
+    }
+
+    // Trend charts
+    if (timeline.length >= 2) {
+      const chrono = timeline.slice().reverse();
+      h += '<div class="cc-trend-charts">';
+      h += renderTrendChart(chrono, 'avg_dm', 'Avg DM', 100);
+      h += renderTrendChart(chrono, 'passed_60', 'Passed (60+)', Math.max(...timeline.map(r => r.dataset_size || r.total || 200)));
+      h += renderTrendChart(chrono, 'gap_count', 'Gap Count', Math.max(...timeline.map(r => r.gap_count + 10)));
+      h += '</div>';
+    }
+
+    // Run timeline table
+    h += '<div class="cc-subsection"><div class="cc-subsection__title">Run History</div>';
+    h += '<div class="cc-table-wrap"><table class="cc-table"><thead><tr>';
+    h += '<th>Date</th><th>Queries</th><th>Mode</th><th>Avg DM</th><th>Δ</th><th>Pass 60+</th><th>Δ</th><th>Gaps</th><th>Δ</th>';
+    h += '</tr></thead><tbody>';
+    for (const r of timeline) {
+      const date = r.created_at ? new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+      const isCurrent = r.run_id === latest.run_id;
+      h += `<tr${isCurrent ? ' style="font-weight:600"' : ''}>`;
+      h += `<td>${date}</td>`;
+      h += `<td>${r.dataset_size || r.total || '—'}</td>`;
+      h += `<td><span class="cc-badge">${r.mode || '—'}</span></td>`;
+      h += `<td class="dm-cell ${ragClass(Number(r.avg_dm))}">${r.avg_dm}</td>`;
+      h += deltaCell(r.delta_avg_dm ? Number(r.delta_avg_dm) : null);
+      h += `<td>${r.passed_60}</td>`;
+      h += deltaCell(r.delta_passed_60);
+      h += `<td>${r.gap_count}</td>`;
+      h += deltaCell(r.delta_gap_count, true);
+      h += '</tr>';
+    }
+    h += '</tbody></table></div></div>';
+
+    el.innerHTML = h;
+  } catch (e) {
+    el.innerHTML = `<p style="color:var(--cc-red)">Failed to load trends: ${e.message}</p>`;
+    historyLoaded = false;
+  }
+}
+
+function deltaCell(val, invert) {
+  if (val === null || val === undefined) return '<td style="color:var(--cc-text-3)">—</td>';
+  const positive = invert ? val < 0 : val > 0;
+  const negative = invert ? val > 0 : val < 0;
+  const color = positive ? 'var(--cc-green)' : negative ? 'var(--cc-red)' : 'var(--cc-text-3)';
+  const prefix = val > 0 ? '+' : '';
+  return `<td style="color:${color};font-weight:500;font-family:var(--cc-mono)">${prefix}${val}</td>`;
+}
+
+function renderTrendChart(data, key, label, maxVal) {
+  if (!data || data.length < 2) return '';
+  const W = 260, H = 90, PAD = 22;
+  const plotW = W - PAD * 2, plotH = H - PAD * 2;
+  const n = data.length;
+  const max = maxVal || Math.max(...data.map(d => d[key] || 0)) * 1.1;
+
+  let points = '', dots = '';
+  for (let i = 0; i < n; i++) {
+    const x = PAD + (i / Math.max(n - 1, 1)) * plotW;
+    const y = PAD + plotH - ((data[i][key] || 0) / max) * plotH;
+    points += `${x},${y} `;
+    const color = key === 'gap_count' ? 'var(--cc-amber)' : ragClass(data[i][key]) === 'rag-green' ? 'var(--cc-green)' : ragClass(data[i][key]) === 'rag-amber' ? 'var(--cc-amber)' : 'var(--cc-red)';
+    dots += `<circle cx="${x}" cy="${y}" r="2.5" fill="${color}"><title>${data[i][key]}</title></circle>`;
+  }
+
+  return `<div class="cc-trend-chart">
+    <div class="cc-trend-label">${label}</div>
+    <svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">
+      <line x1="${PAD}" y1="${PAD + plotH}" x2="${PAD + plotW}" y2="${PAD + plotH}" stroke="var(--cc-border)" stroke-width="1"/>
+      <polyline points="${points}" fill="none" stroke="var(--cc-accent)" stroke-width="1.5" stroke-linejoin="round"/>
+      ${dots}
+    </svg>
+  </div>`;
+}
+
+function mkCard(value, label, colorClass) {
+  return `<div class="cc-card"><div class="cc-card__value ${colorClass}">${value}</div><div class="cc-card__label">${label}</div></div>`;
+}
