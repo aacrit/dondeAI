@@ -368,6 +368,24 @@ async function runSentinelCycle() {
     agent.baseline = `DM ${dm}`;
     agent.delta = passed ? 'OK' : `-${gq.minScore - dm}`;
     agent.hp = agent.checks > 0 ? Math.round(((agent.checks - agent.regressions) / agent.checks) * 100) : 100;
+
+    // Capture result for session persistence
+    const sv9 = result.scoring_v9 || {};
+    state.sessionResults.push({
+      query: gq.query,
+      donde_match: dm,
+      category: gq.cat || sv9.relevance_type || 'regression',
+      gap_type: determineGapType(result, dm),
+      gap_severity: dm < 40 ? 'P0' : dm < 60 ? 'P1' : null,
+      restaurant_name: result.restaurant?.name || null,
+      tier: result.restaurant?.tier || null,
+      relevance_type: sv9.relevance_type || null,
+      food: Number(sv9.food || 0),
+      vibe: Number(sv9.vibe || 0),
+      service: Number(sv9.service || 0),
+      reputation: Number(sv9.reputation || 0),
+      convenience: Number(sv9.convenience || 0),
+    });
   } else {
     addLog('sentinel', `[${gq.id}] API Error`, 'fail');
   }
@@ -425,6 +443,27 @@ async function runHunterCycle() {
   }
 
   agent.hp = agent.probes > 0 ? Math.round(((agent.probes - agent.vulns) / agent.probes) * 100) : 100;
+
+  // Capture result for session persistence (edge case probes)
+  if (result.success && result.donde_match !== undefined) {
+    const sv9 = result.scoring_v9 || {};
+    state.sessionResults.push({
+      query: probe.name,
+      donde_match: result.donde_match,
+      category: 'edge_case',
+      gap_type: determineGapType(result, result.donde_match),
+      gap_severity: result.donde_match < 40 ? 'P0' : result.donde_match < 60 ? 'P1' : null,
+      restaurant_name: result.restaurant?.name || null,
+      tier: result.restaurant?.tier || null,
+      relevance_type: sv9.relevance_type || null,
+      food: Number(sv9.food || 0),
+      vibe: Number(sv9.vibe || 0),
+      service: Number(sv9.service || 0),
+      reputation: Number(sv9.reputation || 0),
+      convenience: Number(sv9.convenience || 0),
+    });
+  }
+
   updateAgentCardUI('hunter');
   updateLeaderboard();
   updateHeroKPIs();
