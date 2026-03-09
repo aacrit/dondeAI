@@ -153,8 +153,16 @@ function updateBudgetUI() {
 // ═══════════════════════════════════════════════════════════════════
 
 function updateBossBar() {
-  const atlas = state.agents.atlas;
-  const passRate = atlas.total > 0 ? atlas.pass / atlas.total : 0.5;
+  // Use all session results (Atlas + Sentinel + Hunter) for boss bar
+  const results = state.sessionResults || [];
+  let passRate;
+  if (results.length > 0) {
+    const passed = results.filter(r => r.donde_match >= 60).length;
+    passRate = passed / results.length;
+  } else {
+    const atlas = state.agents.atlas;
+    passRate = atlas.total > 0 ? atlas.pass / atlas.total : 0.5;
+  }
   const bossHp = Math.max(0, Math.round((1 - passRate) * 100));
   const fillEl = document.getElementById('boss-fill');
   const hpEl = document.getElementById('boss-hp');
@@ -193,16 +201,25 @@ function updateHeroKPIs() {
   const sentinel = state.agents.sentinel;
   const qaudit = state.agents.qaudit;
   const guardian = state.agents.guardian;
+  const results = state.sessionResults || [];
 
-  // Pass Rate (from agents)
-  if (atlas.total > 0) {
+  // Pass Rate & Avg Score (from all session results, not just Atlas)
+  if (results.length > 0) {
+    const passed = results.filter(r => r.donde_match >= 60).length;
+    const passRate = Math.round((passed / results.length) * 100);
+    setKPI('kpi-pass-val', passRate + '%', passRate >= 80 ? 'rag-green' : passRate >= 60 ? 'rag-amber' : 'rag-red');
+    const avgDm = Math.round(results.reduce((s, r) => s + r.donde_match, 0) / results.length);
+    setKPI('kpi-avg-val', avgDm, ragClass(avgDm));
+  } else if (atlas.total > 0) {
     const passRate = Math.round((atlas.pass / atlas.total) * 100);
     setKPI('kpi-pass-val', passRate + '%', passRate >= 80 ? 'rag-green' : passRate >= 60 ? 'rag-amber' : 'rag-red');
+    if (atlas.avgDm > 0) setKPI('kpi-avg-val', atlas.avgDm, ragClass(atlas.avgDm));
   }
 
-  // Avg Score
-  if (atlas.avgDm > 0) {
-    setKPI('kpi-avg-val', atlas.avgDm, ragClass(atlas.avgDm));
+  // Open Gaps (from session results)
+  if (results.length > 0) {
+    const gapCount = results.filter(r => r.gap_type).length;
+    setKPI('kpi-gaps-val', gapCount, gapCount === 0 ? 'rag-green' : gapCount <= 5 ? 'rag-amber' : 'rag-red');
   }
 
   // Budget
@@ -650,31 +667,26 @@ async function loadProductionDashboard() {
     const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
     const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-    // Fetch live production stats in parallel
-    const [
-      totalSearches, todaySearches, uniqueUsers,
-      avgScoreRes, recentQueries, errorQueries,
-      userHistory,
-    ] = await Promise.all([
-      sb.from('user_queries').select('*', { count: 'exact', head: true }),
-      sb.from('user_queries').select('*', { count: 'exact', head: true }).gte('created_at', new Date(new Date().setHours(0,0,0,0)).toISOString()),
-      sb.from('user_queries').select('user_id', { count: 'exact', head: true }).not('user_id', 'is', null),
-      sb.from('user_queries').select('donde_match').not('donde_match', 'is', null).order('created_at', { ascending: false }).limit(100),
-      // Join with restaurants to get the name (user_queries has recommended_restaurant_id FK)
-      sb.from('user_queries').select('special_request, donde_match, created_at, occasion, restaurants(name)').order('created_at', { ascending: false }).limit(30),
-      sb.from('user_queries').select('*', { count: 'exact', head: true }).lt('donde_match', 40),
-      // User search history (saved by authenticated users)
-      sb.from('user_searches').select('craving, restaurant_name, cuisine_type, donde_match, created_at, occasion').order('created_at', { ascending: false }).limit(30),
+    // Fetch production data - use row queries (count headers unreliable with RLS)
+    const [recentQueries, scoreData, userHistory] = await Promise.all([
+      sb.from('user_queries').select('special_request, donde_match, created_at, occasion, user_id, restaurants(name)').order('created_at', { ascending: false }).limit(50),
+      sb.from('user_queries').select('donde_match, created_at, user_id').order('created_at', { ascending: false }).limit(200),
+      sb.from('user_searches').select('craving, restaurant_name, cuisine_type, donde_match, created_at, occasion').order('created_at', { ascending: false }).limit(50),
     ]);
 
-    const totalCount = totalSearches.count || 0;
-    const todayCount = todaySearches.count || 0;
-    const userCount = uniqueUsers.count || 0;
-    const recentScores = avgScoreRes.data || [];
-    const avgDm = recentScores.length > 0 ? Math.round(recentScores.reduce((s, r) => s + (r.donde_match || 0), 0) / recentScores.length) : 0;
-    const lowScoreCount = errorQueries.count || 0;
     const recent = recentQueries.data || [];
+    const allRows = scoreData.data || [];
     const history = userHistory.data || [];
+
+    // Compute stats from actual rows
+    const totalCount = allRows.length;
+    const todayStart = new Date(new Date().setHours(0, 0, 0, 0)).toISOString();
+    const todayCount = allRows.filter(q => q.created_at >= todayStart).length;
+    const uniqueUserIds = new Set(allRows.filter(q => q.user_id).map(q => q.user_id));
+    const userCount = uniqueUserIds.size;
+    const scored = allRows.filter(q => q.donde_match != null);
+    const avgDm = scored.length > 0 ? Math.round(scored.reduce((s, r) => s + r.donde_match, 0) / scored.length) : 0;
+    const lowScoreCount = scored.filter(r => r.donde_match < 40).length;
 
     // Render KPIs
     function prodCard(value, label, sub, colorClass) {
@@ -682,7 +694,7 @@ async function loadProductionDashboard() {
     }
 
     kpis.innerHTML = [
-      prodCard(totalCount.toLocaleString(), 'Total Searches', '', ''),
+      prodCard(totalCount >= 200 ? '200+' : totalCount.toString(), 'Total Searches', '', ''),
       prodCard(todayCount, 'Today', new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }), ''),
       prodCard(userCount, 'Unique Users', '', ''),
       prodCard(avgDm, 'Avg DM (Last 100)', '', ragClass(avgDm)),
@@ -718,7 +730,8 @@ async function loadProductionDashboard() {
       for (const q of recent) {
         const time = q.created_at ? new Date(q.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '--';
         const dm = q.donde_match;
-        const restName = q.restaurants?.name || '—';
+        const restJoin = q.restaurants;
+        const restName = Array.isArray(restJoin) ? (restJoin[0]?.name || '—') : (restJoin?.name || '—');
         h += `<tr>
           <td style="font-family:var(--cc-mono);font-size:0.68rem;color:var(--cc-text-3)">${time}</td>
           <td>${escapeHtml((q.special_request || '').substring(0, 50))}</td>
