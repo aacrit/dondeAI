@@ -86,12 +86,17 @@
       <span class="cc-status-strip__item" id="strip-prod">--</span>
     </div>
 
-    <!-- Quick Actions: 3 one-tap buttons -->
+    <!-- Quick Actions: 4 one-tap buttons -->
     <section class="cc-actions" id="actions-section">
       <button class="cc-action" id="action-test" onclick="quickStart()">
         <span class="cc-action__icon">&#9654;</span>
         <span class="cc-action__text">Run Tests</span>
         <span class="cc-action__hint" id="action-test-hint">10 queries, full suite</span>
+      </button>
+      <button class="cc-action cc-action--rerun" id="action-rerun" onclick="openRerunPicker()">
+        <span class="cc-action__icon">&#8635;</span>
+        <span class="cc-action__text">Rerun &amp; Compare</span>
+        <span class="cc-action__hint" id="action-rerun-hint">Replay a past run</span>
       </button>
       <button class="cc-action" id="action-data" onclick="quickCheckData()">
         <span class="cc-action__icon">&#9881;</span>
@@ -104,6 +109,20 @@
         <span class="cc-action__hint">/ceo-advisor</span>
       </a>
     </section>
+
+    <!-- Rerun Picker Modal (hidden by default) -->
+    <div class="cc-modal-overlay" id="rerun-overlay" style="display:none" onclick="closeRerunPicker(event)">
+      <div class="cc-modal cc-modal--rerun" onclick="event.stopPropagation()">
+        <div class="cc-modal__header">
+          <span class="cc-modal__title">&#8635; Rerun &amp; Compare</span>
+          <button class="cc-modal__close" onclick="closeRerunPicker()">&times;</button>
+        </div>
+        <p class="cc-modal__desc">Pick a previous run to replay the same queries against today's engine. You'll see a side-by-side delta.</p>
+        <div class="cc-rerun-list" id="rerun-list">
+          <div class="cc-loading"><div class="cc-spinner"></div><p>Loading runs...</p></div>
+        </div>
+      </div>
+    </div>
 
     <!-- Focus Strip (appears only when there are issues) -->
     <section class="cc-focus" id="focus-strip" style="display:none">

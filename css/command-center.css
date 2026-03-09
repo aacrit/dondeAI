@@ -289,12 +289,13 @@ body {
 /* ─── Quick Actions Row ─── */
 .cc-actions {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 10px;
   margin-bottom: 20px;
 }
 
-@media (max-width: 600px) { .cc-actions { grid-template-columns: 1fr; } }
+@media (max-width: 700px) { .cc-actions { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 400px) { .cc-actions { grid-template-columns: 1fr; } }
 
 .cc-action {
   display: flex;
@@ -346,6 +347,16 @@ body {
 }
 
 .cc-action--advisor .cc-action__icon { color: var(--cc-accent); }
+
+.cc-action--rerun {
+  border-color: rgba(245,158,11,0.3);
+  background: rgba(245,158,11,0.04);
+}
+.cc-action--rerun:hover {
+  border-color: var(--cc-amber);
+  background: rgba(245,158,11,0.08);
+}
+.cc-action--rerun .cc-action__icon { color: var(--cc-amber); }
 
 .cc-action--mode .cc-action__icon { color: var(--cc-text-2); }
 
@@ -2249,6 +2260,204 @@ tr.expandable:hover td { background: var(--cc-surface-2); }
   font-size: 0.62rem;
   color: var(--cc-text-3);
   margin-top: 4px;
+}
+
+/* ─── Rerun Modal ─── */
+.cc-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: ccFadeIn 0.15s ease-out;
+}
+@keyframes ccFadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.cc-modal {
+  background: var(--cc-surface);
+  border: 1px solid var(--cc-border);
+  border-radius: 14px;
+  width: 520px;
+  max-width: 92vw;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  animation: ccSlideUp 0.2s ease-out;
+}
+@keyframes ccSlideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+.cc-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 0;
+}
+.cc-modal__title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--cc-text);
+}
+.cc-modal__close {
+  background: none;
+  border: none;
+  color: var(--cc-text-3);
+  font-size: 1.3rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+.cc-modal__close:hover { background: var(--cc-surface-2); color: var(--cc-text); }
+.cc-modal__desc {
+  font-size: 0.72rem;
+  color: var(--cc-text-3);
+  padding: 6px 20px 12px;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.cc-rerun-list {
+  overflow-y: auto;
+  padding: 0 12px 12px;
+  flex: 1;
+}
+.cc-rerun-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+  border: 1px solid transparent;
+}
+.cc-rerun-item:hover {
+  background: var(--cc-surface-2);
+  border-color: var(--cc-border);
+}
+.cc-rerun-item__date {
+  font-size: 0.72rem;
+  color: var(--cc-text-2);
+  min-width: 110px;
+}
+.cc-rerun-item__stats {
+  flex: 1;
+  font-size: 0.72rem;
+  font-family: var(--cc-mono);
+  color: var(--cc-text);
+}
+.cc-rerun-item__queries {
+  font-size: 0.62rem;
+  color: var(--cc-text-3);
+}
+.cc-rerun-item__go {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--cc-amber);
+  white-space: nowrap;
+}
+
+/* ─── Comparison Banner ─── */
+.cc-compare-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  margin-bottom: 12px;
+  background: rgba(245,158,11,0.08);
+  border: 1px solid rgba(245,158,11,0.25);
+  border-radius: 10px;
+  font-size: 0.75rem;
+  color: var(--cc-text);
+}
+.cc-compare-banner__icon { font-size: 1.2rem; }
+.cc-compare-banner__text { flex: 1; }
+.cc-compare-banner__dismiss {
+  background: none;
+  border: none;
+  color: var(--cc-text-3);
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.cc-compare-banner__dismiss:hover { background: var(--cc-surface-2); }
+
+/* ─── Comparison Delta Cards ─── */
+.cc-compare-deltas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.cc-compare-delta {
+  text-align: center;
+  padding: 10px 8px;
+  background: var(--cc-surface);
+  border: 1px solid var(--cc-border);
+  border-radius: 8px;
+}
+.cc-compare-delta__val {
+  font-size: 1.1rem;
+  font-weight: 700;
+  font-family: var(--cc-mono);
+}
+.cc-compare-delta__val.positive { color: var(--cc-green); }
+.cc-compare-delta__val.negative { color: var(--cc-red); }
+.cc-compare-delta__val.neutral  { color: var(--cc-text-3); }
+.cc-compare-delta__label {
+  font-size: 0.6rem;
+  color: var(--cc-text-3);
+  margin-top: 2px;
+}
+.cc-compare-delta__sub {
+  font-size: 0.58rem;
+  color: var(--cc-text-3);
+  margin-top: 2px;
+}
+
+/* ─── Comparison Per-Query Table ─── */
+.cc-compare-table { width: 100%; border-collapse: collapse; font-size: 0.72rem; margin-top: 12px; }
+.cc-compare-table th { text-align: left; font-size: 0.62rem; text-transform: uppercase; color: var(--cc-text-3); padding: 6px 8px; border-bottom: 1px solid var(--cc-border); }
+.cc-compare-table td { padding: 5px 8px; border-bottom: 1px solid var(--cc-surface-3); }
+.cc-compare-table tr:hover { background: var(--cc-surface-2); }
+.cc-delta-up { color: var(--cc-green); font-weight: 600; }
+.cc-delta-down { color: var(--cc-red); font-weight: 600; }
+.cc-delta-same { color: var(--cc-text-3); }
+
+/* ─── Rerun Progress ─── */
+.cc-rerun-progress {
+  padding: 20px;
+  text-align: center;
+}
+.cc-rerun-progress__bar {
+  width: 100%;
+  height: 6px;
+  background: var(--cc-surface-3);
+  border-radius: 3px;
+  overflow: hidden;
+  margin: 12px 0 8px;
+}
+.cc-rerun-progress__fill {
+  height: 100%;
+  background: var(--cc-amber);
+  border-radius: 3px;
+  transition: width 0.3s ease-out;
+}
+.cc-rerun-progress__text {
+  font-size: 0.72rem;
+  color: var(--cc-text-2);
+}
+.cc-rerun-progress__query {
+  font-size: 0.68rem;
+  color: var(--cc-text-3);
+  font-family: var(--cc-mono);
+  margin-top: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ─── Scrollbar (dark) ─── */
