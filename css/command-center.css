@@ -172,10 +172,248 @@ body {
   padding: 20px 24px 60px;
 }
 
-/* ─── KPI Cards ─── */
+/* ─── Pulse Section (3 big hero numbers) ─── */
+.cc-pulse {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 600px) { .cc-pulse { grid-template-columns: 1fr; } }
+
+.cc-pulse__card {
+  background: var(--cc-surface);
+  border: 1px solid var(--cc-border);
+  border-radius: 12px;
+  padding: 24px 20px;
+  text-align: center;
+  transition: border-color 0.25s, transform 0.2s, box-shadow 0.25s;
+  cursor: default;
+  position: relative;
+  overflow: hidden;
+}
+
+.cc-pulse__card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.3s;
+  border-radius: 12px;
+}
+
+.cc-pulse__card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  border-color: var(--cc-border-focus);
+}
+
+.cc-pulse__card:hover::before { opacity: 1; }
+
+.cc-pulse__card--health::before { background: radial-gradient(circle at 50% 80%, rgba(52,211,153,0.06), transparent 70%); }
+.cc-pulse__card--quality::before { background: radial-gradient(circle at 50% 80%, rgba(139,143,245,0.06), transparent 70%); }
+.cc-pulse__card--attention::before { background: radial-gradient(circle at 50% 80%, rgba(240,166,58,0.06), transparent 70%); }
+
+.cc-pulse__ring {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 8px;
+}
+
+.cc-pulse__svg { width: 80px; height: 80px; }
+
+.cc-pulse__value {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  font-weight: 700;
+  font-family: var(--cc-mono);
+  color: var(--cc-text);
+}
+
+.cc-pulse__big {
+  font-size: 2.8rem;
+  font-weight: 700;
+  font-family: var(--cc-mono);
+  line-height: 1.1;
+  color: var(--cc-text);
+  margin-bottom: 4px;
+}
+
+.cc-pulse__big.rag-green { color: var(--cc-green); }
+.cc-pulse__big.rag-amber { color: var(--cc-amber); }
+.cc-pulse__big.rag-red { color: var(--cc-red); }
+
+.cc-pulse__big--attention { color: var(--cc-green); }
+
+.cc-pulse__label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--cc-text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+}
+
+.cc-pulse__sub {
+  font-size: 0.62rem;
+  color: var(--cc-text-3);
+}
+
+/* ─── Quick Actions Row ─── */
+.cc-actions {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 700px) { .cc-actions { grid-template-columns: repeat(2, 1fr); } }
+
+.cc-action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 16px 12px;
+  background: var(--cc-surface);
+  border: 1px solid var(--cc-border);
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: var(--cc-font);
+  text-decoration: none;
+  color: var(--cc-text);
+  transition: all 0.2s;
+}
+
+.cc-action:hover {
+  border-color: var(--cc-accent);
+  background: var(--cc-surface-2);
+  transform: translateY(-1px);
+}
+
+.cc-action:active { transform: translateY(0); }
+
+.cc-action__icon {
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+.cc-action__text {
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.cc-action__hint {
+  font-size: 0.6rem;
+  color: var(--cc-text-3);
+}
+
+.cc-action--advisor {
+  border-color: rgba(139,143,245,0.3);
+  background: rgba(139,143,245,0.04);
+}
+
+.cc-action--advisor:hover {
+  border-color: var(--cc-accent);
+  background: rgba(139,143,245,0.08);
+}
+
+.cc-action--advisor .cc-action__icon { color: var(--cc-accent); }
+
+.cc-action--mode .cc-action__icon { color: var(--cc-text-2); }
+
+.cc-action--active {
+  border-color: var(--cc-green);
+  background: rgba(52,211,153,0.06);
+}
+
+.cc-action--active .cc-action__icon { color: var(--cc-green); }
+
+/* ─── Agent Dots (compact strip) ─── */
+.cc-agent-dots {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.cc-agent-dot {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cc-agent-dot__pip {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--cc-surface-3);
+  border: 2px solid var(--cc-border);
+  transition: all 0.3s;
+}
+
+.cc-agent-dot--atlas .cc-agent-dot__pip { border-color: var(--agent-atlas); }
+.cc-agent-dot--qaudit .cc-agent-dot__pip { border-color: var(--agent-qaudit); }
+.cc-agent-dot--sentinel .cc-agent-dot__pip { border-color: var(--agent-sentinel); }
+.cc-agent-dot--hunter .cc-agent-dot__pip { border-color: var(--agent-hunter); }
+.cc-agent-dot--guardian .cc-agent-dot__pip { border-color: var(--agent-guardian); }
+
+.cc-agent-dot__pip.dot-running {
+  animation: cc-pulse 1.5s ease-in-out infinite;
+}
+
+.cc-agent-dot--atlas .cc-agent-dot__pip.dot-running { background: var(--agent-atlas); }
+.cc-agent-dot--qaudit .cc-agent-dot__pip.dot-running { background: var(--agent-qaudit); }
+.cc-agent-dot--sentinel .cc-agent-dot__pip.dot-running { background: var(--agent-sentinel); }
+.cc-agent-dot--hunter .cc-agent-dot__pip.dot-running { background: var(--agent-hunter); }
+.cc-agent-dot--guardian .cc-agent-dot__pip.dot-running { background: var(--agent-guardian); }
+
+.cc-agent-dot__pip.dot-done { background: var(--cc-green); border-color: var(--cc-green); }
+.cc-agent-dot__pip.dot-error { background: var(--cc-red); border-color: var(--cc-red); }
+
+.cc-agent-dot__label {
+  font-size: 0.6rem;
+  color: var(--cc-text-3);
+  font-weight: 500;
+}
+
+@media (max-width: 700px) {
+  .cc-agent-dots { gap: 8px; }
+  .cc-agent-dot__label { display: none; }
+}
+
+/* ─── Controls Row (inside agent section) ─── */
+.cc-controls-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+/* ─── History Selector ─── */
+.cc-history-selector {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.cc-history-selector__label {
+  font-size: 0.72rem;
+  color: var(--cc-text-2);
+  white-space: nowrap;
+}
+
+/* ─── KPI Cards (legacy — used in production mode) ─── */
 .cc-kpis {
   display: grid;
-  grid-template-columns: repeat(8, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 10px;
   margin-bottom: 20px;
 }

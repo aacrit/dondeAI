@@ -1,6 +1,6 @@
 /**
  * DondeAI Command Center — UI Updates & Init
- * Agent card UI, hero KPIs, focus strip, activity log, section toggles, init
+ * Pulse cards, agent dots, quick actions, agent card UI, focus strip, activity log, section toggles
  */
 
 // ═══════════════════════════════════════════════════════════════════
@@ -36,7 +36,420 @@ function updateClock() {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// Agent Card UI
+// Pulse Cards (3 big hero numbers)
+// ═══════════════════════════════════════════════════════════════════
+
+function updatePulseCards() {
+  const atlas = state.agents.atlas;
+  const sentinel = state.agents.sentinel;
+  const qaudit = state.agents.qaudit;
+  const guardian = state.agents.guardian;
+  const results = state.sessionResults || [];
+
+  // 1. System Health — composite of data health + pass rate + blurb grade
+  let healthScore = 0;
+  let healthParts = 0;
+
+  // Pass rate component
+  let passRate = 0;
+  if (results.length > 0) {
+    const passed = results.filter(r => r.donde_match >= 60).length;
+    passRate = Math.round((passed / results.length) * 100);
+    healthScore += passRate;
+    healthParts++;
+  } else if (atlas.total > 0) {
+    passRate = Math.round((atlas.pass / atlas.total) * 100);
+    healthScore += passRate;
+    healthParts++;
+  }
+
+  // Data coverage component
+  if (guardian.coverage !== '--') {
+    healthScore += parseInt(guardian.coverage) || 0;
+    healthParts++;
+  }
+
+  // Blurb grade component
+  if (qaudit.grade !== '--') {
+    const gradeMap = { 'A': 100, 'A-': 90, 'B+': 85, 'B': 75, 'C': 50, 'F': 20 };
+    healthScore += gradeMap[qaudit.grade] || 50;
+    healthParts++;
+  }
+
+  const compositeHealth = healthParts > 0 ? Math.round(healthScore / healthParts) : null;
+
+  // Update health ring
+  const healthVal = document.getElementById('pulse-health-val');
+  const healthRing = document.getElementById('pulse-health-ring');
+  const healthSub = document.getElementById('pulse-health-sub');
+  if (healthVal && compositeHealth !== null) {
+    healthVal.textContent = compositeHealth + '%';
+    healthVal.style.color = compositeHealth >= 80 ? 'var(--cc-green)' : compositeHealth >= 60 ? 'var(--cc-amber)' : 'var(--cc-red)';
+
+    // Animate ring (circumference = 2 * PI * 34 = 213.6)
+    const offset = 213.6 * (1 - compositeHealth / 100);
+    if (healthRing) {
+      healthRing.style.strokeDashoffset = offset;
+      healthRing.style.stroke = compositeHealth >= 80 ? 'var(--cc-green)' : compositeHealth >= 60 ? 'var(--cc-amber)' : 'var(--cc-red)';
+    }
+
+    if (healthSub) healthSub.textContent = `Pass ${passRate}% · Coverage ${guardian.coverage !== '--' ? guardian.coverage : '--'} · Grade ${qaudit.grade}`;
+  }
+
+  // 2. Avg DondeMatch
+  const qualityVal = document.getElementById('pulse-quality-val');
+  const qualitySub = document.getElementById('pulse-quality-sub');
+  let avgDm = null;
+  if (results.length > 0) {
+    avgDm = Math.round(results.reduce((s, r) => s + r.donde_match, 0) / results.length);
+  } else if (atlas.avgDm > 0) {
+    avgDm = atlas.avgDm;
+  }
+  if (qualityVal && avgDm !== null) {
+    qualityVal.textContent = avgDm;
+    qualityVal.className = 'cc-pulse__big';
+    qualityVal.classList.add(ragClass(avgDm));
+    if (qualitySub) qualitySub.textContent = results.length > 0 ? `${results.length} queries this session` : `${atlas.total} queries total`;
+  }
+
+  // 3. Needs Attention count
+  const attentionVal = document.getElementById('pulse-attention-val');
+  const attentionSub = document.getElementById('pulse-attention-sub');
+  let attentionCount = 0;
+  const issues = [];
+
+  // Gaps
+  const gapCount = results.length > 0
+    ? results.filter(r => r.gap_type).length
+    : atlas.gaps;
+  if (gapCount > 0) {
+    attentionCount += gapCount;
+    issues.push(`${gapCount} gaps`);
+  }
+
+  // Regressions
+  if (sentinel.regressions > 0) {
+    attentionCount += sentinel.regressions;
+    issues.push(`${sentinel.regressions} regressions`);
+  }
+
+  // Data issues
+  if (guardian.issues > 0) {
+    attentionCount += guardian.issues;
+    issues.push(`${guardian.issues} data issues`);
+  }
+
+  // Slop
+  if (qaudit.slop > 0) {
+    attentionCount += qaudit.slop;
+    issues.push(`${qaudit.slop} slop`);
+  }
+
+  if (attentionVal) {
+    attentionVal.textContent = attentionCount;
+    attentionVal.className = 'cc-pulse__big cc-pulse__big--attention';
+    if (attentionCount === 0) {
+      attentionVal.style.color = 'var(--cc-green)';
+    } else if (attentionCount <= 5) {
+      attentionVal.style.color = 'var(--cc-amber)';
+    } else {
+      attentionVal.style.color = 'var(--cc-red)';
+    }
+  }
+  if (attentionSub) {
+    attentionSub.textContent = issues.length > 0 ? issues.join(' · ') : 'All clear';
+  }
+}
+
+function updatePulseFromGauntlet(data) {
+  if (!data || !data.summary) return;
+  const s = data.summary;
+
+  const passRate = s.total > 0 ? Math.round(s.passed60 / s.total * 100) : 0;
+  const avgDm = s.avg_dm || 0;
+  const gapCount = s.gap_count || 0;
+
+  // Health
+  const healthVal = document.getElementById('pulse-health-val');
+  const healthRing = document.getElementById('pulse-health-ring');
+  const healthSub = document.getElementById('pulse-health-sub');
+  if (healthVal) {
+    healthVal.textContent = passRate + '%';
+    healthVal.style.color = passRate >= 80 ? 'var(--cc-green)' : passRate >= 60 ? 'var(--cc-amber)' : 'var(--cc-red)';
+    const offset = 213.6 * (1 - passRate / 100);
+    if (healthRing) {
+      healthRing.style.strokeDashoffset = offset;
+      healthRing.style.stroke = passRate >= 80 ? 'var(--cc-green)' : passRate >= 60 ? 'var(--cc-amber)' : 'var(--cc-red)';
+    }
+    if (healthSub) healthSub.textContent = `${s.total} queries · ${s.passed60} passed`;
+  }
+
+  // Quality
+  const qualityVal = document.getElementById('pulse-quality-val');
+  const qualitySub = document.getElementById('pulse-quality-sub');
+  if (qualityVal) {
+    qualityVal.textContent = avgDm;
+    qualityVal.className = 'cc-pulse__big';
+    qualityVal.classList.add(ragClass(avgDm));
+  }
+  if (qualitySub) qualitySub.textContent = `From ${s.total} test queries`;
+
+  // Attention
+  const attentionVal = document.getElementById('pulse-attention-val');
+  const attentionSub = document.getElementById('pulse-attention-sub');
+  if (attentionVal) {
+    attentionVal.textContent = gapCount;
+    attentionVal.className = 'cc-pulse__big cc-pulse__big--attention';
+    attentionVal.style.color = gapCount === 0 ? 'var(--cc-green)' : gapCount <= 5 ? 'var(--cc-amber)' : 'var(--cc-red)';
+  }
+  if (attentionSub) attentionSub.textContent = gapCount > 0 ? `${gapCount} gaps found` : 'All clear';
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Agent Dots (compact strip in section header)
+// ═══════════════════════════════════════════════════════════════════
+
+function updateAgentDots() {
+  const running = [];
+  Object.entries(state.agents).forEach(([id, agent]) => {
+    const pip = document.getElementById(`dot-${id}`);
+    if (!pip) return;
+    pip.className = 'cc-agent-dot__pip';
+    switch (agent.status) {
+      case 'running':
+        pip.classList.add('dot-running');
+        running.push(AGENT_DEFS[id].name);
+        break;
+      case 'paused':
+      case 'budget_paused':
+        // Keep border color only (default state)
+        break;
+      case 'error':
+        pip.classList.add('dot-error');
+        break;
+      default:
+        // Check if agent has done work
+        if (agent.xp > 0) pip.classList.add('dot-done');
+    }
+  });
+
+  const summary = document.getElementById('agents-summary');
+  if (summary) {
+    if (running.length > 0) {
+      summary.textContent = `${running.length} running`;
+      summary.style.color = 'var(--cc-green)';
+    } else if (state.systemState === 'paused') {
+      summary.textContent = 'Paused';
+      summary.style.color = 'var(--cc-amber)';
+    } else {
+      const totalXp = Object.values(state.agents).reduce((s, a) => s + a.xp, 0);
+      summary.textContent = totalXp > 0 ? `${totalXp.toLocaleString()} XP` : 'Idle';
+      summary.style.color = '';
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Quick Actions
+// ═══════════════════════════════════════════════════════════════════
+
+function quickStart() {
+  // One-tap start: expand agents section and start
+  const section = document.getElementById('section-agents');
+  if (section && !section.classList.contains('cc-section--open')) {
+    section.classList.add('cc-section--open');
+    const body = section.querySelector('.cc-section__body');
+    const chevron = section.querySelector('.cc-section__chevron');
+    if (body) body.style.display = '';
+    if (chevron) chevron.innerHTML = '&#9662;';
+  }
+
+  // Update action button state
+  const btn = document.getElementById('action-test');
+  if (btn && state.systemState === 'running') {
+    // Already running — pause instead
+    handlePause();
+    return;
+  }
+
+  handleStart();
+
+  // Update button to show running state
+  if (btn) {
+    btn.classList.add('cc-action--active');
+    const textEl = btn.querySelector('.cc-action__text');
+    const iconEl = btn.querySelector('.cc-action__icon');
+    if (textEl) textEl.textContent = 'Running...';
+    if (iconEl) iconEl.innerHTML = '&#9646;&#9646;';
+  }
+}
+
+function quickCheckData() {
+  // One-tap: open Data Health section and load it
+  const section = document.getElementById('section-maintenance');
+  if (section && !section.classList.contains('cc-section--open')) {
+    section.classList.add('cc-section--open');
+    const body = section.querySelector('.cc-section__body');
+    const chevron = section.querySelector('.cc-section__chevron');
+    if (body) body.style.display = '';
+    if (chevron) chevron.innerHTML = '&#9662;';
+  }
+  if (!maintenanceLoaded) {
+    loadMaintenanceSection();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Mode Toggle (unified — replaces header toggle)
+// ═══════════════════════════════════════════════════════════════════
+
+let currentMode = 'testing';
+let productionLoaded = false;
+
+function toggleMode() {
+  const newMode = currentMode === 'testing' ? 'production' : 'testing';
+  currentMode = newMode;
+
+  document.getElementById('testing-dashboard').style.display = newMode === 'testing' ? '' : 'none';
+  document.getElementById('production-dashboard').style.display = newMode === 'production' ? '' : 'none';
+
+  // Update action button
+  const modeText = document.getElementById('mode-text');
+  const modeIcon = document.getElementById('mode-icon');
+  const modeHint = document.getElementById('mode-hint');
+  const modeBtn = document.getElementById('action-mode');
+  if (newMode === 'production') {
+    if (modeText) modeText.textContent = 'Testing';
+    if (modeIcon) modeIcon.innerHTML = '&#9654;';
+    if (modeHint) modeHint.textContent = 'Switch to testing';
+    if (modeBtn) modeBtn.classList.add('cc-action--active');
+  } else {
+    if (modeText) modeText.textContent = 'Production';
+    if (modeIcon) modeIcon.innerHTML = '&#128202;';
+    if (modeHint) modeHint.textContent = 'View live traffic';
+    if (modeBtn) modeBtn.classList.remove('cc-action--active');
+  }
+
+  if (newMode === 'production' && !productionLoaded) {
+    loadProductionDashboard();
+  }
+}
+
+async function loadProductionDashboard() {
+  productionLoaded = true;
+  const content = document.getElementById('prod-content');
+  const kpis = document.getElementById('prod-kpis');
+
+  try {
+    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+    const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+    const [recentQueries, scoreData, userHistory] = await Promise.all([
+      sb.from('user_queries').select('special_request, donde_match, created_at, occasion, user_id, restaurants(name)').order('created_at', { ascending: false }).limit(50),
+      sb.from('user_queries').select('donde_match, created_at, user_id').order('created_at', { ascending: false }).limit(200),
+      sb.from('user_searches').select('craving, restaurant_name, cuisine_type, donde_match, created_at, occasion').order('created_at', { ascending: false }).limit(50),
+    ]);
+
+    const recent = recentQueries.data || [];
+    const allRows = scoreData.data || [];
+    const history = userHistory.data || [];
+
+    const totalCount = allRows.length;
+    const todayStart = new Date(new Date().setHours(0, 0, 0, 0)).toISOString();
+    const todayCount = allRows.filter(q => q.created_at >= todayStart).length;
+    const uniqueUserIds = new Set(allRows.filter(q => q.user_id).map(q => q.user_id));
+    const userCount = uniqueUserIds.size;
+    const scored = allRows.filter(q => q.donde_match != null);
+    const avgDm = scored.length > 0 ? Math.round(scored.reduce((s, r) => s + r.donde_match, 0) / scored.length) : 0;
+    const lowScoreCount = scored.filter(r => r.donde_match < 40).length;
+
+    function prodCard(value, label, sub, colorClass) {
+      return `<div class="cc-prod-card"><div class="cc-prod-card__value ${colorClass || ''}">${value}</div><div class="cc-prod-card__label">${label}</div>${sub ? `<div class="cc-prod-card__sub">${sub}</div>` : ''}</div>`;
+    }
+
+    kpis.innerHTML = [
+      prodCard(totalCount >= 200 ? '200+' : totalCount.toString(), 'Total Searches', '', ''),
+      prodCard(todayCount, 'Today', new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }), ''),
+      prodCard(userCount, 'Unique Users', '', ''),
+      prodCard(avgDm, 'Avg DM (Last 100)', '', ragClass(avgDm)),
+      prodCard(lowScoreCount, 'Low Scores (<40)', '', lowScoreCount > 10 ? 'rag-red' : lowScoreCount > 3 ? 'rag-amber' : 'rag-green'),
+    ].join('');
+
+    const alerts = [];
+    if (avgDm < 60) alerts.push({ text: `Average DM is ${avgDm} — below 60 threshold`, type: 'red' });
+    if (lowScoreCount > 10) alerts.push({ text: `${lowScoreCount} queries scored below 40 — investigate intent gaps`, type: 'red' });
+    if (todayCount === 0) alerts.push({ text: 'No searches today — check API health', type: 'amber' });
+
+    const alertsEl = document.getElementById('prod-alerts');
+    const alertListEl = document.getElementById('prod-alert-list');
+    if (alerts.length > 0) {
+      alertsEl.style.display = '';
+      alertListEl.innerHTML = alerts.map(a => `
+        <div class="cc-focus__alert ${a.type === 'amber' ? 'cc-focus__alert--amber' : ''}">
+          <span class="cc-focus__alert-icon">${a.type === 'red' ? '&#9888;' : '&#9432;'}</span>
+          <span class="cc-focus__alert-text">${a.text}</span>
+        </div>
+      `).join('');
+    }
+
+    let h = '';
+
+    h += '<div class="cc-subsection"><div class="cc-subsection__title">Recent API Searches</div>';
+    if (recent.length > 0) {
+      h += '<div class="cc-table-wrap"><table class="cc-table"><thead><tr>';
+      h += '<th>Time</th><th>Query</th><th>Occasion</th><th>Restaurant</th><th>DM</th>';
+      h += '</tr></thead><tbody>';
+      for (const q of recent) {
+        const time = q.created_at ? new Date(q.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '--';
+        const dm = q.donde_match;
+        const restJoin = q.restaurants;
+        const restName = Array.isArray(restJoin) ? (restJoin[0]?.name || '\u2014') : (restJoin?.name || '\u2014');
+        h += `<tr>
+          <td style="font-family:var(--cc-mono);font-size:0.68rem;color:var(--cc-text-3)">${time}</td>
+          <td>${escapeHtml((q.special_request || '').substring(0, 50))}</td>
+          <td style="font-size:0.68rem;color:var(--cc-text-3)">${escapeHtml((q.occasion || '\u2014').substring(0, 15))}</td>
+          <td>${escapeHtml(restName.substring(0, 25))}</td>
+          <td><span class="dm-badge ${dm != null ? ragClass(dm) : ''}">${dm != null ? dm : '\u2014'}</span></td>
+        </tr>`;
+      }
+      h += '</tbody></table></div>';
+    } else {
+      h += '<p class="cc-muted">No recent searches found.</p>';
+    }
+    h += '</div>';
+
+    h += '<div class="cc-subsection"><div class="cc-subsection__title">User History (Saved Searches)</div>';
+    if (history.length > 0) {
+      h += '<div class="cc-table-wrap"><table class="cc-table"><thead><tr>';
+      h += '<th>Date</th><th>Craving</th><th>Occasion</th><th>Restaurant</th><th>Cuisine</th><th>DM</th>';
+      h += '</tr></thead><tbody>';
+      for (const s of history) {
+        const date = s.created_at ? new Date(s.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '--';
+        const dm = s.donde_match;
+        h += `<tr>
+          <td style="font-family:var(--cc-mono);font-size:0.68rem;color:var(--cc-text-3)">${date}</td>
+          <td>${escapeHtml((s.craving || '').substring(0, 40))}</td>
+          <td style="font-size:0.68rem;color:var(--cc-text-3)">${escapeHtml((s.occasion || '\u2014').substring(0, 15))}</td>
+          <td>${escapeHtml((s.restaurant_name || '\u2014').substring(0, 25))}</td>
+          <td style="font-size:0.68rem;color:var(--cc-text-3)">${escapeHtml((s.cuisine_type || '\u2014').substring(0, 15))}</td>
+          <td><span class="dm-badge ${dm != null ? ragClass(dm) : ''}">${dm != null ? dm : '\u2014'}</span></td>
+        </tr>`;
+      }
+      h += '</tbody></table></div>';
+    } else {
+      h += '<p class="cc-muted">No saved user searches yet.</p>';
+    }
+    h += '</div>';
+
+    content.innerHTML = h;
+  } catch (e) {
+    content.innerHTML = `<p style="color:var(--cc-red)">Failed to load production data: ${e.message}</p>`;
+    productionLoaded = false;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Agent Card UI (kept from original)
 // ═══════════════════════════════════════════════════════════════════
 
 function updateAgentStatusUI(agentId) {
@@ -153,7 +566,6 @@ function updateBudgetUI() {
 // ═══════════════════════════════════════════════════════════════════
 
 function updateBossBar() {
-  // Use all session results (Atlas + Sentinel + Hunter) for boss bar
   const results = state.sessionResults || [];
   let passRate;
   if (results.length > 0) {
@@ -193,70 +605,28 @@ function updateLeaderboard() {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// Hero KPIs
+// Hero KPIs (legacy — now drives pulse cards too)
 // ═══════════════════════════════════════════════════════════════════
 
 function updateHeroKPIs() {
-  const atlas = state.agents.atlas;
-  const sentinel = state.agents.sentinel;
-  const qaudit = state.agents.qaudit;
-  const guardian = state.agents.guardian;
-  const results = state.sessionResults || [];
-
-  // Pass Rate & Avg Score (from all session results, not just Atlas)
-  if (results.length > 0) {
-    const passed = results.filter(r => r.donde_match >= 60).length;
-    const passRate = Math.round((passed / results.length) * 100);
-    setKPI('kpi-pass-val', passRate + '%', passRate >= 80 ? 'rag-green' : passRate >= 60 ? 'rag-amber' : 'rag-red');
-    const avgDm = Math.round(results.reduce((s, r) => s + r.donde_match, 0) / results.length);
-    setKPI('kpi-avg-val', avgDm, ragClass(avgDm));
-  } else if (atlas.total > 0) {
-    const passRate = Math.round((atlas.pass / atlas.total) * 100);
-    setKPI('kpi-pass-val', passRate + '%', passRate >= 80 ? 'rag-green' : passRate >= 60 ? 'rag-amber' : 'rag-red');
-    if (atlas.avgDm > 0) setKPI('kpi-avg-val', atlas.avgDm, ragClass(atlas.avgDm));
-  }
-
-  // Open Gaps (from session results)
-  if (results.length > 0) {
-    const gapCount = results.filter(r => r.gap_type).length;
-    setKPI('kpi-gaps-val', gapCount, gapCount === 0 ? 'rag-green' : gapCount <= 5 ? 'rag-amber' : 'rag-red');
-  }
-
-  // Budget
-  const remaining = DAILY_BUDGET - state.budgetUsed;
-  const budgetPct = Math.round((remaining / DAILY_BUDGET) * 100);
-  setKPI('kpi-budget-val', remaining, budgetPct >= 50 ? 'rag-green' : budgetPct >= 20 ? 'rag-amber' : 'rag-red');
-
-  // Regressions
-  setKPI('kpi-reg-val', sentinel.regressions, sentinel.regressions === 0 ? 'rag-green' : sentinel.regressions <= 2 ? 'rag-amber' : 'rag-red');
-
-  // Blurb Grade
-  if (qaudit.grade !== '--') {
-    setKPI('kpi-blurb-val', qaudit.grade, qaudit.grade.startsWith('A') ? 'rag-green' : qaudit.grade.startsWith('B') ? 'rag-amber' : 'rag-red');
-  }
-
-  // Data Health
-  if (guardian.coverage !== '--') {
-    const cov = parseInt(guardian.coverage);
-    setKPI('kpi-data-val', guardian.coverage, cov >= 90 ? 'rag-green' : cov >= 70 ? 'rag-amber' : 'rag-red');
-  }
-
-  // Active agents
-  const running = Object.values(state.agents).filter(a => a.status === 'running').length;
-  setKPI('kpi-agents-val', `${running}/5`, running >= 5 ? 'rag-green' : running >= 3 ? 'rag-amber' : 'rag-red');
+  // Update pulse cards (new UI)
+  updatePulseCards();
+  updateAgentDots();
 
   // Update focus strip
   updateFocusStrip();
+
+  // Update test action button hint
+  const hint = document.getElementById('action-test-hint');
+  if (hint && state.systemState === 'running') {
+    const results = state.sessionResults || [];
+    hint.textContent = `${results.length} queries so far`;
+  }
 }
 
 function updateHeroKPIsFromGauntlet(data) {
   if (!data || !data.summary) return;
-  const s = data.summary;
-  const passRate = s.total > 0 ? Math.round(s.passed60 / s.total * 100) : 0;
-
-  setKPI('kpi-pass-val', passRate + '%', passRate >= 80 ? 'rag-green' : passRate >= 60 ? 'rag-amber' : 'rag-red');
-  setKPI('kpi-avg-val', s.avg_dm, ragClass(s.avg_dm));
-  setKPI('kpi-gaps-val', s.gap_count, s.gap_count === 0 ? 'rag-green' : s.gap_count <= 10 ? 'rag-amber' : 'rag-red');
+  updatePulseFromGauntlet(data);
 }
 
 function setKPI(id, value, colorClass) {
@@ -274,12 +644,10 @@ function setKPI(id, value, colorClass) {
 function updateFocusStrip() {
   const alerts = [];
 
-  // Regressions
   if (state.agents.sentinel.regressions > 0) {
     alerts.push({ text: `${state.agents.sentinel.regressions} regression(s) detected by Sentinel`, type: 'red' });
   }
 
-  // Budget critical
   const remaining = DAILY_BUDGET - state.budgetUsed;
   if (remaining <= 10 && remaining > 0) {
     alerts.push({ text: `API budget low: ${remaining} calls remaining`, type: 'amber' });
@@ -287,12 +655,10 @@ function updateFocusStrip() {
     alerts.push({ text: 'API budget exhausted', type: 'red' });
   }
 
-  // Critical gaps from atlas
   if (state.agents.atlas.gaps > 10) {
     alerts.push({ text: `Atlas found ${state.agents.atlas.gaps} gaps — search quality needs attention`, type: 'amber' });
   }
 
-  // Blurb quality
   if (state.agents.qaudit.grade === 'C' || state.agents.qaudit.grade === 'F') {
     alerts.push({ text: `Blurb quality grade: ${state.agents.qaudit.grade} — slop patterns detected`, type: 'red' });
   }
@@ -443,7 +809,6 @@ function showGameOver(sessionStartTime) {
   const durationEl = document.getElementById('game-over-duration');
   const saveStatusEl = document.getElementById('game-over-save-status');
 
-  // Duration
   if (durationEl && sessionStartTime) {
     const elapsed = Math.floor((new Date() - sessionStartTime) / 1000);
     const m = Math.floor(elapsed / 60);
@@ -451,7 +816,6 @@ function showGameOver(sessionStartTime) {
     durationEl.textContent = `Duration: ${m}m ${s}s`;
   }
 
-  // Stats grid
   const atlas = state.agents.atlas;
   const passRate = atlas.total > 0 ? Math.round((atlas.pass / atlas.total) * 100) : 0;
   const totalQueries = Object.values(state.agents).reduce((s, a) => s + (a.queries || a.probes || a.checks || a.audits || a.records || 0), 0);
@@ -471,6 +835,16 @@ function showGameOver(sessionStartTime) {
 
   if (saveStatusEl) saveStatusEl.textContent = '';
   overlay.classList.add('cc-overlay--visible');
+
+  // Reset Run Tests button
+  const testBtn = document.getElementById('action-test');
+  if (testBtn) {
+    testBtn.classList.remove('cc-action--active');
+    const textEl = testBtn.querySelector('.cc-action__text');
+    const iconEl = testBtn.querySelector('.cc-action__icon');
+    if (textEl) textEl.textContent = 'Run Tests';
+    if (iconEl) iconEl.innerHTML = '&#9654;';
+  }
 }
 
 function dismissGameOver() {
@@ -497,7 +871,6 @@ function pollAgentStatus() {
 function initSectionToggles() {
   document.querySelectorAll('.cc-section__header[data-toggle]').forEach(header => {
     header.addEventListener('click', (e) => {
-      // Don't toggle if clicking buttons
       if (e.target.closest('.cc-btn') || e.target.closest('.cc-controls') || e.target.closest('.cc-header__run-selector')) return;
 
       const section = header.closest('.cc-section');
@@ -518,6 +891,9 @@ function initSectionToggles() {
         if (header.dataset.toggle === 'trends' && !historyLoaded) {
           loadTrendsSection();
         }
+        if (header.dataset.toggle === 'history' && !historyLoaded) {
+          loadTrendsSection();
+        }
 
         // Lazy load maintenance
         if (header.dataset.toggle === 'maintenance' && !maintenanceLoaded) {
@@ -532,7 +908,6 @@ function initSectionToggles() {
 // Start Dropdown (Test Count + Filters)
 // ═══════════════════════════════════════════════════════════════════
 
-// Which agents are enabled for the next run
 const agentFilter = { atlas: true, sentinel: true, hunter: true, qaudit: true, guardian: true };
 
 const FILTER_PRESETS = {
@@ -579,13 +954,12 @@ function updateFilterSummary() {
   const count = Object.values(agentFilter).filter(Boolean).length;
   const slider = document.getElementById('test-count-slider');
   const queries = slider ? parseInt(slider.value) : 10;
-  // Cost estimate: Atlas uses queries, others add ~30% overhead
   const apiCalls = (agentFilter.atlas ? queries : 0) +
     (agentFilter.sentinel ? Math.min(15, Math.ceil(queries * 0.5)) : 0) +
     (agentFilter.hunter ? Math.min(10, Math.ceil(queries * 0.3)) : 0) +
     (agentFilter.guardian ? Math.min(5, Math.ceil(queries * 0.2)) : 0);
   const est = (apiCalls * 0.01).toFixed(2);
-  el.textContent = `${count} agent${count !== 1 ? 's' : ''} · ${agentFilter.atlas ? queries + ' queries · ' : ''}~$${est}`;
+  el.textContent = `${count} agent${count !== 1 ? 's' : ''} \u00b7 ${agentFilter.atlas ? queries + ' queries \u00b7 ' : ''}~$${est}`;
 }
 
 function toggleStartDropdown(e) {
@@ -609,13 +983,11 @@ function initStartDropdown() {
     });
   }
 
-  // Wire up chip checkboxes
   document.querySelectorAll('.cc-filter-chip').forEach(chip => {
     chip.addEventListener('click', (e) => {
       e.preventDefault();
       const agentId = chip.dataset.agent;
       agentFilter[agentId] = !agentFilter[agentId];
-      // Ensure at least one agent is always selected
       if (Object.values(agentFilter).every(v => !v)) {
         agentFilter[agentId] = true;
       }
@@ -627,154 +999,12 @@ function initStartDropdown() {
 
   updateFilterSummary();
 
-  // Close dropdown when clicking outside
   document.addEventListener('click', (e) => {
     const dd = document.getElementById('start-dropdown');
     if (dd && !e.target.closest('.cc-start-group')) {
       dd.classList.remove('cc-start-dropdown--open');
     }
   });
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// Mode Toggle (Testing / Production)
-// ═══════════════════════════════════════════════════════════════════
-
-let currentMode = 'testing';
-let productionLoaded = false;
-
-function switchMode(mode) {
-  if (mode === currentMode) return;
-  currentMode = mode;
-
-  document.getElementById('mode-testing').classList.toggle('cc-mode-toggle__btn--active', mode === 'testing');
-  document.getElementById('mode-production').classList.toggle('cc-mode-toggle__btn--active', mode === 'production');
-
-  document.getElementById('testing-dashboard').style.display = mode === 'testing' ? '' : 'none';
-  document.getElementById('production-dashboard').style.display = mode === 'production' ? '' : 'none';
-
-  if (mode === 'production' && !productionLoaded) {
-    loadProductionDashboard();
-  }
-}
-
-async function loadProductionDashboard() {
-  productionLoaded = true;
-  const content = document.getElementById('prod-content');
-  const kpis = document.getElementById('prod-kpis');
-
-  try {
-    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
-    const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-
-    // Fetch production data - use row queries (count headers unreliable with RLS)
-    const [recentQueries, scoreData, userHistory] = await Promise.all([
-      sb.from('user_queries').select('special_request, donde_match, created_at, occasion, user_id, restaurants(name)').order('created_at', { ascending: false }).limit(50),
-      sb.from('user_queries').select('donde_match, created_at, user_id').order('created_at', { ascending: false }).limit(200),
-      sb.from('user_searches').select('craving, restaurant_name, cuisine_type, donde_match, created_at, occasion').order('created_at', { ascending: false }).limit(50),
-    ]);
-
-    const recent = recentQueries.data || [];
-    const allRows = scoreData.data || [];
-    const history = userHistory.data || [];
-
-    // Compute stats from actual rows
-    const totalCount = allRows.length;
-    const todayStart = new Date(new Date().setHours(0, 0, 0, 0)).toISOString();
-    const todayCount = allRows.filter(q => q.created_at >= todayStart).length;
-    const uniqueUserIds = new Set(allRows.filter(q => q.user_id).map(q => q.user_id));
-    const userCount = uniqueUserIds.size;
-    const scored = allRows.filter(q => q.donde_match != null);
-    const avgDm = scored.length > 0 ? Math.round(scored.reduce((s, r) => s + r.donde_match, 0) / scored.length) : 0;
-    const lowScoreCount = scored.filter(r => r.donde_match < 40).length;
-
-    // Render KPIs
-    function prodCard(value, label, sub, colorClass) {
-      return `<div class="cc-prod-card"><div class="cc-prod-card__value ${colorClass || ''}">${value}</div><div class="cc-prod-card__label">${label}</div>${sub ? `<div class="cc-prod-card__sub">${sub}</div>` : ''}</div>`;
-    }
-
-    kpis.innerHTML = [
-      prodCard(totalCount >= 200 ? '200+' : totalCount.toString(), 'Total Searches', '', ''),
-      prodCard(todayCount, 'Today', new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }), ''),
-      prodCard(userCount, 'Unique Users', '', ''),
-      prodCard(avgDm, 'Avg DM (Last 100)', '', ragClass(avgDm)),
-      prodCard(lowScoreCount, 'Low Scores (<40)', '', lowScoreCount > 10 ? 'rag-red' : lowScoreCount > 3 ? 'rag-amber' : 'rag-green'),
-    ].join('');
-
-    // Production alerts
-    const alerts = [];
-    if (avgDm < 60) alerts.push({ text: `Average DM is ${avgDm} — below 60 threshold`, type: 'red' });
-    if (lowScoreCount > 10) alerts.push({ text: `${lowScoreCount} queries scored below 40 — investigate intent gaps`, type: 'red' });
-    if (todayCount === 0) alerts.push({ text: 'No searches today — check API health', type: 'amber' });
-
-    const alertsEl = document.getElementById('prod-alerts');
-    const alertListEl = document.getElementById('prod-alert-list');
-    if (alerts.length > 0) {
-      alertsEl.style.display = '';
-      alertListEl.innerHTML = alerts.map(a => `
-        <div class="cc-focus__alert ${a.type === 'amber' ? 'cc-focus__alert--amber' : ''}">
-          <span class="cc-focus__alert-icon">${a.type === 'red' ? '&#9888;' : '&#9432;'}</span>
-          <span class="cc-focus__alert-text">${a.text}</span>
-        </div>
-      `).join('');
-    }
-
-    let h = '';
-
-    // Recent API searches table (from user_queries — every API call)
-    h += '<div class="cc-subsection"><div class="cc-subsection__title">Recent API Searches</div>';
-    if (recent.length > 0) {
-      h += '<div class="cc-table-wrap"><table class="cc-table"><thead><tr>';
-      h += '<th>Time</th><th>Query</th><th>Occasion</th><th>Restaurant</th><th>DM</th>';
-      h += '</tr></thead><tbody>';
-      for (const q of recent) {
-        const time = q.created_at ? new Date(q.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '--';
-        const dm = q.donde_match;
-        const restJoin = q.restaurants;
-        const restName = Array.isArray(restJoin) ? (restJoin[0]?.name || '—') : (restJoin?.name || '—');
-        h += `<tr>
-          <td style="font-family:var(--cc-mono);font-size:0.68rem;color:var(--cc-text-3)">${time}</td>
-          <td>${escapeHtml((q.special_request || '').substring(0, 50))}</td>
-          <td style="font-size:0.68rem;color:var(--cc-text-3)">${escapeHtml((q.occasion || '—').substring(0, 15))}</td>
-          <td>${escapeHtml(restName.substring(0, 25))}</td>
-          <td><span class="dm-badge ${dm != null ? ragClass(dm) : ''}">${dm != null ? dm : '—'}</span></td>
-        </tr>`;
-      }
-      h += '</tbody></table></div>';
-    } else {
-      h += '<p class="cc-muted">No recent searches found.</p>';
-    }
-    h += '</div>';
-
-    // User search history (from user_searches — authenticated user saves)
-    h += '<div class="cc-subsection"><div class="cc-subsection__title">User History (Saved Searches)</div>';
-    if (history.length > 0) {
-      h += '<div class="cc-table-wrap"><table class="cc-table"><thead><tr>';
-      h += '<th>Date</th><th>Craving</th><th>Occasion</th><th>Restaurant</th><th>Cuisine</th><th>DM</th>';
-      h += '</tr></thead><tbody>';
-      for (const s of history) {
-        const date = s.created_at ? new Date(s.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '--';
-        const dm = s.donde_match;
-        h += `<tr>
-          <td style="font-family:var(--cc-mono);font-size:0.68rem;color:var(--cc-text-3)">${date}</td>
-          <td>${escapeHtml((s.craving || '').substring(0, 40))}</td>
-          <td style="font-size:0.68rem;color:var(--cc-text-3)">${escapeHtml((s.occasion || '—').substring(0, 15))}</td>
-          <td>${escapeHtml((s.restaurant_name || '—').substring(0, 25))}</td>
-          <td style="font-size:0.68rem;color:var(--cc-text-3)">${escapeHtml((s.cuisine_type || '—').substring(0, 15))}</td>
-          <td><span class="dm-badge ${dm != null ? ragClass(dm) : ''}">${dm != null ? dm : '—'}</span></td>
-        </tr>`;
-      }
-      h += '</tbody></table></div>';
-    } else {
-      h += '<p class="cc-muted">No saved user searches yet. Users see history after signing in.</p>';
-    }
-    h += '</div>';
-
-    content.innerHTML = h;
-  } catch (e) {
-    content.innerHTML = `<p style="color:var(--cc-red)">Failed to load production data: ${e.message}</p>`;
-    productionLoaded = false;
-  }
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -786,6 +1016,8 @@ updateClock();
 updateBudgetUI();
 updateBossBar();
 updateLeaderboard();
+updatePulseCards();
+updateAgentDots();
 updateHeroKPIs();
 
 // Render persisted logs
@@ -808,3 +1040,23 @@ initStartDropdown();
 
 // Auth & analytics
 checkAuth();
+
+// Auto-open section from URL hash (e.g. #maintenance)
+if (window.location.hash) {
+  const sectionId = window.location.hash.replace('#', '');
+  const section = document.getElementById(`section-${sectionId}`);
+  if (section && !section.classList.contains('cc-section--open')) {
+    section.classList.add('cc-section--open');
+    const body = section.querySelector('.cc-section__body');
+    const chevron = section.querySelector('.cc-section__chevron');
+    if (body) body.style.display = '';
+    if (chevron) chevron.innerHTML = '&#9662;';
+    // Lazy load if needed
+    if (sectionId === 'maintenance' && !maintenanceLoaded) {
+      // Wait for auth to complete before loading maintenance data
+      setTimeout(() => { if (!maintenanceLoaded) loadMaintenanceSection(); }, 1500);
+    }
+    // Scroll to section
+    setTimeout(() => section.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300);
+  }
+}

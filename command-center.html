@@ -11,7 +11,7 @@
 </head>
 <body>
 
-  <!-- ═══ Header ═══ -->
+  <!-- ═══ Header (minimal) ═══ -->
   <header class="cc-header">
     <div class="cc-header__left">
       <div class="cc-header__logo">
@@ -25,16 +25,7 @@
       </div>
       <div class="cc-header__title">Command Center</div>
     </div>
-    <div class="cc-header__center">
-      <select class="cc-header__run-selector" id="run-selector">
-        <option value="">Loading runs...</option>
-      </select>
-    </div>
     <div class="cc-header__right">
-      <div class="cc-mode-toggle" id="mode-toggle">
-        <button class="cc-mode-toggle__btn cc-mode-toggle__btn--active" id="mode-testing" onclick="switchMode('testing')">Testing</button>
-        <button class="cc-mode-toggle__btn" id="mode-production" onclick="switchMode('production')">Production</button>
-      </div>
       <div class="cc-header__status">
         <span class="cc-header__dot cc-header__dot--offline" id="status-dot"></span>
         <span class="cc-header__status-text" id="status-text">Offline</span>
@@ -55,64 +46,66 @@
   <!-- ═══ Main Content ═══ -->
   <main class="cc-main" id="main-content">
 
-    <!-- ═══ Production Dashboard (hidden by default) ═══ -->
-    <div id="production-dashboard" style="display:none">
-      <div class="cc-kpis" id="prod-kpis"></div>
-      <div class="cc-focus" id="prod-alerts" style="display:none">
-        <div class="cc-focus__title">Production Alerts</div>
-        <div class="cc-focus__alerts" id="prod-alert-list"></div>
+    <!-- ═══ Pulse: 3 big numbers that tell the whole story ═══ -->
+    <section class="cc-pulse" id="pulse-section">
+      <div class="cc-pulse__card cc-pulse__card--health" id="pulse-health">
+        <div class="cc-pulse__ring">
+          <svg viewBox="0 0 80 80" class="cc-pulse__svg">
+            <circle cx="40" cy="40" r="34" fill="none" stroke="var(--cc-surface-3)" stroke-width="5"/>
+            <circle cx="40" cy="40" r="34" fill="none" stroke="var(--cc-green)" stroke-width="5"
+              stroke-dasharray="213.6" stroke-dashoffset="213.6" stroke-linecap="round"
+              transform="rotate(-90 40 40)" id="pulse-health-ring"/>
+          </svg>
+          <div class="cc-pulse__value" id="pulse-health-val">--</div>
+        </div>
+        <div class="cc-pulse__label">System Health</div>
+        <div class="cc-pulse__sub" id="pulse-health-sub">Data + Engine + Quality</div>
       </div>
-      <div id="prod-content">
-        <div class="cc-loading"><div class="cc-spinner"></div>Loading production data...</div>
-      </div>
-    </div>
 
-    <!-- ═══ Testing Dashboard ═══ -->
-    <div id="testing-dashboard">
+      <div class="cc-pulse__card cc-pulse__card--quality" id="pulse-quality">
+        <div class="cc-pulse__big" id="pulse-quality-val">--</div>
+        <div class="cc-pulse__label">Avg DondeMatch</div>
+        <div class="cc-pulse__sub" id="pulse-quality-sub">Last test run</div>
+      </div>
 
-    <!-- ── Hero KPIs ── -->
-    <section class="cc-kpis" id="kpi-section">
-      <div class="cc-kpi" id="kpi-pass-rate">
-        <div class="cc-kpi__value" id="kpi-pass-val">--</div>
-        <div class="cc-kpi__label">Pass Rate</div>
-      </div>
-      <div class="cc-kpi" id="kpi-avg-score">
-        <div class="cc-kpi__value" id="kpi-avg-val">--</div>
-        <div class="cc-kpi__label">Avg Score</div>
-      </div>
-      <div class="cc-kpi" id="kpi-gaps">
-        <div class="cc-kpi__value" id="kpi-gaps-val">--</div>
-        <div class="cc-kpi__label">Open Gaps</div>
-      </div>
-      <div class="cc-kpi" id="kpi-data-health">
-        <div class="cc-kpi__value" id="kpi-data-val">--</div>
-        <div class="cc-kpi__label">Data Health</div>
-      </div>
-      <div class="cc-kpi" id="kpi-budget">
-        <div class="cc-kpi__value" id="kpi-budget-val">50</div>
-        <div class="cc-kpi__label">API Budget</div>
-      </div>
-      <div class="cc-kpi" id="kpi-regressions">
-        <div class="cc-kpi__value" id="kpi-reg-val">0</div>
-        <div class="cc-kpi__label">Regressions</div>
-      </div>
-      <div class="cc-kpi" id="kpi-blurb">
-        <div class="cc-kpi__value" id="kpi-blurb-val">--</div>
-        <div class="cc-kpi__label">Blurb Grade</div>
-      </div>
-      <div class="cc-kpi" id="kpi-agents">
-        <div class="cc-kpi__value" id="kpi-agents-val">0/5</div>
-        <div class="cc-kpi__label">Active Agents</div>
+      <div class="cc-pulse__card cc-pulse__card--attention" id="pulse-attention">
+        <div class="cc-pulse__big cc-pulse__big--attention" id="pulse-attention-val">0</div>
+        <div class="cc-pulse__label">Needs Attention</div>
+        <div class="cc-pulse__sub" id="pulse-attention-sub">Gaps + regressions + issues</div>
       </div>
     </section>
 
-    <!-- ── Focus Strip ── -->
+    <!-- ═══ Quick Actions: one-tap operations ═══ -->
+    <section class="cc-actions" id="actions-section">
+      <button class="cc-action" id="action-test" onclick="quickStart()">
+        <span class="cc-action__icon">&#9654;</span>
+        <span class="cc-action__text">Run Tests</span>
+        <span class="cc-action__hint" id="action-test-hint">10 queries, full suite</span>
+      </button>
+      <button class="cc-action" id="action-data" onclick="quickCheckData()">
+        <span class="cc-action__icon">&#9881;</span>
+        <span class="cc-action__text">Check Data</span>
+        <span class="cc-action__hint" id="action-data-hint">Database health scan</span>
+      </button>
+      <a href="https://claude.ai/code" target="_blank" rel="noopener" class="cc-action cc-action--advisor">
+        <span class="cc-action__icon">&#9733;</span>
+        <span class="cc-action__text">CEO Advisor</span>
+        <span class="cc-action__hint">/ceo-advisor</span>
+      </a>
+      <button class="cc-action cc-action--mode" id="action-mode" onclick="toggleMode()">
+        <span class="cc-action__icon" id="mode-icon">&#128202;</span>
+        <span class="cc-action__text" id="mode-text">Production</span>
+        <span class="cc-action__hint" id="mode-hint">View live traffic</span>
+      </button>
+    </section>
+
+    <!-- ═══ Focus Strip (appears only when needed) ═══ -->
     <section class="cc-focus" id="focus-strip" style="display:none">
       <div class="cc-focus__title">Needs Attention</div>
       <div class="cc-focus__alerts" id="focus-alerts"></div>
     </section>
 
-    <!-- ── Notifications ── -->
+    <!-- ═══ Notifications ═══ -->
     <div class="cc-notifications" id="notification-bar" style="display:none">
       <div class="cc-notifications__header">
         <span>Alerts</span>
@@ -121,20 +114,51 @@
       <div class="cc-notifications__list" id="notification-list"></div>
     </div>
 
-    <!-- ═══ Section: Agents ═══ -->
-    <section class="cc-section cc-section--open" id="section-agents">
+    <!-- ═══ Testing Dashboard ═══ -->
+    <div id="testing-dashboard">
+
+    <!-- ── Agent Strip (compact — expands on click) ── -->
+    <section class="cc-section" id="section-agents">
       <div class="cc-section__header" data-toggle="agents">
         <div class="cc-section__title">
-          <span class="cc-section__chevron">&#9662;</span>
+          <span class="cc-section__chevron">&#9656;</span>
           Agents
         </div>
         <div class="cc-section__actions">
+          <!-- Compact agent dots -->
+          <div class="cc-agent-dots" id="agent-dots">
+            <div class="cc-agent-dot cc-agent-dot--atlas" title="Atlas: Search Coverage">
+              <span class="cc-agent-dot__pip" id="dot-atlas"></span>
+              <span class="cc-agent-dot__label">Atlas</span>
+            </div>
+            <div class="cc-agent-dot cc-agent-dot--qaudit" title="QAudit: Blurb Quality">
+              <span class="cc-agent-dot__pip" id="dot-qaudit"></span>
+              <span class="cc-agent-dot__label">QAudit</span>
+            </div>
+            <div class="cc-agent-dot cc-agent-dot--sentinel" title="Sentinel: Regression Watch">
+              <span class="cc-agent-dot__pip" id="dot-sentinel"></span>
+              <span class="cc-agent-dot__label">Sentinel</span>
+            </div>
+            <div class="cc-agent-dot cc-agent-dot--hunter" title="Hunter: Edge Cases">
+              <span class="cc-agent-dot__pip" id="dot-hunter"></span>
+              <span class="cc-agent-dot__label">Hunter</span>
+            </div>
+            <div class="cc-agent-dot cc-agent-dot--guardian" title="Guardian: Data Integrity">
+              <span class="cc-agent-dot__pip" id="dot-guardian"></span>
+              <span class="cc-agent-dot__label">Guardian</span>
+            </div>
+          </div>
+          <div class="cc-section__summary" id="agents-summary">Idle</div>
+        </div>
+      </div>
+      <div class="cc-section__body" style="display:none">
+        <!-- Controls row (revealed) -->
+        <div class="cc-controls-row">
           <div class="cc-controls">
             <div class="cc-start-group">
               <button class="cc-btn cc-btn--start" id="btn-start" onclick="handleStart()">Start</button>
               <button class="cc-btn cc-btn--start cc-start-group__arrow" id="btn-start-arrow" onclick="toggleStartDropdown(event)" title="Configure tests">&#9662;</button>
               <div class="cc-start-dropdown" id="start-dropdown">
-                <!-- Presets -->
                 <label class="cc-start-dropdown__label">Quick Presets</label>
                 <div class="cc-filter-presets">
                   <button class="cc-filter-preset cc-filter-preset--active" data-preset="full" onclick="applyFilterPreset('full')">Full Suite</button>
@@ -142,10 +166,7 @@
                   <button class="cc-filter-preset" data-preset="regression" onclick="applyFilterPreset('regression')">Regression</button>
                   <button class="cc-filter-preset" data-preset="security" onclick="applyFilterPreset('security')">Security</button>
                 </div>
-
                 <div class="cc-filter-divider"></div>
-
-                <!-- Agent Filters -->
                 <label class="cc-start-dropdown__label">Agents</label>
                 <div class="cc-filter-chips" id="agent-filter-chips">
                   <label class="cc-filter-chip cc-filter-chip--checked" data-agent="atlas">
@@ -164,18 +185,12 @@
                     <input type="checkbox" checked> <span class="cc-filter-chip__dot" style="background:#22c55e"></span> Guardian <span class="cc-filter-chip__sub">Data Health</span>
                   </label>
                 </div>
-
                 <div class="cc-filter-divider"></div>
-
-                <!-- Query Count -->
                 <label class="cc-start-dropdown__label">Test Queries (Atlas)</label>
                 <input type="range" id="test-count-slider" class="cc-start-dropdown__slider" min="5" max="30" step="5" value="10">
                 <div class="cc-start-dropdown__value"><span id="test-count-val">10</span> queries</div>
                 <div class="cc-start-dropdown__cost" id="test-cost-estimate">Est. ~$0.10 API usage</div>
-
                 <div class="cc-filter-divider"></div>
-
-                <!-- Summary -->
                 <div class="cc-filter-summary" id="filter-summary">5 agents &middot; 10 queries &middot; ~$0.10</div>
               </div>
             </div>
@@ -193,9 +208,8 @@
             </div>
           </div>
         </div>
-      </div>
-      <div class="cc-section__body">
-        <!-- Issues remaining bar -->
+
+        <!-- Boss bar -->
         <div class="cc-boss-bar">
           <span class="cc-boss-bar__label">Issues Remaining</span>
           <div class="cc-boss-bar__track">
@@ -204,6 +218,7 @@
           <span class="cc-boss-bar__value" id="boss-hp">60%</span>
         </div>
 
+        <!-- Full agent cards (revealed when section is open) -->
         <div class="cc-agents">
           <!-- ATLAS -->
           <div class="cc-agent cc-agent--atlas" id="card-atlas">
@@ -335,6 +350,22 @@
       </div>
     </section>
 
+    <!-- ═══ Section: Data Health (was separate page — now inline) ═══ -->
+    <section class="cc-section" id="section-maintenance">
+      <div class="cc-section__header" data-toggle="maintenance">
+        <div class="cc-section__title">
+          <span class="cc-section__chevron">&#9656;</span>
+          Data Health &amp; Pipelines
+        </div>
+        <div class="cc-section__summary" id="maintenance-summary"></div>
+      </div>
+      <div class="cc-section__body" style="display:none">
+        <div id="maintenance-content">
+          <div class="cc-loading"><div class="cc-spinner"></div>Loading database health...</div>
+        </div>
+      </div>
+    </section>
+
     <!-- ═══ Section: Quality ═══ -->
     <section class="cc-section" id="section-quality">
       <div class="cc-section__header" data-toggle="quality">
@@ -348,7 +379,7 @@
         <div id="quality-content">
           <div class="cc-empty-state">
             <div class="cc-empty-state__icon">&#128202;</div>
-            <div class="cc-empty-state__text">Start an agent session or select a historical run</div>
+            <div class="cc-empty-state__text">Run tests or select a historical run to see quality data</div>
           </div>
         </div>
       </div>
@@ -367,49 +398,40 @@
         <div id="issues-content">
           <div class="cc-empty-state">
             <div class="cc-empty-state__icon">&#128270;</div>
-            <div class="cc-empty-state__text">Start an agent session or select a historical run</div>
+            <div class="cc-empty-state__text">Run tests or select a historical run to see issues</div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- ═══ Section: Trends ═══ -->
-    <section class="cc-section" id="section-trends">
-      <div class="cc-section__header" data-toggle="trends">
+    <!-- ═══ Section: History (run selector moved here) ═══ -->
+    <section class="cc-section" id="section-history">
+      <div class="cc-section__header" data-toggle="history">
         <div class="cc-section__title">
           <span class="cc-section__chevron">&#9656;</span>
-          Trends
+          Test History
         </div>
-        <div class="cc-section__summary" id="trends-summary"></div>
+        <div class="cc-section__summary" id="history-summary"></div>
       </div>
       <div class="cc-section__body" style="display:none">
+        <div class="cc-history-selector">
+          <label class="cc-history-selector__label">Load a previous run:</label>
+          <select class="cc-header__run-selector" id="run-selector">
+            <option value="">Loading runs...</option>
+          </select>
+        </div>
         <div id="trends-content">
-          <p class="cc-muted">Loading trend data...</p>
+          <p class="cc-muted">Select a run above or expand Trends to see historical data.</p>
         </div>
       </div>
     </section>
 
-    <!-- ═══ CTA: CEO Advisor ═══ -->
-    <a href="https://claude.ai/code" target="_blank" rel="noopener" class="cc-cta-link cc-cta-link--advisor" id="ceo-advisor-cta">
-      <span class="cc-cta-link__icon">&#9733;</span>
-      <span class="cc-cta-link__text">CEO Advisor</span>
-      <span class="cc-cta-link__hint">Opens Claude Code &mdash; type <code>/ceo-advisor</code></span>
-      <span class="cc-cta-link__arrow">&#8594;</span>
-    </a>
-
-    <!-- ═══ CTA: Data Maintenance ═══ -->
-    <a href="maintenance.html" class="cc-cta-link" id="maintenance-cta">
-      <span class="cc-cta-link__icon">&#9881;</span>
-      <span class="cc-cta-link__text">Data Maintenance</span>
-      <span class="cc-cta-link__arrow">&#8594;</span>
-    </a>
-
-    <!-- ═══ Section: Activity ═══ -->
+    <!-- ═══ Section: Activity Log ═══ -->
     <section class="cc-section" id="section-activity">
       <div class="cc-section__header" data-toggle="activity">
         <div class="cc-section__title">
           <span class="cc-section__chevron">&#9656;</span>
-          Activity
+          Activity Log
         </div>
       </div>
       <div class="cc-section__body" style="display:none">
@@ -425,13 +447,26 @@
           <div class="cc-log__entry">
             <span class="cc-log__time">--:--:--</span>
             <span class="cc-log__agent cc-log__agent--system">System</span>
-            <span class="cc-log__message">Ready. Press Start to deploy agents.</span>
+            <span class="cc-log__message">Ready. Hit "Run Tests" or expand Agents to configure.</span>
           </div>
         </div>
       </div>
     </section>
 
     </div><!-- /testing-dashboard -->
+
+    <!-- ═══ Production Dashboard (hidden by default, toggled via action button) ═══ -->
+    <div id="production-dashboard" style="display:none">
+      <div class="cc-kpis" id="prod-kpis"></div>
+      <div class="cc-focus" id="prod-alerts" style="display:none">
+        <div class="cc-focus__title">Production Alerts</div>
+        <div class="cc-focus__alerts" id="prod-alert-list"></div>
+      </div>
+      <div id="prod-content">
+        <div class="cc-loading"><div class="cc-spinner"></div>Loading production data...</div>
+      </div>
+    </div>
+
   </main>
 
   <!-- ═══ Stopped Overlay ═══ -->
