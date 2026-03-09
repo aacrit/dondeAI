@@ -8,6 +8,7 @@ import { fetchRecommendation, fetchBlurb, sendVisit } from '../../js/api.js';
 import { getOrCreateUserId, addToHistory, loadHistory, addBookmark, addVisit, isBookmarked, isVisited, loadTheme, saveTheme, loadColorMode, saveColorMode } from '../../js/persistence.js';
 import { initAuth, isAuthenticated, addVisitToServer } from '../../js/auth.js';
 import { isOnline, initOffline } from '../../js/offline.js';
+import { getGreeting, getTimePeriod as getTimePeriodUtil } from '../../js/utils.js';
 
 /* ---- Cached DOM ---- */
 const $ = (sel) => document.querySelector(sel);
@@ -53,6 +54,24 @@ function detectCulture(text) {
     if (pattern.test(text)) return culture;
   }
   return 'neutral';
+}
+
+/* ---- Time-aware greeting ---- */
+function renderGreeting() {
+  const $greeting = $id('canvas-greeting');
+  if (!$greeting) return;
+  const culture = document.documentElement.getAttribute('data-culture') || 'neutral';
+  try {
+    const greeting = getGreeting(culture);
+    if (greeting) $greeting.textContent = greeting;
+  } catch {
+    // Fallback greetings if utils.js doesn't have data for this culture
+    const h = new Date().getHours();
+    if (h >= 5 && h < 12) $greeting.textContent = 'Good morning — what sounds good?';
+    else if (h >= 12 && h < 17) $greeting.textContent = 'What are you craving?';
+    else if (h >= 17 && h < 22) $greeting.textContent = 'Tonight deserves something special.';
+    else $greeting.textContent = 'Late night cravings? We got you.';
+  }
 }
 
 /* ---- Time-based context ---- */
@@ -148,6 +167,7 @@ function applyCulture(culture) {
   if (current !== culture) {
     document.documentElement.setAttribute('data-culture', culture);
     setState({ theme: { ...getState().theme, culture } });
+    renderGreeting();
   }
 }
 
@@ -186,8 +206,8 @@ async function handleSubmit() {
   const culture = detectCulture(craving);
   applyCulture(culture);
 
-  // Auto-detect occasion
-  const occasion = getTimeContext();
+  // Use selected occasion or auto-detect
+  const occasion = _selectedOccasion || getTimeContext();
 
   const { neighborhood, priceLevel, dietaryRestrictions, excludeIds } = getState();
   const userId = getOrCreateUserId();
@@ -351,31 +371,56 @@ function renderResult(data) {
   const r = data.restaurant || {};
   const score = data.donde_match ?? 0;
 
-  // Photo
-  const $img = $id('result-img');
-  const $photo = $id('result-photo');
-  if (r.photo_urls?.length) {
-    $img.src = r.photo_urls[0];
-    $img.alt = r.name || 'Restaurant photo';
-    $photo.hidden = false;
-  } else if (r.photo_url) {
-    $img.src = r.photo_url;
-    $img.alt = r.name || 'Restaurant photo';
-    $photo.hidden = false;
+  // Photo strip (up to 3 photos)
+  const $photos = $id('result-photos');
+  // Remove old dots if present
+  const oldDots = $photos.parentElement.querySelector('.result__photos-dots');
+  if (oldDots) oldDots.remove();
+
+  const photos = r.photo_urls?.length ? r.photo_urls.slice(0, 3) : (r.photo_url ? [r.photo_url] : []);
+  if (photos.length) {
+    $photos.innerHTML = photos.map((url, i) =>
+      `<img src="${url}" alt="${i === 0 ? (r.name || 'Restaurant photo') : ''}" loading="${i === 0 ? 'eager' : 'lazy'}">`
+    ).join('');
+    // Add dot indicators if multiple photos
+    if (photos.length > 1) {
+      const dotsHtml = `<div class="result__photos-dots">${photos.map((_, i) =>
+        `<span class="result__photos-dot${i === 0 ? ' active' : ''}"></span>`
+      ).join('')}</div>`;
+      $photos.insertAdjacentHTML('afterend', dotsHtml);
+      // Update dots on scroll
+      $photos.addEventListener('scroll', () => {
+        const scrollLeft = $photos.scrollLeft;
+        const width = $photos.offsetWidth;
+        const activeIndex = Math.round(scrollLeft / width);
+        $photos.nextElementSibling?.querySelectorAll('.result__photos-dot').forEach((dot, i) => {
+          dot.classList.toggle('active', i === activeIndex);
+        });
+      }, { passive: true });
+    }
+    $photos.hidden = false;
   } else {
-    $photo.hidden = true;
+    $photos.hidden = true;
   }
 
   // Name + cuisine
   $id('result-name').textContent = r.name || 'Unknown';
   $id('result-cuisine').textContent = r.cuisine_type || '';
 
-  // Score with RAG
+  // Score ring with RAG
   const $score = $id('result-score');
   const $scoreNum = $id('result-score-number');
+  const $ringFill = $id('score-ring-fill');
   $scoreNum.textContent = score;
   const rag = score >= 80 ? 'green' : score >= 60 ? 'amber' : 'red';
   $score.setAttribute('data-rag', rag);
+  // Animate ring fill: circumference = 2π×25 ≈ 157
+  if ($ringFill) {
+    $ringFill.style.strokeDashoffset = '157';
+    requestAnimationFrame(() => {
+      $ringFill.style.strokeDashoffset = String(157 - (157 * score / 100));
+    });
+  }
 
   // Blurb
   const $blurb = $id('result-blurb');
@@ -452,6 +497,23 @@ function renderResult(data) {
   const $btn = $id('btn-going');
   $btn.textContent = isVisited(r.id) ? 'Going!' : 'Go Here';
   $btn.disabled = isVisited(r.id);
+}
+
+/* ---- Occasion ---- */
+let _selectedOccasion = null;
+
+function selectOccasion(value) {
+  const $occasions = $id('occasions');
+  if (!$occasions) return;
+  // Toggle: tapping same deselects
+  if (_selectedOccasion === value) {
+    _selectedOccasion = null;
+  } else {
+    _selectedOccasion = value;
+  }
+  $occasions.querySelectorAll('.occasion').forEach(btn => {
+    btn.setAttribute('aria-checked', btn.dataset.value === _selectedOccasion ? 'true' : 'false');
+  });
 }
 
 /* ---- Filters ---- */
@@ -570,6 +632,10 @@ document.addEventListener('click', (e) => {
       $input.value = btn.dataset.craving;
       updateSubmitBtn();
       handleSubmit();
+      break;
+
+    case 'select-occasion':
+      selectOccasion(btn.dataset.value);
       break;
 
     case 'toggle-filters':
@@ -711,6 +777,7 @@ function init() {
   initTheme();
   initOffline();
   initAuth();
+  renderGreeting();
   renderSuggestions();
   renderRecents();
   initHeaderScroll();
