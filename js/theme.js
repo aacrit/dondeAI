@@ -621,15 +621,12 @@ export function initTheme() {
     setState({ theme: { culture, mode } });
   }
 
-  // If no persisted theme, respect system dark/light — always start in Studio (neutral)
+  // Default to dark mode — override only if user has explicitly toggled
   const darkQuery = matchMedia('(prefers-color-scheme: dark)');
   if (!localStorage.getItem('dondeai-theme')) {
-    mode = darkQuery.matches ? 'dark' : 'light';
+    mode = 'dark';
     setState({ theme: { culture, mode } });
   }
-
-  // Apply colorMode data attribute for CSS icon toggling
-  updateColorModeAttr();
 
   // Single apply on init
   applyTheme(culture, mode);
