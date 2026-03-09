@@ -1511,7 +1511,7 @@ tr.expandable:hover td { background: var(--cc-surface-2); }
   z-index: 1;
 }
 
-.cc-pipeline__dot--done {
+.cc-pipeline__dot--complete {
   background: var(--cc-green);
   border-color: var(--cc-green);
 }
@@ -1544,7 +1544,7 @@ tr.expandable:hover td { background: var(--cc-surface-2); }
   transition: background 0.3s ease;
 }
 
-.cc-pipeline__connector--done { background: var(--cc-green); }
+.cc-pipeline__connector--complete { background: var(--cc-green); }
 
 .cc-pipeline__footer {
   display: flex;
@@ -1647,6 +1647,165 @@ tr.expandable:hover td { background: var(--cc-surface-2); }
 .cc-ops-badge--running { background: rgba(139,143,245,0.15); color: var(--cc-accent); }
 .cc-ops-badge--complete { background: rgba(52,211,153,0.12); color: var(--cc-green); }
 .cc-ops-badge--failed { background: rgba(239,100,97,0.15); color: var(--cc-red); }
+
+/* ─── CTA Link ─── */
+.cc-cta-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--cc-surface);
+  border: 1px solid var(--cc-border);
+  border-radius: var(--cc-radius);
+  margin-bottom: 12px;
+  text-decoration: none;
+  color: var(--cc-text);
+  font-size: 0.82rem;
+  font-weight: 500;
+  transition: border-color 0.2s, background 0.15s;
+  cursor: pointer;
+}
+
+.cc-cta-link:hover { border-color: var(--cc-accent); background: var(--cc-surface-2); }
+.cc-cta-link__icon { font-size: 1rem; }
+.cc-cta-link__text { flex: 1; }
+.cc-cta-link__arrow { color: var(--cc-text-3); font-size: 1rem; transition: transform 0.15s; }
+.cc-cta-link:hover .cc-cta-link__arrow { transform: translateX(3px); color: var(--cc-accent); }
+
+/* ─── Mode Toggle ─── */
+.cc-mode-toggle {
+  display: flex;
+  background: var(--cc-surface-3);
+  border-radius: 6px;
+  padding: 2px;
+}
+
+.cc-mode-toggle__btn {
+  font-size: 0.68rem;
+  font-weight: 500;
+  font-family: var(--cc-font);
+  padding: 4px 12px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--cc-text-3);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.cc-mode-toggle__btn:hover { color: var(--cc-text); }
+
+.cc-mode-toggle__btn--active {
+  background: var(--cc-accent);
+  color: #fff;
+}
+
+/* ─── Needs Attention Pill ─── */
+.cc-attention-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.62rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.cc-attention-pill:hover { opacity: 0.85; }
+.cc-attention-pill--p0 { background: rgba(239,100,97,0.15); color: var(--cc-red); }
+.cc-attention-pill--p1 { background: rgba(240,166,58,0.15); color: var(--cc-amber); }
+.cc-attention-pill--auto { background: rgba(52,211,153,0.12); color: var(--cc-green); }
+
+/* ─── Issue Groups ─── */
+.cc-issue-group {
+  background: var(--cc-surface-2);
+  border: 1px solid var(--cc-border);
+  border-radius: var(--cc-radius);
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+
+.cc-issue-group__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.cc-issue-group__header:hover { background: var(--cc-surface-3); }
+
+.cc-issue-group__title {
+  flex: 1;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.cc-issue-group__count {
+  font-size: 0.68rem;
+  font-family: var(--cc-mono);
+  color: var(--cc-text-2);
+}
+
+.cc-issue-group__chevron {
+  color: var(--cc-text-3);
+  font-size: 0.65rem;
+  transition: transform 0.2s;
+}
+
+.cc-issue-group.open .cc-issue-group__chevron { transform: rotate(90deg); }
+
+.cc-issue-group__body {
+  display: none;
+  border-top: 1px solid var(--cc-border);
+  padding: 10px 14px;
+}
+
+.cc-issue-group.open .cc-issue-group__body { display: block; }
+
+.cc-issue-group__actions {
+  display: flex;
+  gap: 6px;
+  padding: 8px 14px;
+  border-top: 1px solid var(--cc-border);
+  background: var(--cc-surface);
+}
+
+.cc-issue-group.open .cc-issue-group__actions { display: flex; }
+
+/* Production KPI cards (larger for quick scan) */
+.cc-prod-card {
+  background: var(--cc-surface);
+  border: 1px solid var(--cc-border);
+  border-radius: var(--cc-radius);
+  padding: 20px 14px;
+  text-align: center;
+}
+
+.cc-prod-card__value {
+  font-size: 2rem;
+  font-weight: 700;
+  font-family: var(--cc-mono);
+  line-height: 1.2;
+}
+
+.cc-prod-card__label {
+  font-size: 0.68rem;
+  color: var(--cc-text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-top: 6px;
+}
+
+.cc-prod-card__sub {
+  font-size: 0.62rem;
+  color: var(--cc-text-3);
+  margin-top: 4px;
+}
 
 /* ─── Scrollbar (dark) ─── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }

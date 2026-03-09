@@ -387,14 +387,122 @@ function renderIssuesSection(data) {
   allGapsRef = allGaps;
   const gapImpact = data.gap_impact || {};
 
-  document.getElementById('issues-summary').textContent = `${allGaps.length} gaps`;
+  // Count by severity
+  const p0Count = allGaps.filter(g => g.gap_severity === 'P0').length;
+  const p1Count = allGaps.filter(g => g.gap_severity === 'P1').length;
+  const summaryParts = [`${allGaps.length} gaps`];
+  if (p0Count) summaryParts.push(`${p0Count} critical`);
+  const summaryEl = document.getElementById('issues-summary');
+  if (summaryEl) {
+    summaryEl.innerHTML = p0Count > 0
+      ? `<span class="cc-attention-pill cc-attention-pill--p0">${p0Count} Critical</span> ${allGaps.length} total`
+      : `${allGaps.length} gaps`;
+  }
 
   if (allGaps.length === 0) {
-    el.innerHTML = '<p class="cc-muted">No gaps found in this run.</p>';
+    el.innerHTML = '<div class="cc-empty-state"><div class="cc-empty-state__icon">&#10003;</div><div class="cc-empty-state__text">No gaps found — all queries passing</div></div>';
     return;
   }
 
   let html = '';
+
+  // ── Grouped view: group by gap_type, sorted by severity ──
+  const groups = {};
+  for (const [i, g] of allGaps.entries()) {
+    const key = g.gap_type || 'unknown';
+    if (!groups[key]) groups[key] = [];
+    groups[key].push({ ...g, idx: i });
+  }
+
+  // Sort groups: most P0s first, then most gaps
+  const sortedGroups = Object.entries(groups).sort((a, b) => {
+    const aP0 = a[1].filter(g => g.gap_severity === 'P0').length;
+    const bP0 = b[1].filter(g => g.gap_severity === 'P0').length;
+    if (bP0 !== aP0) return bP0 - aP0;
+    return b[1].length - a[1].length;
+  });
+
+  // Quick action bar for high-priority fixes
+  const autoFixable = allGaps.filter(g => (gapImpact[g.gap_type]?.fixability === 'auto'));
+  const criticalGaps = allGaps.filter(g => g.gap_severity === 'P0');
+
+  if (criticalGaps.length > 0 || autoFixable.length > 0) {
+    html += '<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">';
+    if (criticalGaps.length > 0) {
+      html += `<button class="cc-attention-pill cc-attention-pill--p0" onclick="window._generateSeverityFix('P0')">Fix ${criticalGaps.length} Critical Gaps</button>`;
+    }
+    if (autoFixable.length > 0) {
+      html += `<button class="cc-attention-pill cc-attention-pill--auto" onclick="window._generateAutoFix()">Auto-fix ${autoFixable.length} Intent Gaps</button>`;
+    }
+    if (allGaps.length > 3) {
+      html += `<button class="cc-attention-pill cc-attention-pill--p1" onclick="window._generateBulkFixAll()">Fix All ${allGaps.length} Gaps</button>`;
+    }
+    html += '</div>';
+  }
+
+  // Render grouped issue cards
+  for (const [type, gaps] of sortedGroups) {
+    const typeP0 = gaps.filter(g => g.gap_severity === 'P0').length;
+    const typeP1 = gaps.filter(g => g.gap_severity === 'P1').length;
+    const avgDm = Math.round(gaps.reduce((s, g) => s + g.dm, 0) / gaps.length);
+    const fix = gapImpact[type]?.fixability || 'manual';
+    const fixClass = fix === 'auto' ? 'cc-badge--auto' : fix === 'tuning' ? 'cc-badge--tuning' : 'cc-badge--architectural';
+    const projGain = gapImpact[type]?.projected_pass_rate_gain || 0;
+
+    html += `<div class="cc-issue-group" data-type="${type}">`;
+    html += `<div class="cc-issue-group__header" onclick="this.parentElement.classList.toggle('open')">`;
+    html += `<span class="cc-badge ${fixClass}">${fix}</span>`;
+    html += `<span class="cc-issue-group__title">${type} <span style="color:var(--cc-text-3);font-weight:400">— avg DM ${avgDm}</span></span>`;
+    if (typeP0 > 0) html += `<span class="cc-attention-pill cc-attention-pill--p0">${typeP0} P0</span>`;
+    if (typeP1 > 0) html += `<span class="cc-attention-pill cc-attention-pill--p1">${typeP1} P1</span>`;
+    if (projGain > 0) html += `<span style="font-size:0.65rem;color:var(--cc-green);font-family:var(--cc-mono)">+${projGain}%</span>`;
+    html += `<span class="cc-issue-group__count">${gaps.length}</span>`;
+    html += `<span class="cc-issue-group__chevron">&#9654;</span>`;
+    html += `</div>`;
+
+    // Group body: table of gaps in this group
+    html += `<div class="cc-issue-group__body">`;
+    html += '<table class="cc-table"><thead><tr><th>Query</th><th>DM</th><th>Sev</th><th>Category</th><th>Restaurant</th><th>Weak Factor</th></tr></thead><tbody>';
+    for (const g of gaps) {
+      const weak = identifyWeakFactor(g);
+      html += `<tr class="expandable" onclick="window._toggleGapDetail(${g.idx})">
+        <td title="${escapeHtml(g.query)}">${escapeHtml(g.query.substring(0, 45))}</td>
+        <td><span class="dm-badge ${ragClass(g.dm)}">${g.dm}</span></td>
+        <td><span class="severity-dot ${(g.gap_severity || 'p2').toLowerCase()}"></span>${g.gap_severity || '—'}</td>
+        <td>${g.category}</td>
+        <td>${escapeHtml((g.restaurant || '—').substring(0, 18))}</td>
+        <td style="font-family:var(--cc-mono);font-size:0.68rem;color:${factorColor(weak.score)}">${weak.name} ${weak.score}</td>
+      </tr>`;
+      html += `<tr class="gap-detail-row" style="display:none" id="gap-detail-${g.idx}">
+        <td colspan="6"><div class="gap-detail-content">`;
+      if (g.fix_action) html += `<strong>Fix:</strong> ${escapeHtml(g.fix_action)}<br>`;
+      html += `<div class="gap-detail-factors">
+        <span>Food: <strong>${g.food}</strong></span>
+        <span>Vibe: <strong>${g.vibe}</strong></span>
+        <span>Service: <strong>${g.service}</strong></span>
+        <span>Rep: <strong>${g.reputation}</strong></span>
+        <span>Conv: <strong>${g.convenience}</strong></span>
+      </div>`;
+      html += `<div class="gap-sparkline" data-query="${escapeHtml(g.query)}" id="sparkline-${g.idx}"></div>`;
+      html += `<button class="fix-btn" data-idx="${g.idx}" onclick="event.stopPropagation(); window._generateFixSession(${g.idx})">Generate Fix Prompt</button>`;
+      html += '</div></td></tr>';
+    }
+    html += '</tbody></table>';
+    html += '</div>';
+
+    // Group action footer
+    html += `<div class="cc-issue-group__actions">`;
+    html += `<button class="fix-btn" onclick="window._generateGroupFix('${type}')">Fix All ${gaps.length} ${type} Gaps</button>`;
+    html += '</div>';
+    html += '</div>';
+  }
+
+  // Also keep the flat filter/table view in a collapsible
+  html += `<div class="cc-collapsible" style="margin-top:12px">`;
+  html += `<div class="cc-collapsible__header" onclick="this.parentElement.classList.toggle('open')">`;
+  html += `<span>Flat Table View (${allGaps.length} gaps)</span>`;
+  html += `<span class="cc-collapsible__chevron">&#9654;</span>`;
+  html += `</div><div class="cc-collapsible__body">`;
 
   // Filter bar
   const gapTypes = [...new Set(allGaps.map(g => g.gap_type))].filter(Boolean).sort();
@@ -418,7 +526,7 @@ function renderIssuesSection(data) {
   // Bulk action bar
   html += '<div class="cc-bulk-bar" id="bulk-bar" style="display:none">';
   html += '<span id="bulk-count">0 selected</span>';
-  html += '<button class="fix-btn" onclick="window._generateBulkFixSession()">Generate Combined Fix Session</button>';
+  html += '<button class="fix-btn" onclick="window._generateBulkFixSession()">Generate Combined Fix</button>';
   html += '<button class="cc-btn" onclick="window._clearSelection()">Clear</button>';
   html += '</div>';
 
@@ -438,7 +546,7 @@ function renderIssuesSection(data) {
   for (const [i, g] of allGaps.entries()) {
     const sevClass = g.gap_severity === 'P0' ? 'cc-badge--p0' : g.gap_severity === 'P1' ? 'cc-badge--p1' : 'cc-badge--p2';
     const fix = gapImpact[g.gap_type]?.fixability || '';
-    const fixClass = fix === 'auto' ? 'cc-badge--auto' : fix === 'tuning' ? 'cc-badge--tuning' : 'cc-badge--architectural';
+    const fixBadge = fix === 'auto' ? 'cc-badge--auto' : fix === 'tuning' ? 'cc-badge--tuning' : 'cc-badge--architectural';
     html += `<tr class="gap-row expandable" data-type="${g.gap_type}" data-cat="${g.category}" data-sev="${g.gap_severity || ''}" data-query="${escapeHtml(g.query.toLowerCase())}">
       <td><input type="checkbox" class="gap-check" data-idx="${i}" onclick="event.stopPropagation()"></td>
       <td>${i + 1}</td>
@@ -448,25 +556,11 @@ function renderIssuesSection(data) {
       <td><span class="severity-dot ${(g.gap_severity || 'p2').toLowerCase()}"></span>${g.gap_severity || '—'}</td>
       <td>${g.category}</td>
       <td>${escapeHtml((g.restaurant || '—').substring(0, 20))}</td>
-      <td>${fix ? `<span class="cc-badge ${fixClass}">${fix}</span>` : '—'}</td>
+      <td>${fix ? `<span class="cc-badge ${fixBadge}">${fix}</span>` : '—'}</td>
     </tr>`;
-    html += `<tr class="gap-detail-row" style="display:none" data-parent="${i}">
-      <td colspan="9"><div class="gap-detail-content">`;
-    if (g.fix_action) html += `<strong>Fix:</strong> ${escapeHtml(g.fix_action)}<br>`;
-    if (g.food !== undefined) {
-      html += `<div class="gap-detail-factors">
-        <span>Food: <strong>${g.food}</strong></span>
-        <span>Vibe: <strong>${g.vibe}</strong></span>
-        <span>Service: <strong>${g.service}</strong></span>
-        <span>Rep: <strong>${g.reputation}</strong></span>
-        <span>Conv: <strong>${g.convenience}</strong></span>
-      </div>`;
-    }
-    html += `<div class="gap-sparkline" data-query="${escapeHtml(g.query)}" id="sparkline-${i}"></div>`;
-    html += `<button class="fix-btn" data-idx="${i}" onclick="event.stopPropagation(); window._generateFixSession(${i})">Generate Fix Session</button>`;
-    html += '</div></td></tr>';
   }
   html += '</tbody></table></div>';
+  html += '</div></div>'; // close collapsible
 
   el.innerHTML = html;
   initGapInteractivity();
@@ -676,7 +770,53 @@ window._generateBulkFixSession = function() {
   const checks = document.querySelectorAll('.gap-check[data-idx]:checked');
   const gaps = [...checks].map(c => allGapsRef[parseInt(c.dataset.idx)]).filter(Boolean);
   if (!gaps.length) return;
-  openFixSession(buildBulkFixPrompt(gaps), document.querySelector('.bulk-fix-btn'), 'Generate Combined Fix Session');
+  openFixSession(buildBulkFixPrompt(gaps), document.querySelector('#bulk-bar .fix-btn'), 'Generate Combined Fix Session');
+};
+
+window._toggleGapDetail = function(idx) {
+  const detail = document.getElementById(`gap-detail-${idx}`);
+  if (!detail) return;
+  const isOpening = detail.style.display === 'none';
+  detail.style.display = isOpening ? '' : 'none';
+  if (isOpening) {
+    const sparkEl = document.getElementById(`sparkline-${idx}`);
+    if (sparkEl && !sparkEl.dataset.loaded) {
+      sparkEl.dataset.loaded = '1';
+      loadQuerySparkline(sparkEl, sparkEl.dataset.query);
+    }
+  }
+};
+
+window._generateGroupFix = function(gapType) {
+  const gaps = allGapsRef.filter(g => g.gap_type === gapType);
+  if (!gaps.length) return;
+  const prompt = buildBulkFixPrompt(gaps);
+  openFixSession(prompt, null, '');
+  // Show feedback
+  const el = document.querySelector(`.cc-issue-group[data-type="${gapType}"] .fix-btn`);
+  if (el) { el.classList.add('copied'); el.textContent = 'Copied!'; setTimeout(() => { el.classList.remove('copied'); el.textContent = `Fix All ${gaps.length} ${gapType} Gaps`; }, 3000); }
+};
+
+window._generateSeverityFix = function(severity) {
+  const gaps = allGapsRef.filter(g => g.gap_severity === severity);
+  if (!gaps.length) return;
+  let prompt = `Fix ${gaps.length} ${severity} critical gaps in DondeAI scoring engine.\n\n`;
+  prompt += buildBulkFixPrompt(gaps);
+  openFixSession(prompt, null, '');
+};
+
+window._generateAutoFix = function() {
+  const gaps = allGapsRef.filter(g => g.gap_type === 'intent');
+  if (!gaps.length) return;
+  let prompt = `Auto-fix ${gaps.length} intent gaps.\n\n`;
+  prompt += `File: /home/user/dondeBackend/supabase/functions/recommend/_shared/intent-classifier-v5.ts\n\n`;
+  prompt += `Add the following keywords to the appropriate dictionaries (FLAVOR_WORDS, VIBE_WORDS, CONSTRAINT_PATTERNS, EMOTIONAL_INTENT_PATTERNS, CONTEXT_PATTERNS):\n\n`;
+  for (const g of gaps) prompt += `- "${g.query}" → DM ${g.dm} (${g.category})\n`;
+  openFixSession(prompt, null, '');
+};
+
+window._generateBulkFixAll = function() {
+  openFixSession(buildBulkFixPrompt(allGapsRef), null, '');
 };
 
 window._clearSelection = function() {
@@ -811,7 +951,8 @@ async function persistSessionToSupabase(results, startTime) {
   if (!results || results.length === 0) return;
 
   const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
-  const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  // Use service role key to bypass RLS for admin writes
+  const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
   const runId = 'cc-' + crypto.randomUUID().substring(0, 28);
   const total = results.length;
@@ -853,15 +994,18 @@ async function persistSessionToSupabase(results, startTime) {
   }
 
   // Insert run
+  const successful = results.filter(r => r.donde_match !== undefined && r.donde_match !== null).length;
   const { error: runError } = await sb.from('gauntlet_runs').insert({
     run_id: runId,
     total,
+    successful,
     gap_count: gapCount,
     avg_dm: avgDm,
     passed_60: passed60,
     passed_80: passed80,
     passed_90: passed90,
     mode: 'command-center',
+    dataset_hash: 'cc-live-' + new Date().toISOString().slice(0, 10),
     dataset_size: total,
     category_stats: categoryStats,
     factor_averages: factorAverages,
@@ -1006,7 +1150,7 @@ function renderMaintenanceSection(el, stats) {
         : stage.status === 'running' ? 'cc-pipeline__dot--running'
         : stage.status === 'failed' ? 'cc-pipeline__dot--failed'
         : 'cc-pipeline__dot--pending';
-      const connectorClass = stage.status === 'complete' ? 'cc-pipeline__connector--done' : '';
+      const connectorClass = stage.status === 'complete' ? 'cc-pipeline__connector--complete' : '';
 
       if (i > 0) h += `<div class="cc-pipeline__connector ${connectorClass}"></div>`;
       h += `<div class="cc-pipeline__stage">`;
@@ -1068,7 +1212,7 @@ async function requestPipelineRun(operationId) {
 
   try {
     const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
-    const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
     const pipeline = PIPELINES.find(p => p.id === operationId);
     const stages = pipeline ? pipeline.stages.map(s => ({ name: s, status: 'pending' })) : [];
@@ -1127,7 +1271,7 @@ function startMaintenancePolling() {
             else dots[i].classList.add('cc-pipeline__dot--pending');
           }
           if (connectors[i - 1] && stage.status === 'complete') {
-            connectors[i - 1].classList.add('cc-pipeline__connector--done');
+            connectors[i - 1].classList.add('cc-pipeline__connector--complete');
           }
         });
       }
