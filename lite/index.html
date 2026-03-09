@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#faf8f5">
+  <meta name="description" content="DondeLite — One craving, one perfect spot.">
+  <title>DondeLite</title>
+
+  <!-- Fonts: 2 voices only (Inter + Playfair Display) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/lite.css">
+
+  <!-- App -->
+  <script type="module" src="js/app-lite.js"></script>
+</head>
+<body>
+  <!-- Skip nav -->
+  <a href="#main" class="skip-link">Skip to content</a>
+
+  <!-- Offline banner -->
+  <div class="offline-banner" role="alert" aria-live="polite">You're offline</div>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header__logo">
+      <svg class="header__icon" viewBox="0 0 256 256" width="20" height="20" aria-hidden="true">
+        <path fill="currentColor" d="M128,16a88.1,88.1,0,0,0-88,88c0,75.3,80,132.17,83.41,134.55a8,8,0,0,0,9.18,0C136,236.17,216,179.3,216,104A88.1,88.1,0,0,0,128,16Zm0,56a32,32,0,1,1-32,32A32,32,0,0,1,128,72Z"/>
+      </svg>
+      <span class="header__wordmark">DondeLite</span>
+    </div>
+    <button class="header__toggle" data-action="toggle-mode" aria-label="Toggle dark mode">
+      <svg class="icon-sun" viewBox="0 0 256 256" width="18" height="18" aria-hidden="true">
+        <path fill="currentColor" d="M120,40V16a8,8,0,0,1,16,0V40a8,8,0,0,1-16,0Zm72,88a64,64,0,1,1-64-64A64.07,64.07,0,0,1,192,128Zm-16,0a48,48,0,1,0-48,48A48.05,48.05,0,0,0,176,128ZM58.34,69.66A8,8,0,0,0,69.66,58.34l-16-16A8,8,0,0,0,42.34,53.66Zm0,116.68-16,16a8,8,0,0,0,11.32,11.32l16-16a8,8,0,0,0-11.32-11.32ZM192,72a8,8,0,0,0,5.66-2.34l16-16a8,8,0,0,0-11.32-11.32l-16,16A8,8,0,0,0,192,72Zm5.66,114.34a8,8,0,0,0-11.32,11.32l16,16a8,8,0,0,0,11.32-11.32ZM48,128a8,8,0,0,0-8-8H16a8,8,0,0,0,0,16H40A8,8,0,0,0,48,128Zm80,80a8,8,0,0,0-8,8v24a8,8,0,0,0,16,0V216A8,8,0,0,0,128,208Zm112-88H216a8,8,0,0,0,0,16h24a8,8,0,0,0,0-16Z"/>
+      </svg>
+      <svg class="icon-moon" viewBox="0 0 256 256" width="18" height="18" aria-hidden="true">
+        <path fill="currentColor" d="M233.54,142.23a8,8,0,0,0-8-2,88.08,88.08,0,0,1-109.8-109.8,8,8,0,0,0-10-10,104.84,104.84,0,0,0-52.91,37A104,104,0,0,0,128,232a103.09,103.09,0,0,0,62.52-20.88,104.84,104.84,0,0,0,37-52.91A8,8,0,0,0,233.54,142.23ZM128,216A88,88,0,0,1,65.73,69.73a89.28,89.28,0,0,0,36.82-25,88.09,88.09,0,0,0,108.69,108.69,89.28,89.28,0,0,0-25,36.82A87.42,87.42,0,0,1,128,216Z"/>
+      </svg>
+    </button>
+  </header>
+
+  <!-- Main content -->
+  <main id="main" class="main">
+
+    <!-- Canvas: Input view -->
+    <section class="canvas" id="canvas" aria-label="Search for a restaurant">
+      <h1 class="canvas__title">What are you craving?</h1>
+
+      <search class="canvas__search">
+        <div class="input-wrap">
+          <input
+            type="text"
+            class="craving-input"
+            id="craving-input"
+            placeholder="cozy ramen, killer tacos, date night Italian..."
+            maxlength="300"
+            autocomplete="off"
+            aria-label="Describe your craving"
+          >
+          <button class="input-wrap__submit" data-action="submit" aria-label="Find my spot">
+            <svg viewBox="0 0 256 256" width="20" height="20" aria-hidden="true">
+              <path fill="currentColor" d="M221.66,133.66l-72,72a8,8,0,0,1-11.32-11.32L196.69,136H40a8,8,0,0,1,0-16H196.69l-58.35-58.34a8,8,0,0,1,11.32-11.32l72,72A8,8,0,0,1,221.66,133.66Z"/>
+            </svg>
+          </button>
+        </div>
+
+        <div class="canvas__actions">
+          <button class="surprise-btn" data-action="surprise-me">Surprise Me</button>
+          <button class="filter-btn" data-action="toggle-filters">
+            <svg viewBox="0 0 256 256" width="14" height="14" aria-hidden="true">
+              <path fill="currentColor" d="M200,136a8,8,0,0,1-8,8H64a8,8,0,0,1,0-16H192A8,8,0,0,1,200,136Zm32-56H24a8,8,0,0,0,0,16H232a8,8,0,0,0,0-16Zm-80,96H104a8,8,0,0,0,0,16h48a8,8,0,0,0,0-16Z"/>
+            </svg>
+            Filters
+          </button>
+        </div>
+      </search>
+
+      <!-- Smart suggestions -->
+      <div class="suggestions" id="suggestions" aria-label="Suggestions">
+        <span class="suggestions__label">Try:</span>
+        <button class="chip" data-action="suggestion">deep dish pizza</button>
+        <button class="chip" data-action="suggestion">cozy date night</button>
+        <button class="chip" data-action="suggestion">best tacos nearby</button>
+      </div>
+
+      <!-- Recent searches -->
+      <div class="recents" id="recents" aria-label="Recent searches" hidden>
+        <span class="recents__label">Recent:</span>
+        <div class="recents__list" id="recents-list"></div>
+      </div>
+
+      <!-- Filter bottom sheet -->
+      <dialog class="filter-sheet" id="filter-sheet">
+        <div class="filter-sheet__header">
+          <h2 class="filter-sheet__title">Filters</h2>
+          <button class="filter-sheet__close" data-action="close-filters" aria-label="Close filters">&times;</button>
+        </div>
+        <div class="filter-sheet__body">
+          <!-- Neighborhood -->
+          <fieldset class="filter-group">
+            <legend class="filter-group__label">Area</legend>
+            <div class="filter-group__options">
+              <button class="pill pill--active" data-action="select-neighborhood" data-value="Anywhere">Anywhere</button>
+              <button class="pill" data-action="select-neighborhood" data-value="Downtown">Downtown</button>
+              <button class="pill" data-action="select-neighborhood" data-value="North Side">North Side</button>
+              <button class="pill" data-action="select-neighborhood" data-value="West Side">West Side</button>
+              <button class="pill" data-action="select-neighborhood" data-value="South Side">South Side</button>
+            </div>
+          </fieldset>
+          <!-- Budget -->
+          <fieldset class="filter-group">
+            <legend class="filter-group__label">Budget</legend>
+            <div class="filter-group__options">
+              <button class="pill pill--active" data-action="select-budget" data-value="Any">Any</button>
+              <button class="pill" data-action="select-budget" data-value="$">$</button>
+              <button class="pill" data-action="select-budget" data-value="$$">$$</button>
+              <button class="pill" data-action="select-budget" data-value="$$$+">$$$+</button>
+            </div>
+          </fieldset>
+          <!-- Dietary -->
+          <fieldset class="filter-group">
+            <legend class="filter-group__label">Dietary</legend>
+            <div class="filter-group__options">
+              <button class="pill" data-action="toggle-dietary" data-value="Vegan">Vegan</button>
+              <button class="pill" data-action="toggle-dietary" data-value="Vegetarian">Vegetarian</button>
+              <button class="pill" data-action="toggle-dietary" data-value="Gluten-Free">Gluten-Free</button>
+              <button class="pill" data-action="toggle-dietary" data-value="Halal">Halal</button>
+            </div>
+          </fieldset>
+        </div>
+        <div class="filter-sheet__footer">
+          <button class="filter-sheet__clear" data-action="clear-filters">Clear All</button>
+          <button class="filter-sheet__apply" data-action="close-filters">Done</button>
+        </div>
+      </dialog>
+    </section>
+
+    <!-- Result bottom sheet -->
+    <div class="sheet-backdrop" id="sheet-backdrop" hidden></div>
+    <section class="result-sheet" id="result-sheet" aria-label="Restaurant recommendation" hidden>
+      <!-- Loading state -->
+      <div class="result-sheet__loading" id="result-loading" hidden>
+        <div class="loading-dot"></div>
+        <div class="loading-dot"></div>
+        <div class="loading-dot"></div>
+        <span class="loading-text">Finding your spot...</span>
+      </div>
+
+      <!-- Handle bar for swipe-to-dismiss -->
+      <div class="result-sheet__handle" aria-hidden="true"></div>
+
+      <!-- Result content -->
+      <div class="result-content" id="result-content" hidden>
+        <!-- Hero photo -->
+        <div class="result__photo" id="result-photo">
+          <img id="result-img" alt="" loading="lazy">
+        </div>
+
+        <!-- Glance tier -->
+        <div class="result__glance">
+          <div class="result__header">
+            <div class="result__name-wrap">
+              <h2 class="result__name" id="result-name"></h2>
+              <span class="result__cuisine" id="result-cuisine"></span>
+            </div>
+            <div class="result__score" id="result-score" aria-label="Match score">
+              <span class="result__score-number" id="result-score-number"></span>
+            </div>
+          </div>
+
+          <p class="result__blurb" id="result-blurb"></p>
+
+          <!-- Quick info -->
+          <div class="result__meta" id="result-meta">
+            <span class="result__price" id="result-price"></span>
+            <span class="result__neighborhood" id="result-neighborhood"></span>
+            <span class="result__status" id="result-status"></span>
+          </div>
+
+          <!-- Inline actions -->
+          <div class="result__actions">
+            <a class="action-btn" id="action-directions" href="#" target="_blank" rel="noopener" aria-label="Get directions">
+              <svg viewBox="0 0 256 256" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M128,16a88.1,88.1,0,0,0-88,88c0,75.3,80,132.17,83.41,134.55a8,8,0,0,0,9.18,0C136,236.17,216,179.3,216,104A88.1,88.1,0,0,0,128,16Zm0,56a32,32,0,1,1-32,32A32,32,0,0,1,128,72Z"/></svg>
+              Maps
+            </a>
+            <a class="action-btn" id="action-call" href="#" aria-label="Call restaurant">
+              <svg viewBox="0 0 256 256" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M220.78,162.13,173.56,141A12,12,0,0,0,162.18,142a3.37,3.37,0,0,0-.38.28L137,163.42a3.93,3.93,0,0,1-3.7.21c-16.24-7.84-33.05-24.52-40.89-40.57a3.9,3.9,0,0,1,.18-3.69l21.2-25.21c.1-.12.19-.25.28-.38a12,12,0,0,0,1-11.36L93.9,35.28a12,12,0,0,0-12.48-7.19A52.25,52.25,0,0,0,36,80c0,77.2,62.8,140,140,140a52.25,52.25,0,0,0,51.91-45.42A12,12,0,0,0,220.78,162.13Z"/></svg>
+              Call
+            </a>
+            <button class="action-btn" id="action-share" data-action="share" aria-label="Share">
+              <svg viewBox="0 0 256 256" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M176,164a36,36,0,0,0-27.92,13.3L96.25,144a35.92,35.92,0,0,0,0-32L148.08,78.7A35.93,35.93,0,1,0,143.75,72L91.92,105.3a36,36,0,1,0,0,45.4L143.75,184A36,36,0,1,0,176,164Z"/></svg>
+              Share
+            </button>
+          </div>
+        </div>
+
+        <!-- Details tier (scroll to reveal) -->
+        <div class="result__details" id="result-details">
+          <!-- Strengths -->
+          <div class="result__strengths" id="result-strengths"></div>
+
+          <!-- Insider tip -->
+          <div class="result__tip" id="result-tip" hidden>
+            <strong>Insider tip:</strong> <span id="result-tip-text"></span>
+          </div>
+
+          <!-- Google rating -->
+          <div class="result__google" id="result-google" hidden>
+            <span id="result-google-stars"></span>
+            <span id="result-google-count"></span>
+          </div>
+        </div>
+
+        <!-- Footer actions -->
+        <div class="result__footer">
+          <button class="btn btn--primary" data-action="going" id="btn-going">Go Here</button>
+          <button class="btn btn--secondary" data-action="skip" id="btn-skip">Skip</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Toast -->
+  <div class="toast" id="toast" role="alert" aria-live="polite" hidden>
+    <span class="toast__msg" id="toast-msg"></span>
+  </div>
+
+  <!-- Screen reader announcements -->
+  <div id="sr-announce" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+</body>
+</html>
