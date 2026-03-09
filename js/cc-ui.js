@@ -546,6 +546,118 @@ function initStartDropdown() {
 }
 
 // ═══════════════════════════════════════════════════════════════════
+// Mode Toggle (Testing / Production)
+// ═══════════════════════════════════════════════════════════════════
+
+let currentMode = 'testing';
+let productionLoaded = false;
+
+function switchMode(mode) {
+  if (mode === currentMode) return;
+  currentMode = mode;
+
+  document.getElementById('mode-testing').classList.toggle('cc-mode-toggle__btn--active', mode === 'testing');
+  document.getElementById('mode-production').classList.toggle('cc-mode-toggle__btn--active', mode === 'production');
+
+  document.getElementById('testing-dashboard').style.display = mode === 'testing' ? '' : 'none';
+  document.getElementById('production-dashboard').style.display = mode === 'production' ? '' : 'none';
+
+  if (mode === 'production' && !productionLoaded) {
+    loadProductionDashboard();
+  }
+}
+
+async function loadProductionDashboard() {
+  productionLoaded = true;
+  const content = document.getElementById('prod-content');
+  const kpis = document.getElementById('prod-kpis');
+
+  try {
+    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+    const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+    // Fetch live production stats in parallel
+    const [
+      totalSearches, todaySearches, uniqueUsers,
+      avgScoreRes, recentQueries, errorQueries,
+    ] = await Promise.all([
+      sb.from('user_queries').select('*', { count: 'exact', head: true }),
+      sb.from('user_queries').select('*', { count: 'exact', head: true }).gte('created_at', new Date(new Date().setHours(0,0,0,0)).toISOString()),
+      sb.from('user_queries').select('user_id', { count: 'exact', head: true }).not('user_id', 'is', null),
+      sb.from('user_queries').select('donde_match').not('donde_match', 'is', null).order('created_at', { ascending: false }).limit(100),
+      sb.from('user_queries').select('special_request, donde_match, created_at, response_restaurant_name').order('created_at', { ascending: false }).limit(20),
+      sb.from('user_queries').select('*', { count: 'exact', head: true }).lt('donde_match', 40),
+    ]);
+
+    const totalCount = totalSearches.count || 0;
+    const todayCount = todaySearches.count || 0;
+    const userCount = uniqueUsers.count || 0;
+    const recentScores = avgScoreRes.data || [];
+    const avgDm = recentScores.length > 0 ? Math.round(recentScores.reduce((s, r) => s + (r.donde_match || 0), 0) / recentScores.length) : 0;
+    const lowScoreCount = errorQueries.count || 0;
+    const recent = recentQueries.data || [];
+
+    // Render KPIs
+    function prodCard(value, label, sub, colorClass) {
+      return `<div class="cc-prod-card"><div class="cc-prod-card__value ${colorClass || ''}">${value}</div><div class="cc-prod-card__label">${label}</div>${sub ? `<div class="cc-prod-card__sub">${sub}</div>` : ''}</div>`;
+    }
+
+    kpis.innerHTML = [
+      prodCard(totalCount.toLocaleString(), 'Total Searches', '', ''),
+      prodCard(todayCount, 'Today', new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }), ''),
+      prodCard(userCount, 'Unique Users', '', ''),
+      prodCard(avgDm, 'Avg DM (Last 100)', '', ragClass(avgDm)),
+      prodCard(lowScoreCount, 'Low Scores (<40)', '', lowScoreCount > 10 ? 'rag-red' : lowScoreCount > 3 ? 'rag-amber' : 'rag-green'),
+    ].join('');
+
+    // Production alerts
+    const alerts = [];
+    if (avgDm < 60) alerts.push({ text: `Average DM is ${avgDm} — below 60 threshold`, type: 'red' });
+    if (lowScoreCount > 10) alerts.push({ text: `${lowScoreCount} queries scored below 40 — investigate intent gaps`, type: 'red' });
+    if (todayCount === 0) alerts.push({ text: 'No searches today — check API health', type: 'amber' });
+
+    const alertsEl = document.getElementById('prod-alerts');
+    const alertListEl = document.getElementById('prod-alert-list');
+    if (alerts.length > 0) {
+      alertsEl.style.display = '';
+      alertListEl.innerHTML = alerts.map(a => `
+        <div class="cc-focus__alert ${a.type === 'amber' ? 'cc-focus__alert--amber' : ''}">
+          <span class="cc-focus__alert-icon">${a.type === 'red' ? '&#9888;' : '&#9432;'}</span>
+          <span class="cc-focus__alert-text">${a.text}</span>
+        </div>
+      `).join('');
+    }
+
+    // Recent searches table
+    let h = '<div class="cc-subsection"><div class="cc-subsection__title">Recent User Searches</div>';
+    if (recent.length > 0) {
+      h += '<div class="cc-table-wrap"><table class="cc-table"><thead><tr>';
+      h += '<th>Time</th><th>Query</th><th>Restaurant</th><th>DM</th>';
+      h += '</tr></thead><tbody>';
+      for (const q of recent) {
+        const time = q.created_at ? new Date(q.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '--';
+        const dm = q.donde_match;
+        h += `<tr>
+          <td style="font-family:var(--cc-mono);font-size:0.68rem;color:var(--cc-text-3)">${time}</td>
+          <td>${escapeHtml((q.special_request || '').substring(0, 50))}</td>
+          <td>${escapeHtml((q.response_restaurant_name || '—').substring(0, 25))}</td>
+          <td><span class="dm-badge ${dm != null ? ragClass(dm) : ''}">${dm != null ? dm : '—'}</span></td>
+        </tr>`;
+      }
+      h += '</tbody></table></div>';
+    } else {
+      h += '<p class="cc-muted">No recent searches found.</p>';
+    }
+    h += '</div>';
+
+    content.innerHTML = h;
+  } catch (e) {
+    content.innerHTML = `<p style="color:var(--cc-red)">Failed to load production data: ${e.message}</p>`;
+    productionLoaded = false;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
 // Init
 // ═══════════════════════════════════════════════════════════════════
 

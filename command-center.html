@@ -31,6 +31,10 @@
       </select>
     </div>
     <div class="cc-header__right">
+      <div class="cc-mode-toggle" id="mode-toggle">
+        <button class="cc-mode-toggle__btn cc-mode-toggle__btn--active" id="mode-testing" onclick="switchMode('testing')">Testing</button>
+        <button class="cc-mode-toggle__btn" id="mode-production" onclick="switchMode('production')">Production</button>
+      </div>
       <div class="cc-header__status">
         <span class="cc-header__dot cc-header__dot--offline" id="status-dot"></span>
         <span class="cc-header__status-text" id="status-text">Offline</span>
@@ -50,6 +54,21 @@
 
   <!-- ═══ Main Content ═══ -->
   <main class="cc-main" id="main-content">
+
+    <!-- ═══ Production Dashboard (hidden by default) ═══ -->
+    <div id="production-dashboard" style="display:none">
+      <div class="cc-kpis" id="prod-kpis"></div>
+      <div class="cc-focus" id="prod-alerts" style="display:none">
+        <div class="cc-focus__title">Production Alerts</div>
+        <div class="cc-focus__alerts" id="prod-alert-list"></div>
+      </div>
+      <div id="prod-content">
+        <div class="cc-loading"><div class="cc-spinner"></div>Loading production data...</div>
+      </div>
+    </div>
+
+    <!-- ═══ Testing Dashboard ═══ -->
+    <div id="testing-dashboard">
 
     <!-- ── Hero KPIs ── -->
     <section class="cc-kpis" id="kpi-section">
@@ -331,21 +350,12 @@
       </div>
     </section>
 
-    <!-- ═══ Section: Data Maintenance ═══ -->
-    <section class="cc-section" id="section-maintenance">
-      <div class="cc-section__header" data-toggle="maintenance">
-        <div class="cc-section__title">
-          <span class="cc-section__chevron">&#9656;</span>
-          Data Maintenance
-        </div>
-        <div class="cc-section__summary" id="maintenance-summary"></div>
-      </div>
-      <div class="cc-section__body" style="display:none">
-        <div id="maintenance-content">
-          <div class="cc-loading"><div class="cc-spinner"></div>Loading database health...</div>
-        </div>
-      </div>
-    </section>
+    <!-- ═══ CTA: Data Maintenance ═══ -->
+    <a href="maintenance.html" class="cc-cta-link" id="maintenance-cta">
+      <span class="cc-cta-link__icon">&#9881;</span>
+      <span class="cc-cta-link__text">Data Maintenance</span>
+      <span class="cc-cta-link__arrow">&#8594;</span>
+    </a>
 
     <!-- ═══ Section: Activity ═══ -->
     <section class="cc-section" id="section-activity">
@@ -374,6 +384,7 @@
       </div>
     </section>
 
+    </div><!-- /testing-dashboard -->
   </main>
 
   <!-- ═══ Stopped Overlay ═══ -->

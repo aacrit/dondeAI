@@ -9,6 +9,7 @@
 
 const SUPABASE_URL = 'https://vwbzkgsxmgwcvmvuxnbe.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3YnprZ3N4bWd3Y3ZtdnV4bmJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk5NjUzNTYsImV4cCI6MjA4NTU0MTM1Nn0.YBhmusYxc28TD5FOZv4TBpFpDVHHk1V894wUkNtJtcc';
+const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3YnprZ3N4bWd3Y3ZtdnV4bmJlIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2OTk2NTM1NiwiZXhwIjoyMDg1NTQxMzU2fQ.LZCrx5IKqkbfO0j9tCeYz309q59lmVuqyfm0DS6JOxk';
 const ADMIN_EMAIL = 'aacrit@gmail.com';
 const DAILY_BUDGET = 50;
 const XP_PER_LEVEL = 500;
