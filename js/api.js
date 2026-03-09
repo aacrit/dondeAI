@@ -238,3 +238,29 @@ export async function fetchBlurb({ restaurant_data, context }) {
     throw err;
   }
 }
+
+/**
+ * V11: Fetch a restaurant by ID for deep link rendering.
+ * Uses Supabase PostgREST to query the restaurants table directly.
+ * Returns basic restaurant data without running the recommendation pipeline.
+ */
+export async function fetchRestaurantById(restaurantId) {
+  if (!restaurantId) return null;
+  const fields = 'id,name,address,cuisine_type,neighborhood_name,price_level,google_rating,google_review_count,google_place_id,phone,website,outdoor_seating,best_for_oneliner,photo_urls,opening_hours,noise_level,lighting_ambiance,dress_code';
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/restaurants?id=eq.${encodeURIComponent(restaurantId)}&select=${fields}&limit=1`,
+      {
+        headers: {
+          'Authorization': `Bearer ${ANON_KEY}`,
+          'apikey': ANON_KEY,
+        },
+      }
+    );
+    if (!res.ok) return null;
+    const rows = await res.json();
+    return rows?.[0] || null;
+  } catch {
+    return null;
+  }
+}

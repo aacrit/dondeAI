@@ -28,11 +28,15 @@ const THEME_LABELS = {
     share: 'Share',
     profile: 'About This Spot',
     insiderTip: 'Insider Tip',
+    moreFilters: 'Narrow it down',
     goingHere: "I'm Going Here!",
     goingDone: "You're Going!",
     feedbackTitle: 'Share Your Thoughts',
     feedbackSubtitle: 'Help us make Donde better for everyone.',
     loadingPhrases: ['Sizzling', 'Crafting', 'Plating', 'Pouring', 'Tasting', 'Savoring', 'Searing', 'Mixing'],
+    loadingBeat1: 'Searching 900+ Chicago spots\u2026',
+    loadingBeat2Prefix: 'Found matches for',
+    loadingBeat3: 'Picking your best match\u2026',
     placeholders: [
       'cozy ramen with killer sake...',
       'somewhere with a great patio...',
@@ -59,9 +63,11 @@ const THEME_LABELS = {
       welcomeUser: (name) => `Welcome, ${name || 'friend'}!`,
     },
     whyPrefix: 'Why this spot \u2014 ',
+    onboardingSubtitle: 'One craving. One perfect spot. No lists, no scrolling.',
     coachMarks: {
       theme: 'Tap to switch cultural themes \u2014 each changes the entire look and vibe.',
       input: "Tell us what you're craving \u2014 be as specific or vague as you like.",
+      score: 'This is your DondeAI Match \u2014 how well this spot fits what you asked for.',
     },
     smartChips: ['outdoor seating', 'live music', 'great cocktails', 'hidden gem', 'cozy date spot'],
     suggestions: [
@@ -160,11 +166,15 @@ const THEME_LABELS = {
     share: 'Share',
     profile: 'Know Your Spot',
     insiderTip: "Chef's Secret",
+    moreFilters: 'Refine your search',
     goingHere: "I'm Going!",
     goingDone: "You're Going!",
     feedbackTitle: 'Share Your Heart',
     feedbackSubtitle: 'Help us serve you better.',
     loadingPhrases: ['Tempering', 'Simmering', 'Grinding', 'Roasting', 'Infusing', 'Tadka', 'Marinating', 'Blooming'],
+    loadingBeat1: 'Searching 900+ Chicago spots\u2026',
+    loadingBeat2Prefix: 'Found matches for',
+    loadingBeat3: 'Finding your perfect match\u2026',
     placeholders: [
       'rich butter chicken with warm naan...',
       'fragrant biryani for a special night...',
@@ -191,9 +201,11 @@ const THEME_LABELS = {
       welcomeUser: (name) => `Welcome, ${name || 'friend'}!`,
     },
     whyPrefix: 'Why we chose this \u2014 ',
+    onboardingSubtitle: 'One craving. One perfect spot. Made with love.',
     coachMarks: {
       theme: 'Tap to switch themes \u2014 each brings a unique cultural warmth.',
       input: 'Tell us what your heart wants \u2014 we\'ll find the perfect spot.',
+      score: 'Your DondeAI Match \u2014 how perfectly this spot matches your heart.',
     },
     smartChips: ['butter chicken spot', 'street food vibes', 'biryani feast', 'chai and conversation', 'thali for two', 'momo spot'],
     suggestions: [
@@ -271,11 +283,15 @@ const THEME_LABELS = {
     share: 'Share',
     profile: 'Details',
     insiderTip: 'Omakase Note',
+    moreFilters: 'Filter',
     goingHere: 'Going.',
     goingDone: 'Confirmed.',
     feedbackTitle: 'Your Thoughts',
     feedbackSubtitle: 'Help us improve.',
     loadingPhrases: ['Omakase', 'Steeping', 'Slicing', 'Folding', 'Plating', 'Pouring', 'Umami', 'Whisking'],
+    loadingBeat1: 'Exploring 900+ spots\u2026',
+    loadingBeat2Prefix: 'Found matches for',
+    loadingBeat3: 'Selecting the best\u2026',
     placeholders: [
       'perfect omakase with sake pairing...',
       'handmade soba in a quiet room...',
@@ -302,9 +318,11 @@ const THEME_LABELS = {
       welcomeUser: (name) => `Welcome${name ? ', ' + name : ''}.`,
     },
     whyPrefix: 'Why \u2014 ',
+    onboardingSubtitle: 'One craving. One spot. No noise.',
     coachMarks: {
       theme: 'Tap to switch themes. Each offers a different aesthetic.',
       input: 'What sounds good? Be as precise as you like.',
+      score: 'DondeAI Match \u2014 how well this spot fits your request.',
     },
     smartChips: ['late night ramen', 'omakase experience', 'izakaya vibes', 'handmade soba', 'sake pairing', 'dim sum brunch', 'late night pho', 'Korean BBQ'],
     suggestions: [
@@ -388,11 +406,15 @@ const THEME_LABELS = {
     share: 'Comparte',
     profile: 'Los Detalles',
     insiderTip: 'Entre Nos',
+    moreFilters: 'Ajustar',
     goingHere: 'Vamos!',
     goingDone: 'Dale!',
     feedbackTitle: 'Share the Vibe',
     feedbackSubtitle: 'Help us keep Donde fresh.',
     loadingPhrases: ['Sazón', 'Asando', 'Mezclando', 'Sofrito', 'Picando', 'Saboreando', 'Fuego', 'Brindis'],
+    loadingBeat1: 'Buscando 900+ spots en Chicago\u2026',
+    loadingBeat2Prefix: 'Encontramos opciones para',
+    loadingBeat3: 'Eligiendo tu mejor opción\u2026',
     placeholders: [
       'ceviche fresco con un pisco sour...',
       'empanadas y mate en buena compania...',
@@ -419,9 +441,11 @@ const THEME_LABELS = {
       welcomeUser: (name) => `Bienvenido, ${name || 'amigo'}!`,
     },
     whyPrefix: 'Por qu\u00e9 \u2014 ',
+    onboardingSubtitle: 'Un antojo. Un lugar perfecto. Sin listas, sin scroll.',
     coachMarks: {
       theme: 'Toca para cambiar temas \u2014 each one brings a different energy!',
       input: 'Dinos que quieres \u2014 we\'ll find the perfect spot!',
+      score: 'Tu DondeAI Match \u2014 qu\u00e9 tan perfecto es este lugar para ti.',
     },
     smartChips: ['ceviche spot', 'asado for the crew', 'empanadas y mate', 'taco al pastor', 'pisco sour night', 'jollof that hits', 'soul food spot'],
     suggestions: [
@@ -501,11 +525,15 @@ const THEME_LABELS = {
     share: 'Share',
     profile: 'The Details',
     insiderTip: "Local's Secret",
+    moreFilters: 'Refine',
     goingHere: "I'm Going!",
     goingDone: "You're Going!",
     feedbackTitle: 'Share Your Thoughts',
     feedbackSubtitle: 'Help us find you better spots.',
     loadingPhrases: ['Grilling', 'Steeping', 'Spicing', 'Roasting', 'Mezze', 'Brewing', 'Charring', 'Drizzling'],
+    loadingBeat1: 'Searching 900+ Chicago spots\u2026',
+    loadingBeat2Prefix: 'Found matches for',
+    loadingBeat3: 'Picking the perfect spot\u2026',
     placeholders: [
       'smoky shawarma with garlic sauce...',
       'fresh hummus and warm pita...',
@@ -532,9 +560,11 @@ const THEME_LABELS = {
       welcomeUser: (name) => `Welcome, ${name || 'friend'}!`,
     },
     whyPrefix: 'Why this spot \u2014 ',
+    onboardingSubtitle: 'One craving. One perfect spot. No lists, no scrolling.',
     coachMarks: {
       theme: 'Tap to switch themes \u2014 each brings a unique warmth and hospitality.',
       input: 'Tell us what you\'re craving \u2014 we\'ll find the perfect gathering spot.',
+      score: 'Your DondeAI Match \u2014 how well this spot fits what you asked for.',
     },
     smartChips: ['shawarma spot', 'mezze spread', 'fresh falafel', 'kebab platter', 'baklava and tea', 'injera and wot'],
     suggestions: [
@@ -811,5 +841,11 @@ function applyLabels(labels) {
   // Insider tip label
   document.querySelectorAll('[data-label="insiderTip"]').forEach(el => {
     if (labels.insiderTip) el.textContent = labels.insiderTip;
+  });
+
+  // More Filters toggle label
+  document.querySelectorAll('[data-label="moreFilters"]').forEach(el => {
+    const span = el.querySelector('span');
+    if (span && labels.moreFilters) span.textContent = labels.moreFilters;
   });
 }

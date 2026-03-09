@@ -238,6 +238,29 @@
 }
 
 /* ---- Smart Chips (input augmentation) ---- */
+/* ── Onboarding Subtitle (first-visit only) ── */
+.onboarding-subtitle {
+  text-align: center;
+  color: var(--fg2);
+  font-size: var(--text-base);
+  max-width: 320px;
+  margin: 0 auto;
+  line-height: 1.5;
+  animation: fadeInUp 500ms var(--ease-out) 300ms backwards;
+}
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Smart Chips Label (first-visit hint) ── */
+.smart-chips__label {
+  display: block;
+  text-align: center;
+  color: var(--fg3);
+  margin-bottom: var(--space-2xs);
+}
+
 .smart-chips {
   display: flex;
   flex-wrap: wrap;
@@ -548,6 +571,36 @@
 
 .your-spots__chip--visited .your-spots__icon {
   color: var(--rag-green);
+}
+
+/* ── Taste Profile — data flywheel summary on canvas ── */
+.taste-profile {
+  text-align: center;
+  padding: var(--space-xs) var(--space-sm);
+  color: var(--fg3);
+  border-top: 1px solid var(--border);
+  margin-top: var(--space-sm);
+}
+.taste-profile__text {
+  line-height: 1.5;
+}
+
+/* ── Shared Result (Deep Link) ── */
+.result-card--shared .card-footer { display: none; }
+.result-card--shared .tell-more-btn { display: none; }
+
+.shared-cta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-sm);
+  border-top: 1px solid var(--border);
+  margin-top: var(--space-sm);
+}
+.shared-cta__text {
+  color: var(--fg3);
+  font-size: var(--text-sm);
 }
 
 .your-spots__meta {
@@ -1023,14 +1076,14 @@
 .filter-narrative {
   width: 100%;
   text-align: center;
-  padding: var(--space-xs) var(--space-sm);
-  background: color-mix(in srgb, var(--ac) 6%, var(--glass));
-  border: 1px solid color-mix(in srgb, var(--ac) 15%, var(--border));
-  border-radius: var(--radius-md);
+  padding: var(--space-xs) var(--space-md);
+  background: color-mix(in srgb, var(--ac) 8%, var(--glass));
+  border: 1px solid color-mix(in srgb, var(--ac) 20%, var(--border));
+  border-radius: var(--radius-pill);
   font-size: var(--text-sm);
   color: var(--fg2);
   cursor: pointer;
-  transition: background 200ms var(--ease-out);
+  transition: background 200ms var(--ease-out), border-color 200ms var(--ease-out);
 }
 
 .filter-narrative:hover {
@@ -1176,21 +1229,35 @@
   margin-top: var(--space-md);
 }
 
-/* ── Glance Hero — badge left, name+oneliner right ── */
+/* ── Glance Hero — vertical stack: name → score+meta → actions ── */
 .glance-hero {
   display: flex;
-  align-items: center;
-  gap: var(--space-sm);
+  flex-direction: column;
+  gap: var(--space-xs);
   width: 100%;
 }
 
-.glance-hero__info {
-  flex: 1;
-  min-width: 0;
+/* Score row: compact match badge + meta pills inline */
+.glance-hero__score-row {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-2xs);
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
 }
+
+/* Compact inline match-mini inside glance hero */
+.glance-hero .match-mini {
+  flex-direction: row;
+  padding: var(--space-3xs, 2px) var(--space-xs);
+  gap: var(--space-2xs);
+  border-radius: var(--radius-pill, 999px);
+  background: var(--bg3);
+}
+.glance-hero .match-mini__brand,
+.glance-hero .match-mini__hint,
+.glance-hero .match-mini__verdict { display: none; }
+.glance-hero .match-mini__arc { width: 32px; height: 32px; }
+.glance-hero .match-mini__score { font-size: 0.875rem; }
 
 /* ── Match Mini — compact stacked badge (brand + arc + score) ── */
 .match-mini {
@@ -1936,6 +2003,30 @@
 .donde-blurb--boosted {
   border-left: 3px solid var(--ac);
   padding-left: var(--space-sm);
+}
+
+/* ── Why This Pick — compact factor + signal in Tier 1 ── */
+.why-this-pick {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) 0;
+}
+.why-this-pick__icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: var(--fg3);
+  display: flex;
+  align-items: center;
+}
+.why-this-pick__icon svg {
+  width: 16px;
+  height: 16px;
+}
+.why-this-pick__text {
+  color: var(--fg2);
+  line-height: 1.4;
 }
 
 /* ── Glance Actions (inside card-footer) ── */
@@ -5026,6 +5117,12 @@
   animation: heartPop 300ms var(--spring);
 }
 
+/* Feedback dimming — opposite button fades when one is active */
+.feedback-btn--dimmed {
+  opacity: 0.3;
+  transition: opacity 200ms var(--ease-out);
+}
+
 /* ---- "I'm Going Here!" Button (Primary CTA — Emerald Green, theme-independent) ---- */
 .going-btn {
   display: flex;
@@ -5076,6 +5173,21 @@
   border-color: var(--color-success);
 }
 
+/* Going confirmed — icon fill wash */
+.going-btn--done .going-btn__icon svg path {
+  fill: var(--color-success);
+}
+
+/* Success wash animation when confirming "Going" */
+@keyframes goingWash {
+  0% { box-shadow: 0 0 0 0 var(--color-success); }
+  50% { box-shadow: 0 0 0 6px transparent; }
+  100% { box-shadow: none; }
+}
+.going-btn--done {
+  animation: goingWash 500ms var(--ease-out);
+}
+
 .going-btn__icon {
   display: flex;
   align-items: center;
@@ -5113,6 +5225,16 @@
   opacity: 0.5;
   cursor: wait;
   pointer-events: none;
+}
+
+/* Try Again icon spin on tap */
+@keyframes iconSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(180deg); }
+}
+.try-again-icon--spinning {
+  animation: iconSpin 300ms var(--ease-out);
+  display: inline-block;
 }
 
 /* ---- V10: Card Footer Primary Row (Going + Try Another side by side) ---- */

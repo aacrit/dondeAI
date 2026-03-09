@@ -597,6 +597,10 @@ export function relativeTime(timestamp) {
 export function buildShareText(result) {
   if (!result?.restaurant) return '';
   const r = result.restaurant;
+  // V11: Build deep link URL for sharing
+  const deepLink = r.id
+    ? `${window.location.origin}${window.location.pathname}#/r/${r.id}${result.donde_match ? '?dm=' + result.donde_match : ''}`
+    : '';
   const parts = [
     r.name,
     r.best_for_oneliner ? `"${r.best_for_oneliner}"` : '',
@@ -604,6 +608,7 @@ export function buildShareText(result) {
     result.insider_tip ? `\nTip: ${result.insider_tip}` : '',
     r.address ? `\n${r.address}` : '',
     r.website || '',
+    deepLink ? `\n${deepLink}` : '',
     '\n— via Donde',
   ];
   return parts.filter(Boolean).join('\n');
