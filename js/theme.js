@@ -4,7 +4,7 @@
    ============================================ */
 
 import { getState, setState, subscribe } from './state.js';
-import { saveTheme, saveColorMode } from './persistence.js';
+import { saveTheme } from './persistence.js';
 
 export const CULTURES = ['neutral', 'indian', 'middleeastern', 'japanese', 'southamerican'];
 
@@ -650,27 +650,9 @@ export function initTheme() {
   });
 }
 
-/* ---- Color Mode (auto / off) ---- */
-function updateColorModeAttr() {
-  document.documentElement.setAttribute('data-color', getState().colorMode);
-  const btn = document.querySelector('[data-action="toggle-color"]');
-  if (btn) btn.setAttribute('aria-label', getState().colorMode === 'auto' ? 'Auto color on' : 'Auto color off');
-}
-
-export function setColorMode(mode) {
-  setState({ colorMode: mode });
-  saveColorMode(mode);
-  updateColorModeAttr();
-  if (mode === 'off') {
-    // Revert to Studio and clear any auto-theme or manual override
-    revertAutoTheme();
-    setManualOverride(false);
-    setTheme('neutral', getState().theme.mode);
-  }
-}
-
+/* ---- Color Mode: always auto (no manual override) ---- */
 export function getColorMode() {
-  return getState().colorMode;
+  return 'auto';
 }
 
 export function setTheme(culture, mode) {
@@ -687,17 +669,23 @@ export function setThemeInstant(culture, mode) {
 
 /* ---- Auto-Theme (visual-only, no labels, no persist) ---- */
 let autoThemeCulture = null;
-let userManualOverride = false;
+let _whisperTimer = null;
 
-/** Visual-only theme swap — changes CSS palette without touching labels or persisting.
- *  Used during typing to preview cultural themes without jarring label changes. */
+/** Visual-only theme swap with 300ms crossfade.
+ *  Used during typing to preview cultural themes. Shows culture whisper label. */
 export function setThemeVisualOnly(culture) {
-  if (getState().colorMode === 'off') return;
-  if (userManualOverride) return;
   if (culture === autoThemeCulture) return;
+  const prevCulture = autoThemeCulture;
   autoThemeCulture = culture;
   const root = document.documentElement;
+  // Enable crossfade transition
+  root.classList.add('theme-crossfading');
   root.setAttribute('data-theme', culture);
+  setTimeout(() => root.classList.remove('theme-crossfading'), 350);
+  // Show culture whisper if culture actually changed
+  if (prevCulture !== culture) {
+    showCultureWhisper(culture);
+  }
 }
 
 /** Revert auto-theme back to the user's persisted theme. */
@@ -706,17 +694,27 @@ export function revertAutoTheme() {
   autoThemeCulture = null;
   const { theme } = getState();
   const root = document.documentElement;
+  root.classList.add('theme-crossfading');
   root.setAttribute('data-theme', theme.culture);
+  setTimeout(() => root.classList.remove('theme-crossfading'), 350);
 }
 
-/** Mark that the user has manually chosen a theme (disables auto-theme on typing). */
-export function setManualOverride(enabled) {
-  userManualOverride = enabled;
-  if (enabled) autoThemeCulture = null;
-}
-
-export function isManualOverride() {
-  return userManualOverride;
+/** Show a brief culture name label near the input (200ms in, 1.2s hold, 300ms out). */
+function showCultureWhisper(culture) {
+  const $whisper = document.getElementById('culture-whisper');
+  if (!$whisper) return;
+  clearTimeout(_whisperTimer);
+  const name = CULTURE_DISPLAY_NAMES[culture] || culture;
+  $whisper.textContent = name;
+  $whisper.classList.remove('culture-whisper--visible', 'culture-whisper--fading');
+  void $whisper.offsetWidth; // force reflow
+  $whisper.classList.add('culture-whisper--visible');
+  _whisperTimer = setTimeout(() => {
+    $whisper.classList.add('culture-whisper--fading');
+    setTimeout(() => {
+      $whisper.classList.remove('culture-whisper--visible', 'culture-whisper--fading');
+    }, 300);
+  }, 1400);
 }
 
 export function isAutoThemeActive() {
@@ -774,13 +772,6 @@ function applyTheme(culture, mode) {
   // Update labels
   const labels = getLabels(culture);
   applyLabels(labels);
-
-  // Update color popover dot active state
-  document.querySelectorAll('.color-popover__dot').forEach(dot => {
-    const isActive = dot.dataset.theme === culture;
-    dot.setAttribute('aria-checked', String(isActive));
-    dot.classList.toggle('color-popover__dot--active', isActive);
-  });
 
   // Update meta theme-color for mobile browser chrome
   requestAnimationFrame(() => {

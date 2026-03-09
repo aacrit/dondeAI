@@ -896,6 +896,192 @@
   padding: var(--space-lg);
 }
 
+/* ---- Occasion Strip (always-visible horizontal scroll) ---- */
+.occasion-strip {
+  display: flex;
+  gap: var(--space-xs);
+  width: 100%;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  padding: var(--space-2xs) 0;
+}
+.occasion-strip::-webkit-scrollbar { display: none; }
+
+.occasion-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3xs, 2px);
+  min-width: 64px;
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--glass);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  scroll-snap-align: start;
+  cursor: pointer;
+  transition: background 200ms var(--ease-out),
+              border-color 200ms var(--ease-out),
+              transform 200ms var(--ease-out);
+  position: relative;
+  overflow: hidden;
+}
+
+.occasion-tile:hover {
+  border-color: var(--ac);
+}
+
+.occasion-tile[aria-checked="true"] {
+  background: var(--ac);
+  color: var(--bg);
+  border-color: var(--ac);
+  transform: scale(1.05);
+}
+
+.occasion-tile--suggested {
+  border-color: color-mix(in srgb, var(--ac) 40%, transparent);
+  background: color-mix(in srgb, var(--ac) 8%, var(--glass));
+}
+
+.occasion-tile__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.occasion-tile__icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.occasion-tile__label {
+  font-size: var(--text-xs, 11px);
+  white-space: nowrap;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.occasion-tile__ripple {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--ac);
+  opacity: 0.15;
+  animation: filterPillRipple 600ms ease-out forwards;
+  pointer-events: none;
+}
+
+/* ---- Canvas Toggles (Open Now + Surprise Me on canvas) ---- */
+.canvas-toggles {
+  display: flex;
+  gap: var(--space-sm);
+  width: 100%;
+  justify-content: center;
+}
+
+.canvas-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  padding: var(--space-2xs) var(--space-sm);
+  font-size: var(--text-sm);
+  color: var(--fg2);
+  background: var(--glass);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: background 200ms var(--ease-out),
+              color 200ms var(--ease-out),
+              border-color 200ms var(--ease-out);
+}
+
+.canvas-toggle:hover {
+  border-color: var(--ac);
+}
+
+.canvas-toggle[aria-checked="true"] {
+  background: var(--ac);
+  color: var(--bg);
+  border-color: var(--ac);
+}
+
+.canvas-toggle svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+/* ---- Filter Narrative (natural language sentence) ---- */
+.filter-narrative {
+  width: 100%;
+  text-align: center;
+  padding: var(--space-xs) var(--space-sm);
+  background: color-mix(in srgb, var(--ac) 6%, var(--glass));
+  border: 1px solid color-mix(in srgb, var(--ac) 15%, var(--border));
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  color: var(--fg2);
+  cursor: pointer;
+  transition: background 200ms var(--ease-out);
+}
+
+.filter-narrative:hover {
+  background: color-mix(in srgb, var(--ac) 12%, var(--glass));
+}
+
+.filter-narrative strong {
+  color: var(--ac);
+  font-weight: 600;
+}
+
+/* ---- Culture Whisper (brief label on auto-theme change) ---- */
+.culture-whisper {
+  position: fixed;
+  bottom: calc(var(--space-lg) + 80px);
+  left: 50%;
+  transform: translateX(-50%) translateY(8px);
+  padding: var(--space-2xs) var(--space-sm);
+  background: color-mix(in srgb, var(--ac) 85%, var(--bg));
+  color: var(--bg);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-xs, 11px);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  opacity: 0;
+  pointer-events: none;
+  z-index: var(--z-toast, 100);
+  transition: opacity 200ms var(--ease-out), transform 200ms var(--ease-out);
+}
+
+.culture-whisper--visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.culture-whisper--fading {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-4px);
+  transition: opacity 300ms var(--ease-out), transform 300ms var(--ease-out);
+}
+
+/* ---- Theme Crossfade (300ms transition during auto-theme on typing) ---- */
+.theme-crossfading,
+.theme-crossfading * {
+  transition: background-color 300ms var(--ease-out),
+              color 300ms var(--ease-out),
+              border-color 300ms var(--ease-out) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-crossfading,
+  .theme-crossfading * {
+    transition: none !important;
+  }
+  .culture-whisper { transition: none; }
+}
+
 /* ---- Header Mode Toggle Icon Visibility ---- */
 [data-mode="light"] .mode-icon--sun { display: none; }
 [data-mode="light"] .mode-icon--moon { display: block; }

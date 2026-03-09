@@ -5,8 +5,8 @@
 
 import { getState, setState, subscribe, resetState } from './state.js';
 import { initRouter, goToStep, goToStepInstant } from './router.js';
-import { loadTheme, loadSound, loadHistory, addToHistory, saveTheme, loadColorMode, loadBookmarks, addBookmark, removeBookmark, isBookmarked, loadVisits, addVisit, isVisited, getOrCreateUserId, saveFeedback, loadFeedback, clearFeedback, hasGuestDismissed, setGuestDismissed, hasSeenOnboarding, setOnboardingSeen } from './persistence.js';
-import { initTheme, setTheme, setThemeInstant, setThemeVisualOnly, revertAutoTheme, setManualOverride, isManualOverride, setColorMode, getColorMode, getLabels, CULTURES, CULTURE_DISPLAY_NAMES, setWashOrigin } from './theme.js';
+import { loadTheme, loadSound, loadHistory, addToHistory, saveTheme, loadBookmarks, addBookmark, removeBookmark, isBookmarked, loadVisits, addVisit, isVisited, getOrCreateUserId, saveFeedback, loadFeedback, clearFeedback, hasGuestDismissed, setGuestDismissed, hasSeenOnboarding, setOnboardingSeen } from './persistence.js';
+import { initTheme, setTheme, setThemeInstant, setThemeVisualOnly, revertAutoTheme, getColorMode, getLabels, CULTURES, CULTURE_DISPLAY_NAMES, setWashOrigin } from './theme.js';
 import { initAudio, toggleSound, playChime, playCelebrationChime } from './audio.js';
 import { initVoice, startVoice } from './voice.js';
 import { initShare, shareResult, closeShareSheet, handleShareChannel } from './share.js';
@@ -71,13 +71,11 @@ function init() {
   const savedTheme = loadTheme();
   const savedSound = loadSound();
   const savedHistory = loadHistory();
-  const savedColorMode = loadColorMode();
-
   setState({
     theme: savedTheme,
     soundEnabled: savedSound,
     history: savedHistory,
-    colorMode: savedColorMode,
+    colorMode: 'auto',
   });
 
   // Initialize all modules
@@ -116,6 +114,9 @@ function init() {
 
   // Hood group accordion init
   initHoodGroups();
+
+  // Time-based occasion pre-highlight
+  applyTimeBasedOccasionHint();
 
   // V10: Render combined "Your Spots" (recent + saved + visited)
   renderYourSpots();
@@ -691,9 +692,8 @@ function wireEvents() {
         updateFilterSummary();
         // Collapse filter drawer
         collapseFilters();
-        // Revert auto-theme and re-enable auto-detection
+        // Revert auto-theme
         revertAutoTheme();
-        setManualOverride(false);
         hideFloatingBar(); // V9: Hide floating bar on reset
         break;
 
@@ -1144,39 +1144,6 @@ function wireEvents() {
         break;
       }
 
-      case 'open-themes':
-        toggleColorPopover();
-        break;
-
-      case 'close-color-popover': {
-        closeColorPopover();
-        break;
-      }
-
-      case 'toggle-colormode': {
-        const newMode = getColorMode() === 'auto' ? 'off' : 'auto';
-        setColorMode(newMode);
-        updateColorPopoverState();
-        break;
-      }
-
-      case 'select-culture': {
-        const culture = btn.dataset.theme;
-        if (getColorMode() === 'off') break;
-        if (getState().theme.culture === culture && isManualOverride()) {
-          // Tapping active dot clears manual override → back to auto
-          setManualOverride(false);
-          revertAutoTheme();
-        } else {
-          // Radial wash from dot position
-          const dotRect = btn.getBoundingClientRect();
-          setWashOrigin(dotRect.left + dotRect.width / 2, dotRect.top + dotRect.height / 2);
-          setManualOverride(true);
-          setTheme(culture, getState().theme.mode);
-        }
-        updateColorPopoverDots();
-        break;
-      }
 
       case 'toggle-mode': {
         const currentMode = getState().theme.mode;
@@ -1185,10 +1152,6 @@ function wireEvents() {
         break;
       }
 
-      case 'toggle-color': {
-        toggleColorPopover();
-        break;
-      }
 
       case 'toggle-sound':
         toggleSound();
@@ -1277,8 +1240,10 @@ function wireEvents() {
         break;
 
       case 'clear-filters': {
-        setState({ occasion: 'Any', neighborhood: 'Anywhere', priceLevel: 'Any' });
+        setState({ occasion: 'Any', neighborhood: 'Anywhere', priceLevel: 'Any', openNow: false });
         clearAllSelections();
+        // Also clear occasion strip tiles
+        document.querySelectorAll('.occasion-tile[aria-checked="true"]').forEach(t => t.setAttribute('aria-checked', 'false'));
         updateFilterSummary();
         clearEmptyState();
         showToast(toasts().filtersCleared);
@@ -1705,23 +1670,21 @@ function wireCravingInput() {
       updateChipsForInput($cravingInput.value.trim());
     }, 300);
 
-    // Debounced auto-theme detection (visual palette only, gated on colorMode)
+    // Debounced auto-theme detection (visual palette with 300ms crossfade)
     clearTimeout(autoThemeDebounce);
-    if (getColorMode() === 'auto') {
-      autoThemeDebounce = setTimeout(() => {
-        const val = $cravingInput.value.trim();
-        if (!val) {
-          revertAutoTheme();
-          return;
-        }
-        const detected = matchCulture(val);
-        if (detected) {
-          setThemeVisualOnly(detected);
-        } else {
-          revertAutoTheme();
-        }
-      }, 300);
-    }
+    autoThemeDebounce = setTimeout(() => {
+      const val = $cravingInput.value.trim();
+      if (!val) {
+        revertAutoTheme();
+        return;
+      }
+      const detected = matchCulture(val);
+      if (detected) {
+        setThemeVisualOnly(detected);
+      } else {
+        revertAutoTheme();
+      }
+    }, 300);
 
     // Scored autocomplete (1-char trigger)
     const query = $cravingInput.value.trim();
@@ -1851,35 +1814,46 @@ function updateCtaState() {
 /* ---- Filter Selection (with ink ripple) ---- */
 function selectFilter(field, btn) {
   haptic(HAPTICS.tick);
+  const isOccasionTile = btn.classList.contains('occasion-tile');
   const group = btn.closest('[role="radiogroup"]') || btn.closest('.filter-pills');
   if (!group) return;
 
   // Create ink ripple BEFORE state change for visible contrast
   const ripple = document.createElement('span');
-  ripple.className = 'filter-pill__ripple';
+  ripple.className = isOccasionTile ? 'occasion-tile__ripple' : 'filter-pill__ripple';
   btn.appendChild(ripple);
   ripple.addEventListener('animationend', () => ripple.remove(), { once: true });
 
-  // Deselect siblings
-  group.querySelectorAll('.filter-pill').forEach(c => {
+  // Deselect siblings (support both occasion tiles and filter pills)
+  const siblingSelector = isOccasionTile ? '.occasion-tile' : '.filter-pill';
+  group.querySelectorAll(siblingSelector).forEach(c => {
     c.setAttribute('aria-checked', 'false');
   });
+
+  // Toggle: tapping the already-selected occasion tile deselects it (back to "Any")
+  const selectedValue = btn.dataset.value;
+  const currentValue = getState()[field];
+  if (isOccasionTile && currentValue === selectedValue) {
+    setState({ [field]: 'Any' });
+    updateFilterSummary();
+    announce('Vibe cleared');
+    return;
+  }
 
   // Select this one
   btn.setAttribute('aria-checked', 'true');
   btn.classList.add('chip-pop');
   btn.addEventListener('animationend', () => btn.classList.remove('chip-pop'), { once: true });
 
-  const selectedValue = btn.dataset.value;
   setState({ [field]: selectedValue });
   updateFilterSummary();
   boostCta();
   announce(`${selectedValue} selected`);
 
-  // Auto-collapse only when all filter categories have been selected
+  // Auto-collapse drawer when hood + budget + dietary are all set
   clearTimeout(autoAdvanceTimer);
   const st = getState();
-  if (st.occasion !== 'Any' && st.neighborhood !== 'Anywhere' && st.priceLevel !== 'Any' && st.dietaryRestrictions.length > 0) {
+  if (st.neighborhood !== 'Anywhere' && st.priceLevel !== 'Any' && st.dietaryRestrictions.length > 0) {
     autoAdvanceTimer = setTimeout(() => collapseFilters(), 600);
   }
 }
@@ -1897,7 +1871,7 @@ function boostCta() {
 }
 
 function clearAllSelections() {
-  document.querySelectorAll('.filter-pill[aria-checked="true"]').forEach(c => {
+  document.querySelectorAll('.filter-pill[aria-checked="true"], .occasion-tile[aria-checked="true"]').forEach(c => {
     c.setAttribute('aria-checked', 'false');
   });
 }
@@ -1914,6 +1888,11 @@ function syncFilterPillsToState() {
       pill.setAttribute('aria-checked', String(pill.dataset.value === value));
     });
   }
+  // Sync occasion strip tiles
+  document.querySelectorAll('.occasion-tile[data-action="select-occasion"]').forEach(tile => {
+    const isSelected = tile.dataset.value === s.occasion;
+    tile.setAttribute('aria-checked', String(isSelected));
+  });
 }
 
 function collapseFilters() {
@@ -1921,6 +1900,27 @@ function collapseFilters() {
   const content = document.getElementById('filter-content');
   if (toggle) toggle.setAttribute('aria-expanded', 'false');
   if (content && !content.hidden) _animateDrawerClose(content);
+}
+
+/* ---- Time-based occasion pre-highlight ---- */
+function applyTimeBasedOccasionHint() {
+  const now = new Date();
+  const hour = now.getHours();
+  const isWeekend = now.getDay() === 0 || now.getDay() === 6;
+  let suggested = null;
+  if (isWeekend) {
+    if (hour >= 9 && hour < 13) suggested = 'Chill Hangout';
+    else if (hour >= 17) suggested = 'Group Hangout';
+  } else {
+    if (hour >= 6 && hour < 10) suggested = 'Solo Dining';
+    else if (hour >= 11 && hour < 14) suggested = 'Business Lunch';
+    else if (hour >= 17 && hour < 21) suggested = 'Date Night';
+    else if (hour >= 21) suggested = 'Adventure';
+  }
+  if (!suggested) return;
+  // Apply subtle pre-highlight (not full selection) to the suggested tile
+  const tile = document.querySelector(`.occasion-tile[data-value="${suggested}"]`);
+  if (tile) tile.classList.add('occasion-tile--suggested');
 }
 
 /* ---- Hood group accordion (close others on open) ---- */
@@ -1965,23 +1965,47 @@ function _animateDrawerClose(content) {
   }, { once: true });
 }
 
-/* ---- Filter Summary ---- */
+/* ---- Filter Summary (narrative sentence + drawer badge) ---- */
 function updateFilterSummary() {
   const s = getState();
-  const parts = [];
-  if (s.occasion !== 'Any') parts.push(s.occasion);
-  if (s.neighborhood !== 'Anywhere') parts.push(s.neighborhood);
-  if (s.priceLevel !== 'Any') parts.push(s.priceLevel);
-  if (s.dietaryRestrictions?.length) parts.push(s.dietaryRestrictions.join(', '));
-  if (s.openNow) parts.push('Open Now');
+  // Drawer count badge (non-occasion filters only since occasion is on canvas)
+  const drawerParts = [];
+  if (s.neighborhood !== 'Anywhere') drawerParts.push(s.neighborhood);
+  if (s.priceLevel !== 'Any') drawerParts.push(s.priceLevel);
+  if (s.dietaryRestrictions?.length) drawerParts.push(s.dietaryRestrictions.join(', '));
   const $summary = document.getElementById('filter-summary');
   if ($summary) {
-    $summary.textContent = parts.length ? parts.join(' \u00B7 ') : '';
+    $summary.textContent = drawerParts.length ? drawerParts.join(' \u00B7 ') : '';
   }
-  // Filter count badge — inline element after "Filters" label
   const $count = document.getElementById('filter-count');
   if ($count) {
-    $count.textContent = parts.length ? String(parts.length) : '';
+    $count.textContent = drawerParts.length ? String(drawerParts.length) : '';
+  }
+
+  // Narrative sentence
+  const $narrative = document.getElementById('filter-narrative');
+  if ($narrative) {
+    const pieces = [];
+    if (s.occasion !== 'Any') pieces.push(`<strong>${s.occasion.toLowerCase()}</strong>`);
+    if (s.neighborhood !== 'Anywhere') pieces.push(`in <strong>${s.neighborhood}</strong>`);
+    if (s.priceLevel !== 'Any') pieces.push(`around <strong>${s.priceLevel}</strong>`);
+    if (s.dietaryRestrictions?.length) pieces.push(`(${s.dietaryRestrictions.join(', ')})`);
+    if (s.openNow) pieces.push('open now');
+    if (pieces.length > 0) {
+      const sentence = pieces.length === 1
+        ? `Looking for a ${pieces[0]} spot`
+        : `A ${pieces[0]} spot ${pieces.slice(1).join(', ')}`;
+      $narrative.innerHTML = sentence;
+      $narrative.style.display = '';
+    } else {
+      $narrative.style.display = 'none';
+    }
+  }
+
+  // Sync Open Now canvas toggle state
+  const $openNowCanvas = document.getElementById('open-now-canvas');
+  if ($openNowCanvas) {
+    $openNowCanvas.setAttribute('aria-checked', String(!!s.openNow));
   }
 }
 
@@ -2473,18 +2497,16 @@ function renderResult(data) {
   // Cuisine detection (for accent color + auto-theme)
   const cuisine = getCuisineFromResult(data);
 
-  // Auto-theme on result — wash spreads from match pill
-  if (getColorMode() === 'auto') {
-    if (cuisine.culture) {
-      const $pill = document.getElementById('match-pill');
-      if ($pill) {
-        const pillRect = $pill.getBoundingClientRect();
-        setWashOrigin(pillRect.left + pillRect.width / 2, pillRect.top + pillRect.height / 2);
-      }
-      setTheme(cuisine.culture, getState().theme.mode);
-    } else {
-      revertAutoTheme();
+  // Auto-theme on result — wash spreads from score ring
+  if (cuisine.culture) {
+    const $scoreRing = document.getElementById('score-hero-ring-fill') || document.getElementById('match-pill');
+    if ($scoreRing) {
+      const ringRect = $scoreRing.getBoundingClientRect();
+      setWashOrigin(ringRect.left + ringRect.width / 2, ringRect.top + ringRect.height / 2);
     }
+    setTheme(cuisine.culture, getState().theme.mode);
+  } else {
+    revertAutoTheme();
   }
 
   // F1: Render restaurant photos
@@ -4266,12 +4288,22 @@ function wireSwipe() {
 
     const { step } = getState();
 
-    // Only allow swipe-right on result to go back to canvas
+    // Swipe-right on result → back to canvas
     if (dx > 0 && step === 1 && (dx > COMPLETE_THRESHOLD || velocity > VELOCITY_THRESHOLD)) {
       haptic(HAPTICS.swipe);
       unfoldResultToCanvas();
       syncFilterPillsToState();
       revertAutoTheme();
+    }
+
+    // Swipe-left on result → try another (next in ranked queue)
+    if (dx < 0 && step === 1 && (Math.abs(dx) > COMPLETE_THRESHOLD || velocity > VELOCITY_THRESHOLD)) {
+      haptic(HAPTICS.tick);
+      // Trigger the same action as "Try Another" button
+      const $tryAnother = document.querySelector('[data-action="try-again"]');
+      if ($tryAnother && !$tryAnother.disabled) {
+        $tryAnother.click();
+      }
     }
   }, { passive: true });
 }
@@ -4533,85 +4565,6 @@ function dismissCoachMark() {
   showCoachStep();
 }
 
-/* ---- Color Mode Popover ---- */
-
-const POPOVER_CULTURES = [
-  { id: 'neutral',       name: 'Studio',    region: 'Universal',          mood: 'Warm terracotta \u00b7 Earthy warmth \u00b7 The canvas',      tagline: 'The blank page before the masterpiece',     hue: 'hsl(18 45% 42%)',  swatches: ['hsl(18 45% 42%)', 'hsl(18 8% 97%)', 'hsl(18 12% 12%)'] },
-  { id: 'indian',        name: 'Desi',      region: 'Warm Earth',         mood: 'Ornate warmth \u00b7 Saffron tones \u00b7 Ink depth',         tagline: 'Warmth woven into every detail',            hue: 'hsl(28 88% 50%)',  swatches: ['hsl(28 88% 50%)', 'hsl(350 70% 50%)', 'hsl(22 90% 48%)'] },
-  { id: 'middleeastern', name: 'Bazaar',    region: 'Hammered Gold',      mood: 'Brass patina \u00b7 Arabesque geometry \u00b7 Gold leaf',     tagline: 'Where every gathering is golden',           hue: 'hsl(48 72% 46%)',  swatches: ['hsl(48 72% 46%)', 'hsl(0 60% 50%)', 'hsl(35 85% 50%)'] },
-  { id: 'japanese',      name: 'Zen',       region: 'Ink Wash',           mood: 'Wabi-sabi \u00b7 Indigo restraint \u00b7 Quiet depth',        tagline: 'Less is more, silence is loud',             hue: 'hsl(220 35% 45%)', swatches: ['hsl(220 35% 45%)', 'hsl(45 12% 97%)', 'hsl(220 18% 15%)'] },
-  { id: 'southamerican', name: 'Sabor',     region: 'Tropical Fire',      mood: 'Vivid warmth \u00b7 Tropical palette \u00b7 Festival energy', tagline: 'Energy runs through everything',            hue: 'hsl(350 80% 52%)', swatches: ['hsl(350 80% 52%)', 'hsl(170 55% 38%)', 'hsl(45 90% 55%)'] },
-];
-
-let popoverInitialized = false;
-
-function initColorPopover() {
-  if (popoverInitialized) return;
-  popoverInitialized = true;
-
-  const container = document.getElementById('color-popover-cultures');
-  if (!container) return;
-
-  // Build culture dots
-  POPOVER_CULTURES.forEach(culture => {
-    const dot = document.createElement('button');
-    dot.className = 'color-popover__dot';
-    dot.dataset.action = 'select-culture';
-    dot.dataset.theme = culture.id;
-    dot.style.background = culture.hue;
-    dot.setAttribute('role', 'radio');
-    dot.setAttribute('aria-checked', 'false');
-    dot.setAttribute('aria-label', `${culture.name} theme`);
-
-    const srLabel = document.createElement('span');
-    srLabel.className = 'color-popover__dot-label';
-    srLabel.textContent = culture.name;
-    dot.appendChild(srLabel);
-
-    container.appendChild(dot);
-  });
-
-  updateColorPopoverDots();
-  updateColorPopoverState();
-}
-
-function updateColorPopoverDots() {
-  const currentCulture = getState().theme.culture;
-  document.querySelectorAll('.color-popover__dot').forEach(dot => {
-    const isActive = dot.dataset.theme === currentCulture && isManualOverride();
-    dot.classList.toggle('color-popover__dot--active', isActive);
-    dot.setAttribute('aria-checked', String(isActive));
-  });
-}
-
-function updateColorPopoverState() {
-  const switchEl = document.getElementById('color-mode-switch');
-  if (switchEl) {
-    const isAuto = getColorMode() === 'auto';
-    switchEl.setAttribute('aria-checked', String(isAuto));
-  }
-}
-
-function toggleColorPopover() {
-  initColorPopover();
-  const popover = document.getElementById('color-popover');
-  if (!popover) return;
-
-  if (popover.classList.contains('color-popover--open')) {
-    closeColorPopover();
-  } else {
-    updateColorPopoverDots();
-    updateColorPopoverState();
-    popover.classList.add('color-popover--open');
-  }
-}
-
-function closeColorPopover() {
-  const popover = document.getElementById('color-popover');
-  if (!popover) return;
-  popover.classList.remove('color-popover--open');
-  document.querySelector('[data-action="toggle-color"]')?.focus();
-}
 
 /* ---- SSO: Auth UI Helpers ---- */
 
