@@ -512,8 +512,64 @@ function initSectionToggles() {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// Start Dropdown (Test Count)
+// Start Dropdown (Test Count + Filters)
 // ═══════════════════════════════════════════════════════════════════
+
+// Which agents are enabled for the next run
+const agentFilter = { atlas: true, sentinel: true, hunter: true, qaudit: true, guardian: true };
+
+const FILTER_PRESETS = {
+  full:       { atlas: true, sentinel: true, hunter: true, qaudit: true, guardian: true },
+  quick:      { atlas: true, sentinel: false, hunter: false, qaudit: false, guardian: false },
+  regression: { atlas: false, sentinel: true, hunter: false, qaudit: false, guardian: false },
+  security:   { atlas: false, sentinel: false, hunter: true, qaudit: false, guardian: false },
+};
+
+function applyFilterPreset(preset) {
+  const cfg = FILTER_PRESETS[preset];
+  if (!cfg) return;
+  Object.assign(agentFilter, cfg);
+  syncFilterUI();
+  updateActivePresetUI(preset);
+  updateFilterSummary();
+}
+
+function syncFilterUI() {
+  document.querySelectorAll('.cc-filter-chip').forEach(chip => {
+    const agentId = chip.dataset.agent;
+    const cb = chip.querySelector('input[type="checkbox"]');
+    if (cb) cb.checked = agentFilter[agentId];
+    chip.classList.toggle('cc-filter-chip--checked', agentFilter[agentId]);
+  });
+}
+
+function updateActivePresetUI(activePreset) {
+  document.querySelectorAll('.cc-filter-preset').forEach(btn => {
+    btn.classList.toggle('cc-filter-preset--active', btn.dataset.preset === activePreset);
+  });
+}
+
+function detectActivePreset() {
+  for (const [name, cfg] of Object.entries(FILTER_PRESETS)) {
+    if (Object.keys(cfg).every(k => agentFilter[k] === cfg[k])) return name;
+  }
+  return null;
+}
+
+function updateFilterSummary() {
+  const el = document.getElementById('filter-summary');
+  if (!el) return;
+  const count = Object.values(agentFilter).filter(Boolean).length;
+  const slider = document.getElementById('test-count-slider');
+  const queries = slider ? parseInt(slider.value) : 10;
+  // Cost estimate: Atlas uses queries, others add ~30% overhead
+  const apiCalls = (agentFilter.atlas ? queries : 0) +
+    (agentFilter.sentinel ? Math.min(15, Math.ceil(queries * 0.5)) : 0) +
+    (agentFilter.hunter ? Math.min(10, Math.ceil(queries * 0.3)) : 0) +
+    (agentFilter.guardian ? Math.min(5, Math.ceil(queries * 0.2)) : 0);
+  const est = (apiCalls * 0.01).toFixed(2);
+  el.textContent = `${count} agent${count !== 1 ? 's' : ''} · ${agentFilter.atlas ? queries + ' queries · ' : ''}~$${est}`;
+}
 
 function toggleStartDropdown(e) {
   e.stopPropagation();
@@ -530,11 +586,29 @@ function initStartDropdown() {
     slider.addEventListener('input', () => {
       const count = parseInt(slider.value);
       if (valEl) valEl.textContent = count;
-      // Estimate: each Atlas query = 1 API call (~$0.01), plus ~30% overhead for other agents
       const est = (count * 1.3 * 0.01).toFixed(2);
       if (costEl) costEl.textContent = `Est. ~$${est} API usage`;
+      updateFilterSummary();
     });
   }
+
+  // Wire up chip checkboxes
+  document.querySelectorAll('.cc-filter-chip').forEach(chip => {
+    chip.addEventListener('click', (e) => {
+      e.preventDefault();
+      const agentId = chip.dataset.agent;
+      agentFilter[agentId] = !agentFilter[agentId];
+      // Ensure at least one agent is always selected
+      if (Object.values(agentFilter).every(v => !v)) {
+        agentFilter[agentId] = true;
+      }
+      syncFilterUI();
+      updateActivePresetUI(detectActivePreset());
+      updateFilterSummary();
+    });
+  });
+
+  updateFilterSummary();
 
   // Close dropdown when clicking outside
   document.addEventListener('click', (e) => {

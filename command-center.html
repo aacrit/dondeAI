@@ -132,12 +132,51 @@
           <div class="cc-controls">
             <div class="cc-start-group">
               <button class="cc-btn cc-btn--start" id="btn-start" onclick="handleStart()">Start</button>
-              <button class="cc-btn cc-btn--start cc-start-group__arrow" id="btn-start-arrow" onclick="toggleStartDropdown(event)" title="Configure test count">&#9662;</button>
+              <button class="cc-btn cc-btn--start cc-start-group__arrow" id="btn-start-arrow" onclick="toggleStartDropdown(event)" title="Configure tests">&#9662;</button>
               <div class="cc-start-dropdown" id="start-dropdown">
-                <label class="cc-start-dropdown__label">Test Cases</label>
+                <!-- Presets -->
+                <label class="cc-start-dropdown__label">Quick Presets</label>
+                <div class="cc-filter-presets">
+                  <button class="cc-filter-preset cc-filter-preset--active" data-preset="full" onclick="applyFilterPreset('full')">Full Suite</button>
+                  <button class="cc-filter-preset" data-preset="quick" onclick="applyFilterPreset('quick')">Quick Scan</button>
+                  <button class="cc-filter-preset" data-preset="regression" onclick="applyFilterPreset('regression')">Regression</button>
+                  <button class="cc-filter-preset" data-preset="security" onclick="applyFilterPreset('security')">Security</button>
+                </div>
+
+                <div class="cc-filter-divider"></div>
+
+                <!-- Agent Filters -->
+                <label class="cc-start-dropdown__label">Agents</label>
+                <div class="cc-filter-chips" id="agent-filter-chips">
+                  <label class="cc-filter-chip cc-filter-chip--checked" data-agent="atlas">
+                    <input type="checkbox" checked> <span class="cc-filter-chip__dot" style="background:#3b82f6"></span> Atlas <span class="cc-filter-chip__sub">Search</span>
+                  </label>
+                  <label class="cc-filter-chip cc-filter-chip--checked" data-agent="sentinel">
+                    <input type="checkbox" checked> <span class="cc-filter-chip__dot" style="background:#f59e0b"></span> Sentinel <span class="cc-filter-chip__sub">Regression</span>
+                  </label>
+                  <label class="cc-filter-chip cc-filter-chip--checked" data-agent="hunter">
+                    <input type="checkbox" checked> <span class="cc-filter-chip__dot" style="background:#ef4444"></span> Hunter <span class="cc-filter-chip__sub">Edge Cases</span>
+                  </label>
+                  <label class="cc-filter-chip cc-filter-chip--checked" data-agent="qaudit">
+                    <input type="checkbox" checked> <span class="cc-filter-chip__dot" style="background:#8b5cf6"></span> QAudit <span class="cc-filter-chip__sub">Blurb Quality</span>
+                  </label>
+                  <label class="cc-filter-chip cc-filter-chip--checked" data-agent="guardian">
+                    <input type="checkbox" checked> <span class="cc-filter-chip__dot" style="background:#22c55e"></span> Guardian <span class="cc-filter-chip__sub">Data Health</span>
+                  </label>
+                </div>
+
+                <div class="cc-filter-divider"></div>
+
+                <!-- Query Count -->
+                <label class="cc-start-dropdown__label">Test Queries (Atlas)</label>
                 <input type="range" id="test-count-slider" class="cc-start-dropdown__slider" min="5" max="30" step="5" value="10">
                 <div class="cc-start-dropdown__value"><span id="test-count-val">10</span> queries</div>
                 <div class="cc-start-dropdown__cost" id="test-cost-estimate">Est. ~$0.10 API usage</div>
+
+                <div class="cc-filter-divider"></div>
+
+                <!-- Summary -->
+                <div class="cc-filter-summary" id="filter-summary">5 agents &middot; 10 queries &middot; ~$0.10</div>
               </div>
             </div>
             <button class="cc-btn cc-btn--pause" id="btn-pause" onclick="handlePause()" disabled>Pause</button>

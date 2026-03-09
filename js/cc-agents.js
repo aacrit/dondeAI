@@ -65,7 +65,27 @@ function handleStart() {
   updateSystemStatus('Online', 'green');
   document.getElementById('paused-overlay').classList.remove('cc-paused--visible');
 
-  addLog('SYSTEM', `All agents deployed (${state.maxTestQueries} test queries). Monitoring active.`, 'star');
+  const enabledAgents = Object.keys(agentFilter).filter(k => agentFilter[k]);
+  state.enabledAgents = enabledAgents;
+  const agentNames = enabledAgents.map(k => AGENT_DEFS[k]?.name || k).join(', ');
+  addLog('SYSTEM', `Deployed: ${agentNames} (${state.maxTestQueries} queries). Monitoring active.`, 'star');
+
+  // If Atlas not enabled, auto-stop after all enabled agents hit their budget
+  if (!agentFilter.atlas) {
+    state.noAtlasAutoStop = setInterval(() => {
+      const allDone = enabledAgents.every(id => {
+        const a = state.agents[id];
+        const budget = AGENT_DEFS[id]?.budget || 0;
+        return budget === 0 || (a.apiUsed >= budget);
+      });
+      if (allDone) {
+        clearInterval(state.noAtlasAutoStop);
+        addLog('SYSTEM', 'All enabled agents completed. Auto-stopping.', 'star');
+        handleStop();
+      }
+    }, 5000);
+  }
+
   startAgentCycles();
 
   if (state.pollTimer) clearInterval(state.pollTimer);
@@ -112,6 +132,7 @@ async function handleStop() {
 
   stopAgentCycles();
   if (state.pollTimer) { clearInterval(state.pollTimer); state.pollTimer = null; }
+  if (state.noAtlasAutoStop) { clearInterval(state.noAtlasAutoStop); state.noAtlasAutoStop = null; }
 
   // Show game-over with save status
   showGameOver(sessionStartTime);
@@ -154,16 +175,27 @@ async function handleStop() {
 // ═══════════════════════════════════════════════════════════════════
 
 function startAgentCycles() {
-  state.cycleTimers.atlas = setInterval(() => runAtlasCycle(), 30000);
-  runAtlasCycle();
-  state.cycleTimers.qaudit = setInterval(() => runQauditCycle(), 45000);
-  setTimeout(() => runQauditCycle(), 5000);
-  state.cycleTimers.sentinel = setInterval(() => runSentinelCycle(), 60000);
-  setTimeout(() => runSentinelCycle(), 10000);
-  state.cycleTimers.hunter = setInterval(() => runHunterCycle(), 40000);
-  setTimeout(() => runHunterCycle(), 15000);
-  state.cycleTimers.guardian = setInterval(() => runGuardianCycle(), 90000);
-  setTimeout(() => runGuardianCycle(), 20000);
+  // Only launch agents that are enabled by the filter
+  if (agentFilter.atlas) {
+    state.cycleTimers.atlas = setInterval(() => runAtlasCycle(), 30000);
+    runAtlasCycle();
+  }
+  if (agentFilter.qaudit) {
+    state.cycleTimers.qaudit = setInterval(() => runQauditCycle(), 45000);
+    setTimeout(() => runQauditCycle(), 5000);
+  }
+  if (agentFilter.sentinel) {
+    state.cycleTimers.sentinel = setInterval(() => runSentinelCycle(), 60000);
+    setTimeout(() => runSentinelCycle(), 10000);
+  }
+  if (agentFilter.hunter) {
+    state.cycleTimers.hunter = setInterval(() => runHunterCycle(), 40000);
+    setTimeout(() => runHunterCycle(), 15000);
+  }
+  if (agentFilter.guardian) {
+    state.cycleTimers.guardian = setInterval(() => runGuardianCycle(), 90000);
+    setTimeout(() => runGuardianCycle(), 20000);
+  }
 }
 
 function stopAgentCycles() {

@@ -1330,8 +1330,8 @@ tr.expandable:hover td { background: var(--cc-surface-2); }
   background: var(--cc-surface-2);
   border: 1px solid var(--cc-border-focus);
   border-radius: var(--cc-radius);
-  padding: 12px 14px;
-  min-width: 180px;
+  padding: 14px 16px;
+  min-width: 240px;
   z-index: 50;
   box-shadow: 0 8px 24px rgba(0,0,0,0.4);
 }
@@ -1367,6 +1367,104 @@ tr.expandable:hover td { background: var(--cc-surface-2); }
   font-size: 0.65rem;
   color: var(--cc-text-3);
   text-align: center;
+}
+
+/* ─── Filter Presets ─── */
+.cc-filter-presets {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.cc-filter-preset {
+  padding: 4px 10px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  font-family: var(--cc-mono);
+  border: 1px solid var(--cc-border);
+  border-radius: 20px;
+  background: transparent;
+  color: var(--cc-text-2);
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.cc-filter-preset:hover {
+  border-color: var(--cc-text);
+  color: var(--cc-text);
+}
+
+.cc-filter-preset--active {
+  background: var(--cc-green);
+  border-color: var(--cc-green);
+  color: #000;
+}
+
+.cc-filter-divider {
+  height: 1px;
+  background: var(--cc-border);
+  margin: 10px 0;
+}
+
+/* ─── Agent Filter Chips ─── */
+.cc-filter-chips {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cc-filter-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--cc-text-3);
+  transition: all 150ms ease;
+  user-select: none;
+}
+
+.cc-filter-chip input[type="checkbox"] {
+  display: none;
+}
+
+.cc-filter-chip:hover {
+  background: var(--cc-surface-3);
+}
+
+.cc-filter-chip--checked {
+  color: var(--cc-text);
+}
+
+.cc-filter-chip__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  opacity: 0.35;
+  transition: opacity 150ms ease;
+}
+
+.cc-filter-chip--checked .cc-filter-chip__dot {
+  opacity: 1;
+}
+
+.cc-filter-chip__sub {
+  font-size: 0.6rem;
+  color: var(--cc-text-3);
+  margin-left: auto;
+}
+
+/* ─── Filter Summary ─── */
+.cc-filter-summary {
+  font-size: 0.68rem;
+  font-family: var(--cc-mono);
+  color: var(--cc-text-2);
+  text-align: center;
+  padding: 2px 0;
 }
 
 /* ─── Agent Pulse Animation ─── */
