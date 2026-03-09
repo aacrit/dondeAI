@@ -265,15 +265,36 @@ body {
   color: var(--cc-text-3);
 }
 
+/* ─── Status Strip ─── */
+.cc-status-strip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 16px;
+  margin-bottom: 16px;
+  background: var(--cc-surface);
+  border: 1px solid var(--cc-border);
+  border-radius: 8px;
+  font-size: 0.72rem;
+  color: var(--cc-text-2);
+  min-height: 32px;
+  flex-wrap: wrap;
+}
+
+.cc-status-strip__item { white-space: nowrap; }
+.cc-status-strip__dot { color: var(--cc-text-3); font-size: 0.6rem; }
+.cc-status-strip__item strong { color: var(--cc-text); font-weight: 600; }
+
 /* ─── Quick Actions Row ─── */
 .cc-actions {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 10px;
   margin-bottom: 20px;
 }
 
-@media (max-width: 700px) { .cc-actions { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 600px) { .cc-actions { grid-template-columns: 1fr; } }
 
 .cc-action {
   display: flex;
@@ -387,6 +408,89 @@ body {
   .cc-agent-dot__label { display: none; }
 }
 
+/* ─── Agent Table (compact replacement for 5 full cards) ─── */
+.cc-agent-table-wrap {
+  margin-bottom: 14px;
+  overflow-x: auto;
+}
+
+.cc-agent-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.75rem;
+}
+
+.cc-agent-table th {
+  padding: 6px 10px;
+  text-align: left;
+  font-size: 0.62rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--cc-text-3);
+  border-bottom: 1px solid var(--cc-border);
+  background: var(--cc-surface);
+}
+
+.cc-agent-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--cc-border);
+  color: var(--cc-text);
+  vertical-align: middle;
+}
+
+.cc-agent-table tbody tr {
+  transition: background 0.15s;
+}
+
+.cc-agent-table tbody tr:hover {
+  background: var(--cc-surface-2);
+}
+
+.cc-agent-table__dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.cc-agent-table__hp {
+  width: 60px;
+  height: 6px;
+  background: var(--cc-surface-3);
+  border-radius: 3px;
+  overflow: hidden;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.cc-agent-table__hp-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.cc-agent-table__hp-fill--high { background: var(--cc-green); }
+.cc-agent-table__hp-fill--medium { background: var(--cc-amber); }
+.cc-agent-table__hp-fill--low { background: var(--cc-red); }
+
+.cc-agent-table__status {
+  font-size: 0.65rem;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.cc-agent-table__status--idle { color: var(--cc-text-3); }
+.cc-agent-table__status--running { color: var(--cc-green); background: rgba(52,211,153,0.1); }
+.cc-agent-table__status--paused { color: var(--cc-amber); background: rgba(240,166,58,0.1); }
+.cc-agent-table__status--error { color: var(--cc-red); background: rgba(239,100,97,0.1); }
+
+.cc-mono { font-family: var(--cc-mono); font-size: 0.68rem; }
+
 /* ─── Controls Row (inside agent section) ─── */
 .cc-controls-row {
   display: flex;
@@ -410,10 +514,10 @@ body {
   white-space: nowrap;
 }
 
-/* ─── KPI Cards (legacy — used in production mode) ─── */
+/* ─── KPI Cards (production section) ─── */
 .cc-kpis {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 10px;
   margin-bottom: 20px;
 }
