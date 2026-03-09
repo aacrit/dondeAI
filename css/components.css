@@ -561,11 +561,15 @@
 .filter-drawer {
   width: 100%;
   margin-top: var(--space-xs);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .filter-drawer__toggle {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: var(--space-xs);
   padding: var(--space-xs) 0;
   color: var(--fg3);
@@ -666,6 +670,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
+  width: 100%;
   transform-origin: top center;
   animation: drawerOpen 300ms var(--ease-out) forwards;
 }
@@ -906,6 +911,7 @@
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
   padding: var(--space-2xs) 0;
+  justify-content: center;
 }
 .occasion-strip::-webkit-scrollbar { display: none; }
 
@@ -915,6 +921,7 @@
   align-items: center;
   gap: var(--space-3xs, 2px);
   min-width: 64px;
+  flex-shrink: 0;
   padding: var(--space-xs) var(--space-sm);
   background: var(--glass);
   border: 1px solid var(--border);
@@ -6337,12 +6344,17 @@
   animation: inkDissolve var(--dur-morph) var(--ease-out) 120ms forwards;
   pointer-events: none;
 }
+.canvas-layout--morphing .occasion-strip,
+.canvas-layout--morphing .canvas-toggles {
+  animation: inkDissolve var(--dur-morph) var(--ease-out) 140ms forwards;
+  pointer-events: none;
+}
+.canvas-layout--morphing .filter-narrative,
 .canvas-layout--morphing .filter-drawer,
 .canvas-layout--morphing .cta-hint {
   animation: inkDissolve var(--dur-morph) var(--ease-out) 180ms forwards;
   pointer-events: none;
 }
-.canvas-layout--morphing .surprise-btn,
 .canvas-layout--morphing .saved-spots,
 .canvas-layout--morphing .empty-state {
   animation: inkDissolve var(--dur-morph) var(--ease-out) 240ms forwards;
@@ -6423,8 +6435,10 @@
 .canvas-layout--restoring .filter-drawer,
 .canvas-layout--restoring .smart-chips,
 .canvas-layout--restoring .taste-memory,
+.canvas-layout--restoring .occasion-strip,
+.canvas-layout--restoring .canvas-toggles,
+.canvas-layout--restoring .filter-narrative,
 .canvas-layout--restoring .cta-hint,
-.canvas-layout--restoring .surprise-btn,
 .canvas-layout--restoring .saved-spots,
 .canvas-layout--restoring .step__title,
 .canvas-layout--restoring .empty-state {
