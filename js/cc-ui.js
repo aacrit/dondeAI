@@ -741,13 +741,6 @@ function renderLogEntry(entry) {
   while (logEl.children.length > MAX_LOG_ENTRIES) logEl.removeChild(logEl.firstChild);
 }
 
-function filterLog(filter) {
-  state.logFilter = filter;
-  document.querySelectorAll('.cc-log__filter').forEach(btn => btn.classList.toggle('cc-log__filter--active', btn.dataset.filter === filter));
-  const logEl = document.getElementById('battle-log');
-  if (logEl) { logEl.innerHTML = ''; state.logs.forEach(entry => renderLogEntry(entry)); }
-}
-
 // ═══════════════════════════════════════════════════════════════════
 // Notifications
 // ═══════════════════════════════════════════════════════════════════

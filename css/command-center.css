@@ -509,18 +509,6 @@ body {
   color: var(--cc-text-3);
 }
 
-.cc-action--advisor {
-  border-color: rgba(139,143,245,0.3);
-  background: rgba(139,143,245,0.04);
-}
-
-.cc-action--advisor:hover {
-  border-color: var(--cc-accent);
-  background: rgba(139,143,245,0.08);
-}
-
-.cc-action--advisor .cc-action__icon { color: var(--cc-accent); }
-
 .cc-action--rerun {
   border-color: rgba(245,158,11,0.3);
   background: rgba(245,158,11,0.04);
@@ -531,66 +519,12 @@ body {
 }
 .cc-action--rerun .cc-action__icon { color: var(--cc-amber); }
 
-.cc-action--mode .cc-action__icon { color: var(--cc-text-2); }
-
 .cc-action--active {
   border-color: var(--cc-green);
   background: rgba(52,211,153,0.06);
 }
 
 .cc-action--active .cc-action__icon { color: var(--cc-green); }
-
-/* ─── Agent Dots (compact strip) ─── */
-.cc-agent-dots {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-.cc-agent-dot {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.cc-agent-dot__pip {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--cc-surface-3);
-  border: 2px solid var(--cc-border);
-  transition: all 0.3s;
-}
-
-.cc-agent-dot--atlas .cc-agent-dot__pip { border-color: var(--agent-atlas); }
-.cc-agent-dot--qaudit .cc-agent-dot__pip { border-color: var(--agent-qaudit); }
-.cc-agent-dot--sentinel .cc-agent-dot__pip { border-color: var(--agent-sentinel); }
-.cc-agent-dot--hunter .cc-agent-dot__pip { border-color: var(--agent-hunter); }
-.cc-agent-dot--guardian .cc-agent-dot__pip { border-color: var(--agent-guardian); }
-
-.cc-agent-dot__pip.dot-running {
-  animation: cc-pulse 1.5s ease-in-out infinite;
-}
-
-.cc-agent-dot--atlas .cc-agent-dot__pip.dot-running { background: var(--agent-atlas); }
-.cc-agent-dot--qaudit .cc-agent-dot__pip.dot-running { background: var(--agent-qaudit); }
-.cc-agent-dot--sentinel .cc-agent-dot__pip.dot-running { background: var(--agent-sentinel); }
-.cc-agent-dot--hunter .cc-agent-dot__pip.dot-running { background: var(--agent-hunter); }
-.cc-agent-dot--guardian .cc-agent-dot__pip.dot-running { background: var(--agent-guardian); }
-
-.cc-agent-dot__pip.dot-done { background: var(--cc-green); border-color: var(--cc-green); }
-.cc-agent-dot__pip.dot-error { background: var(--cc-red); border-color: var(--cc-red); }
-
-.cc-agent-dot__label {
-  font-size: 0.6rem;
-  color: var(--cc-text-3);
-  font-weight: 500;
-}
-
-@media (max-width: 700px) {
-  .cc-agent-dots { gap: 8px; }
-  .cc-agent-dot__label { display: none; }
-}
 
 /* ─── Agent Table (compact replacement for 5 full cards) ─── */
 .cc-agent-table-wrap {
@@ -1164,152 +1098,6 @@ body {
   text-align: right;
 }
 
-/* ─── Agent Grid ─── */
-.cc-agents {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 10px;
-  margin-bottom: 14px;
-}
-
-@media (max-width: 1100px) { .cc-agents { grid-template-columns: repeat(3, 1fr); } }
-@media (max-width: 700px) { .cc-agents { grid-template-columns: 1fr; } }
-
-.cc-agent {
-  background: var(--cc-surface-2);
-  border: 1px solid var(--cc-border);
-  border-radius: var(--cc-radius);
-  padding: 12px;
-  border-left: 3px solid var(--cc-text-3);
-  transition: border-color 0.2s, transform 0.15s;
-}
-
-.cc-agent:hover { transform: translateY(-1px); }
-
-.cc-agent--atlas { border-left-color: var(--agent-atlas); }
-.cc-agent--qaudit { border-left-color: var(--agent-qaudit); }
-.cc-agent--sentinel { border-left-color: var(--agent-sentinel); }
-.cc-agent--hunter { border-left-color: var(--agent-hunter); }
-.cc-agent--guardian { border-left-color: var(--agent-guardian); }
-
-.cc-agent__header {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-.cc-agent__name {
-  font-size: 0.82rem;
-  font-weight: 600;
-}
-
-.cc-agent__role {
-  font-size: 0.65rem;
-  color: var(--cc-text-3);
-  flex: 1;
-}
-
-.cc-agent__level {
-  font-size: 0.65rem;
-  font-weight: 600;
-  font-family: var(--cc-mono);
-  color: var(--cc-accent);
-  transition: transform 0.3s ease;
-}
-
-.cc-agent__level.level-up {
-  transform: scale(1.3);
-  color: var(--cc-green);
-}
-
-/* Agent health bar */
-.cc-agent__health {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 6px;
-}
-
-.cc-agent__health-track {
-  flex: 1;
-  height: 5px;
-  background: var(--cc-surface-3);
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.cc-agent__health-fill {
-  height: 100%;
-  border-radius: 3px;
-  transition: width 0.4s ease;
-}
-
-.cc-agent__health-fill--high { background: var(--cc-green); }
-.cc-agent__health-fill--medium { background: var(--cc-amber); }
-.cc-agent__health-fill--low { background: var(--cc-red); }
-
-.cc-agent__health-val {
-  font-size: 0.62rem;
-  font-family: var(--cc-mono);
-  color: var(--cc-text-2);
-  min-width: 28px;
-  text-align: right;
-}
-
-.cc-agent__xp {
-  font-size: 0.62rem;
-  font-family: var(--cc-mono);
-  color: var(--cc-text-3);
-  margin-bottom: 8px;
-}
-
-/* Agent stats grid */
-.cc-agent__stats {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4px;
-}
-
-.cc-agent__stat {
-  display: flex;
-  justify-content: space-between;
-  padding: 2px 0;
-}
-
-.cc-agent__stat-label {
-  font-size: 0.62rem;
-  color: var(--cc-text-3);
-}
-
-.cc-agent__stat-value {
-  font-size: 0.68rem;
-  font-weight: 500;
-  font-family: var(--cc-mono);
-  color: var(--cc-text);
-}
-
-.cc-agent__stat-value--good { color: var(--cc-green); }
-.cc-agent__stat-value--warn { color: var(--cc-amber); }
-.cc-agent__stat-value--bad { color: var(--cc-red); }
-
-/* Agent status badge */
-.cc-agent__status {
-  margin-top: 8px;
-  text-align: center;
-  font-size: 0.65rem;
-  font-weight: 600;
-  padding: 3px 8px;
-  border-radius: 4px;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-}
-
-.cc-agent__status--idle { background: var(--cc-surface-3); color: var(--cc-text-3); }
-.cc-agent__status--running { background: rgba(52,211,153,0.12); color: var(--cc-green); }
-.cc-agent__status--paused { background: rgba(240,166,58,0.12); color: var(--cc-amber); }
-.cc-agent__status--error { background: rgba(239,100,97,0.12); color: var(--cc-red); }
-
 /* ─── Rankings ─── */
 .cc-rankings {
   background: var(--cc-surface-2);
@@ -1355,28 +1143,6 @@ body {
 }
 
 /* ─── Activity Log ─── */
-.cc-log__filters {
-  display: flex;
-  gap: 4px;
-  margin-bottom: 10px;
-  flex-wrap: wrap;
-}
-
-.cc-log__filter {
-  font-size: 0.68rem;
-  padding: 3px 10px;
-  border-radius: 4px;
-  border: 1px solid var(--cc-border);
-  background: transparent;
-  color: var(--cc-text-3);
-  cursor: pointer;
-  font-family: var(--cc-font);
-  transition: all 0.15s;
-}
-
-.cc-log__filter:hover { color: var(--cc-text); border-color: var(--cc-border-focus); }
-.cc-log__filter--active { background: var(--cc-accent-dim); color: var(--cc-accent); border-color: var(--cc-accent); }
-
 .cc-log__entries {
   max-height: 360px;
   overflow-y: auto;
@@ -2116,9 +1882,8 @@ tr.expandable:hover td { background: var(--cc-surface-2); }
   padding: 2px 0;
 }
 
-/* ─── Agent Pulse Animation ─── */
+/* ─── Pulse Animation (used by pipeline dots) ─── */
 @keyframes cc-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
-.cc-agent__status--running { animation: cc-pulse 1.5s ease-in-out infinite; }
 
 /* ─── Empty States ─── */
 .cc-empty-state {
