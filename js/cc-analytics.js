@@ -853,15 +853,18 @@ async function persistSessionToSupabase(results, startTime) {
   }
 
   // Insert run
+  const successful = results.filter(r => r.donde_match !== undefined && r.donde_match !== null).length;
   const { error: runError } = await sb.from('gauntlet_runs').insert({
     run_id: runId,
     total,
+    successful,
     gap_count: gapCount,
     avg_dm: avgDm,
     passed_60: passed60,
     passed_80: passed80,
     passed_90: passed90,
     mode: 'command-center',
+    dataset_hash: 'cc-live-' + new Date().toISOString().slice(0, 10),
     dataset_size: total,
     category_stats: categoryStats,
     factor_averages: factorAverages,
