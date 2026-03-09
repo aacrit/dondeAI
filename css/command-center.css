@@ -1769,6 +1769,10 @@ tr.expandable:hover td { background: var(--cc-surface-2); }
 .cc-cta-link__text { flex: 1; }
 .cc-cta-link__arrow { color: var(--cc-text-3); font-size: 1rem; transition: transform 0.15s; }
 .cc-cta-link:hover .cc-cta-link__arrow { transform: translateX(3px); color: var(--cc-accent); }
+.cc-cta-link--advisor { border-color: var(--cc-accent); background: rgba(99,102,241,0.06); }
+.cc-cta-link--advisor .cc-cta-link__icon { color: var(--cc-accent); }
+.cc-cta-link__hint { color: var(--cc-text-3); font-size: 0.72rem; font-weight: 400; }
+.cc-cta-link__hint code { font-family: 'JetBrains Mono', monospace; background: rgba(99,102,241,0.1); padding: 1px 5px; border-radius: 3px; font-size: 0.7rem; }
 
 /* ─── Mode Toggle ─── */
 .cc-mode-toggle {

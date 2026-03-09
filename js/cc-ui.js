@@ -654,13 +654,17 @@ async function loadProductionDashboard() {
     const [
       totalSearches, todaySearches, uniqueUsers,
       avgScoreRes, recentQueries, errorQueries,
+      userHistory,
     ] = await Promise.all([
       sb.from('user_queries').select('*', { count: 'exact', head: true }),
       sb.from('user_queries').select('*', { count: 'exact', head: true }).gte('created_at', new Date(new Date().setHours(0,0,0,0)).toISOString()),
       sb.from('user_queries').select('user_id', { count: 'exact', head: true }).not('user_id', 'is', null),
       sb.from('user_queries').select('donde_match').not('donde_match', 'is', null).order('created_at', { ascending: false }).limit(100),
-      sb.from('user_queries').select('special_request, donde_match, created_at, response_restaurant_name').order('created_at', { ascending: false }).limit(20),
+      // Join with restaurants to get the name (user_queries has recommended_restaurant_id FK)
+      sb.from('user_queries').select('special_request, donde_match, created_at, occasion, restaurants(name)').order('created_at', { ascending: false }).limit(30),
       sb.from('user_queries').select('*', { count: 'exact', head: true }).lt('donde_match', 40),
+      // User search history (saved by authenticated users)
+      sb.from('user_searches').select('craving, restaurant_name, cuisine_type, donde_match, created_at, occasion').order('created_at', { ascending: false }).limit(30),
     ]);
 
     const totalCount = totalSearches.count || 0;
@@ -670,6 +674,7 @@ async function loadProductionDashboard() {
     const avgDm = recentScores.length > 0 ? Math.round(recentScores.reduce((s, r) => s + (r.donde_match || 0), 0) / recentScores.length) : 0;
     const lowScoreCount = errorQueries.count || 0;
     const recent = recentQueries.data || [];
+    const history = userHistory.data || [];
 
     // Render KPIs
     function prodCard(value, label, sub, colorClass) {
@@ -702,25 +707,53 @@ async function loadProductionDashboard() {
       `).join('');
     }
 
-    // Recent searches table
-    let h = '<div class="cc-subsection"><div class="cc-subsection__title">Recent User Searches</div>';
+    let h = '';
+
+    // Recent API searches table (from user_queries — every API call)
+    h += '<div class="cc-subsection"><div class="cc-subsection__title">Recent API Searches</div>';
     if (recent.length > 0) {
       h += '<div class="cc-table-wrap"><table class="cc-table"><thead><tr>';
-      h += '<th>Time</th><th>Query</th><th>Restaurant</th><th>DM</th>';
+      h += '<th>Time</th><th>Query</th><th>Occasion</th><th>Restaurant</th><th>DM</th>';
       h += '</tr></thead><tbody>';
       for (const q of recent) {
-        const time = q.created_at ? new Date(q.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '--';
+        const time = q.created_at ? new Date(q.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '--';
         const dm = q.donde_match;
+        const restName = q.restaurants?.name || '—';
         h += `<tr>
           <td style="font-family:var(--cc-mono);font-size:0.68rem;color:var(--cc-text-3)">${time}</td>
           <td>${escapeHtml((q.special_request || '').substring(0, 50))}</td>
-          <td>${escapeHtml((q.response_restaurant_name || '—').substring(0, 25))}</td>
+          <td style="font-size:0.68rem;color:var(--cc-text-3)">${escapeHtml((q.occasion || '—').substring(0, 15))}</td>
+          <td>${escapeHtml(restName.substring(0, 25))}</td>
           <td><span class="dm-badge ${dm != null ? ragClass(dm) : ''}">${dm != null ? dm : '—'}</span></td>
         </tr>`;
       }
       h += '</tbody></table></div>';
     } else {
       h += '<p class="cc-muted">No recent searches found.</p>';
+    }
+    h += '</div>';
+
+    // User search history (from user_searches — authenticated user saves)
+    h += '<div class="cc-subsection"><div class="cc-subsection__title">User History (Saved Searches)</div>';
+    if (history.length > 0) {
+      h += '<div class="cc-table-wrap"><table class="cc-table"><thead><tr>';
+      h += '<th>Date</th><th>Craving</th><th>Occasion</th><th>Restaurant</th><th>Cuisine</th><th>DM</th>';
+      h += '</tr></thead><tbody>';
+      for (const s of history) {
+        const date = s.created_at ? new Date(s.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '--';
+        const dm = s.donde_match;
+        h += `<tr>
+          <td style="font-family:var(--cc-mono);font-size:0.68rem;color:var(--cc-text-3)">${date}</td>
+          <td>${escapeHtml((s.craving || '').substring(0, 40))}</td>
+          <td style="font-size:0.68rem;color:var(--cc-text-3)">${escapeHtml((s.occasion || '—').substring(0, 15))}</td>
+          <td>${escapeHtml((s.restaurant_name || '—').substring(0, 25))}</td>
+          <td style="font-size:0.68rem;color:var(--cc-text-3)">${escapeHtml((s.cuisine_type || '—').substring(0, 15))}</td>
+          <td><span class="dm-badge ${dm != null ? ragClass(dm) : ''}">${dm != null ? dm : '—'}</span></td>
+        </tr>`;
+      }
+      h += '</tbody></table></div>';
+    } else {
+      h += '<p class="cc-muted">No saved user searches yet. Users see history after signing in.</p>';
     }
     h += '</div>';
 
