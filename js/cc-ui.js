@@ -1,6 +1,6 @@
 /**
  * DondeAI Command Center — UI Updates & Init
- * Pulse cards, agent dots, quick actions, agent card UI, focus strip, activity log, section toggles
+ * Pulse, status strip, agent table, quick actions, focus strip, activity log, section toggles
  */
 
 // ═══════════════════════════════════════════════════════════════════
@@ -36,6 +36,62 @@ function updateClock() {
 }
 
 // ═══════════════════════════════════════════════════════════════════
+// Status Strip (one-line contextual summary — auto-populated)
+// ═══════════════════════════════════════════════════════════════════
+
+async function loadStatusStrip() {
+  try {
+    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+    const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // Fire 3 parallel queries
+    const [latestRun, totalRes, enrichedRes, todayRes] = await Promise.all([
+      sb.from('gauntlet_runs').select('created_at, avg_dm, total, gap_count').order('created_at', { ascending: false }).limit(1),
+      sb.from('restaurants').select('*', { count: 'exact', head: true }),
+      sb.from('restaurants').select('*', { count: 'exact', head: true }).not('noise_level', 'is', null),
+      sb.from('user_queries').select('*', { count: 'exact', head: true }).gte('created_at', new Date(new Date().setHours(0,0,0,0)).toISOString()),
+    ]);
+
+    // Last run
+    const runEl = document.getElementById('strip-last-run');
+    if (latestRun.data?.[0]) {
+      const r = latestRun.data[0];
+      const date = new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+      const passRate = r.total > 0 ? Math.round((r.total - r.gap_count) / r.total * 100) : 0;
+      runEl.innerHTML = `Last run: <strong>${date}</strong> &middot; <strong class="${passRate >= 80 ? 'rag-green' : passRate >= 60 ? 'rag-amber' : 'rag-red'}">${passRate}% pass</strong>`;
+    } else {
+      runEl.textContent = 'No test runs yet';
+    }
+
+    // Data health
+    const dataEl = document.getElementById('strip-data');
+    const totalCount = totalRes.count || 0;
+    const enrichedCount = enrichedRes.count || 0;
+    const enrichedPct = totalCount > 0 ? Math.round(enrichedCount / totalCount * 100) : 0;
+    dataEl.innerHTML = `<strong>${totalCount}</strong> restaurants &middot; <strong class="${enrichedPct >= 90 ? 'rag-green' : enrichedPct >= 70 ? 'rag-amber' : 'rag-red'}">${enrichedPct}%</strong> enriched`;
+
+    // Also populate maintenance section summary
+    const maintSummary = document.getElementById('maintenance-summary');
+    if (maintSummary) maintSummary.textContent = `${totalCount} restaurants | ${enrichedPct}% enriched`;
+
+    // Production today
+    const prodEl = document.getElementById('strip-prod');
+    const todayCount = todayRes.count || 0;
+    prodEl.innerHTML = `<strong>${todayCount}</strong> searches today`;
+
+    // Also populate production section summary
+    const prodSummary = document.getElementById('production-summary');
+    if (prodSummary) prodSummary.textContent = `${todayCount} searches today`;
+
+  } catch (e) {
+    console.warn('Status strip load failed:', e);
+    document.getElementById('strip-last-run').textContent = 'Status unavailable';
+    document.getElementById('strip-data').textContent = '--';
+    document.getElementById('strip-prod').textContent = '--';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
 // Pulse Cards (3 big hero numbers)
 // ═══════════════════════════════════════════════════════════════════
 
@@ -46,54 +102,36 @@ function updatePulseCards() {
   const guardian = state.agents.guardian;
   const results = state.sessionResults || [];
 
-  // 1. System Health — composite of data health + pass rate + blurb grade
-  let healthScore = 0;
-  let healthParts = 0;
-
-  // Pass rate component
+  // 1. System Health — composite
+  let healthScore = 0, healthParts = 0;
   let passRate = 0;
   if (results.length > 0) {
     const passed = results.filter(r => r.donde_match >= 60).length;
     passRate = Math.round((passed / results.length) * 100);
-    healthScore += passRate;
-    healthParts++;
+    healthScore += passRate; healthParts++;
   } else if (atlas.total > 0) {
     passRate = Math.round((atlas.pass / atlas.total) * 100);
-    healthScore += passRate;
-    healthParts++;
+    healthScore += passRate; healthParts++;
   }
-
-  // Data coverage component
-  if (guardian.coverage !== '--') {
-    healthScore += parseInt(guardian.coverage) || 0;
-    healthParts++;
-  }
-
-  // Blurb grade component
+  if (guardian.coverage !== '--') { healthScore += parseInt(guardian.coverage) || 0; healthParts++; }
   if (qaudit.grade !== '--') {
     const gradeMap = { 'A': 100, 'A-': 90, 'B+': 85, 'B': 75, 'C': 50, 'F': 20 };
-    healthScore += gradeMap[qaudit.grade] || 50;
-    healthParts++;
+    healthScore += gradeMap[qaudit.grade] || 50; healthParts++;
   }
 
   const compositeHealth = healthParts > 0 ? Math.round(healthScore / healthParts) : null;
-
-  // Update health ring
   const healthVal = document.getElementById('pulse-health-val');
   const healthRing = document.getElementById('pulse-health-ring');
   const healthSub = document.getElementById('pulse-health-sub');
   if (healthVal && compositeHealth !== null) {
     healthVal.textContent = compositeHealth + '%';
     healthVal.style.color = compositeHealth >= 80 ? 'var(--cc-green)' : compositeHealth >= 60 ? 'var(--cc-amber)' : 'var(--cc-red)';
-
-    // Animate ring (circumference = 2 * PI * 34 = 213.6)
     const offset = 213.6 * (1 - compositeHealth / 100);
     if (healthRing) {
       healthRing.style.strokeDashoffset = offset;
       healthRing.style.stroke = compositeHealth >= 80 ? 'var(--cc-green)' : compositeHealth >= 60 ? 'var(--cc-amber)' : 'var(--cc-red)';
     }
-
-    if (healthSub) healthSub.textContent = `Pass ${passRate}% · Coverage ${guardian.coverage !== '--' ? guardian.coverage : '--'} · Grade ${qaudit.grade}`;
+    if (healthSub) healthSub.textContent = `Pass ${passRate}% \u00b7 Coverage ${guardian.coverage !== '--' ? guardian.coverage : '--'} \u00b7 Grade ${qaudit.grade}`;
   }
 
   // 2. Avg DondeMatch
@@ -117,59 +155,27 @@ function updatePulseCards() {
   const attentionSub = document.getElementById('pulse-attention-sub');
   let attentionCount = 0;
   const issues = [];
-
-  // Gaps
-  const gapCount = results.length > 0
-    ? results.filter(r => r.gap_type).length
-    : atlas.gaps;
-  if (gapCount > 0) {
-    attentionCount += gapCount;
-    issues.push(`${gapCount} gaps`);
-  }
-
-  // Regressions
-  if (sentinel.regressions > 0) {
-    attentionCount += sentinel.regressions;
-    issues.push(`${sentinel.regressions} regressions`);
-  }
-
-  // Data issues
-  if (guardian.issues > 0) {
-    attentionCount += guardian.issues;
-    issues.push(`${guardian.issues} data issues`);
-  }
-
-  // Slop
-  if (qaudit.slop > 0) {
-    attentionCount += qaudit.slop;
-    issues.push(`${qaudit.slop} slop`);
-  }
+  const gapCount = results.length > 0 ? results.filter(r => r.gap_type).length : atlas.gaps;
+  if (gapCount > 0) { attentionCount += gapCount; issues.push(`${gapCount} gaps`); }
+  if (sentinel.regressions > 0) { attentionCount += sentinel.regressions; issues.push(`${sentinel.regressions} regressions`); }
+  if (guardian.issues > 0) { attentionCount += guardian.issues; issues.push(`${guardian.issues} data issues`); }
+  if (qaudit.slop > 0) { attentionCount += qaudit.slop; issues.push(`${qaudit.slop} slop`); }
 
   if (attentionVal) {
     attentionVal.textContent = attentionCount;
     attentionVal.className = 'cc-pulse__big cc-pulse__big--attention';
-    if (attentionCount === 0) {
-      attentionVal.style.color = 'var(--cc-green)';
-    } else if (attentionCount <= 5) {
-      attentionVal.style.color = 'var(--cc-amber)';
-    } else {
-      attentionVal.style.color = 'var(--cc-red)';
-    }
+    attentionVal.style.color = attentionCount === 0 ? 'var(--cc-green)' : attentionCount <= 5 ? 'var(--cc-amber)' : 'var(--cc-red)';
   }
-  if (attentionSub) {
-    attentionSub.textContent = issues.length > 0 ? issues.join(' · ') : 'All clear';
-  }
+  if (attentionSub) attentionSub.textContent = issues.length > 0 ? issues.join(' \u00b7 ') : 'All clear';
 }
 
 function updatePulseFromGauntlet(data) {
   if (!data || !data.summary) return;
   const s = data.summary;
-
   const passRate = s.total > 0 ? Math.round(s.passed60 / s.total * 100) : 0;
   const avgDm = s.avg_dm || 0;
   const gapCount = s.gap_count || 0;
 
-  // Health
   const healthVal = document.getElementById('pulse-health-val');
   const healthRing = document.getElementById('pulse-health-ring');
   const healthSub = document.getElementById('pulse-health-sub');
@@ -177,24 +183,15 @@ function updatePulseFromGauntlet(data) {
     healthVal.textContent = passRate + '%';
     healthVal.style.color = passRate >= 80 ? 'var(--cc-green)' : passRate >= 60 ? 'var(--cc-amber)' : 'var(--cc-red)';
     const offset = 213.6 * (1 - passRate / 100);
-    if (healthRing) {
-      healthRing.style.strokeDashoffset = offset;
-      healthRing.style.stroke = passRate >= 80 ? 'var(--cc-green)' : passRate >= 60 ? 'var(--cc-amber)' : 'var(--cc-red)';
-    }
-    if (healthSub) healthSub.textContent = `${s.total} queries · ${s.passed60} passed`;
+    if (healthRing) { healthRing.style.strokeDashoffset = offset; healthRing.style.stroke = passRate >= 80 ? 'var(--cc-green)' : passRate >= 60 ? 'var(--cc-amber)' : 'var(--cc-red)'; }
+    if (healthSub) healthSub.textContent = `${s.total} queries \u00b7 ${s.passed60} passed`;
   }
 
-  // Quality
   const qualityVal = document.getElementById('pulse-quality-val');
   const qualitySub = document.getElementById('pulse-quality-sub');
-  if (qualityVal) {
-    qualityVal.textContent = avgDm;
-    qualityVal.className = 'cc-pulse__big';
-    qualityVal.classList.add(ragClass(avgDm));
-  }
+  if (qualityVal) { qualityVal.textContent = avgDm; qualityVal.className = 'cc-pulse__big'; qualityVal.classList.add(ragClass(avgDm)); }
   if (qualitySub) qualitySub.textContent = `From ${s.total} test queries`;
 
-  // Attention
   const attentionVal = document.getElementById('pulse-attention-val');
   const attentionSub = document.getElementById('pulse-attention-sub');
   if (attentionVal) {
@@ -216,35 +213,98 @@ function updateAgentDots() {
     if (!pip) return;
     pip.className = 'cc-agent-dot__pip';
     switch (agent.status) {
-      case 'running':
-        pip.classList.add('dot-running');
-        running.push(AGENT_DEFS[id].name);
-        break;
-      case 'paused':
-      case 'budget_paused':
-        // Keep border color only (default state)
-        break;
-      case 'error':
-        pip.classList.add('dot-error');
-        break;
-      default:
-        // Check if agent has done work
-        if (agent.xp > 0) pip.classList.add('dot-done');
+      case 'running': pip.classList.add('dot-running'); running.push(AGENT_DEFS[id].name); break;
+      case 'error': pip.classList.add('dot-error'); break;
+      default: if (agent.xp > 0) pip.classList.add('dot-done'); break;
     }
   });
 
   const summary = document.getElementById('agents-summary');
   if (summary) {
-    if (running.length > 0) {
-      summary.textContent = `${running.length} running`;
-      summary.style.color = 'var(--cc-green)';
-    } else if (state.systemState === 'paused') {
-      summary.textContent = 'Paused';
-      summary.style.color = 'var(--cc-amber)';
-    } else {
+    if (running.length > 0) { summary.textContent = `${running.length} running`; summary.style.color = 'var(--cc-green)'; }
+    else if (state.systemState === 'paused') { summary.textContent = 'Paused'; summary.style.color = 'var(--cc-amber)'; }
+    else {
       const totalXp = Object.values(state.agents).reduce((s, a) => s + a.xp, 0);
       summary.textContent = totalXp > 0 ? `${totalXp.toLocaleString()} XP` : 'Idle';
       summary.style.color = '';
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Agent Table (compact — replaces 5 full cards)
+// ═══════════════════════════════════════════════════════════════════
+
+function updateAgentStatusUI(agentId) {
+  const agent = state.agents[agentId];
+  const el = document.getElementById(`${agentId}-status`);
+  if (!el) return;
+
+  el.className = 'cc-agent-table__status';
+  switch (agent.status) {
+    case 'running': el.classList.add('cc-agent-table__status--running'); el.textContent = 'Running'; break;
+    case 'paused': case 'budget_paused':
+      el.classList.add('cc-agent-table__status--paused');
+      el.textContent = agent.status === 'budget_paused' ? 'Budget' : 'Paused'; break;
+    case 'error': el.classList.add('cc-agent-table__status--error'); el.textContent = 'Error'; break;
+    default: el.classList.add('cc-agent-table__status--idle'); el.textContent = 'Idle';
+  }
+}
+
+function updateAgentCardUI(agentId) {
+  const a = state.agents[agentId];
+
+  // Level
+  const levelEl = document.getElementById(`${agentId}-level`);
+  if (levelEl) levelEl.textContent = a.level;
+
+  // HP bar
+  const hpFill = document.getElementById(`${agentId}-hp-fill`);
+  if (hpFill) {
+    hpFill.style.width = `${a.hp}%`;
+    hpFill.className = 'cc-agent-table__hp-fill';
+    if (a.hp >= 70) hpFill.classList.add('cc-agent-table__hp-fill--high');
+    else if (a.hp >= 40) hpFill.classList.add('cc-agent-table__hp-fill--medium');
+    else hpFill.classList.add('cc-agent-table__hp-fill--low');
+  }
+
+  // XP
+  const xpEl = document.getElementById(`${agentId}-xp`);
+  if (xpEl) xpEl.textContent = a.xp.toLocaleString();
+
+  // Key stat (one number that tells the story for each agent)
+  const keyStatEl = document.getElementById(`${agentId}-key-stat`);
+  if (keyStatEl) {
+    switch (agentId) {
+      case 'atlas':
+        if (a.total > 0) {
+          const pr = Math.round((a.pass / a.total) * 100);
+          keyStatEl.innerHTML = `<span class="${pr >= 80 ? 'rag-green' : pr >= 60 ? 'rag-amber' : 'rag-red'}">${pr}% pass</span> (${a.queries}q)`;
+        } else { keyStatEl.textContent = '--'; }
+        break;
+      case 'qaudit':
+        if (a.grade !== '--') {
+          const gc = a.grade.startsWith('A') ? 'rag-green' : a.grade.startsWith('B') ? 'rag-amber' : 'rag-red';
+          keyStatEl.innerHTML = `Grade <span class="${gc}">${a.grade}</span> (${a.audits} audits)`;
+        } else { keyStatEl.textContent = '--'; }
+        break;
+      case 'sentinel':
+        if (a.checks > 0) {
+          const rc = a.regressions === 0 ? 'rag-green' : 'rag-red';
+          keyStatEl.innerHTML = `<span class="${rc}">${a.regressions} regressions</span> / ${a.checks} checks`;
+        } else { keyStatEl.textContent = '--'; }
+        break;
+      case 'hunter':
+        if (a.probes > 0) {
+          const cc = a.contract === 'OK' ? 'rag-green' : a.contract === 'FAIL' ? 'rag-red' : '';
+          keyStatEl.innerHTML = `Contract: <span class="${cc}">${a.contract || '--'}</span> (${a.probes} probes)`;
+        } else { keyStatEl.textContent = '--'; }
+        break;
+      case 'guardian':
+        if (a.records > 0) {
+          keyStatEl.innerHTML = `Coverage: ${a.coverage} (${a.issues} issues)`;
+        } else { keyStatEl.textContent = '--'; }
+        break;
     }
   }
 }
@@ -254,7 +314,6 @@ function updateAgentDots() {
 // ═══════════════════════════════════════════════════════════════════
 
 function quickStart() {
-  // One-tap start: expand agents section and start
   const section = document.getElementById('section-agents');
   if (section && !section.classList.contains('cc-section--open')) {
     section.classList.add('cc-section--open');
@@ -264,17 +323,11 @@ function quickStart() {
     if (chevron) chevron.innerHTML = '&#9662;';
   }
 
-  // Update action button state
   const btn = document.getElementById('action-test');
-  if (btn && state.systemState === 'running') {
-    // Already running — pause instead
-    handlePause();
-    return;
-  }
+  if (btn && state.systemState === 'running') { handlePause(); return; }
 
   handleStart();
 
-  // Update button to show running state
   if (btn) {
     btn.classList.add('cc-action--active');
     const textEl = btn.querySelector('.cc-action__text');
@@ -285,7 +338,6 @@ function quickStart() {
 }
 
 function quickCheckData() {
-  // One-tap: open Data Health section and load it
   const section = document.getElementById('section-maintenance');
   if (section && !section.classList.contains('cc-section--open')) {
     section.classList.add('cc-section--open');
@@ -294,48 +346,17 @@ function quickCheckData() {
     if (body) body.style.display = '';
     if (chevron) chevron.innerHTML = '&#9662;';
   }
-  if (!maintenanceLoaded) {
-    loadMaintenanceSection();
-  }
+  if (!maintenanceLoaded) loadMaintenanceSection();
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// Mode Toggle (unified — replaces header toggle)
+// Production Dashboard (lazy-loaded on section expand)
 // ═══════════════════════════════════════════════════════════════════
 
-let currentMode = 'testing';
 let productionLoaded = false;
 
-function toggleMode() {
-  const newMode = currentMode === 'testing' ? 'production' : 'testing';
-  currentMode = newMode;
-
-  document.getElementById('testing-dashboard').style.display = newMode === 'testing' ? '' : 'none';
-  document.getElementById('production-dashboard').style.display = newMode === 'production' ? '' : 'none';
-
-  // Update action button
-  const modeText = document.getElementById('mode-text');
-  const modeIcon = document.getElementById('mode-icon');
-  const modeHint = document.getElementById('mode-hint');
-  const modeBtn = document.getElementById('action-mode');
-  if (newMode === 'production') {
-    if (modeText) modeText.textContent = 'Testing';
-    if (modeIcon) modeIcon.innerHTML = '&#9654;';
-    if (modeHint) modeHint.textContent = 'Switch to testing';
-    if (modeBtn) modeBtn.classList.add('cc-action--active');
-  } else {
-    if (modeText) modeText.textContent = 'Production';
-    if (modeIcon) modeIcon.innerHTML = '&#128202;';
-    if (modeHint) modeHint.textContent = 'View live traffic';
-    if (modeBtn) modeBtn.classList.remove('cc-action--active');
-  }
-
-  if (newMode === 'production' && !productionLoaded) {
-    loadProductionDashboard();
-  }
-}
-
 async function loadProductionDashboard() {
+  if (productionLoaded) return;
   productionLoaded = true;
   const content = document.getElementById('prod-content');
   const kpis = document.getElementById('prod-kpis');
@@ -371,14 +392,14 @@ async function loadProductionDashboard() {
       prodCard(totalCount >= 200 ? '200+' : totalCount.toString(), 'Total Searches', '', ''),
       prodCard(todayCount, 'Today', new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }), ''),
       prodCard(userCount, 'Unique Users', '', ''),
-      prodCard(avgDm, 'Avg DM (Last 100)', '', ragClass(avgDm)),
+      prodCard(avgDm, 'Avg DM', '', ragClass(avgDm)),
       prodCard(lowScoreCount, 'Low Scores (<40)', '', lowScoreCount > 10 ? 'rag-red' : lowScoreCount > 3 ? 'rag-amber' : 'rag-green'),
     ].join('');
 
     const alerts = [];
-    if (avgDm < 60) alerts.push({ text: `Average DM is ${avgDm} — below 60 threshold`, type: 'red' });
-    if (lowScoreCount > 10) alerts.push({ text: `${lowScoreCount} queries scored below 40 — investigate intent gaps`, type: 'red' });
-    if (todayCount === 0) alerts.push({ text: 'No searches today — check API health', type: 'amber' });
+    if (avgDm < 60) alerts.push({ text: `Average DM is ${avgDm} \u2014 below 60 threshold`, type: 'red' });
+    if (lowScoreCount > 10) alerts.push({ text: `${lowScoreCount} queries scored below 40`, type: 'red' });
+    if (todayCount === 0) alerts.push({ text: 'No searches today \u2014 check API health', type: 'amber' });
 
     const alertsEl = document.getElementById('prod-alerts');
     const alertListEl = document.getElementById('prod-alert-list');
@@ -393,152 +414,36 @@ async function loadProductionDashboard() {
     }
 
     let h = '';
-
     h += '<div class="cc-subsection"><div class="cc-subsection__title">Recent API Searches</div>';
     if (recent.length > 0) {
-      h += '<div class="cc-table-wrap"><table class="cc-table"><thead><tr>';
-      h += '<th>Time</th><th>Query</th><th>Occasion</th><th>Restaurant</th><th>DM</th>';
-      h += '</tr></thead><tbody>';
+      h += '<div class="cc-table-wrap"><table class="cc-table"><thead><tr><th>Time</th><th>Query</th><th>Occasion</th><th>Restaurant</th><th>DM</th></tr></thead><tbody>';
       for (const q of recent) {
         const time = q.created_at ? new Date(q.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '--';
         const dm = q.donde_match;
         const restJoin = q.restaurants;
         const restName = Array.isArray(restJoin) ? (restJoin[0]?.name || '\u2014') : (restJoin?.name || '\u2014');
-        h += `<tr>
-          <td style="font-family:var(--cc-mono);font-size:0.68rem;color:var(--cc-text-3)">${time}</td>
-          <td>${escapeHtml((q.special_request || '').substring(0, 50))}</td>
-          <td style="font-size:0.68rem;color:var(--cc-text-3)">${escapeHtml((q.occasion || '\u2014').substring(0, 15))}</td>
-          <td>${escapeHtml(restName.substring(0, 25))}</td>
-          <td><span class="dm-badge ${dm != null ? ragClass(dm) : ''}">${dm != null ? dm : '\u2014'}</span></td>
-        </tr>`;
+        h += `<tr><td style="font-family:var(--cc-mono);font-size:0.68rem;color:var(--cc-text-3)">${time}</td><td>${escapeHtml((q.special_request || '').substring(0, 50))}</td><td style="font-size:0.68rem;color:var(--cc-text-3)">${escapeHtml((q.occasion || '\u2014').substring(0, 15))}</td><td>${escapeHtml(restName.substring(0, 25))}</td><td><span class="dm-badge ${dm != null ? ragClass(dm) : ''}">${dm != null ? dm : '\u2014'}</span></td></tr>`;
       }
       h += '</tbody></table></div>';
-    } else {
-      h += '<p class="cc-muted">No recent searches found.</p>';
-    }
+    } else { h += '<p class="cc-muted">No recent searches.</p>'; }
     h += '</div>';
 
-    h += '<div class="cc-subsection"><div class="cc-subsection__title">User History (Saved Searches)</div>';
+    h += '<div class="cc-subsection"><div class="cc-subsection__title">User History (Saved)</div>';
     if (history.length > 0) {
-      h += '<div class="cc-table-wrap"><table class="cc-table"><thead><tr>';
-      h += '<th>Date</th><th>Craving</th><th>Occasion</th><th>Restaurant</th><th>Cuisine</th><th>DM</th>';
-      h += '</tr></thead><tbody>';
+      h += '<div class="cc-table-wrap"><table class="cc-table"><thead><tr><th>Date</th><th>Craving</th><th>Restaurant</th><th>DM</th></tr></thead><tbody>';
       for (const s of history) {
         const date = s.created_at ? new Date(s.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '--';
         const dm = s.donde_match;
-        h += `<tr>
-          <td style="font-family:var(--cc-mono);font-size:0.68rem;color:var(--cc-text-3)">${date}</td>
-          <td>${escapeHtml((s.craving || '').substring(0, 40))}</td>
-          <td style="font-size:0.68rem;color:var(--cc-text-3)">${escapeHtml((s.occasion || '\u2014').substring(0, 15))}</td>
-          <td>${escapeHtml((s.restaurant_name || '\u2014').substring(0, 25))}</td>
-          <td style="font-size:0.68rem;color:var(--cc-text-3)">${escapeHtml((s.cuisine_type || '\u2014').substring(0, 15))}</td>
-          <td><span class="dm-badge ${dm != null ? ragClass(dm) : ''}">${dm != null ? dm : '\u2014'}</span></td>
-        </tr>`;
+        h += `<tr><td style="font-family:var(--cc-mono);font-size:0.68rem;color:var(--cc-text-3)">${date}</td><td>${escapeHtml((s.craving || '').substring(0, 40))}</td><td>${escapeHtml((s.restaurant_name || '\u2014').substring(0, 25))}</td><td><span class="dm-badge ${dm != null ? ragClass(dm) : ''}">${dm != null ? dm : '\u2014'}</span></td></tr>`;
       }
       h += '</tbody></table></div>';
-    } else {
-      h += '<p class="cc-muted">No saved user searches yet.</p>';
-    }
+    } else { h += '<p class="cc-muted">No saved user searches yet.</p>'; }
     h += '</div>';
 
     content.innerHTML = h;
   } catch (e) {
     content.innerHTML = `<p style="color:var(--cc-red)">Failed to load production data: ${e.message}</p>`;
     productionLoaded = false;
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// Agent Card UI (kept from original)
-// ═══════════════════════════════════════════════════════════════════
-
-function updateAgentStatusUI(agentId) {
-  const agent = state.agents[agentId];
-  const el = document.getElementById(`${agentId}-status`);
-  if (!el) return;
-
-  el.className = 'cc-agent__status';
-  switch (agent.status) {
-    case 'running':
-      el.classList.add('cc-agent__status--running');
-      el.textContent = 'Running';
-      break;
-    case 'paused':
-    case 'budget_paused':
-      el.classList.add('cc-agent__status--paused');
-      el.textContent = agent.status === 'budget_paused' ? 'Budget Limit' : 'Paused';
-      break;
-    case 'error':
-      el.classList.add('cc-agent__status--error');
-      el.textContent = 'Error';
-      break;
-    default:
-      el.classList.add('cc-agent__status--idle');
-      el.textContent = 'Idle';
-  }
-}
-
-function updateAgentCardUI(agentId) {
-  const a = state.agents[agentId];
-
-  const levelEl = document.getElementById(`${agentId}-level`);
-  if (levelEl) levelEl.textContent = `Lvl ${a.level}`;
-
-  const hpFill = document.getElementById(`${agentId}-hp-fill`);
-  const hpVal = document.getElementById(`${agentId}-hp-val`);
-  if (hpFill) {
-    hpFill.style.width = `${a.hp}%`;
-    hpFill.className = 'cc-agent__health-fill';
-    if (a.hp >= 70) hpFill.classList.add('cc-agent__health-fill--high');
-    else if (a.hp >= 40) hpFill.classList.add('cc-agent__health-fill--medium');
-    else hpFill.classList.add('cc-agent__health-fill--low');
-  }
-  if (hpVal) hpVal.textContent = `${a.hp}%`;
-
-  const xpEl = document.getElementById(`${agentId}-xp`);
-  if (xpEl) xpEl.textContent = `Score: ${a.xp.toLocaleString()}`;
-
-  switch (agentId) {
-    case 'atlas':
-      setText('atlas-queries', a.queries);
-      setText('atlas-pass', a.total > 0 ? Math.round((a.pass / a.total) * 100) + '%' : '--', a.total > 0 ? (a.pass / a.total >= 0.8 ? 'good' : a.pass / a.total >= 0.6 ? 'warn' : 'bad') : null);
-      setText('atlas-avg', a.avgDm || '--', a.avgDm >= 70 ? 'good' : a.avgDm >= 50 ? 'warn' : 'bad');
-      setText('atlas-gaps', a.gaps, a.gaps > 10 ? 'bad' : a.gaps > 0 ? 'warn' : 'good');
-      break;
-    case 'qaudit':
-      setText('qaudit-audits', a.audits);
-      setText('qaudit-grade', a.grade, a.grade.startsWith('A') ? 'good' : a.grade.startsWith('B') ? 'warn' : 'bad');
-      setText('qaudit-slop', a.slop, a.slop > 0 ? 'bad' : 'good');
-      setText('qaudit-clean', a.clean, 'good');
-      break;
-    case 'sentinel':
-      setText('sentinel-checks', a.checks);
-      setText('sentinel-regs', a.regressions, a.regressions > 0 ? 'bad' : 'good');
-      setText('sentinel-baseline', a.baseline);
-      setText('sentinel-delta', a.delta, a.delta === 'OK' ? 'good' : 'bad');
-      break;
-    case 'hunter':
-      setText('hunter-probes', a.probes);
-      setText('hunter-vulns', a.vulns, a.vulns > 0 ? 'bad' : 'good');
-      setText('hunter-contract', a.contract, a.contract === 'OK' ? 'good' : a.contract === 'FAIL' ? 'bad' : null);
-      setText('hunter-errors', a.errors, a.errors > 0 ? 'bad' : 'good');
-      break;
-    case 'guardian':
-      setText('guardian-records', a.records);
-      setText('guardian-issues', a.issues, a.issues > 0 ? 'warn' : 'good');
-      setText('guardian-orphans', a.orphans, a.orphans > 0 ? 'bad' : 'good');
-      setText('guardian-coverage', a.coverage);
-      break;
-  }
-}
-
-function setText(id, value, colorClass) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.textContent = value;
-  if (colorClass) {
-    el.className = 'cc-agent__stat-value';
-    el.classList.add(`cc-agent__stat-value--${colorClass}`);
   }
 }
 
@@ -551,7 +456,6 @@ function updateBudgetUI() {
   const pctRemaining = Math.round((remaining / DAILY_BUDGET) * 100);
   const textEl = document.getElementById('budget-text');
   if (textEl) textEl.textContent = `${state.budgetUsed} / ${DAILY_BUDGET}`;
-
   const fill = document.getElementById('budget-fill');
   if (fill) {
     fill.style.width = `${pctRemaining}%`;
@@ -590,11 +494,9 @@ function updateLeaderboard() {
   const entries = Object.entries(state.agents)
     .map(([id, a]) => ({ id, name: AGENT_DEFS[id].name, xp: a.xp }))
     .sort((a, b) => b.xp - a.xp);
-
   const list = document.getElementById('leaderboard');
   if (!list) return;
   const rankClasses = ['cc-rankings__rank--1', 'cc-rankings__rank--2', 'cc-rankings__rank--3', '', ''];
-
   list.innerHTML = entries.map((e, i) => `
     <div class="cc-rankings__entry">
       <span class="cc-rankings__rank ${rankClasses[i]}">${i + 1}.</span>
@@ -605,28 +507,42 @@ function updateLeaderboard() {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// Hero KPIs (legacy — now drives pulse cards too)
+// Hero KPIs (unified update — drives Pulse + dots + focus)
 // ═══════════════════════════════════════════════════════════════════
 
 function updateHeroKPIs() {
-  // Update pulse cards (new UI)
   updatePulseCards();
   updateAgentDots();
-
-  // Update focus strip
   updateFocusStrip();
 
   // Update test action button hint
   const hint = document.getElementById('action-test-hint');
   if (hint && state.systemState === 'running') {
-    const results = state.sessionResults || [];
-    hint.textContent = `${results.length} queries so far`;
+    hint.textContent = `${(state.sessionResults || []).length} queries so far`;
   }
 }
 
 function updateHeroKPIsFromGauntlet(data) {
   if (!data || !data.summary) return;
   updatePulseFromGauntlet(data);
+
+  // Update results section summary
+  const s = data.summary;
+  const summaryEl = document.getElementById('results-summary');
+  if (summaryEl) {
+    const passRate = s.total > 0 ? Math.round(s.passed60 / s.total * 100) : 0;
+    summaryEl.innerHTML = `<span class="${passRate >= 80 ? 'rag-green' : passRate >= 60 ? 'rag-amber' : 'rag-red'}">${passRate}% pass</span> &middot; DM ${s.avg_dm} &middot; ${s.gap_count} gaps`;
+  }
+
+  // Auto-open Test Results section when data loads
+  const section = document.getElementById('section-results');
+  if (section && !section.classList.contains('cc-section--open')) {
+    section.classList.add('cc-section--open');
+    const body = section.querySelector('.cc-section__body');
+    const chevron = section.querySelector('.cc-section__chevron');
+    if (body) body.style.display = '';
+    if (chevron) chevron.innerHTML = '&#9662;';
+  }
 }
 
 function setKPI(id, value, colorClass) {
@@ -643,34 +559,16 @@ function setKPI(id, value, colorClass) {
 
 function updateFocusStrip() {
   const alerts = [];
-
-  if (state.agents.sentinel.regressions > 0) {
-    alerts.push({ text: `${state.agents.sentinel.regressions} regression(s) detected by Sentinel`, type: 'red' });
-  }
-
+  if (state.agents.sentinel.regressions > 0) alerts.push({ text: `${state.agents.sentinel.regressions} regression(s) detected by Sentinel`, type: 'red' });
   const remaining = DAILY_BUDGET - state.budgetUsed;
-  if (remaining <= 10 && remaining > 0) {
-    alerts.push({ text: `API budget low: ${remaining} calls remaining`, type: 'amber' });
-  } else if (remaining <= 0) {
-    alerts.push({ text: 'API budget exhausted', type: 'red' });
-  }
-
-  if (state.agents.atlas.gaps > 10) {
-    alerts.push({ text: `Atlas found ${state.agents.atlas.gaps} gaps — search quality needs attention`, type: 'amber' });
-  }
-
-  if (state.agents.qaudit.grade === 'C' || state.agents.qaudit.grade === 'F') {
-    alerts.push({ text: `Blurb quality grade: ${state.agents.qaudit.grade} — slop patterns detected`, type: 'red' });
-  }
+  if (remaining <= 10 && remaining > 0) alerts.push({ text: `API budget low: ${remaining} calls remaining`, type: 'amber' });
+  else if (remaining <= 0) alerts.push({ text: 'API budget exhausted', type: 'red' });
+  if (state.agents.atlas.gaps > 10) alerts.push({ text: `Atlas found ${state.agents.atlas.gaps} gaps`, type: 'amber' });
+  if (state.agents.qaudit.grade === 'C' || state.agents.qaudit.grade === 'F') alerts.push({ text: `Blurb quality grade: ${state.agents.qaudit.grade}`, type: 'red' });
 
   const strip = document.getElementById('focus-strip');
   const alertsEl = document.getElementById('focus-alerts');
-
-  if (alerts.length === 0) {
-    strip.style.display = 'none';
-    return;
-  }
-
+  if (alerts.length === 0) { strip.style.display = 'none'; return; }
   strip.style.display = '';
   alertsEl.innerHTML = alerts.map(a => `
     <div class="cc-focus__alert ${a.type === 'amber' ? 'cc-focus__alert--amber' : ''}">
@@ -695,22 +593,18 @@ function addLog(agent, message, severity) {
 
 function renderLogEntry(entry) {
   if (state.logFilter !== 'all' && entry.agentId !== state.logFilter && entry.agentId !== 'system') return;
-
   const logEl = document.getElementById('battle-log');
   if (!logEl) return;
   const iconMap = { pass: '&#10003;', warn: '&#9888;', fail: '&#10007;', star: '&#9733;' };
-  const agentClass = `cc-log__agent--${entry.agentId}`;
-
   const div = document.createElement('div');
   div.className = 'cc-log__entry';
   div.setAttribute('data-agent', entry.agentId);
   div.innerHTML = `
     <span class="cc-log__time">${entry.time}</span>
-    <span class="cc-log__agent ${agentClass}">${entry.agent}</span>
+    <span class="cc-log__agent cc-log__agent--${entry.agentId}">${entry.agent}</span>
     <span class="cc-log__message">${escapeHtml(entry.message)}</span>
     <span class="cc-log__icon cc-log__icon--${entry.severity}">${iconMap[entry.severity] || '&#9679;'}</span>
   `;
-
   logEl.appendChild(div);
   logEl.scrollTop = logEl.scrollHeight;
   while (logEl.children.length > MAX_LOG_ENTRIES) logEl.removeChild(logEl.firstChild);
@@ -718,14 +612,9 @@ function renderLogEntry(entry) {
 
 function filterLog(filter) {
   state.logFilter = filter;
-  document.querySelectorAll('.cc-log__filter').forEach(btn => {
-    btn.classList.toggle('cc-log__filter--active', btn.dataset.filter === filter);
-  });
+  document.querySelectorAll('.cc-log__filter').forEach(btn => btn.classList.toggle('cc-log__filter--active', btn.dataset.filter === filter));
   const logEl = document.getElementById('battle-log');
-  if (logEl) {
-    logEl.innerHTML = '';
-    state.logs.forEach(entry => renderLogEntry(entry));
-  }
+  if (logEl) { logEl.innerHTML = ''; state.logs.forEach(entry => renderLogEntry(entry)); }
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -733,10 +622,7 @@ function filterLog(filter) {
 // ═══════════════════════════════════════════════════════════════════
 
 function addNotification(type, message, agentId) {
-  state.notifications.push({
-    id: Date.now(), type, message, agentId,
-    timestamp: new Date().toISOString(), acknowledged: false,
-  });
+  state.notifications.push({ id: Date.now(), type, message, agentId, timestamp: new Date().toISOString(), acknowledged: false });
   renderNotifications();
 }
 
@@ -745,15 +631,9 @@ function renderNotifications() {
   const bar = document.getElementById('notification-bar');
   const badge = document.getElementById('notif-badge');
   const list = document.getElementById('notification-list');
-
   badge.textContent = pending.length;
-  if (pending.length > 0) {
-    bar.style.display = '';
-  } else {
-    bar.style.display = 'none';
-    return;
-  }
-
+  if (pending.length === 0) { bar.style.display = 'none'; return; }
+  bar.style.display = '';
   list.innerHTML = pending.map(n => `
     <div class="notification-item ${n.type === 'api_error' || n.type === 'critical' ? 'notification-item--critical' : ''}">
       <span class="notification-item__text">${escapeHtml(n.message)}</span>
@@ -762,9 +642,7 @@ function renderNotifications() {
           <button class="notification-btn notification-btn--approve" onclick="handleNotifAction(${n.id}, 'approve')">Approve</button>
           <button class="notification-btn notification-btn--deny" onclick="handleNotifAction(${n.id}, 'deny')">Deny</button>
           <button class="notification-btn notification-btn--defer" onclick="handleNotifAction(${n.id}, 'defer')">Later</button>
-        ` : `
-          <button class="notification-btn notification-btn--approve" onclick="handleNotifAction(${n.id}, 'ack')">Dismiss</button>
-        `}
+        ` : `<button class="notification-btn notification-btn--approve" onclick="handleNotifAction(${n.id}, 'ack')">Dismiss</button>`}
       </div>
     </div>
   `).join('');
@@ -782,18 +660,12 @@ function handleNotifAction(notifId, action) {
         addLog('SYSTEM', `CEO approved additional API calls for ${AGENT_DEFS[notif.agentId]?.name || notif.agentId}.`, 'star');
       }
       break;
-    case 'deny':
-      notif.acknowledged = true;
-      addLog('SYSTEM', `CEO denied request from ${AGENT_DEFS[notif.agentId]?.name || notif.agentId}.`, 'warn');
-      break;
+    case 'deny': notif.acknowledged = true; addLog('SYSTEM', `CEO denied request.`, 'warn'); break;
     case 'defer':
       notif.acknowledged = true;
       setTimeout(() => { notif.acknowledged = false; renderNotifications(); }, 60000);
-      addLog('SYSTEM', 'Request deferred. Will ask again in 1 minute.', 'warn');
-      break;
-    case 'ack':
-      notif.acknowledged = true;
-      break;
+      addLog('SYSTEM', 'Request deferred.', 'warn'); break;
+    case 'ack': notif.acknowledged = true; break;
   }
   renderNotifications();
   saveState();
@@ -811,9 +683,7 @@ function showGameOver(sessionStartTime) {
 
   if (durationEl && sessionStartTime) {
     const elapsed = Math.floor((new Date() - sessionStartTime) / 1000);
-    const m = Math.floor(elapsed / 60);
-    const s = elapsed % 60;
-    durationEl.textContent = `Duration: ${m}m ${s}s`;
+    durationEl.textContent = `Duration: ${Math.floor(elapsed / 60)}m ${elapsed % 60}s`;
   }
 
   const atlas = state.agents.atlas;
@@ -857,10 +727,7 @@ function dismissGameOver() {
 
 function pollAgentStatus() {
   updateBudgetUI();
-  Object.keys(state.agents).forEach(id => {
-    updateAgentCardUI(id);
-    updateAgentStatusUI(id);
-  });
+  Object.keys(state.agents).forEach(id => { updateAgentCardUI(id); updateAgentStatusUI(id); });
   updateHeroKPIs();
 }
 
@@ -887,18 +754,11 @@ function initSectionToggles() {
         body.style.display = '';
         if (chevron) chevron.innerHTML = '&#9662;';
 
-        // Lazy load trends
-        if (header.dataset.toggle === 'trends' && !historyLoaded) {
-          loadTrendsSection();
-        }
-        if (header.dataset.toggle === 'history' && !historyLoaded) {
-          loadTrendsSection();
-        }
-
-        // Lazy load maintenance
-        if (header.dataset.toggle === 'maintenance' && !maintenanceLoaded) {
-          loadMaintenanceSection();
-        }
+        // Lazy loading
+        const toggle = header.dataset.toggle;
+        if (toggle === 'maintenance' && !maintenanceLoaded) loadMaintenanceSection();
+        if (toggle === 'production' && !productionLoaded) loadProductionDashboard();
+        if (toggle === 'history' && !historyLoaded) loadTrendsSection();
       }
     });
   });
@@ -936,9 +796,7 @@ function syncFilterUI() {
 }
 
 function updateActivePresetUI(activePreset) {
-  document.querySelectorAll('.cc-filter-preset').forEach(btn => {
-    btn.classList.toggle('cc-filter-preset--active', btn.dataset.preset === activePreset);
-  });
+  document.querySelectorAll('.cc-filter-preset').forEach(btn => btn.classList.toggle('cc-filter-preset--active', btn.dataset.preset === activePreset));
 }
 
 function detectActivePreset() {
@@ -954,18 +812,14 @@ function updateFilterSummary() {
   const count = Object.values(agentFilter).filter(Boolean).length;
   const slider = document.getElementById('test-count-slider');
   const queries = slider ? parseInt(slider.value) : 10;
-  const apiCalls = (agentFilter.atlas ? queries : 0) +
-    (agentFilter.sentinel ? Math.min(15, Math.ceil(queries * 0.5)) : 0) +
-    (agentFilter.hunter ? Math.min(10, Math.ceil(queries * 0.3)) : 0) +
-    (agentFilter.guardian ? Math.min(5, Math.ceil(queries * 0.2)) : 0);
+  const apiCalls = (agentFilter.atlas ? queries : 0) + (agentFilter.sentinel ? Math.min(15, Math.ceil(queries * 0.5)) : 0) + (agentFilter.hunter ? Math.min(10, Math.ceil(queries * 0.3)) : 0) + (agentFilter.guardian ? Math.min(5, Math.ceil(queries * 0.2)) : 0);
   const est = (apiCalls * 0.01).toFixed(2);
   el.textContent = `${count} agent${count !== 1 ? 's' : ''} \u00b7 ${agentFilter.atlas ? queries + ' queries \u00b7 ' : ''}~$${est}`;
 }
 
 function toggleStartDropdown(e) {
   e.stopPropagation();
-  const dd = document.getElementById('start-dropdown');
-  dd.classList.toggle('cc-start-dropdown--open');
+  document.getElementById('start-dropdown').classList.toggle('cc-start-dropdown--open');
 }
 
 function initStartDropdown() {
@@ -977,8 +831,7 @@ function initStartDropdown() {
     slider.addEventListener('input', () => {
       const count = parseInt(slider.value);
       if (valEl) valEl.textContent = count;
-      const est = (count * 1.3 * 0.01).toFixed(2);
-      if (costEl) costEl.textContent = `Est. ~$${est} API usage`;
+      if (costEl) costEl.textContent = `Est. ~$${(count * 1.3 * 0.01).toFixed(2)} API usage`;
       updateFilterSummary();
     });
   }
@@ -988,9 +841,7 @@ function initStartDropdown() {
       e.preventDefault();
       const agentId = chip.dataset.agent;
       agentFilter[agentId] = !agentFilter[agentId];
-      if (Object.values(agentFilter).every(v => !v)) {
-        agentFilter[agentId] = true;
-      }
+      if (Object.values(agentFilter).every(v => !v)) agentFilter[agentId] = true;
       syncFilterUI();
       updateActivePresetUI(detectActivePreset());
       updateFilterSummary();
@@ -1001,9 +852,7 @@ function initStartDropdown() {
 
   document.addEventListener('click', (e) => {
     const dd = document.getElementById('start-dropdown');
-    if (dd && !e.target.closest('.cc-start-group')) {
-      dd.classList.remove('cc-start-dropdown--open');
-    }
+    if (dd && !e.target.closest('.cc-start-group')) dd.classList.remove('cc-start-dropdown--open');
   });
 }
 
@@ -1023,11 +872,8 @@ updateHeroKPIs();
 // Render persisted logs
 state.logs.forEach(entry => renderLogEntry(entry));
 
-// Update all agent cards with persisted data
-Object.keys(state.agents).forEach(id => {
-  updateAgentCardUI(id);
-  updateAgentStatusUI(id);
-});
+// Update all agent rows with persisted data
+Object.keys(state.agents).forEach(id => { updateAgentCardUI(id); updateAgentStatusUI(id); });
 
 // Start clock
 state.clockTimer = setInterval(updateClock, 1000);
@@ -1038,7 +884,7 @@ initSectionToggles();
 // Start dropdown
 initStartDropdown();
 
-// Auth & analytics
+// Auth & analytics (also loads status strip)
 checkAuth();
 
 // Auto-open section from URL hash (e.g. #maintenance)
@@ -1051,12 +897,8 @@ if (window.location.hash) {
     const chevron = section.querySelector('.cc-section__chevron');
     if (body) body.style.display = '';
     if (chevron) chevron.innerHTML = '&#9662;';
-    // Lazy load if needed
-    if (sectionId === 'maintenance' && !maintenanceLoaded) {
-      // Wait for auth to complete before loading maintenance data
-      setTimeout(() => { if (!maintenanceLoaded) loadMaintenanceSection(); }, 1500);
-    }
-    // Scroll to section
+    if (sectionId === 'maintenance' && !maintenanceLoaded) setTimeout(() => { if (!maintenanceLoaded) loadMaintenanceSection(); }, 1500);
+    if (sectionId === 'production' && !productionLoaded) setTimeout(() => { if (!productionLoaded) loadProductionDashboard(); }, 1500);
     setTimeout(() => section.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300);
   }
 }

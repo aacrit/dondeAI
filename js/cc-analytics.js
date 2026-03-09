@@ -14,6 +14,7 @@ async function checkAuth() {
     const { data: { session } } = await sb.auth.getSession();
     if (session?.user?.email === ADMIN_EMAIL) {
       loadGauntletData();
+      if (typeof loadStatusStrip === 'function') loadStatusStrip();
     } else {
       showAccessDenied(sb, session);
     }
@@ -87,9 +88,9 @@ async function loadRunSelector() {
 }
 
 async function loadRunFromSupabase(runId) {
-  const qualityEl = document.getElementById('quality-content');
-  const issuesEl = document.getElementById('issues-content');
-  qualityEl.innerHTML = '<div class="cc-loading"><div class="cc-spinner"></div><p>Loading run data...</p></div>';
+  const resultsEl = document.getElementById('results-content');
+  if (!resultsEl) return;
+  resultsEl.innerHTML = '<div class="cc-loading"><div class="cc-spinner"></div><p>Loading run data...</p></div>';
 
   try {
     const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
@@ -110,7 +111,7 @@ async function loadRunFromSupabase(runId) {
     renderIssuesSection(data);
     updateHeroKPIsFromGauntlet(data);
   } catch (e) {
-    qualityEl.innerHTML = `<p style="color:var(--cc-red)">Failed to load run: ${e.message}</p>`;
+    resultsEl.innerHTML = `<p style="color:var(--cc-red)">Failed to load run: ${e.message}</p>`;
   }
 }
 
@@ -257,14 +258,16 @@ function transformRunData(runData, results) {
 // ═══════════════════════════════════════════════════════════════════
 
 function renderQualitySection(data) {
-  const el = document.getElementById('quality-content');
+  const el = document.getElementById('results-content');
+  if (!el) return;
   const s = data.summary;
   const stats = data.statistics || {};
   const gapImpact = data.gap_impact || {};
 
-  // Update section summary
-  document.getElementById('quality-summary').textContent =
-    `${s.total}q | DM ${s.avg_dm} | ${pct(s.passed60, s.total)}% pass`;
+  // Update unified section summary
+  const summaryEl = document.getElementById('results-summary');
+  if (summaryEl) summaryEl.textContent =
+    `${s.total}q | DM ${s.avg_dm} | ${pct(s.passed60, s.total)}% pass | ${s.gap_count} gaps`;
 
   let html = '';
 
@@ -382,29 +385,27 @@ function renderQualitySection(data) {
 // ═══════════════════════════════════════════════════════════════════
 
 function renderIssuesSection(data) {
-  const el = document.getElementById('issues-content');
+  const el = document.getElementById('results-content');
+  if (!el) return;
   const allGaps = data.all_gaps || [];
   allGapsRef = allGaps;
   const gapImpact = data.gap_impact || {};
 
   // Count by severity
   const p0Count = allGaps.filter(g => g.gap_severity === 'P0').length;
-  const p1Count = allGaps.filter(g => g.gap_severity === 'P1').length;
-  const summaryParts = [`${allGaps.length} gaps`];
-  if (p0Count) summaryParts.push(`${p0Count} critical`);
-  const summaryEl = document.getElementById('issues-summary');
-  if (summaryEl) {
-    summaryEl.innerHTML = p0Count > 0
-      ? `<span class="cc-attention-pill cc-attention-pill--p0">${p0Count} Critical</span> ${allGaps.length} total`
-      : `${allGaps.length} gaps`;
+
+  // Update unified summary with gap info (append to quality summary)
+  const summaryEl = document.getElementById('results-summary');
+  if (summaryEl && p0Count > 0) {
+    summaryEl.innerHTML += ` · <span class="cc-attention-pill cc-attention-pill--p0">${p0Count} Critical</span>`;
   }
 
   if (allGaps.length === 0) {
-    el.innerHTML = '<div class="cc-empty-state"><div class="cc-empty-state__icon">&#10003;</div><div class="cc-empty-state__text">No gaps found — all queries passing</div></div>';
+    el.insertAdjacentHTML('beforeend', '<div class="cc-subsection" style="margin-top:16px"><div class="cc-subsection__title">Issues</div><div class="cc-empty-state"><div class="cc-empty-state__icon">&#10003;</div><div class="cc-empty-state__text">No gaps found — all queries passing</div></div></div>');
     return;
   }
 
-  let html = '';
+  let html = '<div class="cc-subsection__title" style="margin-top:16px">Issues</div>';
 
   // ── Grouped view: group by gap_type, sorted by severity ──
   const groups = {};
@@ -562,7 +563,8 @@ function renderIssuesSection(data) {
   html += '</tbody></table></div>';
   html += '</div></div>'; // close collapsible
 
-  el.innerHTML = html;
+  // Append issues after quality content (don't overwrite)
+  el.insertAdjacentHTML('beforeend', html);
   initGapInteractivity();
 }
 
@@ -835,6 +837,7 @@ async function loadTrendsSection() {
   if (historyLoaded) return;
   historyLoaded = true;
   const el = document.getElementById('trends-content');
+  if (!el) return;
   try {
     const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
     const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -862,7 +865,8 @@ async function loadTrendsSection() {
       h += `<div class="cc-card"><div class="cc-card__value ${dGap < 0 ? 'rag-green' : dGap > 0 ? 'rag-red' : ''}">${dGap > 0 ? '+' : ''}${dGap}</div><div class="cc-card__label">Gap Count Δ</div></div>`;
       h += '</div>';
 
-      document.getElementById('trends-summary').textContent = `ΔDM ${dAvg > 0 ? '+' : ''}${dAvg} | ΔPass ${dPass > 0 ? '+' : ''}${dPass} | ΔGaps ${dGap > 0 ? '+' : ''}${dGap}`;
+      const trendsSummaryEl = document.getElementById('trends-summary');
+      if (trendsSummaryEl) trendsSummaryEl.textContent = `ΔDM ${dAvg > 0 ? '+' : ''}${dAvg} | ΔPass ${dPass > 0 ? '+' : ''}${dPass} | ΔGaps ${dGap > 0 ? '+' : ''}${dGap}`;
     }
 
     // Trend charts
