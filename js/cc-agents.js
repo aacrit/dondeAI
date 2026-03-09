@@ -57,10 +57,9 @@ function handleStart() {
   const dd = document.getElementById('start-dropdown');
   if (dd) dd.classList.remove('cc-start-dropdown--open');
 
-  document.getElementById('btn-start').classList.add('active');
-  document.getElementById('btn-start').disabled = true;
-  document.getElementById('btn-pause').disabled = false;
-  document.getElementById('btn-stop').disabled = false;
+  // Show inline Pause/Stop controls in section header
+  const agentControls = document.getElementById('agent-controls');
+  if (agentControls) agentControls.style.display = '';
 
   updateSystemStatus('Online', 'green');
   document.getElementById('paused-overlay').classList.remove('cc-paused--visible');
@@ -97,10 +96,6 @@ function handlePause() {
   if (state.systemState !== 'running') return;
   state.systemState = 'paused';
 
-  document.getElementById('btn-start').classList.remove('active');
-  document.getElementById('btn-start').disabled = false;
-  document.getElementById('btn-pause').disabled = true;
-
   updateSystemStatus('Paused', 'amber');
   document.getElementById('paused-overlay').classList.add('cc-paused--visible');
 
@@ -122,10 +117,9 @@ async function handleStop() {
   state.systemState = 'idle';
   state.startTime = null;
 
-  document.getElementById('btn-start').classList.remove('active');
-  document.getElementById('btn-start').disabled = false;
-  document.getElementById('btn-pause').disabled = true;
-  document.getElementById('btn-stop').disabled = true;
+  // Hide inline Pause/Stop controls
+  const agentControls2 = document.getElementById('agent-controls');
+  if (agentControls2) agentControls2.style.display = 'none';
 
   updateSystemStatus('Stopped', 'red');
   document.getElementById('paused-overlay').classList.remove('cc-paused--visible');

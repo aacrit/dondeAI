@@ -1282,3 +1282,244 @@ function startMaintenancePolling() {
     } catch (e) { /* ignore polling errors */ }
   }, 10000);
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// Rerun & Compare
+// ═══════════════════════════════════════════════════════════════════
+
+let rerunAbort = null;
+
+async function openRerunPicker() {
+  const overlay = document.getElementById('rerun-overlay');
+  const list = document.getElementById('rerun-list');
+  if (!overlay) return;
+  overlay.style.display = '';
+  list.innerHTML = '<div class="cc-loading"><div class="cc-spinner"></div><p>Loading runs...</p></div>';
+
+  try {
+    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+    const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const { data: runs } = await sb
+      .from('gauntlet_runs')
+      .select('run_id, total, gap_count, avg_dm, created_at, mode, dataset_size')
+      .order('created_at', { ascending: false })
+      .limit(15);
+
+    if (!runs || runs.length === 0) {
+      list.innerHTML = '<p class="cc-muted" style="padding:20px;text-align:center">No previous runs found.</p>';
+      return;
+    }
+
+    let html = '';
+    for (const r of runs) {
+      const date = new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+      const passRate = r.total > 0 ? Math.round(((r.total - r.gap_count) / r.total) * 100) : 0;
+      html += `<div class="cc-rerun-item" onclick="startRerun('${r.run_id}')">
+        <div class="cc-rerun-item__date">${date}</div>
+        <div class="cc-rerun-item__stats">DM ${r.avg_dm} &middot; ${r.gap_count} gaps &middot; ${passRate}% pass</div>
+        <div class="cc-rerun-item__queries">${r.total}q ${r.mode || ''}</div>
+        <div class="cc-rerun-item__go">Rerun &#8594;</div>
+      </div>`;
+    }
+    list.innerHTML = html;
+  } catch (e) {
+    list.innerHTML = `<p style="color:var(--cc-red);padding:20px">Failed: ${e.message}</p>`;
+  }
+}
+
+function closeRerunPicker(e) {
+  if (e && e.target !== e.currentTarget) return;
+  const overlay = document.getElementById('rerun-overlay');
+  if (overlay) overlay.style.display = 'none';
+  if (rerunAbort) { rerunAbort.abort(); rerunAbort = null; }
+}
+
+async function startRerun(runId) {
+  const list = document.getElementById('rerun-list');
+
+  // Fetch old queries for this run
+  list.innerHTML = '<div class="cc-loading"><div class="cc-spinner"></div><p>Fetching original queries...</p></div>';
+
+  try {
+    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+    const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const { data: oldResults } = await sb
+      .from('gauntlet_results')
+      .select('query, category, donde_match, gap_type, gap_severity, restaurant_name, food, vibe, service, reputation, convenience')
+      .eq('run_id', runId)
+      .order('donde_match', { ascending: true });
+
+    if (!oldResults || oldResults.length === 0) {
+      list.innerHTML = '<p style="color:var(--cc-red);padding:20px">No queries found for this run.</p>';
+      return;
+    }
+
+    // Show progress and start re-executing
+    rerunAbort = new AbortController();
+    const total = oldResults.length;
+    list.innerHTML = `<div class="cc-rerun-progress">
+      <div style="font-size:0.85rem;font-weight:600;margin-bottom:4px">Re-running ${total} queries...</div>
+      <div class="cc-rerun-progress__bar"><div class="cc-rerun-progress__fill" id="rerun-fill" style="width:0%"></div></div>
+      <div class="cc-rerun-progress__text" id="rerun-status">0 / ${total}</div>
+      <div class="cc-rerun-progress__query" id="rerun-query">Starting...</div>
+    </div>`;
+
+    const newResults = [];
+    const fillEl = document.getElementById('rerun-fill');
+    const statusEl = document.getElementById('rerun-status');
+    const queryEl = document.getElementById('rerun-query');
+
+    for (let i = 0; i < total; i++) {
+      if (rerunAbort.signal.aborted) return;
+
+      const q = oldResults[i].query;
+      if (queryEl) queryEl.textContent = q;
+      if (statusEl) statusEl.textContent = `${i + 1} / ${total}`;
+      if (fillEl) fillEl.style.width = `${Math.round(((i + 1) / total) * 100)}%`;
+
+      try {
+        const result = await callAPI(q);
+        if (result.success) {
+          newResults.push({
+            query: q,
+            donde_match: result.donde_match || 0,
+            restaurant_name: result.restaurant?.name || '',
+            category: oldResults[i].category,
+            food: result.scoring_v9?.food || 0,
+            vibe: result.scoring_v9?.vibe || 0,
+            service: result.scoring_v9?.service || 0,
+            reputation: result.scoring_v9?.reputation || 0,
+            convenience: result.scoring_v9?.convenience || 0,
+            gap_type: (result.donde_match || 0) < 60 ? 'rerun' : null,
+          });
+        } else {
+          newResults.push({
+            query: q, donde_match: 0, restaurant_name: 'API Error',
+            category: oldResults[i].category,
+            food: 0, vibe: 0, service: 0, reputation: 0, convenience: 0,
+            gap_type: 'error',
+          });
+        }
+      } catch (e) {
+        newResults.push({
+          query: q, donde_match: 0, restaurant_name: 'Error',
+          category: oldResults[i].category,
+          food: 0, vibe: 0, service: 0, reputation: 0, convenience: 0,
+          gap_type: 'error',
+        });
+      }
+    }
+
+    // Close modal and show comparison
+    closeRerunPicker();
+    renderComparison(oldResults, newResults);
+
+  } catch (e) {
+    list.innerHTML = `<p style="color:var(--cc-red);padding:20px">Failed: ${e.message}</p>`;
+  }
+}
+
+function renderComparison(oldResults, newResults) {
+  // Open the Test Results section
+  const section = document.getElementById('section-results');
+  if (section && !section.classList.contains('cc-section--open')) {
+    section.classList.add('cc-section--open');
+    const body = section.querySelector('.cc-section__body');
+    const chevron = section.querySelector('.cc-section__chevron');
+    if (body) body.style.display = '';
+    if (chevron) chevron.innerHTML = '&#9662;';
+  }
+
+  const resultsEl = document.getElementById('results-content');
+  if (!resultsEl) return;
+
+  // Calculate aggregate deltas
+  const oldAvg = oldResults.reduce((s, r) => s + r.donde_match, 0) / oldResults.length;
+  const newAvg = newResults.reduce((s, r) => s + r.donde_match, 0) / newResults.length;
+  const deltaAvg = Math.round((newAvg - oldAvg) * 10) / 10;
+
+  const oldPass = oldResults.filter(r => r.donde_match >= 60).length;
+  const newPass = newResults.filter(r => r.donde_match >= 60).length;
+  const deltaPass = newPass - oldPass;
+
+  const oldGaps = oldResults.filter(r => r.gap_type).length;
+  const newGaps = newResults.filter(r => r.donde_match < 60).length;
+  const deltaGaps = newGaps - oldGaps;
+
+  const oldExcel = oldResults.filter(r => r.donde_match >= 80).length;
+  const newExcel = newResults.filter(r => r.donde_match >= 80).length;
+  const deltaExcel = newExcel - oldExcel;
+
+  const total = oldResults.length;
+  const improved = newResults.filter((r, i) => r.donde_match > oldResults[i].donde_match).length;
+  const regressed = newResults.filter((r, i) => r.donde_match < oldResults[i].donde_match).length;
+  const unchanged = total - improved - regressed;
+
+  let html = '';
+
+  // Comparison banner
+  html += `<div class="cc-compare-banner">
+    <span class="cc-compare-banner__icon">&#8635;</span>
+    <span class="cc-compare-banner__text"><strong>Rerun Comparison</strong> — ${total} queries replayed against current engine</span>
+    <button class="cc-compare-banner__dismiss" onclick="this.closest('.cc-compare-banner').remove()" title="Dismiss">&times;</button>
+  </div>`;
+
+  // Delta cards
+  const deltaClass = (v, invert) => {
+    const pos = invert ? v < 0 : v > 0;
+    const neg = invert ? v > 0 : v < 0;
+    return pos ? 'positive' : neg ? 'negative' : 'neutral';
+  };
+  const fmtDelta = (v) => v > 0 ? `+${v}` : `${v}`;
+
+  html += '<div class="cc-compare-deltas">';
+  html += `<div class="cc-compare-delta"><div class="cc-compare-delta__val ${deltaClass(deltaAvg)}">${fmtDelta(deltaAvg)}</div><div class="cc-compare-delta__label">Avg DM Δ</div><div class="cc-compare-delta__sub">${Math.round(oldAvg*10)/10} → ${Math.round(newAvg*10)/10}</div></div>`;
+  html += `<div class="cc-compare-delta"><div class="cc-compare-delta__val ${deltaClass(deltaPass)}">${fmtDelta(deltaPass)}</div><div class="cc-compare-delta__label">Pass Rate Δ</div><div class="cc-compare-delta__sub">${oldPass} → ${newPass} of ${total}</div></div>`;
+  html += `<div class="cc-compare-delta"><div class="cc-compare-delta__val ${deltaClass(deltaGaps, true)}">${fmtDelta(deltaGaps)}</div><div class="cc-compare-delta__label">Gaps Δ</div><div class="cc-compare-delta__sub">${oldGaps} → ${newGaps}</div></div>`;
+  html += `<div class="cc-compare-delta"><div class="cc-compare-delta__val ${deltaClass(deltaExcel)}">${fmtDelta(deltaExcel)}</div><div class="cc-compare-delta__label">Excel ≥80 Δ</div><div class="cc-compare-delta__sub">${oldExcel} → ${newExcel}</div></div>`;
+  html += `<div class="cc-compare-delta"><div class="cc-compare-delta__val positive">${improved}</div><div class="cc-compare-delta__label">Improved</div></div>`;
+  html += `<div class="cc-compare-delta"><div class="cc-compare-delta__val negative">${regressed}</div><div class="cc-compare-delta__label">Regressed</div></div>`;
+  html += '</div>';
+
+  // Per-query comparison table
+  html += '<div class="cc-table-wrap"><table class="cc-compare-table"><thead><tr>';
+  html += '<th>#</th><th>Query</th><th>Old DM</th><th>New DM</th><th>Δ</th><th>Old Restaurant</th><th>New Restaurant</th>';
+  html += '</tr></thead><tbody>';
+
+  // Sort by biggest regression first (most negative delta)
+  const paired = oldResults.map((old, i) => ({ old, new_: newResults[i], idx: i }));
+  paired.sort((a, b) => (a.new_.donde_match - a.old.donde_match) - (b.new_.donde_match - b.old.donde_match));
+
+  for (const { old, new_, idx } of paired) {
+    const delta = new_.donde_match - old.donde_match;
+    const deltaStr = delta > 0 ? `+${delta}` : `${delta}`;
+    const deltaCls = delta > 0 ? 'cc-delta-up' : delta < 0 ? 'cc-delta-down' : 'cc-delta-same';
+    html += `<tr>
+      <td>${idx + 1}</td>
+      <td title="${escapeHtml(old.query)}">${escapeHtml(old.query.substring(0, 40))}</td>
+      <td><span class="dm-badge ${ragClass(old.donde_match)}">${old.donde_match}</span></td>
+      <td><span class="dm-badge ${ragClass(new_.donde_match)}">${new_.donde_match}</span></td>
+      <td class="${deltaCls}">${deltaStr}</td>
+      <td style="font-size:0.65rem">${escapeHtml((old.restaurant_name || '—').substring(0, 22))}</td>
+      <td style="font-size:0.65rem">${escapeHtml((new_.restaurant_name || '—').substring(0, 22))}</td>
+    </tr>`;
+  }
+  html += '</tbody></table></div>';
+
+  // Update Pulse cards with comparison data
+  updateHeroKPIsFromGauntlet({
+    summary: {
+      total, avg_dm: Math.round(newAvg * 10) / 10,
+      passed60: newPass, passed80: newExcel, gap_count: newGaps,
+    },
+  });
+
+  // Update summary
+  const summaryEl = document.getElementById('results-summary');
+  if (summaryEl) {
+    summaryEl.innerHTML = `<span style="color:var(--cc-amber)">&#8635; Rerun</span> &middot; ΔDM <span class="${deltaClass(deltaAvg)}">${fmtDelta(deltaAvg)}</span> &middot; ${improved}↑ ${regressed}↓`;
+  }
+
+  resultsEl.innerHTML = html;
+}
