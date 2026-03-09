@@ -113,7 +113,41 @@ let state = {
   },
   logs: [],
   cycleTimers: {},
+  sessionResults: [],  // Per-query results accumulated during active session (not persisted to localStorage)
+  maxTestQueries: 10,  // Configurable via Start dropdown slider
 };
+
+// Maintenance state
+let maintenanceLoaded = false;
+let maintenancePollTimer = null;
+
+// Pipeline definitions for Data Maintenance section
+const PIPELINES = [
+  {
+    id: 'discovery', name: 'Restaurant Discovery', icon: '&#128269;',
+    desc: 'Find new restaurants via Google Places API across cuisines and neighborhoods.',
+    cost: 'Free (Google API)', script: 'discovery.ts',
+    stages: ['Google Search', 'Filter Quality', 'Insert New', 'Deduplicate'],
+  },
+  {
+    id: 'enrichment', name: 'Data Enrichment', icon: '&#9889;',
+    desc: 'Fill missing fields (ambiance, dietary, cuisine) using Claude AI analysis.',
+    cost: '~$2-5 per run', script: 'enrich-new-or-gaps.ts',
+    stages: ['Find Gaps', 'Claude Enrich', 'Update DB', 'Validate'],
+  },
+  {
+    id: 'scores_tags', name: 'Scores & Tags', icon: '&#127991;',
+    desc: 'Generate occasion scores and descriptive tags for unscored restaurants.',
+    cost: '~$1-2 per run', script: 'generate-occasion-scores.ts + generate-tags.ts',
+    stages: ['Load Unscored', 'Score Occasions', 'Generate Tags', 'Verify'],
+  },
+  {
+    id: 'audit', name: 'Audit & Cleanup', icon: '&#128202;',
+    desc: 'Full dataset scan for quality grading, integrity issues, and cleanup.',
+    cost: 'Free (read-only)', script: 'audit-full-dataset.ts',
+    stages: ['Full Scan', 'Grade Quality', 'Flag Issues', 'Report'],
+  },
+];
 
 // Gauntlet analytics state
 let dashData = null;
@@ -151,6 +185,18 @@ function factorColor(v) {
   if (v >= 7) return 'var(--cc-green)';
   if (v >= 5) return 'var(--cc-amber)';
   return 'var(--cc-red)';
+}
+
+function determineGapType(result, dm) {
+  if (!result || dm >= 60) return null;
+  const sv9 = result.scoring_v9 || {};
+  const relScore = sv9.relevance_score || 0;
+  if (relScore < 0.5) return 'intent';
+  const factors = [sv9.food || 0, sv9.vibe || 0, sv9.service || 0, sv9.reputation || 0, sv9.convenience || 0];
+  const minFactor = Math.min(...factors);
+  if (minFactor < 4) return 'scoring';
+  if (dm >= 50) return 'relevance_ceiling';
+  return 'scoring';
 }
 
 function loadState() {

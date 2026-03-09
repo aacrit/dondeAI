@@ -420,23 +420,39 @@ function handleNotifAction(notifId, action) {
 // Game Over
 // ═══════════════════════════════════════════════════════════════════
 
-function showGameOver() {
+function showGameOver(sessionStartTime) {
   const overlay = document.getElementById('game-over');
   const statsEl = document.getElementById('game-over-stats');
+  const durationEl = document.getElementById('game-over-duration');
+  const saveStatusEl = document.getElementById('game-over-save-status');
 
+  // Duration
+  if (durationEl && sessionStartTime) {
+    const elapsed = Math.floor((new Date() - sessionStartTime) / 1000);
+    const m = Math.floor(elapsed / 60);
+    const s = elapsed % 60;
+    durationEl.textContent = `Duration: ${m}m ${s}s`;
+  }
+
+  // Stats grid
+  const atlas = state.agents.atlas;
+  const passRate = atlas.total > 0 ? Math.round((atlas.pass / atlas.total) * 100) : 0;
   const totalQueries = Object.values(state.agents).reduce((s, a) => s + (a.queries || a.probes || a.checks || a.audits || a.records || 0), 0);
-  const totalXP = Object.values(state.agents).reduce((s, a) => s + a.xp, 0);
 
-  statsEl.innerHTML = `
-    <strong>Total Queries:</strong> ${totalQueries}<br>
-    <strong>Total Score:</strong> ${totalXP.toLocaleString()}<br>
-    <strong>API Calls Used:</strong> ${state.budgetUsed} / ${DAILY_BUDGET}<br>
-    ${state.agents.atlas.total > 0 ? `<strong>Pass Rate:</strong> ${Math.round((state.agents.atlas.pass / state.agents.atlas.total) * 100)}%` : ''}<br>
-    <strong>Blurb Grade:</strong> ${state.agents.qaudit.grade}<br>
-    <strong>Regressions:</strong> ${state.agents.sentinel.regressions}<br>
-    <strong>Issues Found:</strong> ${state.agents.hunter.vulns}
-  `;
+  function statCard(value, label, colorClass) {
+    return `<div class="cc-overlay__stat"><div class="cc-overlay__stat-value ${colorClass || ''}">${value}</div><div class="cc-overlay__stat-label">${label}</div></div>`;
+  }
 
+  statsEl.innerHTML = [
+    statCard(totalQueries, 'Queries'),
+    statCard(passRate + '%', 'Pass Rate', passRate >= 80 ? 'rag-green' : passRate >= 60 ? 'rag-amber' : 'rag-red'),
+    statCard(atlas.avgDm || '--', 'Avg Score', ragClass(atlas.avgDm || 0)),
+    statCard(atlas.gaps, 'Gaps', atlas.gaps === 0 ? 'rag-green' : atlas.gaps <= 5 ? 'rag-amber' : 'rag-red'),
+    statCard(state.agents.qaudit.grade, 'Blurb Grade'),
+    statCard(state.agents.sentinel.regressions, 'Regressions', state.agents.sentinel.regressions === 0 ? 'rag-green' : 'rag-red'),
+  ].join('');
+
+  if (saveStatusEl) saveStatusEl.textContent = '';
   overlay.classList.add('cc-overlay--visible');
 }
 
@@ -485,8 +501,47 @@ function initSectionToggles() {
         if (header.dataset.toggle === 'trends' && !historyLoaded) {
           loadTrendsSection();
         }
+
+        // Lazy load maintenance
+        if (header.dataset.toggle === 'maintenance' && !maintenanceLoaded) {
+          loadMaintenanceSection();
+        }
       }
     });
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Start Dropdown (Test Count)
+// ═══════════════════════════════════════════════════════════════════
+
+function toggleStartDropdown(e) {
+  e.stopPropagation();
+  const dd = document.getElementById('start-dropdown');
+  dd.classList.toggle('cc-start-dropdown--open');
+}
+
+function initStartDropdown() {
+  const slider = document.getElementById('test-count-slider');
+  const valEl = document.getElementById('test-count-val');
+  const costEl = document.getElementById('test-cost-estimate');
+
+  if (slider) {
+    slider.addEventListener('input', () => {
+      const count = parseInt(slider.value);
+      if (valEl) valEl.textContent = count;
+      // Estimate: each Atlas query = 1 API call (~$0.01), plus ~30% overhead for other agents
+      const est = (count * 1.3 * 0.01).toFixed(2);
+      if (costEl) costEl.textContent = `Est. ~$${est} API usage`;
+    });
+  }
+
+  // Close dropdown when clicking outside
+  document.addEventListener('click', (e) => {
+    const dd = document.getElementById('start-dropdown');
+    if (dd && !e.target.closest('.cc-start-group')) {
+      dd.classList.remove('cc-start-dropdown--open');
+    }
   });
 }
 
@@ -515,6 +570,9 @@ state.clockTimer = setInterval(updateClock, 1000);
 
 // Section toggles
 initSectionToggles();
+
+// Start dropdown
+initStartDropdown();
 
 // Auth & analytics
 checkAuth();
