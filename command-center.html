@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Command Center — DondeAI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/command-center.css">
+</head>
+<body>
+
+  <!-- ═══ Header ═══ -->
+  <header class="cc-header">
+    <div class="cc-header__left">
+      <div class="cc-header__logo">DondeAI</div>
+      <div class="cc-header__title">Command Center</div>
+    </div>
+    <div class="cc-header__center">
+      <select class="cc-header__run-selector" id="run-selector">
+        <option value="">Loading runs...</option>
+      </select>
+    </div>
+    <div class="cc-header__right">
+      <div class="cc-header__status">
+        <span class="cc-header__dot cc-header__dot--offline" id="status-dot"></span>
+        <span class="cc-header__status-text" id="status-text">Offline</span>
+      </div>
+      <a href="index.html" class="cc-header__back">Back to Donde</a>
+    </div>
+  </header>
+
+  <!-- ═══ Auth Gate ═══ -->
+  <div id="auth-gate" style="display:none">
+    <div class="cc-auth">
+      <h2 class="cc-auth__title">Access Denied</h2>
+      <p class="cc-auth__message" id="auth-message">Sign in with your Google account to continue.</p>
+      <button class="cc-btn cc-btn--primary" id="auth-sign-in">Sign in with Google</button>
+    </div>
+  </div>
+
+  <!-- ═══ Main Content ═══ -->
+  <main class="cc-main" id="main-content">
+
+    <!-- ── Hero KPIs ── -->
+    <section class="cc-kpis" id="kpi-section">
+      <div class="cc-kpi" id="kpi-pass-rate">
+        <div class="cc-kpi__value" id="kpi-pass-val">--</div>
+        <div class="cc-kpi__label">Pass Rate</div>
+      </div>
+      <div class="cc-kpi" id="kpi-avg-score">
+        <div class="cc-kpi__value" id="kpi-avg-val">--</div>
+        <div class="cc-kpi__label">Avg Score</div>
+      </div>
+      <div class="cc-kpi" id="kpi-gaps">
+        <div class="cc-kpi__value" id="kpi-gaps-val">--</div>
+        <div class="cc-kpi__label">Open Gaps</div>
+      </div>
+      <div class="cc-kpi" id="kpi-data-health">
+        <div class="cc-kpi__value" id="kpi-data-val">--</div>
+        <div class="cc-kpi__label">Data Health</div>
+      </div>
+      <div class="cc-kpi" id="kpi-budget">
+        <div class="cc-kpi__value" id="kpi-budget-val">50</div>
+        <div class="cc-kpi__label">API Budget</div>
+      </div>
+      <div class="cc-kpi" id="kpi-regressions">
+        <div class="cc-kpi__value" id="kpi-reg-val">0</div>
+        <div class="cc-kpi__label">Regressions</div>
+      </div>
+      <div class="cc-kpi" id="kpi-blurb">
+        <div class="cc-kpi__value" id="kpi-blurb-val">--</div>
+        <div class="cc-kpi__label">Blurb Grade</div>
+      </div>
+      <div class="cc-kpi" id="kpi-agents">
+        <div class="cc-kpi__value" id="kpi-agents-val">0/5</div>
+        <div class="cc-kpi__label">Active Agents</div>
+      </div>
+    </section>
+
+    <!-- ── Focus Strip ── -->
+    <section class="cc-focus" id="focus-strip" style="display:none">
+      <div class="cc-focus__title">Needs Attention</div>
+      <div class="cc-focus__alerts" id="focus-alerts"></div>
+    </section>
+
+    <!-- ── Notifications ── -->
+    <div class="cc-notifications" id="notification-bar" style="display:none">
+      <div class="cc-notifications__header">
+        <span>Alerts</span>
+        <span class="cc-notifications__badge" id="notif-badge">0</span>
+      </div>
+      <div class="cc-notifications__list" id="notification-list"></div>
+    </div>
+
+    <!-- ═══ Section: Agents ═══ -->
+    <section class="cc-section cc-section--open" id="section-agents">
+      <div class="cc-section__header" data-toggle="agents">
+        <div class="cc-section__title">
+          <span class="cc-section__chevron">&#9662;</span>
+          Agents
+        </div>
+        <div class="cc-section__actions">
+          <div class="cc-controls">
+            <button class="cc-btn cc-btn--start" id="btn-start" onclick="handleStart()">Start</button>
+            <button class="cc-btn cc-btn--pause" id="btn-pause" onclick="handlePause()" disabled>Pause</button>
+            <button class="cc-btn cc-btn--stop" id="btn-stop" onclick="handleStop()" disabled>Stop</button>
+          </div>
+          <div class="cc-controls__meta">
+            <span class="cc-controls__clock" id="clock">00:00:00</span>
+            <span class="cc-controls__uptime" id="uptime">--:--:--</span>
+          </div>
+          <div class="cc-controls__budget">
+            <span id="budget-text">0 / 50</span>
+            <div class="cc-controls__budget-bar">
+              <div class="cc-controls__budget-fill" id="budget-fill" style="width:100%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="cc-section__body">
+        <!-- Issues remaining bar -->
+        <div class="cc-boss-bar">
+          <span class="cc-boss-bar__label">Issues Remaining</span>
+          <div class="cc-boss-bar__track">
+            <div class="cc-boss-bar__fill" id="boss-fill" style="width:60%"></div>
+          </div>
+          <span class="cc-boss-bar__value" id="boss-hp">60%</span>
+        </div>
+
+        <div class="cc-agents">
+          <!-- ATLAS -->
+          <div class="cc-agent cc-agent--atlas" id="card-atlas">
+            <div class="cc-agent__header">
+              <div class="cc-agent__name">Atlas</div>
+              <div class="cc-agent__role">Search Coverage</div>
+              <div class="cc-agent__level" id="atlas-level">Lvl 1</div>
+            </div>
+            <div class="cc-agent__health">
+              <div class="cc-agent__health-track">
+                <div class="cc-agent__health-fill cc-agent__health-fill--high" id="atlas-hp-fill" style="width:100%"></div>
+              </div>
+              <span class="cc-agent__health-val" id="atlas-hp-val">100%</span>
+            </div>
+            <div class="cc-agent__xp" id="atlas-xp">Score: 0</div>
+            <div class="cc-agent__stats">
+              <div class="cc-agent__stat"><span class="cc-agent__stat-label">Queries</span><span class="cc-agent__stat-value" id="atlas-queries">0</span></div>
+              <div class="cc-agent__stat"><span class="cc-agent__stat-label">Pass Rate</span><span class="cc-agent__stat-value" id="atlas-pass">--</span></div>
+              <div class="cc-agent__stat"><span class="cc-agent__stat-label">Avg Score</span><span class="cc-agent__stat-value" id="atlas-avg">--</span></div>
+              <div class="cc-agent__stat"><span class="cc-agent__stat-label">Gaps</span><span class="cc-agent__stat-value" id="atlas-gaps">0</span></div>
+            </div>
+            <div class="cc-agent__status cc-agent__status--idle" id="atlas-status">Idle</div>
+          </div>
+
+          <!-- QAUDIT -->
+          <div class="cc-agent cc-agent--qaudit" id="card-qaudit">
+            <div class="cc-agent__header">
+              <div class="cc-agent__name">QAudit</div>
+              <div class="cc-agent__role">Blurb Quality</div>
+              <div class="cc-agent__level" id="qaudit-level">Lvl 1</div>
+            </div>
+            <div class="cc-agent__health">
+              <div class="cc-agent__health-track">
+                <div class="cc-agent__health-fill cc-agent__health-fill--high" id="qaudit-hp-fill" style="width:100%"></div>
+              </div>
+              <span class="cc-agent__health-val" id="qaudit-hp-val">100%</span>
+            </div>
+            <div class="cc-agent__xp" id="qaudit-xp">Score: 0</div>
+            <div class="cc-agent__stats">
+              <div class="cc-agent__stat"><span class="cc-agent__stat-label">Audits</span><span class="cc-agent__stat-value" id="qaudit-audits">0</span></div>
+              <div class="cc-agent__stat"><span class="cc-agent__stat-label">Grade</span><span class="cc-agent__stat-value" id="qaudit-grade">--</span></div>
+              <div class="cc-agent__stat"><span class="cc-agent__stat-label">Slop</span><span class="cc-agent__stat-value" id="qaudit-slop">0</span></div>
+              <div class="cc-agent__stat"><span class="cc-agent__stat-label">Clean</span><span class="cc-agent__stat-value" id="qaudit-clean">0</span></div>
+            </div>
+            <div class="cc-agent__status cc-agent__status--idle" id="qaudit-status">Idle</div>
+          </div>
+
+          <!-- SENTINEL -->
+          <div class="cc-agent cc-agent--sentinel" id="card-sentinel">
+            <div class="cc-agent__header">
+              <div class="cc-agent__name">Sentinel</div>
+              <div class="cc-agent__role">Regression Watch</div>
+              <div class="cc-agent__level" id="sentinel-level">Lvl 1</div>
+            </div>
+            <div class="cc-agent__health">
+              <div class="cc-agent__health-track">
+                <div class="cc-agent__health-fill cc-agent__health-fill--high" id="sentinel-hp-fill" style="width:100%"></div>
+              </div>
+              <span class="cc-agent__health-val" id="sentinel-hp-val">100%</span>
+            </div>
+            <div class="cc-agent__xp" id="sentinel-xp">Score: 0</div>
+            <div class="cc-agent__stats">
+              <div class="cc-agent__stat"><span class="cc-agent__stat-label">Checks</span><span class="cc-agent__stat-value" id="sentinel-checks">0</span></div>
+              <div class="cc-agent__stat"><span class="cc-agent__stat-label">Regressions</span><span class="cc-agent__stat-value" id="sentinel-regs">0</span></div>
+              <div class="cc-agent__stat"><span class="cc-agent__stat-label">Baseline</span><span class="cc-agent__stat-value" id="sentinel-baseline">--</span></div>
+              <div class="cc-agent__stat"><span class="cc-agent__stat-label">Delta</span><span class="cc-agent__stat-value" id="sentinel-delta">--</span></div>
+            </div>
+            <div class="cc-agent__status cc-agent__status--idle" id="sentinel-status">Idle</div>
+          </div>
+
+          <!-- HUNTER -->
+          <div class="cc-agent cc-agent--hunter" id="card-hunter">
+            <div class="cc-agent__header">
+              <div class="cc-agent__name">Hunter</div>
+              <div class="cc-agent__role">Edge Cases</div>
+              <div class="cc-agent__level" id="hunter-level">Lvl 1</div>
+            </div>
+            <div class="cc-agent__health">
+              <div class="cc-agent__health-track">
+                <div class="cc-agent__health-fill cc-agent__health-fill--high" id="hunter-hp-fill" style="width:100%"></div>
+              </div>
+              <span class="cc-agent__health-val" id="hunter-hp-val">100%</span>
+            </div>
+            <div class="cc-agent__xp" id="hunter-xp">Score: 0</div>
+            <div class="cc-agent__stats">
+              <div class="cc-agent__stat"><span class="cc-agent__stat-label">Probes</span><span class="cc-agent__stat-value" id="hunter-probes">0</span></div>
+              <div class="cc-agent__stat"><span class="cc-agent__stat-label">Issues</span><span class="cc-agent__stat-value" id="hunter-vulns">0</span></div>
+              <div class="cc-agent__stat"><span class="cc-agent__stat-label">Contract</span><span class="cc-agent__stat-value" id="hunter-contract">--</span></div>
+              <div class="cc-agent__stat"><span class="cc-agent__stat-label">Errors</span><span class="cc-agent__stat-value" id="hunter-errors">0</span></div>
+            </div>
+            <div class="cc-agent__status cc-agent__status--idle" id="hunter-status">Idle</div>
+          </div>
+
+          <!-- GUARDIAN -->
+          <div class="cc-agent cc-agent--guardian" id="card-guardian">
+            <div class="cc-agent__header">
+              <div class="cc-agent__name">Guardian</div>
+              <div class="cc-agent__role">Data Integrity</div>
+              <div class="cc-agent__level" id="guardian-level">Lvl 1</div>
+            </div>
+            <div class="cc-agent__health">
+              <div class="cc-agent__health-track">
+                <div class="cc-agent__health-fill cc-agent__health-fill--high" id="guardian-hp-fill" style="width:100%"></div>
+              </div>
+              <span class="cc-agent__health-val" id="guardian-hp-val">100%</span>
+            </div>
+            <div class="cc-agent__xp" id="guardian-xp">Score: 0</div>
+            <div class="cc-agent__stats">
+              <div class="cc-agent__stat"><span class="cc-agent__stat-label">Records</span><span class="cc-agent__stat-value" id="guardian-records">0</span></div>
+              <div class="cc-agent__stat"><span class="cc-agent__stat-label">Issues</span><span class="cc-agent__stat-value" id="guardian-issues">0</span></div>
+              <div class="cc-agent__stat"><span class="cc-agent__stat-label">Orphans</span><span class="cc-agent__stat-value" id="guardian-orphans">0</span></div>
+              <div class="cc-agent__stat"><span class="cc-agent__stat-label">Coverage</span><span class="cc-agent__stat-value" id="guardian-coverage">--</span></div>
+            </div>
+            <div class="cc-agent__status cc-agent__status--idle" id="guardian-status">Idle</div>
+          </div>
+        </div>
+
+        <!-- Rankings -->
+        <div class="cc-rankings">
+          <div class="cc-rankings__title">Rankings</div>
+          <div class="cc-rankings__list" id="leaderboard">
+            <div class="cc-rankings__entry"><span class="cc-rankings__rank cc-rankings__rank--1">1.</span><span class="cc-rankings__name">---</span><span class="cc-rankings__score">0</span></div>
+            <div class="cc-rankings__entry"><span class="cc-rankings__rank cc-rankings__rank--2">2.</span><span class="cc-rankings__name">---</span><span class="cc-rankings__score">0</span></div>
+            <div class="cc-rankings__entry"><span class="cc-rankings__rank cc-rankings__rank--3">3.</span><span class="cc-rankings__name">---</span><span class="cc-rankings__score">0</span></div>
+            <div class="cc-rankings__entry"><span class="cc-rankings__rank">4.</span><span class="cc-rankings__name">---</span><span class="cc-rankings__score">0</span></div>
+            <div class="cc-rankings__entry"><span class="cc-rankings__rank">5.</span><span class="cc-rankings__name">---</span><span class="cc-rankings__score">0</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ Section: Quality ═══ -->
+    <section class="cc-section" id="section-quality">
+      <div class="cc-section__header" data-toggle="quality">
+        <div class="cc-section__title">
+          <span class="cc-section__chevron">&#9656;</span>
+          Quality
+        </div>
+        <div class="cc-section__summary" id="quality-summary"></div>
+      </div>
+      <div class="cc-section__body" style="display:none">
+        <div id="quality-content">
+          <p class="cc-muted">Select a run to view quality data.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ Section: Issues ═══ -->
+    <section class="cc-section" id="section-issues">
+      <div class="cc-section__header" data-toggle="issues">
+        <div class="cc-section__title">
+          <span class="cc-section__chevron">&#9656;</span>
+          Issues
+        </div>
+        <div class="cc-section__summary" id="issues-summary"></div>
+      </div>
+      <div class="cc-section__body" style="display:none">
+        <div id="issues-content">
+          <p class="cc-muted">Select a run to view gap analysis.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ Section: Trends ═══ -->
+    <section class="cc-section" id="section-trends">
+      <div class="cc-section__header" data-toggle="trends">
+        <div class="cc-section__title">
+          <span class="cc-section__chevron">&#9656;</span>
+          Trends
+        </div>
+        <div class="cc-section__summary" id="trends-summary"></div>
+      </div>
+      <div class="cc-section__body" style="display:none">
+        <div id="trends-content">
+          <p class="cc-muted">Loading trend data...</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ Section: Activity ═══ -->
+    <section class="cc-section" id="section-activity">
+      <div class="cc-section__header" data-toggle="activity">
+        <div class="cc-section__title">
+          <span class="cc-section__chevron">&#9656;</span>
+          Activity
+        </div>
+      </div>
+      <div class="cc-section__body" style="display:none">
+        <div class="cc-log__filters">
+          <button class="cc-log__filter cc-log__filter--active" data-filter="all" onclick="filterLog('all')">All</button>
+          <button class="cc-log__filter" data-filter="atlas" onclick="filterLog('atlas')">Atlas</button>
+          <button class="cc-log__filter" data-filter="qaudit" onclick="filterLog('qaudit')">QAudit</button>
+          <button class="cc-log__filter" data-filter="sentinel" onclick="filterLog('sentinel')">Sentinel</button>
+          <button class="cc-log__filter" data-filter="hunter" onclick="filterLog('hunter')">Hunter</button>
+          <button class="cc-log__filter" data-filter="guardian" onclick="filterLog('guardian')">Guardian</button>
+        </div>
+        <div class="cc-log__entries" id="battle-log">
+          <div class="cc-log__entry">
+            <span class="cc-log__time">--:--:--</span>
+            <span class="cc-log__agent cc-log__agent--system">System</span>
+            <span class="cc-log__message">Ready. Press Start to deploy agents.</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ═══ Stopped Overlay ═══ -->
+  <div class="cc-overlay" id="game-over">
+    <div class="cc-overlay__content">
+      <div class="cc-overlay__title">Session Complete</div>
+      <div class="cc-overlay__stats" id="game-over-stats">Loading session stats...</div>
+      <button class="cc-btn cc-btn--primary" onclick="dismissGameOver()">Return to Dashboard</button>
+    </div>
+  </div>
+
+  <!-- ═══ Paused Overlay ═══ -->
+  <div class="cc-paused" id="paused-overlay">
+    <div class="cc-paused__text">Paused</div>
+  </div>
+
+  <script src="js/cc-config.js"></script>
+  <script src="js/cc-agents.js"></script>
+  <script src="js/cc-analytics.js"></script>
+  <script src="js/cc-ui.js"></script>
+</body>
+</html>
