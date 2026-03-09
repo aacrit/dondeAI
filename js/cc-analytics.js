@@ -802,3 +802,335 @@ function renderTrendChart(data, key, label, maxVal) {
 function mkCard(value, label, colorClass) {
   return `<div class="cc-card"><div class="cc-card__value ${colorClass}">${value}</div><div class="cc-card__label">${label}</div></div>`;
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// Session Persistence to Supabase
+// ═══════════════════════════════════════════════════════════════════
+
+async function persistSessionToSupabase(results, startTime) {
+  if (!results || results.length === 0) return;
+
+  const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+  const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const runId = 'cc-' + crypto.randomUUID().substring(0, 28);
+  const total = results.length;
+  const passed60 = results.filter(r => r.donde_match >= 60).length;
+  const passed80 = results.filter(r => r.donde_match >= 80).length;
+  const passed90 = results.filter(r => r.donde_match >= 90).length;
+  const gapCount = results.filter(r => r.gap_type).length;
+  const avgDm = Math.round(results.reduce((s, r) => s + r.donde_match, 0) / total * 10) / 10;
+
+  // Category stats
+  const catMap = {};
+  for (const r of results) {
+    const cat = r.category || 'unknown';
+    if (!catMap[cat]) catMap[cat] = { total: 0, sum: 0, gaps: 0, pass: 0 };
+    catMap[cat].total++;
+    catMap[cat].sum += r.donde_match;
+    if (r.gap_type) catMap[cat].gaps++;
+    if (r.donde_match >= 60) catMap[cat].pass++;
+  }
+  const categoryStats = {};
+  for (const [cat, s] of Object.entries(catMap)) {
+    categoryStats[cat] = {
+      total: s.total, avg_dm: Math.round(s.sum / s.total * 10) / 10,
+      pass_rate: Math.round(s.pass / s.total * 100), gaps: s.gaps,
+    };
+  }
+
+  // Factor averages
+  const factors = ['food', 'vibe', 'service', 'reputation', 'convenience'];
+  const factorAverages = {};
+  for (const f of factors) {
+    factorAverages[f] = Math.round(results.reduce((s, r) => s + (r[f] || 0), 0) / total * 10) / 10;
+  }
+
+  // Gap type stats
+  const gapTypeStats = {};
+  for (const r of results) {
+    if (r.gap_type) gapTypeStats[r.gap_type] = (gapTypeStats[r.gap_type] || 0) + 1;
+  }
+
+  // Insert run
+  const { error: runError } = await sb.from('gauntlet_runs').insert({
+    run_id: runId,
+    total,
+    gap_count: gapCount,
+    avg_dm: avgDm,
+    passed_60: passed60,
+    passed_80: passed80,
+    passed_90: passed90,
+    mode: 'command-center',
+    dataset_size: total,
+    category_stats: categoryStats,
+    factor_averages: factorAverages,
+    gap_type_stats: gapTypeStats,
+  });
+  if (runError) throw runError;
+
+  // Insert results
+  const rows = results.map((r, i) => ({
+    run_id: runId,
+    query_id: `cc-q${i}`,
+    query: r.query,
+    category: r.category,
+    donde_match: r.donde_match,
+    gap_type: r.gap_type,
+    gap_severity: r.gap_severity,
+    restaurant_name: r.restaurant_name,
+    tier: r.tier,
+    relevance_type: r.relevance_type,
+    food: r.food,
+    vibe: r.vibe,
+    service: r.service,
+    reputation: r.reputation,
+    convenience: r.convenience,
+  }));
+
+  const { error: resError } = await sb.from('gauntlet_results').insert(rows);
+  if (resError) throw resError;
+
+  return runId;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Data Maintenance Section
+// ═══════════════════════════════════════════════════════════════════
+
+async function loadMaintenanceSection() {
+  if (maintenanceLoaded) return;
+  maintenanceLoaded = true;
+  const el = document.getElementById('maintenance-content');
+  el.innerHTML = '<div class="cc-loading"><div class="cc-spinner"></div><p>Loading data health...</p></div>';
+
+  try {
+    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+    const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // Fetch DB health stats in parallel
+    const [
+      totalRes, enrichedRes, scoresRes, tagsRes, deepRes,
+      missingCuisineRes, missingTipRes, latestEnrichedRes,
+      recentOpsRes,
+    ] = await Promise.all([
+      sb.from('restaurants').select('*', { count: 'exact', head: true }),
+      sb.from('restaurants').select('*', { count: 'exact', head: true }).not('noise_level', 'is', null),
+      sb.from('occasion_scores').select('*', { count: 'exact', head: true }),
+      sb.from('restaurants').select('*', { count: 'exact', head: true }).not('semantic_tags', 'is', null),
+      sb.from('restaurant_deep_profiles').select('*', { count: 'exact', head: true }),
+      sb.from('restaurants').select('*', { count: 'exact', head: true }).is('cuisine_type', null),
+      sb.from('restaurants').select('*', { count: 'exact', head: true }).is('insider_tip', null),
+      sb.from('restaurants').select('enriched_at').not('enriched_at', 'is', null).order('enriched_at', { ascending: false }).limit(1),
+      sb.from('maintenance_requests').select('*').order('requested_at', { ascending: false }).limit(10).then(r => r).catch(() => ({ data: [] })),
+    ]);
+
+    const totalCount = totalRes.count || 0;
+    const enrichedCount = enrichedRes.count || 0;
+    const scoresCount = scoresRes.count || 0;
+    const tagsCount = tagsRes.count || 0;
+    const deepCount = deepRes.count || 0;
+    const missingCuisine = missingCuisineRes.count || 0;
+    const missingTip = missingTipRes.count || 0;
+    const latestEnriched = latestEnrichedRes.data?.[0]?.enriched_at;
+    const recentOps = recentOpsRes.data || [];
+
+    renderMaintenanceSection(el, {
+      totalCount, enrichedCount, scoresCount, tagsCount, deepCount,
+      missingCuisine, missingTip, latestEnriched, recentOps,
+    });
+
+    // Start polling if any running operations
+    if (recentOps.some(op => op.status === 'running')) {
+      startMaintenancePolling();
+    }
+  } catch (e) {
+    el.innerHTML = `<p style="color:var(--cc-red)">Failed to load data health: ${e.message}</p>`;
+    maintenanceLoaded = false;
+  }
+}
+
+function renderMaintenanceSection(el, stats) {
+  const { totalCount, enrichedCount, scoresCount, tagsCount, deepCount,
+    missingCuisine, missingTip, latestEnriched, recentOps } = stats;
+
+  const enrichedPct = totalCount > 0 ? Math.round(enrichedCount / totalCount * 100) : 0;
+  const scoresPct = totalCount > 0 ? Math.round(scoresCount / totalCount * 100) : 0;
+  const tagsPct = totalCount > 0 ? Math.round(tagsCount / totalCount * 100) : 0;
+  const deepPct = totalCount > 0 ? Math.round(deepCount / totalCount * 100) : 0;
+
+  const healthClass = (pct) => pct >= 90 ? 'rag-green' : pct >= 70 ? 'rag-amber' : 'rag-red';
+
+  let h = '';
+
+  // Update section summary
+  const summaryEl = document.getElementById('maintenance-summary');
+  if (summaryEl) summaryEl.textContent = `${totalCount} restaurants | ${enrichedPct}% enriched`;
+
+  // Health Stats
+  h += '<div class="cc-subsection"><div class="cc-subsection__title">Database Health</div>';
+  h += '<div class="cc-cards">';
+  h += mkCard(totalCount, 'Restaurants', '');
+  h += mkCard(enrichedPct + '%', 'Enriched', healthClass(enrichedPct));
+  h += mkCard(scoresPct + '%', 'Has Scores', healthClass(scoresPct));
+  h += mkCard(tagsPct + '%', 'Has Tags', healthClass(tagsPct));
+  h += mkCard(deepPct + '%', 'Deep Profiles', healthClass(deepPct));
+  h += mkCard(missingCuisine, 'No Cuisine', missingCuisine > 10 ? 'rag-red' : missingCuisine > 0 ? 'rag-amber' : 'rag-green');
+  h += mkCard(missingTip, 'No Insider Tip', missingTip > 50 ? 'rag-red' : missingTip > 10 ? 'rag-amber' : 'rag-green');
+  h += mkCard(latestEnriched ? new Date(latestEnriched).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '--', 'Last Enriched', '');
+  h += '</div></div>';
+
+  // Pipeline Cards
+  h += '<div class="cc-subsection"><div class="cc-subsection__title">Pipelines</div>';
+  h += '<div class="cc-pipeline-grid">';
+
+  for (const pipeline of PIPELINES) {
+    const lastOp = recentOps.find(op => op.operation === pipeline.id);
+    const stages = lastOp?.stages || pipeline.stages.map(s => ({ name: s, status: 'pending' }));
+    const isRunning = lastOp?.status === 'running';
+
+    h += `<div class="cc-pipeline" data-pipeline="${pipeline.id}">`;
+    h += `<div class="cc-pipeline__header">`;
+    h += `<div class="cc-pipeline__icon">${pipeline.icon}</div>`;
+    h += `<div class="cc-pipeline__info">`;
+    h += `<div class="cc-pipeline__name">${pipeline.name}</div>`;
+    h += `<div class="cc-pipeline__desc">${pipeline.desc}</div>`;
+    h += `</div></div>`;
+
+    // Visual stage flow
+    h += '<div class="cc-pipeline__stages">';
+    const stageList = Array.isArray(stages) && stages[0]?.name ? stages : pipeline.stages.map(s => ({ name: s, status: 'pending' }));
+    for (let i = 0; i < stageList.length; i++) {
+      const stage = stageList[i];
+      const statusClass = stage.status === 'complete' ? 'cc-pipeline__dot--complete'
+        : stage.status === 'running' ? 'cc-pipeline__dot--running'
+        : stage.status === 'failed' ? 'cc-pipeline__dot--failed'
+        : 'cc-pipeline__dot--pending';
+      const connectorClass = stage.status === 'complete' ? 'cc-pipeline__connector--done' : '';
+
+      if (i > 0) h += `<div class="cc-pipeline__connector ${connectorClass}"></div>`;
+      h += `<div class="cc-pipeline__stage">`;
+      h += `<div class="cc-pipeline__dot ${statusClass}"></div>`;
+      h += `<div class="cc-pipeline__stage-label">${typeof stage === 'string' ? stage : stage.name}</div>`;
+      h += `</div>`;
+    }
+    h += '</div>';
+
+    // Footer: last run + cost + button
+    h += '<div class="cc-pipeline__footer">';
+    if (lastOp) {
+      const date = new Date(lastOp.requested_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+      const statusBadge = lastOp.status === 'complete' ? 'cc-badge--auto' : lastOp.status === 'running' ? 'cc-badge--tuning' : lastOp.status === 'failed' ? 'cc-badge--p0' : '';
+      h += `<span class="cc-pipeline__last-run">${date} <span class="cc-badge ${statusBadge}">${lastOp.status}</span></span>`;
+    } else {
+      h += '<span class="cc-pipeline__last-run cc-muted">Never run</span>';
+    }
+    h += `<span class="cc-pipeline__cost">${pipeline.cost}</span>`;
+    h += `<button class="cc-btn cc-btn--primary cc-pipeline__run-btn" data-op="${pipeline.id}" onclick="requestPipelineRun('${pipeline.id}')" ${isRunning ? 'disabled' : ''}>`;
+    h += isRunning ? 'Running...' : 'Request Run';
+    h += '</button>';
+    h += '</div></div>';
+  }
+  h += '</div></div>';
+
+  // Recent Operations
+  if (recentOps.length > 0) {
+    h += '<div class="cc-subsection"><div class="cc-subsection__title">Recent Operations</div>';
+    h += '<div class="cc-table-wrap"><table class="cc-table"><thead><tr>';
+    h += '<th>Date</th><th>Operation</th><th>Status</th><th>Duration</th><th>Result</th>';
+    h += '</tr></thead><tbody>';
+    for (const op of recentOps) {
+      const date = new Date(op.requested_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+      const statusBadge = op.status === 'complete' ? 'cc-badge--auto'
+        : op.status === 'running' ? 'cc-badge--tuning'
+        : op.status === 'failed' ? 'cc-badge--p0' : '';
+      const duration = op.completed_at && op.started_at
+        ? Math.round((new Date(op.completed_at) - new Date(op.started_at)) / 1000) + 's'
+        : op.started_at ? 'In progress' : '--';
+      const resultText = op.result ? `${op.result.rows_affected || 0} rows` : '--';
+      h += `<tr>
+        <td>${date}</td>
+        <td><strong>${op.operation}</strong></td>
+        <td><span class="cc-badge ${statusBadge}">${op.status}</span></td>
+        <td style="font-family:var(--cc-mono);font-size:0.68rem">${duration}</td>
+        <td style="font-size:0.68rem;color:var(--cc-text-2)">${resultText}</td>
+      </tr>`;
+    }
+    h += '</tbody></table></div></div>';
+  }
+
+  el.innerHTML = h;
+}
+
+async function requestPipelineRun(operationId) {
+  const btn = document.querySelector(`.cc-pipeline__run-btn[data-op="${operationId}"]`);
+  if (btn) { btn.disabled = true; btn.textContent = 'Requesting...'; }
+
+  try {
+    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+    const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const pipeline = PIPELINES.find(p => p.id === operationId);
+    const stages = pipeline ? pipeline.stages.map(s => ({ name: s, status: 'pending' })) : [];
+
+    const { error } = await sb.from('maintenance_requests').insert({
+      operation: operationId,
+      status: 'pending',
+      requested_by: 'ceo',
+      stages,
+    });
+
+    if (error) throw error;
+    if (btn) { btn.textContent = 'Requested'; btn.classList.remove('cc-btn--primary'); }
+    addLog('SYSTEM', `Pipeline "${operationId}" requested. Awaiting backend execution.`, 'star');
+    addNotification('pipeline', `Pipeline "${operationId}" has been queued.`, 'system');
+
+    // Reload to show new entry
+    maintenanceLoaded = false;
+    setTimeout(() => loadMaintenanceSection(), 1000);
+  } catch (e) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Request Run'; }
+    addLog('SYSTEM', `Failed to request pipeline: ${e.message}`, 'fail');
+  }
+}
+
+function startMaintenancePolling() {
+  if (maintenancePollTimer) return;
+  maintenancePollTimer = setInterval(async () => {
+    try {
+      const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+      const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      const { data: running } = await sb.from('maintenance_requests')
+        .select('*').eq('status', 'running').limit(5);
+
+      if (!running || running.length === 0) {
+        clearInterval(maintenancePollTimer);
+        maintenancePollTimer = null;
+        // Reload section to show final state
+        maintenanceLoaded = false;
+        loadMaintenanceSection();
+        return;
+      }
+
+      // Update pipeline stage dots
+      for (const op of running) {
+        const pipelineEl = document.querySelector(`.cc-pipeline[data-pipeline="${op.operation}"]`);
+        if (!pipelineEl || !op.stages) continue;
+        const dots = pipelineEl.querySelectorAll('.cc-pipeline__dot');
+        const connectors = pipelineEl.querySelectorAll('.cc-pipeline__connector');
+        op.stages.forEach((stage, i) => {
+          if (dots[i]) {
+            dots[i].className = 'cc-pipeline__dot';
+            if (stage.status === 'complete') dots[i].classList.add('cc-pipeline__dot--complete');
+            else if (stage.status === 'running') dots[i].classList.add('cc-pipeline__dot--running');
+            else if (stage.status === 'failed') dots[i].classList.add('cc-pipeline__dot--failed');
+            else dots[i].classList.add('cc-pipeline__dot--pending');
+          }
+          if (connectors[i - 1] && stage.status === 'complete') {
+            connectors[i - 1].classList.add('cc-pipeline__connector--done');
+          }
+        });
+      }
+    } catch (e) { /* ignore polling errors */ }
+  }, 10000);
+}

@@ -47,6 +47,15 @@ function handleStart() {
   if (state.systemState === 'running') return;
   state.systemState = 'running';
   state.startTime = state.startTime || new Date();
+  state.sessionResults = []; // Fresh session
+
+  // Read test count from slider
+  const slider = document.getElementById('test-count-slider');
+  state.maxTestQueries = slider ? parseInt(slider.value) : 10;
+
+  // Close dropdown if open
+  const dd = document.getElementById('start-dropdown');
+  if (dd) dd.classList.remove('cc-start-dropdown--open');
 
   document.getElementById('btn-start').classList.add('active');
   document.getElementById('btn-start').disabled = true;
@@ -56,7 +65,7 @@ function handleStart() {
   updateSystemStatus('Online', 'green');
   document.getElementById('paused-overlay').classList.remove('cc-paused--visible');
 
-  addLog('SYSTEM', 'All agents deployed. Monitoring active.', 'star');
+  addLog('SYSTEM', `All agents deployed (${state.maxTestQueries} test queries). Monitoring active.`, 'star');
   startAgentCycles();
 
   if (state.pollTimer) clearInterval(state.pollTimer);
@@ -88,7 +97,8 @@ function handlePause() {
   });
 }
 
-function handleStop() {
+async function handleStop() {
+  const sessionStartTime = state.startTime;
   state.systemState = 'idle';
   state.startTime = null;
 
@@ -103,7 +113,8 @@ function handleStop() {
   stopAgentCycles();
   if (state.pollTimer) { clearInterval(state.pollTimer); state.pollTimer = null; }
 
-  showGameOver();
+  // Show game-over with save status
+  showGameOver(sessionStartTime);
   addLog('SYSTEM', 'Session ended. All agents stopped.', 'fail');
 
   Object.keys(state.agents).forEach(id => {
@@ -111,6 +122,31 @@ function handleStop() {
     updateAgentStatusUI(id);
   });
   saveState();
+
+  // Persist session results to Supabase
+  if (state.sessionResults.length > 0) {
+    addLog('SYSTEM', `Saving ${state.sessionResults.length} results to Supabase...`, 'star');
+    const saveStatusEl = document.getElementById('game-over-save-status');
+    if (saveStatusEl) saveStatusEl.textContent = 'Saving to Supabase...';
+
+    try {
+      await persistSessionToSupabase(state.sessionResults, sessionStartTime);
+      state.sessionResults = [];
+      if (saveStatusEl) saveStatusEl.innerHTML = '<span style="color:var(--cc-green)">Run saved to Supabase</span>';
+      addLog('SYSTEM', 'Session results saved to Supabase.', 'star');
+      // Refresh dropdown to include new run
+      await loadRunSelector();
+      // Auto-select the new run (first in list = latest)
+      const sel = document.getElementById('run-selector');
+      if (sel && sel.options.length > 0) {
+        sel.value = sel.options[0].value;
+        if (sel.value) await loadRunFromSupabase(sel.value);
+      }
+    } catch (e) {
+      if (saveStatusEl) saveStatusEl.innerHTML = `<span style="color:var(--cc-red)">Save failed: ${escapeHtml(e.message)}</span>`;
+      addLog('SYSTEM', `Failed to save session: ${e.message}`, 'fail');
+    }
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -177,6 +213,24 @@ async function runAtlasCycle() {
     }
     agent.avgDm = agent.total > 0 ? Math.round(((agent.avgDm * (agent.total - 1)) + dm) / agent.total) : dm;
     agent.hp = agent.total > 0 ? Math.round((agent.pass / agent.total) * 100) : 100;
+
+    // Capture per-query result for session persistence
+    const sv9 = result.scoring_v9 || {};
+    state.sessionResults.push({
+      query: query,
+      donde_match: dm,
+      category: sv9.relevance_type || 'unknown',
+      gap_type: determineGapType(result, dm),
+      gap_severity: dm < 40 ? 'P0' : dm < 60 ? 'P1' : null,
+      restaurant_name: result.restaurant?.name || null,
+      tier: result.restaurant?.tier || null,
+      relevance_type: sv9.relevance_type || null,
+      food: Number(sv9.food || 0),
+      vibe: Number(sv9.vibe || 0),
+      service: Number(sv9.service || 0),
+      reputation: Number(sv9.reputation || 0),
+      convenience: Number(sv9.convenience || 0),
+    });
   } else {
     agent.gaps++;
     addLog('atlas', `API ERROR: "${query}" -> ${result.error || 'HTTP ' + result.httpCode}`, 'fail');
@@ -188,6 +242,12 @@ async function runAtlasCycle() {
   updateLeaderboard();
   updateHeroKPIs();
   saveState();
+
+  // Auto-stop when configured query limit reached
+  if (agent.queries >= state.maxTestQueries) {
+    addLog('atlas', `Reached ${state.maxTestQueries} query target. Auto-stopping session.`, 'star');
+    handleStop();
+  }
 }
 
 // ─── QAUDIT ───
