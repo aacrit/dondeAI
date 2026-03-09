@@ -36,60 +36,116 @@ function updateClock() {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// Status Strip (one-line contextual summary — auto-populated)
+// Init Data Load (replaces loadStatusStrip — single source of truth)
+// Populates: Pulse subtexts, Prod Strip KPIs, Maintenance summary, Suggestion
 // ═══════════════════════════════════════════════════════════════════
 
-async function loadStatusStrip() {
+let _initData = null; // cached for lazy prod detail
+
+async function loadInitData() {
   try {
     const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
     const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // Fire 3 parallel queries
-    const [latestRun, totalRes, enrichedRes, todayRes] = await Promise.all([
+    const todayStart = new Date(new Date().setHours(0,0,0,0)).toISOString();
+
+    // 4 parallel queries — the ONLY init-time DB calls
+    const [latestRun, totalRes, enrichedRes, todayQueries] = await Promise.all([
       sb.from('gauntlet_runs').select('created_at, avg_dm, total, gap_count').order('created_at', { ascending: false }).limit(1),
       sb.from('restaurants').select('*', { count: 'exact', head: true }),
       sb.from('restaurants').select('*', { count: 'exact', head: true }).not('noise_level', 'is', null),
-      sb.from('user_queries').select('*', { count: 'exact', head: true }).gte('created_at', new Date(new Date().setHours(0,0,0,0)).toISOString()),
+      // Fetch today's queries WITH donde_match so we can derive avg DM + low scores
+      sb.from('user_queries').select('donde_match').gte('created_at', todayStart),
     ]);
 
-    // Last run
-    const runEl = document.getElementById('strip-last-run');
-    if (latestRun.data?.[0]) {
-      const r = latestRun.data[0];
-      const date = new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-      const passRate = r.total > 0 ? Math.round((r.total - r.gap_count) / r.total * 100) : 0;
-      runEl.innerHTML = `Last run: <strong>${date}</strong> &middot; <strong class="${passRate >= 80 ? 'rag-green' : passRate >= 60 ? 'rag-amber' : 'rag-red'}">${passRate}% pass</strong>`;
-    } else {
-      runEl.textContent = 'No test runs yet';
-    }
-
-    // Data health
-    const dataEl = document.getElementById('strip-data');
     const totalCount = totalRes.count || 0;
     const enrichedCount = enrichedRes.count || 0;
     const enrichedPct = totalCount > 0 ? Math.round(enrichedCount / totalCount * 100) : 0;
-    dataEl.innerHTML = `<strong>${totalCount}</strong> restaurants &middot; <strong class="${enrichedPct >= 90 ? 'rag-green' : enrichedPct >= 70 ? 'rag-amber' : 'rag-red'}">${enrichedPct}%</strong> enriched`;
 
-    // Also populate maintenance section summary
+    // Derive prod strip KPIs from today's queries (no extra API call)
+    const todayRows = todayQueries.data || [];
+    const todayCount = todayRows.length;
+    const scored = todayRows.filter(q => q.donde_match != null);
+    const avgDm = scored.length > 0 ? Math.round(scored.reduce((s, r) => s + r.donde_match, 0) / scored.length) : 0;
+    const lowScoreCount = scored.filter(r => r.donde_match < 40).length;
+
+    // Cache for lazy prod detail expansion
+    _initData = { totalCount, enrichedCount, enrichedPct, todayCount, avgDm, lowScoreCount, latestRun: latestRun.data?.[0] || null, todayRows };
+
+    // ── Populate Prod Strip ──
+    const prodSearches = document.getElementById('prod-searches');
+    const prodAvgDm = document.getElementById('prod-avg-dm');
+    const prodLow = document.getElementById('prod-low-scores');
+    if (prodSearches) prodSearches.textContent = todayCount;
+    if (prodAvgDm) {
+      prodAvgDm.textContent = scored.length > 0 ? avgDm : '--';
+      prodAvgDm.className = 'cc-prod-strip__val';
+      if (scored.length > 0) prodAvgDm.classList.add(ragClass(avgDm));
+    }
+    if (prodLow) {
+      prodLow.textContent = lowScoreCount;
+      prodLow.className = 'cc-prod-strip__val';
+      if (lowScoreCount > 10) prodLow.classList.add('rag-red');
+      else if (lowScoreCount > 3) prodLow.classList.add('rag-amber');
+      else prodLow.classList.add('rag-green');
+    }
+
+    // ── Populate Maintenance summary ──
     const maintSummary = document.getElementById('maintenance-summary');
-    if (maintSummary) maintSummary.textContent = `${totalCount} restaurants | ${enrichedPct}% enriched`;
+    if (maintSummary) maintSummary.textContent = `${totalCount} restaurants · ${enrichedPct}% enriched`;
 
-    // Production today
-    const prodEl = document.getElementById('strip-prod');
-    const todayCount = todayRes.count || 0;
-    prodEl.innerHTML = `<strong>${todayCount}</strong> searches today`;
+    // ── Enrich Pulse subtexts with DB data (when no session is running) ──
+    if (!state.startTime) {
+      const healthSub = document.getElementById('pulse-health-sub');
+      const qualitySub = document.getElementById('pulse-quality-sub');
+      if (_initData.latestRun) {
+        const r = _initData.latestRun;
+        const passRate = r.total > 0 ? Math.round((r.total - r.gap_count) / r.total * 100) : 0;
+        const date = new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        if (healthSub) healthSub.textContent = `${passRate}% pass · ${r.total} queries · ${date}`;
+        if (qualitySub) qualitySub.textContent = `DM ${r.avg_dm || '--'} · ${r.gap_count} gaps`;
 
-    // Also populate production section summary
-    const prodSummary = document.getElementById('production-summary');
-    if (prodSummary) prodSummary.textContent = `${todayCount} searches today`;
+        // Populate pulse values from last run if no session data
+        const healthVal = document.getElementById('pulse-health-val');
+        const healthRing = document.getElementById('pulse-health-ring');
+        if (healthVal) {
+          healthVal.textContent = passRate + '%';
+          healthVal.style.color = passRate >= 80 ? 'var(--cc-green)' : passRate >= 60 ? 'var(--cc-amber)' : 'var(--cc-red)';
+          const offset = 213.6 * (1 - passRate / 100);
+          if (healthRing) { healthRing.style.strokeDashoffset = offset; healthRing.style.stroke = passRate >= 80 ? 'var(--cc-green)' : passRate >= 60 ? 'var(--cc-amber)' : 'var(--cc-red)'; }
+        }
+        const qualityVal = document.getElementById('pulse-quality-val');
+        if (qualityVal && r.avg_dm) {
+          qualityVal.textContent = r.avg_dm;
+          qualityVal.className = 'cc-pulse__big';
+          qualityVal.classList.add(ragClass(r.avg_dm));
+        }
+        const attentionVal = document.getElementById('pulse-attention-val');
+        const attentionSub = document.getElementById('pulse-attention-sub');
+        if (attentionVal) {
+          attentionVal.textContent = r.gap_count || 0;
+          attentionVal.style.color = r.gap_count === 0 ? 'var(--cc-green)' : r.gap_count <= 5 ? 'var(--cc-amber)' : 'var(--cc-red)';
+        }
+        if (attentionSub) attentionSub.textContent = r.gap_count > 0 ? `${r.gap_count} gaps from last run` : 'All clear';
+      }
+    }
+
+    // ── Smart Suggestion ──
+    computeSuggestion();
 
   } catch (e) {
-    console.warn('Status strip load failed:', e);
-    document.getElementById('strip-last-run').textContent = 'Status unavailable';
-    document.getElementById('strip-data').textContent = '--';
-    document.getElementById('strip-prod').textContent = '--';
+    console.warn('Init data load failed:', e);
+    const prodSearches = document.getElementById('prod-searches');
+    const prodAvgDm = document.getElementById('prod-avg-dm');
+    const prodLow = document.getElementById('prod-low-scores');
+    if (prodSearches) prodSearches.textContent = '--';
+    if (prodAvgDm) prodAvgDm.textContent = '--';
+    if (prodLow) prodLow.textContent = '--';
   }
 }
+
+// Alias for backward compatibility (called from checkAuth)
+function loadStatusStrip() { return loadInitData(); }
 
 // ═══════════════════════════════════════════════════════════════════
 // Pulse Cards (3 big hero numbers)
@@ -203,31 +259,39 @@ function updatePulseFromGauntlet(data) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// Agent Dots (compact strip in section header)
+// Agents Summary (replaces agent dots — removed from HTML)
 // ═══════════════════════════════════════════════════════════════════
 
-function updateAgentDots() {
+function updateAgentDots() { updateAgentsSummary(); } // backward compat
+
+function updateAgentsSummary() {
   const running = [];
   Object.entries(state.agents).forEach(([id, agent]) => {
-    const pip = document.getElementById(`dot-${id}`);
-    if (!pip) return;
-    pip.className = 'cc-agent-dot__pip';
-    switch (agent.status) {
-      case 'running': pip.classList.add('dot-running'); running.push(AGENT_DEFS[id].name); break;
-      case 'error': pip.classList.add('dot-error'); break;
-      default: if (agent.xp > 0) pip.classList.add('dot-done'); break;
-    }
+    if (agent.status === 'running') running.push(AGENT_DEFS[id].name);
   });
 
   const summary = document.getElementById('agents-summary');
   if (summary) {
-    if (running.length > 0) { summary.textContent = `${running.length} running`; summary.style.color = 'var(--cc-green)'; }
-    else if (state.systemState === 'paused') { summary.textContent = 'Paused'; summary.style.color = 'var(--cc-amber)'; }
-    else {
+    if (running.length > 0) {
+      // Show running count + top agent stat
+      const atlas = state.agents.atlas;
+      const topStat = atlas.total > 0 ? ` · Atlas ${Math.round((atlas.pass / atlas.total) * 100)}% pass` : '';
+      summary.textContent = `${running.length} running${topStat}`;
+      summary.style.color = 'var(--cc-green)';
+    } else if (state.systemState === 'paused') {
+      summary.textContent = 'Paused';
+      summary.style.color = 'var(--cc-amber)';
+    } else {
       const totalXp = Object.values(state.agents).reduce((s, a) => s + a.xp, 0);
-      summary.textContent = totalXp > 0 ? `${totalXp.toLocaleString()} XP` : 'Idle';
+      summary.textContent = totalXp > 0 ? `5 agents · ${totalXp.toLocaleString()} XP` : 'Idle';
       summary.style.color = '';
     }
+  }
+
+  // Show/hide inline Pause/Stop controls based on system state
+  const controls = document.getElementById('agent-controls');
+  if (controls) {
+    controls.style.display = (state.systemState === 'running' || state.systemState === 'paused') ? '' : 'none';
   }
 }
 
@@ -365,41 +429,38 @@ async function loadProductionDashboard() {
     const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
     const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-    const [recentQueries, scoreData, userHistory] = await Promise.all([
+    // Only fetch the detail tables — KPIs already populated from loadInitData()
+    const [recentQueries, userHistory] = await Promise.all([
       sb.from('user_queries').select('special_request, donde_match, created_at, occasion, user_id, restaurants(name)').order('created_at', { ascending: false }).limit(50),
-      sb.from('user_queries').select('donde_match, created_at, user_id').order('created_at', { ascending: false }).limit(200),
       sb.from('user_searches').select('craving, restaurant_name, cuisine_type, donde_match, created_at, occasion').order('created_at', { ascending: false }).limit(50),
     ]);
 
     const recent = recentQueries.data || [];
-    const allRows = scoreData.data || [];
     const history = userHistory.data || [];
 
-    const totalCount = allRows.length;
-    const todayStart = new Date(new Date().setHours(0, 0, 0, 0)).toISOString();
-    const todayCount = allRows.filter(q => q.created_at >= todayStart).length;
-    const uniqueUserIds = new Set(allRows.filter(q => q.user_id).map(q => q.user_id));
+    // Use cached init data for KPI cards (already fetched, no redundant query)
+    const d = _initData || {};
+    const totalCount = d.todayCount || recent.length;
+    const uniqueUserIds = new Set(recent.filter(q => q.user_id).map(q => q.user_id));
     const userCount = uniqueUserIds.size;
-    const scored = allRows.filter(q => q.donde_match != null);
-    const avgDm = scored.length > 0 ? Math.round(scored.reduce((s, r) => s + r.donde_match, 0) / scored.length) : 0;
-    const lowScoreCount = scored.filter(r => r.donde_match < 40).length;
+    const avgDm = d.avgDm || 0;
+    const lowScoreCount = d.lowScoreCount || 0;
 
     function prodCard(value, label, sub, colorClass) {
       return `<div class="cc-prod-card"><div class="cc-prod-card__value ${colorClass || ''}">${value}</div><div class="cc-prod-card__label">${label}</div>${sub ? `<div class="cc-prod-card__sub">${sub}</div>` : ''}</div>`;
     }
 
     kpis.innerHTML = [
-      prodCard(totalCount >= 200 ? '200+' : totalCount.toString(), 'Total Searches', '', ''),
-      prodCard(todayCount, 'Today', new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }), ''),
+      prodCard(totalCount, 'Today', new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }), ''),
       prodCard(userCount, 'Unique Users', '', ''),
       prodCard(avgDm, 'Avg DM', '', ragClass(avgDm)),
       prodCard(lowScoreCount, 'Low Scores (<40)', '', lowScoreCount > 10 ? 'rag-red' : lowScoreCount > 3 ? 'rag-amber' : 'rag-green'),
     ].join('');
 
     const alerts = [];
-    if (avgDm < 60) alerts.push({ text: `Average DM is ${avgDm} \u2014 below 60 threshold`, type: 'red' });
+    if (avgDm > 0 && avgDm < 60) alerts.push({ text: `Average DM is ${avgDm} — below 60 threshold`, type: 'red' });
     if (lowScoreCount > 10) alerts.push({ text: `${lowScoreCount} queries scored below 40`, type: 'red' });
-    if (todayCount === 0) alerts.push({ text: 'No searches today \u2014 check API health', type: 'amber' });
+    if (totalCount === 0) alerts.push({ text: 'No searches today — check API health', type: 'amber' });
 
     const alertsEl = document.getElementById('prod-alerts');
     const alertListEl = document.getElementById('prod-alert-list');
@@ -498,7 +559,7 @@ function updateLeaderboard() {
   if (!list) return;
   const rankClasses = ['cc-rankings__rank--1', 'cc-rankings__rank--2', 'cc-rankings__rank--3', '', ''];
   list.innerHTML = entries.map((e, i) => `
-    <div class="cc-rankings__entry">
+    <div class="cc-rankings__entry" role="button" tabindex="0" onclick="scrollToAgent('${e.id}')">
       <span class="cc-rankings__rank ${rankClasses[i]}">${i + 1}.</span>
       <span class="cc-rankings__name">${e.name}</span>
       <span class="cc-rankings__score">${e.xp.toLocaleString()}</span>
@@ -589,6 +650,23 @@ function addLog(agent, message, severity) {
   state.logs.push(entry);
   if (state.logs.length > MAX_LOG_ENTRIES) state.logs.shift();
   renderLogEntry(entry);
+
+  // Also append to per-agent inline log (max 5 per agent)
+  const agentLogEl = document.getElementById(`${entry.agentId}-logs`);
+  if (agentLogEl && entry.agentId !== 'system') {
+    // Clear placeholder text
+    const placeholder = agentLogEl.querySelector('.cc-muted');
+    if (placeholder) placeholder.remove();
+
+    const iconMap = { pass: '&#10003;', warn: '&#9888;', fail: '&#10007;', star: '&#9733;' };
+    const div = document.createElement('div');
+    div.className = 'cc-log__entry';
+    div.innerHTML = `<span class="cc-log__time">${entry.time}</span><span class="cc-log__message">${escapeHtml(entry.message)}</span><span class="cc-log__icon cc-log__icon--${entry.severity}">${iconMap[entry.severity] || '&#9679;'}</span>`;
+    agentLogEl.appendChild(div);
+    agentLogEl.scrollTop = agentLogEl.scrollHeight;
+    // Keep max 5 entries per agent
+    while (agentLogEl.children.length > 5) agentLogEl.removeChild(agentLogEl.firstChild);
+  }
 }
 
 function renderLogEntry(entry) {
@@ -757,8 +835,6 @@ function initSectionToggles() {
         // Lazy loading
         const toggle = header.dataset.toggle;
         if (toggle === 'maintenance' && !maintenanceLoaded) loadMaintenanceSection();
-        if (toggle === 'production' && !productionLoaded) loadProductionDashboard();
-        if (toggle === 'history' && !historyLoaded) loadTrendsSection();
       }
     });
   });
@@ -857,6 +933,218 @@ function initStartDropdown() {
 }
 
 // ═══════════════════════════════════════════════════════════════════
+// Scroll-to-Section (opens section, scrolls, highlights)
+// ═══════════════════════════════════════════════════════════════════
+
+function scrollToSection(sectionKey) {
+  const section = document.getElementById(`section-${sectionKey}`);
+  if (!section) return;
+  // Open the section if closed
+  if (!section.classList.contains('cc-section--open')) {
+    section.classList.add('cc-section--open');
+    const body = section.querySelector('.cc-section__body');
+    const chevron = section.querySelector('.cc-section__chevron');
+    if (body) body.style.display = '';
+    if (chevron) chevron.innerHTML = '&#9662;';
+    // Lazy-load if needed
+    const toggle = section.querySelector('.cc-section__header')?.dataset?.toggle;
+    if (toggle === 'maintenance' && !maintenanceLoaded) loadMaintenanceSection();
+  }
+  // Scroll and highlight
+  section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  section.classList.add('cc-section--highlight');
+  setTimeout(() => section.classList.remove('cc-section--highlight'), 1000);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Scroll-to-Agent (from leaderboard click)
+// ═══════════════════════════════════════════════════════════════════
+
+function scrollToAgent(agentId) {
+  // First open the Agents section
+  scrollToSection('agents');
+  // Then expand the agent's detail row and highlight
+  setTimeout(() => {
+    const row = document.querySelector(`tr[data-agent="${agentId}"]`);
+    if (row) {
+      row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      row.classList.add('cc-agent-row--highlight');
+      setTimeout(() => row.classList.remove('cc-agent-row--highlight'), 1500);
+    }
+    // Open detail row
+    const detail = document.getElementById(`${agentId}-detail`);
+    if (detail) detail.style.display = '';
+  }, 300);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Toggle Agent Detail (inline expandable rows)
+// ═══════════════════════════════════════════════════════════════════
+
+function toggleAgentDetail(agentId) {
+  const detail = document.getElementById(`${agentId}-detail`);
+  if (!detail) return;
+  detail.style.display = detail.style.display === 'none' ? '' : 'none';
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Toggle Full Activity Log
+// ═══════════════════════════════════════════════════════════════════
+
+function toggleFullLog() {
+  const el = document.getElementById('full-log');
+  if (!el) return;
+  el.style.display = el.style.display === 'none' ? '' : 'none';
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Production Panel Expand/Collapse
+// ═══════════════════════════════════════════════════════════════════
+
+function expandProduction() {
+  const panel = document.getElementById('prod-detail');
+  if (!panel) return;
+  panel.style.display = '';
+  // Lazy-load full detail on first open
+  if (!productionLoaded) loadProductionDashboard();
+}
+
+function collapseProduction() {
+  const panel = document.getElementById('prod-detail');
+  if (panel) panel.style.display = 'none';
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Smart Suggestion
+// ═══════════════════════════════════════════════════════════════════
+
+let _suggestionAction = null;
+
+function computeSuggestion() {
+  const strip = document.getElementById('suggest-strip');
+  const textEl = document.getElementById('suggest-text');
+  const btnEl = document.getElementById('suggest-btn');
+  if (!strip || !textEl || !btnEl) return;
+
+  const d = _initData;
+  if (!d) { strip.style.display = 'none'; return; }
+
+  // Priority 1: Stale test runs
+  if (d.latestRun) {
+    const daysSince = Math.floor((Date.now() - new Date(d.latestRun.created_at).getTime()) / (1000 * 60 * 60 * 24));
+    if (daysSince >= 2) {
+      textEl.textContent = `Last test was ${daysSince} day${daysSince > 1 ? 's' : ''} ago`;
+      btnEl.textContent = 'Run Quick Scan';
+      _suggestionAction = () => { applyFilterPreset('quick'); quickStart(); };
+      strip.style.display = '';
+      return;
+    }
+  } else {
+    textEl.textContent = 'No test runs yet — start your first scan';
+    btnEl.textContent = 'Run Tests';
+    _suggestionAction = () => quickStart();
+    strip.style.display = '';
+    return;
+  }
+
+  // Priority 2: Low enrichment
+  if (d.enrichedPct < 85) {
+    textEl.textContent = `Enrichment at ${d.enrichedPct}% — below 85% target`;
+    btnEl.textContent = 'Check Data';
+    _suggestionAction = () => quickCheckData();
+    strip.style.display = '';
+    return;
+  }
+
+  // Priority 3: Many gaps
+  if (d.latestRun && d.latestRun.gap_count > 5) {
+    textEl.textContent = `${d.latestRun.gap_count} gaps remain from last run`;
+    btnEl.textContent = 'View Gaps';
+    _suggestionAction = () => scrollToSection('results');
+    strip.style.display = '';
+    return;
+  }
+
+  // No issues — hide
+  strip.style.display = 'none';
+}
+
+function executeSuggestion() {
+  if (_suggestionAction) _suggestionAction();
+  dismissSuggestion();
+}
+
+function dismissSuggestion() {
+  const strip = document.getElementById('suggest-strip');
+  if (strip) strip.style.display = 'none';
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Keyboard Shortcuts
+// ═══════════════════════════════════════════════════════════════════
+
+function initKeyboardShortcuts() {
+  document.addEventListener('keydown', (e) => {
+    // Skip when typing in inputs
+    if (e.target.matches('input, select, textarea')) return;
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+    switch (e.key) {
+      case 't':
+        e.preventDefault();
+        if (state.systemState === 'running') handleStop();
+        else quickStart();
+        break;
+      case 'r':
+        e.preventDefault();
+        openRerunPicker();
+        break;
+      case 'd':
+        e.preventDefault();
+        quickCheckData();
+        break;
+      case '1':
+        e.preventDefault();
+        scrollToSection('results');
+        break;
+      case '2':
+        e.preventDefault();
+        scrollToSection('agents');
+        break;
+      case '3':
+        e.preventDefault();
+        scrollToSection('maintenance');
+        break;
+      case 'Escape':
+        e.preventDefault();
+        // Close any open modal/panel/dropdown
+        collapseProduction();
+        closeRerunPicker();
+        closeShortcuts();
+        document.getElementById('start-dropdown')?.classList.remove('cc-start-dropdown--open');
+        // Collapse all agent detail rows
+        document.querySelectorAll('.cc-agent-detail').forEach(d => d.style.display = 'none');
+        break;
+      case '?':
+        e.preventDefault();
+        showShortcuts();
+        break;
+    }
+  });
+}
+
+function showShortcuts() {
+  const overlay = document.getElementById('shortcuts-overlay');
+  if (overlay) overlay.style.display = '';
+}
+
+function closeShortcuts(e) {
+  if (e && e.target !== e.currentTarget) return;
+  const overlay = document.getElementById('shortcuts-overlay');
+  if (overlay) overlay.style.display = 'none';
+}
+
+// ═══════════════════════════════════════════════════════════════════
 // Init
 // ═══════════════════════════════════════════════════════════════════
 
@@ -884,7 +1172,10 @@ initSectionToggles();
 // Start dropdown
 initStartDropdown();
 
-// Auth & analytics (also loads status strip)
+// Keyboard shortcuts
+initKeyboardShortcuts();
+
+// Auth & analytics (also loads init data)
 checkAuth();
 
 // Auto-open section from URL hash (e.g. #maintenance)
@@ -898,7 +1189,6 @@ if (window.location.hash) {
     if (body) body.style.display = '';
     if (chevron) chevron.innerHTML = '&#9662;';
     if (sectionId === 'maintenance' && !maintenanceLoaded) setTimeout(() => { if (!maintenanceLoaded) loadMaintenanceSection(); }, 1500);
-    if (sectionId === 'production' && !productionLoaded) setTimeout(() => { if (!productionLoaded) loadProductionDashboard(); }, 1500);
     setTimeout(() => section.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300);
   }
 }

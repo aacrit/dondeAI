@@ -30,6 +30,7 @@
         <span class="cc-header__dot cc-header__dot--offline" id="status-dot"></span>
         <span class="cc-header__status-text" id="status-text">Offline</span>
       </div>
+      <a href="https://claude.ai/code" target="_blank" rel="noopener" class="cc-header__advisor" title="CEO Advisor (/ceo-advisor)">&#9733;</a>
       <a href="index.html" class="cc-header__back">Back to Donde</a>
     </div>
   </header>
@@ -48,9 +49,9 @@
 
     <!-- ═══ ZONE 1: THE BRIEFING (always visible) ═══ -->
 
-    <!-- Pulse: 3 big numbers -->
+    <!-- Pulse: 3 CLICKABLE hero cards -->
     <section class="cc-pulse" id="pulse-section">
-      <div class="cc-pulse__card cc-pulse__card--health" id="pulse-health">
+      <div class="cc-pulse__card cc-pulse__card--health" id="pulse-health" role="button" tabindex="0" onclick="scrollToSection('results')" title="View test results">
         <div class="cc-pulse__ring">
           <svg viewBox="0 0 80 80" class="cc-pulse__svg">
             <circle cx="40" cy="40" r="34" fill="none" stroke="var(--cc-surface-3)" stroke-width="5"/>
@@ -64,35 +65,93 @@
         <div class="cc-pulse__sub" id="pulse-health-sub">Loading...</div>
       </div>
 
-      <div class="cc-pulse__card cc-pulse__card--quality" id="pulse-quality">
+      <div class="cc-pulse__card cc-pulse__card--quality" id="pulse-quality" role="button" tabindex="0" onclick="scrollToSection('results')" title="View test results">
         <div class="cc-pulse__big" id="pulse-quality-val">--</div>
         <div class="cc-pulse__label">Avg DondeMatch</div>
         <div class="cc-pulse__sub" id="pulse-quality-sub">Loading...</div>
       </div>
 
-      <div class="cc-pulse__card cc-pulse__card--attention" id="pulse-attention">
+      <div class="cc-pulse__card cc-pulse__card--attention" id="pulse-attention" role="button" tabindex="0" onclick="scrollToSection('results')" title="View gaps &amp; issues">
         <div class="cc-pulse__big cc-pulse__big--attention" id="pulse-attention-val">--</div>
         <div class="cc-pulse__label">Needs Attention</div>
         <div class="cc-pulse__sub" id="pulse-attention-sub">Loading...</div>
       </div>
     </section>
 
-    <!-- Status Strip: one-line contextual summary -->
-    <div class="cc-status-strip" id="status-strip">
-      <span class="cc-status-strip__item" id="strip-last-run">Loading latest run...</span>
-      <span class="cc-status-strip__dot">&middot;</span>
-      <span class="cc-status-strip__item" id="strip-data">--</span>
-      <span class="cc-status-strip__dot">&middot;</span>
-      <span class="cc-status-strip__item" id="strip-prod">--</span>
+    <!-- Production Strip: 3 CLICKABLE KPIs (always visible, from already-fetched data) -->
+    <div class="cc-prod-strip" id="prod-strip">
+      <div class="cc-prod-strip__item" onclick="expandProduction()" role="button" tabindex="0" title="View production details">
+        <span class="cc-prod-strip__val" id="prod-searches">--</span>
+        <span class="cc-prod-strip__label">searches today</span>
+      </div>
+      <div class="cc-prod-strip__item" onclick="expandProduction()" role="button" tabindex="0" title="View production details">
+        <span class="cc-prod-strip__val" id="prod-avg-dm">--</span>
+        <span class="cc-prod-strip__label">avg DM (live)</span>
+      </div>
+      <div class="cc-prod-strip__item" onclick="expandProduction()" role="button" tabindex="0" title="View production details">
+        <span class="cc-prod-strip__val" id="prod-low-scores">--</span>
+        <span class="cc-prod-strip__label">low scores</span>
+      </div>
+    </div>
+    <!-- Production detail panel (expands inline on click) -->
+    <div class="cc-prod-detail" id="prod-detail" style="display:none">
+      <div class="cc-prod-detail__header">
+        <span>Production Traffic</span>
+        <button class="cc-prod-detail__close" onclick="collapseProduction()">&times;</button>
+      </div>
+      <div class="cc-kpis" id="prod-kpis"></div>
+      <div class="cc-focus" id="prod-alerts" style="display:none">
+        <div class="cc-focus__title">Production Alerts</div>
+        <div class="cc-focus__alerts" id="prod-alert-list"></div>
+      </div>
+      <div id="prod-content">
+        <div class="cc-loading"><div class="cc-spinner"></div>Loading production data...</div>
+      </div>
     </div>
 
-    <!-- Quick Actions: 4 one-tap buttons -->
+    <!-- Smart Suggestion (conditional — "what should the CEO do next?") -->
+    <div class="cc-suggest" id="suggest-strip" style="display:none">
+      <span class="cc-suggest__icon">&#9889;</span>
+      <span class="cc-suggest__text" id="suggest-text"></span>
+      <button class="cc-suggest__action" id="suggest-btn" onclick="executeSuggestion()"></button>
+      <button class="cc-suggest__dismiss" onclick="dismissSuggestion()" title="Dismiss">&times;</button>
+    </div>
+
+    <!-- Quick Actions: 3 buttons (Run Tests has dropdown for config) -->
     <section class="cc-actions" id="actions-section">
-      <button class="cc-action" id="action-test" onclick="quickStart()">
-        <span class="cc-action__icon">&#9654;</span>
-        <span class="cc-action__text">Run Tests</span>
-        <span class="cc-action__hint" id="action-test-hint">10 queries, full suite</span>
-      </button>
+      <div class="cc-action-group">
+        <button class="cc-action" id="action-test" onclick="quickStart()">
+          <span class="cc-action__icon">&#9654;</span>
+          <span class="cc-action__text">Run Tests</span>
+          <span class="cc-action__hint" id="action-test-hint">10 queries, full suite</span>
+        </button>
+        <button class="cc-action__dropdown-arrow" id="btn-start-arrow" onclick="toggleStartDropdown(event)" title="Configure tests">&#9662;</button>
+        <div class="cc-start-dropdown" id="start-dropdown">
+          <label class="cc-start-dropdown__label">Quick Presets</label>
+          <div class="cc-filter-presets">
+            <button class="cc-filter-preset cc-filter-preset--active" data-preset="full" onclick="applyFilterPreset('full')">Full Suite</button>
+            <button class="cc-filter-preset" data-preset="quick" onclick="applyFilterPreset('quick')">Quick Scan</button>
+            <button class="cc-filter-preset" data-preset="regression" onclick="applyFilterPreset('regression')">Regression</button>
+            <button class="cc-filter-preset" data-preset="security" onclick="applyFilterPreset('security')">Security</button>
+          </div>
+          <div class="cc-filter-divider"></div>
+          <label class="cc-start-dropdown__label">Agents</label>
+          <div class="cc-filter-chips" id="agent-filter-chips">
+            <label class="cc-filter-chip cc-filter-chip--checked" data-agent="atlas"><input type="checkbox" checked> <span class="cc-filter-chip__dot" style="background:#3b82f6"></span> Atlas <span class="cc-filter-chip__sub">Search</span></label>
+            <label class="cc-filter-chip cc-filter-chip--checked" data-agent="sentinel"><input type="checkbox" checked> <span class="cc-filter-chip__dot" style="background:#f59e0b"></span> Sentinel <span class="cc-filter-chip__sub">Regression</span></label>
+            <label class="cc-filter-chip cc-filter-chip--checked" data-agent="hunter"><input type="checkbox" checked> <span class="cc-filter-chip__dot" style="background:#ef4444"></span> Hunter <span class="cc-filter-chip__sub">Edge Cases</span></label>
+            <label class="cc-filter-chip cc-filter-chip--checked" data-agent="qaudit"><input type="checkbox" checked> <span class="cc-filter-chip__dot" style="background:#8b5cf6"></span> QAudit <span class="cc-filter-chip__sub">Blurb Quality</span></label>
+            <label class="cc-filter-chip cc-filter-chip--checked" data-agent="guardian"><input type="checkbox" checked> <span class="cc-filter-chip__dot" style="background:#22c55e"></span> Guardian <span class="cc-filter-chip__sub">Data Health</span></label>
+          </div>
+          <div class="cc-filter-divider"></div>
+          <label class="cc-start-dropdown__label">Test Queries (Atlas)</label>
+          <input type="range" id="test-count-slider" class="cc-start-dropdown__slider" min="5" max="30" step="5" value="10">
+          <div class="cc-start-dropdown__value"><span id="test-count-val">10</span> queries</div>
+          <div class="cc-start-dropdown__cost" id="test-cost-estimate">Est. ~$0.10 API usage</div>
+          <div class="cc-filter-divider"></div>
+          <div class="cc-filter-summary" id="filter-summary">5 agents &middot; 10 queries &middot; ~$0.10</div>
+        </div>
+      </div>
       <button class="cc-action cc-action--rerun" id="action-rerun" onclick="openRerunPicker()">
         <span class="cc-action__icon">&#8635;</span>
         <span class="cc-action__text">Rerun &amp; Compare</span>
@@ -103,28 +162,23 @@
         <span class="cc-action__text">Check Data</span>
         <span class="cc-action__hint" id="action-data-hint">Database health scan</span>
       </button>
-      <a href="https://claude.ai/code" target="_blank" rel="noopener" class="cc-action cc-action--advisor">
-        <span class="cc-action__icon">&#9733;</span>
-        <span class="cc-action__text">CEO Advisor</span>
-        <span class="cc-action__hint">/ceo-advisor</span>
-      </a>
     </section>
 
-    <!-- Rerun Picker Modal (hidden by default) -->
+    <!-- Rerun Picker Modal -->
     <div class="cc-modal-overlay" id="rerun-overlay" style="display:none" onclick="closeRerunPicker(event)">
       <div class="cc-modal cc-modal--rerun" onclick="event.stopPropagation()">
         <div class="cc-modal__header">
           <span class="cc-modal__title">&#8635; Rerun &amp; Compare</span>
           <button class="cc-modal__close" onclick="closeRerunPicker()">&times;</button>
         </div>
-        <p class="cc-modal__desc">Pick a previous run to replay the same queries against today's engine. You'll see a side-by-side delta.</p>
+        <p class="cc-modal__desc">Pick a previous run to replay the same queries against today's engine.</p>
         <div class="cc-rerun-list" id="rerun-list">
           <div class="cc-loading"><div class="cc-spinner"></div><p>Loading runs...</p></div>
         </div>
       </div>
     </div>
 
-    <!-- Focus Strip (appears only when there are issues) -->
+    <!-- Focus Strip (conditional — only when issues exist) -->
     <section class="cc-focus" id="focus-strip" style="display:none">
       <div class="cc-focus__title">Needs Attention</div>
       <div class="cc-focus__alerts" id="focus-alerts"></div>
@@ -139,165 +193,99 @@
       <div class="cc-notifications__list" id="notification-list"></div>
     </div>
 
-    <!-- ═══ ZONE 2: DETAILS (collapsible sections) ═══ -->
+    <!-- ═══ ZONE 2: DETAILS (3 collapsible sections — down from 5) ═══ -->
 
-    <!-- ── Test Results (unified Quality + Issues + Run Selector) ── -->
+    <!-- ── Test Results ── -->
     <section class="cc-section" id="section-results">
       <div class="cc-section__header" data-toggle="results">
-        <div class="cc-section__title">
-          <span class="cc-section__chevron">&#9656;</span>
-          Test Results
-        </div>
+        <div class="cc-section__title"><span class="cc-section__chevron">&#9656;</span> Test Results</div>
         <div class="cc-section__summary" id="results-summary"></div>
       </div>
       <div class="cc-section__body" style="display:none">
         <div class="cc-history-selector">
           <label class="cc-history-selector__label">Run:</label>
-          <select class="cc-header__run-selector" id="run-selector">
-            <option value="">Loading runs...</option>
-          </select>
+          <select class="cc-header__run-selector" id="run-selector"><option value="">Loading runs...</option></select>
         </div>
         <div id="results-content">
-          <div class="cc-empty-state">
-            <div class="cc-empty-state__icon">&#128202;</div>
-            <div class="cc-empty-state__text">Loading latest test results...</div>
-          </div>
+          <div class="cc-empty-state"><div class="cc-empty-state__icon">&#128202;</div><div class="cc-empty-state__text">Loading latest test results...</div></div>
         </div>
       </div>
     </section>
 
-    <!-- ── Agents (compact table + controls) ── -->
+    <!-- ── Agents (compact table + inline per-agent logs) ── -->
     <section class="cc-section" id="section-agents">
       <div class="cc-section__header" data-toggle="agents">
-        <div class="cc-section__title">
-          <span class="cc-section__chevron">&#9656;</span>
-          Agents
-        </div>
+        <div class="cc-section__title"><span class="cc-section__chevron">&#9656;</span> Agents</div>
         <div class="cc-section__actions">
-          <div class="cc-agent-dots" id="agent-dots">
-            <div class="cc-agent-dot cc-agent-dot--atlas" title="Atlas: Search Coverage">
-              <span class="cc-agent-dot__pip" id="dot-atlas"></span>
-              <span class="cc-agent-dot__label">Atlas</span>
-            </div>
-            <div class="cc-agent-dot cc-agent-dot--qaudit" title="QAudit: Blurb Quality">
-              <span class="cc-agent-dot__pip" id="dot-qaudit"></span>
-              <span class="cc-agent-dot__label">QAudit</span>
-            </div>
-            <div class="cc-agent-dot cc-agent-dot--sentinel" title="Sentinel: Regression Watch">
-              <span class="cc-agent-dot__pip" id="dot-sentinel"></span>
-              <span class="cc-agent-dot__label">Sentinel</span>
-            </div>
-            <div class="cc-agent-dot cc-agent-dot--hunter" title="Hunter: Edge Cases">
-              <span class="cc-agent-dot__pip" id="dot-hunter"></span>
-              <span class="cc-agent-dot__label">Hunter</span>
-            </div>
-            <div class="cc-agent-dot cc-agent-dot--guardian" title="Guardian: Data Integrity">
-              <span class="cc-agent-dot__pip" id="dot-guardian"></span>
-              <span class="cc-agent-dot__label">Guardian</span>
-            </div>
+          <div class="cc-section__controls" id="agent-controls" style="display:none">
+            <button class="cc-section__ctrl" onclick="handlePause()" id="btn-pause-inline" title="Pause">&#9646;&#9646;</button>
+            <button class="cc-section__ctrl cc-section__ctrl--stop" onclick="handleStop()" id="btn-stop-inline" title="Stop">&#9632;</button>
           </div>
           <div class="cc-section__summary" id="agents-summary">Idle</div>
         </div>
       </div>
       <div class="cc-section__body" style="display:none">
-        <!-- Controls row -->
+        <!-- Metadata: clock + budget -->
         <div class="cc-controls-row">
-          <div class="cc-controls">
-            <div class="cc-start-group">
-              <button class="cc-btn cc-btn--start" id="btn-start" onclick="handleStart()">Start</button>
-              <button class="cc-btn cc-btn--start cc-start-group__arrow" id="btn-start-arrow" onclick="toggleStartDropdown(event)" title="Configure tests">&#9662;</button>
-              <div class="cc-start-dropdown" id="start-dropdown">
-                <label class="cc-start-dropdown__label">Quick Presets</label>
-                <div class="cc-filter-presets">
-                  <button class="cc-filter-preset cc-filter-preset--active" data-preset="full" onclick="applyFilterPreset('full')">Full Suite</button>
-                  <button class="cc-filter-preset" data-preset="quick" onclick="applyFilterPreset('quick')">Quick Scan</button>
-                  <button class="cc-filter-preset" data-preset="regression" onclick="applyFilterPreset('regression')">Regression</button>
-                  <button class="cc-filter-preset" data-preset="security" onclick="applyFilterPreset('security')">Security</button>
-                </div>
-                <div class="cc-filter-divider"></div>
-                <label class="cc-start-dropdown__label">Agents</label>
-                <div class="cc-filter-chips" id="agent-filter-chips">
-                  <label class="cc-filter-chip cc-filter-chip--checked" data-agent="atlas">
-                    <input type="checkbox" checked> <span class="cc-filter-chip__dot" style="background:#3b82f6"></span> Atlas <span class="cc-filter-chip__sub">Search</span>
-                  </label>
-                  <label class="cc-filter-chip cc-filter-chip--checked" data-agent="sentinel">
-                    <input type="checkbox" checked> <span class="cc-filter-chip__dot" style="background:#f59e0b"></span> Sentinel <span class="cc-filter-chip__sub">Regression</span>
-                  </label>
-                  <label class="cc-filter-chip cc-filter-chip--checked" data-agent="hunter">
-                    <input type="checkbox" checked> <span class="cc-filter-chip__dot" style="background:#ef4444"></span> Hunter <span class="cc-filter-chip__sub">Edge Cases</span>
-                  </label>
-                  <label class="cc-filter-chip cc-filter-chip--checked" data-agent="qaudit">
-                    <input type="checkbox" checked> <span class="cc-filter-chip__dot" style="background:#8b5cf6"></span> QAudit <span class="cc-filter-chip__sub">Blurb Quality</span>
-                  </label>
-                  <label class="cc-filter-chip cc-filter-chip--checked" data-agent="guardian">
-                    <input type="checkbox" checked> <span class="cc-filter-chip__dot" style="background:#22c55e"></span> Guardian <span class="cc-filter-chip__sub">Data Health</span>
-                  </label>
-                </div>
-                <div class="cc-filter-divider"></div>
-                <label class="cc-start-dropdown__label">Test Queries (Atlas)</label>
-                <input type="range" id="test-count-slider" class="cc-start-dropdown__slider" min="5" max="30" step="5" value="10">
-                <div class="cc-start-dropdown__value"><span id="test-count-val">10</span> queries</div>
-                <div class="cc-start-dropdown__cost" id="test-cost-estimate">Est. ~$0.10 API usage</div>
-                <div class="cc-filter-divider"></div>
-                <div class="cc-filter-summary" id="filter-summary">5 agents &middot; 10 queries &middot; ~$0.10</div>
-              </div>
-            </div>
-            <button class="cc-btn cc-btn--pause" id="btn-pause" onclick="handlePause()" disabled>Pause</button>
-            <button class="cc-btn cc-btn--stop" id="btn-stop" onclick="handleStop()" disabled>Stop</button>
-          </div>
           <div class="cc-controls__meta">
             <span class="cc-controls__clock" id="clock">00:00:00</span>
             <span class="cc-controls__uptime" id="uptime">--:--:--</span>
           </div>
           <div class="cc-controls__budget">
             <span id="budget-text">0 / 50</span>
-            <div class="cc-controls__budget-bar">
-              <div class="cc-controls__budget-fill" id="budget-fill" style="width:100%"></div>
-            </div>
+            <div class="cc-controls__budget-bar"><div class="cc-controls__budget-fill" id="budget-fill" style="width:100%"></div></div>
           </div>
         </div>
 
-        <!-- Boss bar -->
-        <div class="cc-boss-bar">
+        <!-- Boss bar (CLICKABLE → opens results/gaps) -->
+        <div class="cc-boss-bar" role="button" tabindex="0" onclick="scrollToSection('results')" title="View failing queries">
           <span class="cc-boss-bar__label">Issues Remaining</span>
-          <div class="cc-boss-bar__track">
-            <div class="cc-boss-bar__fill" id="boss-fill" style="width:60%"></div>
-          </div>
+          <div class="cc-boss-bar__track"><div class="cc-boss-bar__fill" id="boss-fill" style="width:60%"></div></div>
           <span class="cc-boss-bar__value" id="boss-hp">60%</span>
         </div>
 
-        <!-- Compact agent table (replaces 5 full cards) -->
+        <!-- Compact agent table with CLICKABLE rows → inline detail -->
         <div class="cc-agent-table-wrap">
           <table class="cc-agent-table" id="agent-table">
-            <thead>
-              <tr>
-                <th>Agent</th>
-                <th>HP</th>
-                <th>Lvl</th>
-                <th>Key Stat</th>
-                <th>XP</th>
-                <th>Status</th>
-              </tr>
-            </thead>
+            <thead><tr><th>Agent</th><th>HP</th><th>Lvl</th><th>Key Stat</th><th>XP</th><th>Status</th></tr></thead>
             <tbody id="agent-table-body">
-              <tr data-agent="atlas"><td><span class="cc-agent-table__dot" style="background:var(--agent-atlas)"></span>Atlas</td><td><div class="cc-agent-table__hp"><div class="cc-agent-table__hp-fill cc-agent-table__hp-fill--high" id="atlas-hp-fill" style="width:100%"></div></div></td><td id="atlas-level">1</td><td id="atlas-key-stat">--</td><td class="cc-mono" id="atlas-xp">0</td><td><span class="cc-agent-table__status" id="atlas-status">Idle</span></td></tr>
-              <tr data-agent="qaudit"><td><span class="cc-agent-table__dot" style="background:var(--agent-qaudit)"></span>QAudit</td><td><div class="cc-agent-table__hp"><div class="cc-agent-table__hp-fill cc-agent-table__hp-fill--high" id="qaudit-hp-fill" style="width:100%"></div></div></td><td id="qaudit-level">1</td><td id="qaudit-key-stat">--</td><td class="cc-mono" id="qaudit-xp">0</td><td><span class="cc-agent-table__status" id="qaudit-status">Idle</span></td></tr>
-              <tr data-agent="sentinel"><td><span class="cc-agent-table__dot" style="background:var(--agent-sentinel)"></span>Sentinel</td><td><div class="cc-agent-table__hp"><div class="cc-agent-table__hp-fill cc-agent-table__hp-fill--high" id="sentinel-hp-fill" style="width:100%"></div></div></td><td id="sentinel-level">1</td><td id="sentinel-key-stat">--</td><td class="cc-mono" id="sentinel-xp">0</td><td><span class="cc-agent-table__status" id="sentinel-status">Idle</span></td></tr>
-              <tr data-agent="hunter"><td><span class="cc-agent-table__dot" style="background:var(--agent-hunter)"></span>Hunter</td><td><div class="cc-agent-table__hp"><div class="cc-agent-table__hp-fill cc-agent-table__hp-fill--high" id="hunter-hp-fill" style="width:100%"></div></div></td><td id="hunter-level">1</td><td id="hunter-key-stat">--</td><td class="cc-mono" id="hunter-xp">0</td><td><span class="cc-agent-table__status" id="hunter-status">Idle</span></td></tr>
-              <tr data-agent="guardian"><td><span class="cc-agent-table__dot" style="background:var(--agent-guardian)"></span>Guardian</td><td><div class="cc-agent-table__hp"><div class="cc-agent-table__hp-fill cc-agent-table__hp-fill--high" id="guardian-hp-fill" style="width:100%"></div></div></td><td id="guardian-level">1</td><td id="guardian-key-stat">--</td><td class="cc-mono" id="guardian-xp">0</td><td><span class="cc-agent-table__status" id="guardian-status">Idle</span></td></tr>
+              <tr data-agent="atlas" class="cc-agent-row" onclick="toggleAgentDetail('atlas')"><td><span class="cc-agent-table__dot" style="background:var(--agent-atlas)"></span>Atlas</td><td><div class="cc-agent-table__hp"><div class="cc-agent-table__hp-fill cc-agent-table__hp-fill--high" id="atlas-hp-fill" style="width:100%"></div></div></td><td id="atlas-level">1</td><td id="atlas-key-stat">--</td><td class="cc-mono" id="atlas-xp">0</td><td><span class="cc-agent-table__status" id="atlas-status">Idle</span></td></tr>
+              <tr class="cc-agent-detail" id="atlas-detail" style="display:none"><td colspan="6"><div class="cc-agent-detail__body"><div class="cc-agent-detail__logs" id="atlas-logs"><span class="cc-muted">No activity yet</span></div><div class="cc-agent-detail__actions" id="atlas-actions"></div></div></td></tr>
+
+              <tr data-agent="qaudit" class="cc-agent-row" onclick="toggleAgentDetail('qaudit')"><td><span class="cc-agent-table__dot" style="background:var(--agent-qaudit)"></span>QAudit</td><td><div class="cc-agent-table__hp"><div class="cc-agent-table__hp-fill cc-agent-table__hp-fill--high" id="qaudit-hp-fill" style="width:100%"></div></div></td><td id="qaudit-level">1</td><td id="qaudit-key-stat">--</td><td class="cc-mono" id="qaudit-xp">0</td><td><span class="cc-agent-table__status" id="qaudit-status">Idle</span></td></tr>
+              <tr class="cc-agent-detail" id="qaudit-detail" style="display:none"><td colspan="6"><div class="cc-agent-detail__body"><div class="cc-agent-detail__logs" id="qaudit-logs"><span class="cc-muted">No activity yet</span></div><div class="cc-agent-detail__actions" id="qaudit-actions"></div></div></td></tr>
+
+              <tr data-agent="sentinel" class="cc-agent-row" onclick="toggleAgentDetail('sentinel')"><td><span class="cc-agent-table__dot" style="background:var(--agent-sentinel)"></span>Sentinel</td><td><div class="cc-agent-table__hp"><div class="cc-agent-table__hp-fill cc-agent-table__hp-fill--high" id="sentinel-hp-fill" style="width:100%"></div></div></td><td id="sentinel-level">1</td><td id="sentinel-key-stat">--</td><td class="cc-mono" id="sentinel-xp">0</td><td><span class="cc-agent-table__status" id="sentinel-status">Idle</span></td></tr>
+              <tr class="cc-agent-detail" id="sentinel-detail" style="display:none"><td colspan="6"><div class="cc-agent-detail__body"><div class="cc-agent-detail__logs" id="sentinel-logs"><span class="cc-muted">No activity yet</span></div><div class="cc-agent-detail__actions" id="sentinel-actions"></div></div></td></tr>
+
+              <tr data-agent="hunter" class="cc-agent-row" onclick="toggleAgentDetail('hunter')"><td><span class="cc-agent-table__dot" style="background:var(--agent-hunter)"></span>Hunter</td><td><div class="cc-agent-table__hp"><div class="cc-agent-table__hp-fill cc-agent-table__hp-fill--high" id="hunter-hp-fill" style="width:100%"></div></div></td><td id="hunter-level">1</td><td id="hunter-key-stat">--</td><td class="cc-mono" id="hunter-xp">0</td><td><span class="cc-agent-table__status" id="hunter-status">Idle</span></td></tr>
+              <tr class="cc-agent-detail" id="hunter-detail" style="display:none"><td colspan="6"><div class="cc-agent-detail__body"><div class="cc-agent-detail__logs" id="hunter-logs"><span class="cc-muted">No activity yet</span></div><div class="cc-agent-detail__actions" id="hunter-actions"></div></div></td></tr>
+
+              <tr data-agent="guardian" class="cc-agent-row" onclick="toggleAgentDetail('guardian')"><td><span class="cc-agent-table__dot" style="background:var(--agent-guardian)"></span>Guardian</td><td><div class="cc-agent-table__hp"><div class="cc-agent-table__hp-fill cc-agent-table__hp-fill--high" id="guardian-hp-fill" style="width:100%"></div></div></td><td id="guardian-level">1</td><td id="guardian-key-stat">--</td><td class="cc-mono" id="guardian-xp">0</td><td><span class="cc-agent-table__status" id="guardian-status">Idle</span></td></tr>
+              <tr class="cc-agent-detail" id="guardian-detail" style="display:none"><td colspan="6"><div class="cc-agent-detail__body"><div class="cc-agent-detail__logs" id="guardian-logs"><span class="cc-muted">No activity yet</span></div><div class="cc-agent-detail__actions" id="guardian-actions"></div></div></td></tr>
             </tbody>
           </table>
         </div>
 
-        <!-- Rankings -->
+        <!-- Full log toggle (replaces standalone Activity Log section) -->
+        <div class="cc-agent-log-toggle">
+          <button class="cc-btn" onclick="toggleFullLog()">View Full Activity Log</button>
+        </div>
+        <div id="full-log" style="display:none">
+          <div class="cc-log__entries" id="battle-log">
+            <div class="cc-log__entry"><span class="cc-log__time">--:--:--</span><span class="cc-log__agent cc-log__agent--system">System</span><span class="cc-log__message">Ready. Hit "Run Tests" or expand a section.</span></div>
+          </div>
+        </div>
+
+        <!-- Rankings (CLICKABLE entries → scroll to agent row) -->
         <div class="cc-rankings">
           <div class="cc-rankings__title">Rankings</div>
           <div class="cc-rankings__list" id="leaderboard">
-            <div class="cc-rankings__entry"><span class="cc-rankings__rank cc-rankings__rank--1">1.</span><span class="cc-rankings__name">---</span><span class="cc-rankings__score">0</span></div>
-            <div class="cc-rankings__entry"><span class="cc-rankings__rank cc-rankings__rank--2">2.</span><span class="cc-rankings__name">---</span><span class="cc-rankings__score">0</span></div>
-            <div class="cc-rankings__entry"><span class="cc-rankings__rank cc-rankings__rank--3">3.</span><span class="cc-rankings__name">---</span><span class="cc-rankings__score">0</span></div>
-            <div class="cc-rankings__entry"><span class="cc-rankings__rank">4.</span><span class="cc-rankings__name">---</span><span class="cc-rankings__score">0</span></div>
-            <div class="cc-rankings__entry"><span class="cc-rankings__rank">5.</span><span class="cc-rankings__name">---</span><span class="cc-rankings__score">0</span></div>
+            <div class="cc-rankings__entry" role="button" tabindex="0"><span class="cc-rankings__rank cc-rankings__rank--1">1.</span><span class="cc-rankings__name">---</span><span class="cc-rankings__score">0</span></div>
+            <div class="cc-rankings__entry" role="button" tabindex="0"><span class="cc-rankings__rank cc-rankings__rank--2">2.</span><span class="cc-rankings__name">---</span><span class="cc-rankings__score">0</span></div>
+            <div class="cc-rankings__entry" role="button" tabindex="0"><span class="cc-rankings__rank cc-rankings__rank--3">3.</span><span class="cc-rankings__name">---</span><span class="cc-rankings__score">0</span></div>
+            <div class="cc-rankings__entry" role="button" tabindex="0"><span class="cc-rankings__rank">4.</span><span class="cc-rankings__name">---</span><span class="cc-rankings__score">0</span></div>
+            <div class="cc-rankings__entry" role="button" tabindex="0"><span class="cc-rankings__rank">5.</span><span class="cc-rankings__name">---</span><span class="cc-rankings__score">0</span></div>
           </div>
         </div>
       </div>
@@ -306,70 +294,37 @@
     <!-- ── Data Health & Pipelines ── -->
     <section class="cc-section" id="section-maintenance">
       <div class="cc-section__header" data-toggle="maintenance">
-        <div class="cc-section__title">
-          <span class="cc-section__chevron">&#9656;</span>
-          Data Health &amp; Pipelines
-        </div>
+        <div class="cc-section__title"><span class="cc-section__chevron">&#9656;</span> Data Health &amp; Pipelines</div>
         <div class="cc-section__summary" id="maintenance-summary"></div>
       </div>
       <div class="cc-section__body" style="display:none">
-        <div id="maintenance-content">
-          <div class="cc-loading"><div class="cc-spinner"></div>Loading database health...</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ── Activity Log ── -->
-    <section class="cc-section" id="section-activity">
-      <div class="cc-section__header" data-toggle="activity">
-        <div class="cc-section__title">
-          <span class="cc-section__chevron">&#9656;</span>
-          Activity Log
-        </div>
-      </div>
-      <div class="cc-section__body" style="display:none">
-        <div class="cc-log__filters">
-          <button class="cc-log__filter cc-log__filter--active" data-filter="all" onclick="filterLog('all')">All</button>
-          <button class="cc-log__filter" data-filter="atlas" onclick="filterLog('atlas')">Atlas</button>
-          <button class="cc-log__filter" data-filter="qaudit" onclick="filterLog('qaudit')">QAudit</button>
-          <button class="cc-log__filter" data-filter="sentinel" onclick="filterLog('sentinel')">Sentinel</button>
-          <button class="cc-log__filter" data-filter="hunter" onclick="filterLog('hunter')">Hunter</button>
-          <button class="cc-log__filter" data-filter="guardian" onclick="filterLog('guardian')">Guardian</button>
-        </div>
-        <div class="cc-log__entries" id="battle-log">
-          <div class="cc-log__entry">
-            <span class="cc-log__time">--:--:--</span>
-            <span class="cc-log__agent cc-log__agent--system">System</span>
-            <span class="cc-log__message">Ready. Hit "Run Tests" or expand a section to explore.</span>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══ ZONE 3: PRODUCTION (regular section, not a separate mode) ═══ -->
-    <section class="cc-section" id="section-production">
-      <div class="cc-section__header" data-toggle="production">
-        <div class="cc-section__title">
-          <span class="cc-section__chevron">&#9656;</span>
-          Production Traffic
-        </div>
-        <div class="cc-section__summary" id="production-summary"></div>
-      </div>
-      <div class="cc-section__body" style="display:none">
-        <div class="cc-kpis" id="prod-kpis"></div>
-        <div class="cc-focus" id="prod-alerts" style="display:none">
-          <div class="cc-focus__title">Production Alerts</div>
-          <div class="cc-focus__alerts" id="prod-alert-list"></div>
-        </div>
-        <div id="prod-content">
-          <div class="cc-loading"><div class="cc-spinner"></div>Loading production data...</div>
-        </div>
+        <div id="maintenance-content"><div class="cc-loading"><div class="cc-spinner"></div>Loading database health...</div></div>
       </div>
     </section>
 
   </main>
 
-  <!-- ═══ Stopped Overlay ═══ -->
+  <!-- ═══ Keyboard Shortcuts Overlay ═══ -->
+  <div class="cc-modal-overlay" id="shortcuts-overlay" style="display:none" onclick="closeShortcuts(event)">
+    <div class="cc-modal cc-modal--shortcuts" onclick="event.stopPropagation()">
+      <div class="cc-modal__header">
+        <span class="cc-modal__title">Keyboard Shortcuts</span>
+        <button class="cc-modal__close" onclick="closeShortcuts()">&times;</button>
+      </div>
+      <div class="cc-shortcuts-grid">
+        <div class="cc-shortcut"><kbd>t</kbd><span>Start / Stop tests</span></div>
+        <div class="cc-shortcut"><kbd>r</kbd><span>Rerun &amp; Compare</span></div>
+        <div class="cc-shortcut"><kbd>d</kbd><span>Check Data Health</span></div>
+        <div class="cc-shortcut"><kbd>1</kbd><span>Test Results</span></div>
+        <div class="cc-shortcut"><kbd>2</kbd><span>Agents</span></div>
+        <div class="cc-shortcut"><kbd>3</kbd><span>Data Health</span></div>
+        <div class="cc-shortcut"><kbd>Esc</kbd><span>Close modal / panel</span></div>
+        <div class="cc-shortcut"><kbd>?</kbd><span>This help</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ Session Complete Overlay ═══ -->
   <div class="cc-overlay" id="game-over">
     <div class="cc-overlay__content cc-overlay__content--wide">
       <div class="cc-overlay__title">Session Complete</div>
