@@ -482,6 +482,11 @@ function renderLiveFeed(queries) {
     const restName = q.restaurants?.name || null;
     const icon = dm >= 60 ? '&#10003;' : dm >= 40 ? '&#9888;' : '&#10007;';
     const iconClass = dm >= 60 ? 'cc-live-icon--pass' : dm >= 40 ? 'cc-live-icon--warn' : 'cc-live-icon--fail';
+    const badges = [];
+    if (q.was_fallback) badges.push('<span class="cc-live-entry__badge cc-live-entry__badge--fallback">FB</span>');
+    if (q.response_time_ms) badges.push(`<span class="cc-live-entry__response">${q.response_time_ms}ms</span>`);
+    if (q.exclude_count > 0) badges.push(`<span class="cc-live-entry__badge cc-live-entry__badge--retry">x${q.exclude_count}</span>`);
+    if (q.claude_relevance_score != null) badges.push(`<span class="cc-live-entry__badge ${q.claude_relevance_score >= 1 ? 'cc-live-entry__badge--liked' : 'cc-live-entry__badge--disliked'}">${q.claude_relevance_score >= 1 ? '&#128077;' : '&#128078;'}</span>`);
     return `
       <div class="cc-live-entry" data-query-id="${q.id}" onclick="openQueryDetail('${q.id}')" style="cursor:pointer" title="Click for details">
         <span class="cc-live-entry__time">${fmtTime(q.created_at)}</span>
@@ -489,20 +494,53 @@ function renderLiveFeed(queries) {
         <span class="cc-live-entry__dm ${ragClass(dm)}">DM: ${dm}</span>
         <span class="cc-live-entry__icon ${iconClass}">${icon}</span>
         ${restName ? `<span class="cc-live-entry__rest">${escapeHtml(restName)}</span>` : ''}
+        ${badges.length > 0 ? `<span class="cc-live-entry__badges">${badges.join('')}</span>` : ''}
       </div>
     `;
   }).join('');
 }
 
-function updateLiveKPIs(searches, avgDm, lowScores, responseTime) {
+function updateLiveKPIs(stats) {
   const el = (id, val) => {
     const e = document.getElementById(id);
     if (e) e.textContent = typeof val === 'number' ? (Number.isInteger(val) ? val : val.toFixed(1)) : val;
   };
-  el('live-searches', searches);
-  el('live-avg-dm', Math.round(avgDm));
-  el('live-low-scores', lowScores);
-  el('live-response-time', responseTime ? `${responseTime}ms` : '--');
+  const colorKpi = (id, rag) => {
+    const e = document.getElementById(id);
+    if (e) { e.classList.remove('rag-green', 'rag-amber', 'rag-red'); e.classList.add(`rag-${rag}`); }
+  };
+
+  el('live-searches', stats.searches);
+  el('live-avg-dm', Math.round(stats.avgDm));
+  el('live-pass-rate', `${stats.passRate.toFixed(0)}%`);
+  el('live-fallback-rate', `${stats.fallbackRate.toFixed(1)}%`);
+  el('live-p50', stats.p50Response ? `${stats.p50Response}ms` : '--');
+  el('live-p95', stats.p95Response ? `${stats.p95Response}ms` : '--');
+  el('live-satisfaction', stats.satisfactionPct !== null ? `${stats.satisfactionPct.toFixed(0)}%` : '--');
+  el('live-unmatched', `${stats.unmatchedRate.toFixed(1)}%`);
+
+  // RAG-color critical KPIs
+  colorKpi('live-fallback-rate', stats.fallbackRate > 15 ? 'red' : stats.fallbackRate > 8 ? 'amber' : 'green');
+  colorKpi('live-p95', stats.p95Response > 5000 ? 'red' : stats.p95Response > 3000 ? 'amber' : 'green');
+  colorKpi('live-pass-rate', stats.passRate >= 80 ? 'green' : stats.passRate >= 60 ? 'amber' : 'red');
+
+  // Score distribution bar
+  const dist = stats.scoreDist;
+  const total = stats.searches;
+  if (total > 0 && dist) {
+    const pcts = dist.map(d => (d / total * 100));
+    ['green', 'amber', 'orange', 'red'].forEach((c, i) => {
+      const seg = document.getElementById(`dist-${c}`);
+      if (seg) seg.style.width = `${pcts[i]}%`;
+    });
+    const labels = document.getElementById('dist-labels');
+    if (labels) labels.innerHTML = `
+      <span class="rag-green">${dist[0]} (80+)</span>
+      <span class="rag-amber">${dist[1]} (60-79)</span>
+      <span style="color:var(--cc-amber)">${dist[2]} (40-59)</span>
+      <span class="rag-red">${dist[3]} (<40)</span>
+    `;
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -819,7 +857,8 @@ async function openQueryDetail(queryId) {
       .select(`
         id, special_request, occasion, price_level, neighborhood_id,
         donde_match, created_at, recommended_restaurant_id, response_time_ms,
-        was_fallback, feedback,
+        was_fallback, claude_relevance_score, exclude_count, unmatched_keywords,
+        recommendation_text, source,
         restaurants!recommended_restaurant_id (
           name, address, cuisine_type, google_rating, google_review_count,
           price_level, noise_level, best_for_oneliner,
@@ -833,7 +872,7 @@ async function openQueryDetail(queryId) {
     if (error || !query) {
       const fallback = await sbClient
         .from('user_queries')
-        .select('id, special_request, occasion, price_level, neighborhood_id, donde_match, created_at, recommended_restaurant_id, response_time_ms, was_fallback, feedback')
+        .select('id, special_request, occasion, price_level, neighborhood_id, donde_match, created_at, recommended_restaurant_id, response_time_ms, was_fallback, claude_relevance_score, exclude_count, unmatched_keywords, recommendation_text, source')
         .eq('id', queryId)
         .single();
       query = fallback.data;
@@ -902,12 +941,22 @@ async function openQueryDetail(queryId) {
 
       <div class="cc-query-panel__section">
         <div class="cc-query-panel__label">Response</div>
-        <div class="cc-query-panel__val">${query.response_time_ms ? query.response_time_ms + 'ms' : '--'}${query.was_fallback ? ' &middot; <span style="color:var(--cc-amber)">fallback</span>' : ''}</div>
+        <div class="cc-query-panel__val">${query.response_time_ms ? query.response_time_ms + 'ms' : '--'}${query.was_fallback ? ' &middot; <span style="color:var(--cc-amber)">fallback</span>' : ''}${query.exclude_count > 0 ? ' &middot; Try Again x' + query.exclude_count : ''}</div>
       </div>
 
-      ${query.feedback ? `<div class="cc-query-panel__section">
-        <div class="cc-query-panel__label">Feedback</div>
-        <div class="cc-query-panel__val">${query.feedback === 'like' ? '&#128077; Liked' : '&#128078; Disliked'}</div>
+      ${query.claude_relevance_score != null ? `<div class="cc-query-panel__section">
+        <div class="cc-query-panel__label">User Feedback</div>
+        <div class="cc-query-panel__val">${query.claude_relevance_score >= 1 ? '&#128077; Liked' : '&#128078; Disliked'}</div>
+      </div>` : ''}
+
+      ${query.unmatched_keywords && query.unmatched_keywords.length > 0 ? `<div class="cc-query-panel__section">
+        <div class="cc-query-panel__label">Unmatched Keywords</div>
+        <div class="cc-query-panel__val">${query.unmatched_keywords.map(k => '<span class="cc-keyword-pill cc-keyword-pill--unmatched">' + escapeHtml(k) + '</span>').join(' ')}</div>
+      </div>` : ''}
+
+      ${query.recommendation_text ? `<div class="cc-query-panel__section">
+        <div class="cc-query-panel__label">Recommendation Blurb</div>
+        <div class="cc-query-panel__val cc-query-panel__blurb">${escapeHtml(query.recommendation_text)}</div>
       </div>` : ''}
     `;
   } catch (e) {

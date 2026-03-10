@@ -160,8 +160,11 @@ async function loadInitData() {
       updatePulseFromRun(latestRun);
     }
 
-    // Update live KPIs
-    updateLiveKPIs(todayCount, todayAvgDm, lowScoreCount, 0);
+    // Update live KPIs (basic stats from init — full stats come from loadLiveFeed)
+    updateLiveKPIs({ searches: todayCount, avgDm: todayAvgDm, lowScores: lowScoreCount,
+      passRate: todayCount > 0 ? ((todayCount - lowScoreCount) / todayCount * 100) : 0,
+      fallbackRate: 0, p50Response: 0, p95Response: 0, satisfactionPct: null,
+      unmatchedRate: 0, scoreDist: [0, 0, 0, 0] });
 
     // Update DB stats
     updateDbOverview(totalCount, enrichedCount, tagCount, occasionCount);
@@ -203,7 +206,7 @@ async function loadLiveFeed() {
     // Load ALL user queries with restaurant name via FK join, excluding test data
     let { data: queries, error } = await sbClient
       .from('user_queries')
-      .select('id, special_request, donde_match, created_at, recommended_restaurant_id, source, restaurants!recommended_restaurant_id(name)')
+      .select('id, special_request, donde_match, created_at, recommended_restaurant_id, source, was_fallback, response_time_ms, exclude_count, unmatched_keywords, claude_relevance_score, occasion, price_level, recommendation_text, restaurants!recommended_restaurant_id(name)')
       .neq('source', 'command-center')
       .order('created_at', { ascending: false });
 
@@ -212,7 +215,7 @@ async function loadLiveFeed() {
       console.warn('Live feed FK join failed, falling back:', error.message);
       const fallback = await sbClient
         .from('user_queries')
-        .select('id, special_request, donde_match, created_at')
+        .select('id, special_request, donde_match, created_at, was_fallback, response_time_ms, exclude_count, unmatched_keywords, claude_relevance_score, occasion, price_level')
         .order('created_at', { ascending: false });
       queries = fallback.data;
       if (fallback.error) console.error('Live feed fallback also failed:', fallback.error.message, fallback.error.hint);
@@ -231,9 +234,23 @@ async function loadLiveFeed() {
   }
 }
 
-/** Filter live feed by state.liveFilter and re-render */
+/** Filter live feed by state.liveFilter + advanced filters and re-render */
 function applyLiveFilter() {
-  const filtered = filterQueriesByPeriod(state.liveFeed, state.liveFilter);
+  let filtered = filterQueriesByPeriod(state.liveFeed, state.liveFilter);
+
+  // Advanced filters
+  const f = state.liveFilters || {};
+  if (f.scoreRange === 'high') filtered = filtered.filter(q => (q.donde_match || 0) >= 80);
+  else if (f.scoreRange === 'mid') filtered = filtered.filter(q => (q.donde_match || 0) >= 60 && (q.donde_match || 0) < 80);
+  else if (f.scoreRange === 'low') filtered = filtered.filter(q => (q.donde_match || 0) < 60);
+
+  if (f.fallback === 'yes') filtered = filtered.filter(q => q.was_fallback);
+  else if (f.fallback === 'no') filtered = filtered.filter(q => !q.was_fallback);
+
+  if (f.feedback === 'liked') filtered = filtered.filter(q => q.claude_relevance_score >= 1);
+  else if (f.feedback === 'disliked') filtered = filtered.filter(q => q.claude_relevance_score === 0);
+  else if (f.feedback === 'none') filtered = filtered.filter(q => q.claude_relevance_score == null);
+
   renderLiveFeed(filtered);
   updateLiveKPIsFromQueries(filtered);
 }
@@ -281,11 +298,44 @@ function filterQueriesByPeriod(queries, period) {
 
 function updateLiveKPIsFromQueries(queries) {
   const count = queries.length;
-  const avgDm = count > 0
-    ? queries.reduce((s, q) => s + (q.donde_match || 0), 0) / count
-    : 0;
+  if (count === 0) {
+    updateLiveKPIs({ searches: 0, avgDm: 0, passRate: 0, fallbackRate: 0,
+      p50Response: 0, p95Response: 0, satisfactionPct: null, unmatchedRate: 0,
+      scoreDist: [0, 0, 0, 0], lowScores: 0 });
+    return;
+  }
+
+  const avgDm = queries.reduce((s, q) => s + (q.donde_match || 0), 0) / count;
   const lowScores = queries.filter(q => (q.donde_match || 0) < 60).length;
-  updateLiveKPIs(count, avgDm, lowScores, 0);
+  const passRate = ((count - lowScores) / count * 100);
+
+  // Response time percentiles
+  const times = queries.map(q => q.response_time_ms).filter(Boolean).sort((a, b) => a - b);
+  const p50Response = times.length > 0 ? times[Math.floor(times.length * 0.50)] : 0;
+  const p95Response = times.length > 0 ? times[Math.floor(times.length * 0.95)] : 0;
+
+  // Fallback rate
+  const fallbackRate = (queries.filter(q => q.was_fallback).length / count * 100);
+
+  // User satisfaction
+  const withFeedback = queries.filter(q => q.claude_relevance_score != null);
+  const satisfied = withFeedback.filter(q => q.claude_relevance_score >= 1).length;
+  const satisfactionPct = withFeedback.length > 0 ? (satisfied / withFeedback.length * 100) : null;
+
+  // Unmatched keywords rate
+  const unmatchedRate = (queries.filter(q => q.unmatched_keywords && q.unmatched_keywords.length > 0).length / count * 100);
+
+  // Score distribution: [80+, 60-79, 40-59, <40]
+  const scoreDist = [
+    queries.filter(q => (q.donde_match || 0) >= 80).length,
+    queries.filter(q => (q.donde_match || 0) >= 60 && (q.donde_match || 0) < 80).length,
+    queries.filter(q => (q.donde_match || 0) >= 40 && (q.donde_match || 0) < 60).length,
+    queries.filter(q => (q.donde_match || 0) < 40).length,
+  ];
+
+  updateLiveKPIs({ searches: count, avgDm, passRate, fallbackRate,
+    p50Response, p95Response, satisfactionPct, unmatchedRate,
+    scoreDist, lowScores });
 }
 
 async function pollLiveFeed() {
@@ -294,7 +344,7 @@ async function pollLiveFeed() {
   try {
     let query = sbClient
       .from('user_queries')
-      .select('id, special_request, donde_match, created_at, recommended_restaurant_id, source, restaurants!recommended_restaurant_id(name)')
+      .select('id, special_request, donde_match, created_at, recommended_restaurant_id, source, was_fallback, response_time_ms, exclude_count, unmatched_keywords, claude_relevance_score, occasion, price_level, recommendation_text, restaurants!recommended_restaurant_id(name)')
       .neq('source', 'command-center')
       .order('created_at', { ascending: false })
       .limit(20);
