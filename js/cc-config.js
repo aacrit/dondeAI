@@ -127,6 +127,7 @@ let state = {
   pipelineStatuses: {},
   pipePollTimer: null,
   livePollTimer: null,
+  retesting: false,   // true while retest in progress
 };
 
 // Supabase client (set by cc-analytics.js after auth)
@@ -190,4 +191,19 @@ function timeAgo(ts) {
 
 function fmtTime(ts) {
   return new Date(ts).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+}
+
+// Toast for CC (share.js not loaded here)
+function showToast(message) {
+  let toast = document.getElementById('cc-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'cc-toast';
+    toast.className = 'cc-toast';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = message;
+  toast.classList.add('cc-toast--visible');
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(() => toast.classList.remove('cc-toast--visible'), 2500);
 }

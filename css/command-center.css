@@ -1204,6 +1204,111 @@ body {
   font-size: 0.7rem;
   white-space: nowrap;
 }
+.cc-btn--retest {
+  background: var(--cc-accent-dim, rgba(139,143,245,0.1));
+  border-color: var(--cc-accent, #8b8ff5);
+  color: var(--cc-accent, #8b8ff5);
+}
+.cc-btn--retest:hover:not(:disabled) {
+  background: var(--cc-accent, #8b8ff5);
+  color: #fff;
+}
+.cc-btn--retest:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.cc-btn--accent {
+  background: var(--cc-accent, #8b8ff5);
+  border-color: var(--cc-accent, #8b8ff5);
+  color: #fff;
+}
+
+/* Issue status states */
+.cc-issue--fixed {
+  opacity: 0.6;
+  border-left: 3px solid var(--cc-green, #22c55e);
+}
+.cc-issue--improved {
+  border-left: 3px solid var(--cc-amber, #f59e0b);
+}
+.cc-issue__status {
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 3px;
+  margin-left: auto;
+}
+.cc-issue__status--fixed {
+  background: rgba(34, 197, 94, 0.15);
+  color: var(--cc-green, #22c55e);
+}
+.cc-issue__status--improved {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--cc-amber, #f59e0b);
+}
+.cc-issue__status--regressed {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--cc-red, #ef4444);
+}
+
+/* Fixed badge in summary */
+.cc-issues-badge--fixed {
+  background: var(--cc-green, #22c55e);
+  color: #fff;
+}
+
+/* Retest progress bar */
+.cc-retest-progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: var(--cc-surface, #1a1a2e);
+  border: 1px solid var(--cc-border);
+  border-radius: var(--cc-radius, 8px);
+  margin-bottom: 12px;
+}
+.cc-retest-progress__bar {
+  flex: 1;
+  height: 4px;
+  background: var(--cc-surface-3, #2a2a3e);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.cc-retest-progress__fill {
+  height: 100%;
+  width: 0;
+  background: var(--cc-accent, #8b8ff5);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+.cc-retest-progress__text {
+  font-size: 0.72rem;
+  color: var(--cc-text-2);
+  white-space: nowrap;
+}
+
+/* Toast */
+.cc-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(60px);
+  background: var(--cc-surface-2, #1e1e32);
+  border: 1px solid var(--cc-border);
+  color: var(--cc-text);
+  padding: 10px 24px;
+  border-radius: var(--cc-radius, 8px);
+  font-size: 0.82rem;
+  z-index: 300;
+  opacity: 0;
+  transition: all 300ms ease;
+  pointer-events: none;
+}
+.cc-toast--visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
 
 .cc-tab__badge {
   display: inline-flex;

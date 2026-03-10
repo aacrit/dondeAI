@@ -315,6 +315,15 @@
         <span class="cc-issues-badge cc-issues-badge--p0" id="issues-p0-count">P0: 0</span>
         <span class="cc-issues-badge cc-issues-badge--p1" id="issues-p1-count">P1: 0</span>
         <span class="cc-issues-badge cc-issues-badge--p2" id="issues-p2-count">P2: 0</span>
+        <span class="cc-issues-badge cc-issues-badge--fixed" id="issues-fixed-count" style="display:none">Fixed: 0</span>
+      </div>
+
+      <!-- Retest Progress (hidden by default) -->
+      <div class="cc-retest-progress" id="retest-progress" style="display:none">
+        <div class="cc-retest-progress__bar">
+          <div class="cc-retest-progress__fill" id="retest-progress-fill"></div>
+        </div>
+        <span class="cc-retest-progress__text" id="retest-progress-text">Retesting...</span>
       </div>
 
       <!-- Filters -->
@@ -335,6 +344,12 @@
           <button class="cc-issues-filter" data-filter="source" data-val="test" onclick="setIssueFilter('source','test')">Test</button>
           <button class="cc-issues-filter" data-filter="source" data-val="prod" onclick="setIssueFilter('source','prod')">Prod</button>
         </div>
+        <div class="cc-issues-filter-group">
+          <button class="cc-issues-filter cc-issues-filter--active" data-filter="status" data-val="all" onclick="setIssueFilter('status','all')">All</button>
+          <button class="cc-issues-filter" data-filter="status" data-val="open" onclick="setIssueFilter('status','open')">Open</button>
+          <button class="cc-issues-filter" data-filter="status" data-val="fixed" onclick="setIssueFilter('status','fixed')">Fixed</button>
+          <button class="cc-issues-filter" data-filter="status" data-val="improved" onclick="setIssueFilter('status','improved')">Improved</button>
+        </div>
       </div>
 
       <!-- Bulk Actions -->
@@ -345,6 +360,9 @@
         </label>
         <button class="cc-btn cc-btn--primary" id="issues-bulk-copy" onclick="copyBulkFixPrompt()" style="display:none">
           Copy Bulk Fix Prompt
+        </button>
+        <button class="cc-btn cc-btn--accent" id="issues-bulk-retest" onclick="retestSelectedIssues()" style="display:none">
+          Retest Selected
         </button>
       </div>
 
