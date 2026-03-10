@@ -52,11 +52,31 @@ function handleStart() {
   // Read test count from input (supports manual override up to 1000)
   state.maxTestQueries = typeof getQueryCount === 'function' ? getQueryCount() : 10;
 
-  // Build filtered query pools based on selected categories
+  // Build filtered query pools based on selected categories + difficulty
   const pool = typeof getFilteredQueryPool === 'function' ? getFilteredQueryPool() : null;
   state._atlasPool = pool ? pool.atlas : ATLAS_QUERIES;
   state._goldenPool = pool ? pool.golden : GOLDEN_QUERIES;
   const enabledCats = pool ? pool.enabledCats : Object.keys(QUERY_CATEGORIES || {});
+
+  // Build stratified per-category queues (round-robin sampling)
+  state._catQueues = {};
+  state._catQueueIdx = {};
+  state._catCycle = 0;
+  for (const cat of enabledCats) {
+    const catQueries = state._atlasPool.filter(q => q.cat === cat);
+    state._catQueues[cat] = typeof shuffle === 'function' ? shuffle(catQueries) : catQueries;
+    state._catQueueIdx[cat] = 0;
+  }
+
+  // Dynamic agent budgets — scale with run size
+  const _origBudgets = {};
+  for (const [id, def] of Object.entries(AGENT_DEFS)) _origBudgets[id] = def.budget;
+  state._origBudgets = _origBudgets;
+  AGENT_DEFS.atlas.budget = state.maxTestQueries;
+  AGENT_DEFS.sentinel.budget = Math.min(30, Math.ceil(state.maxTestQueries * 0.3));
+  AGENT_DEFS.hunter.budget = Math.min(15, Math.ceil(state.maxTestQueries * 0.15));
+  AGENT_DEFS.qaudit.budget = Math.min(10, Math.ceil(state.maxTestQueries * 0.1));
+  AGENT_DEFS.guardian.budget = Math.min(10, Math.ceil(state.maxTestQueries * 0.1));
 
   // Close dropdown if open
   const dd = document.getElementById('start-dropdown');
@@ -73,7 +93,8 @@ function handleStart() {
   state.enabledAgents = enabledAgents;
   const agentNames = enabledAgents.map(k => AGENT_DEFS[k]?.name || k).join(', ');
   const catNote = enabledCats.length < 5 ? ` [${enabledCats.join(', ')}]` : '';
-  addLog('SYSTEM', `Deployed: ${agentNames} (${state.maxTestQueries} queries${catNote}). Monitoring active.`, 'star');
+  const diffNote = Object.values(diffFilter || {}).some(v => !v) ? ` [${Object.keys(diffFilter).filter(k => diffFilter[k]).join('+')}]` : '';
+  addLog('SYSTEM', `Deployed: ${agentNames} (${state.maxTestQueries} queries${catNote}${diffNote}, pool: ${state._atlasPool.length}). Monitoring active.`, 'star');
 
   // If Atlas not enabled, auto-stop after all enabled agents hit their budget
   if (!agentFilter.atlas) {
@@ -133,6 +154,14 @@ async function handleStop() {
   stopAgentCycles();
   if (state.pollTimer) { clearInterval(state.pollTimer); state.pollTimer = null; }
   if (state.noAtlasAutoStop) { clearInterval(state.noAtlasAutoStop); state.noAtlasAutoStop = null; }
+
+  // Restore original agent budgets
+  if (state._origBudgets) {
+    for (const [id, budget] of Object.entries(state._origBudgets)) {
+      AGENT_DEFS[id].budget = budget;
+    }
+    state._origBudgets = null;
+  }
 
   // Show game-over with save status
   showGameOver(sessionStartTime);
@@ -220,10 +249,24 @@ async function runAtlasCycle() {
   agent.status = 'running';
   updateAgentStatusUI('atlas');
 
-  const pool = state._atlasPool || ATLAS_QUERIES;
-  const pick = pool[Math.floor(Math.random() * pool.length)];
+  // Stratified round-robin: cycle through categories for even coverage
+  let pick;
+  const cats = Object.keys(state._catQueues || {});
+  if (cats.length > 0) {
+    const cat = cats[state._catCycle % cats.length];
+    state._catCycle++;
+    const queue = state._catQueues[cat];
+    const idx = state._catQueueIdx[cat] || 0;
+    pick = queue[idx % queue.length];
+    state._catQueueIdx[cat] = idx + 1;
+  } else {
+    const pool = state._atlasPool || ATLAS_QUERIES;
+    pick = pool[Math.floor(Math.random() * pool.length)];
+  }
   const query = typeof pick === 'string' ? pick : pick.query;
-  addLog('atlas', `Testing: "${query}"`, 'pass');
+  const pickDiff = pick?.diff || 'medium';
+  const threshold = (typeof DIFFICULTY_LEVELS !== 'undefined' && DIFFICULTY_LEVELS[pickDiff]?.tolerance) || 60;
+  addLog('atlas', `Testing [${pickDiff}]: "${query}"`, 'pass');
 
   const result = await callAPI(query);
   agent.apiUsed++;
@@ -232,17 +275,17 @@ async function runAtlasCycle() {
   if (result.success && result.donde_match !== undefined) {
     const dm = result.donde_match;
     agent.total++;
-    if (dm >= 60) {
+    if (dm >= threshold) {
       agent.pass++;
       awardXP('atlas', dm >= 80 ? 25 : 10);
-      addLog('atlas', `PASS: "${query}" -> DM ${dm} (${result.restaurant?.name || 'unknown'})`, 'pass');
+      addLog('atlas', `PASS: "${query}" -> DM ${dm} (threshold ${threshold}, ${result.restaurant?.name || 'unknown'})`, 'pass');
     } else {
       agent.gaps++;
-      if (dm < 40) {
-        addLog('atlas', `CRITICAL: "${query}" -> DM ${dm}`, 'fail');
+      if (dm < threshold - 20) {
+        addLog('atlas', `CRITICAL: "${query}" -> DM ${dm} (need ${threshold})`, 'fail');
         addNotification('critical', `Atlas detected critical gap: "${query}" scored DM ${dm}`, 'atlas');
       } else {
-        addLog('atlas', `WEAK: "${query}" -> DM ${dm}`, 'warn');
+        addLog('atlas', `WEAK: "${query}" -> DM ${dm} (need ${threshold})`, 'warn');
       }
     }
     agent.avgDm = agent.total > 0 ? Math.round(((agent.avgDm * (agent.total - 1)) + dm) / agent.total) : dm;
@@ -252,10 +295,13 @@ async function runAtlasCycle() {
     const sv9 = result.scoring_v9 || {};
     state.sessionResults.push({
       query: query,
+      query_category: pick?.cat || 'unknown',
+      query_difficulty: pickDiff,
+      pass_threshold: threshold,
       donde_match: dm,
       category: sv9.relevance_type || 'unknown',
       gap_type: determineGapType(result, dm),
-      gap_severity: dm < 40 ? 'P0' : dm < 60 ? 'P1' : null,
+      gap_severity: dm < (threshold - 20) ? 'P0' : dm < threshold ? 'P1' : null,
       restaurant_name: result.restaurant?.name || null,
       tier: result.restaurant?.tier || null,
       relevance_type: sv9.relevance_type || null,
@@ -285,32 +331,58 @@ async function runAtlasCycle() {
 }
 
 // ─── QAUDIT ───
-function runQauditCycle() {
+async function runQauditCycle() {
   if (state.systemState !== 'running') return;
   const agent = state.agents.qaudit;
+  if (agent.apiUsed >= AGENT_DEFS.qaudit.budget) {
+    if (agent.status !== 'budget_paused') {
+      agent.status = 'budget_paused';
+      addLog('qaudit', `Budget limit reached (${AGENT_DEFS.qaudit.budget}).`, 'warn');
+    }
+    return;
+  }
   agent.status = 'running';
   updateAgentStatusUI('qaudit');
 
-  const sampleBlurbs = [
-    'We love this spot for its handmade pasta and warm neighborhood feel. The rigatoni is a standout.',
-    'This place nails the vibe for a low-key date night. We always grab the smoked brisket here.',
-    'A culinary journey through authentic flavors that will tantalize your taste buds.',
-    'We think this is a solid pick when you want classic Chicago comfort food without the wait.',
-    'Hidden gem nestled in the heart of Wicker Park with artisanal crafted dishes.',
-  ];
+  // Fetch real blurbs from restaurant_deep_profiles via Supabase
+  let blurbs = [];
+  try {
+    const resp = await fetch(`${SUPABASE_URL}/rest/v1/restaurant_deep_profiles?select=restaurant_id,best_for_oneliner&best_for_oneliner=not.is.null&limit=10&order=random()`, {
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      },
+    });
+    if (resp.ok) {
+      blurbs = await resp.json();
+    }
+  } catch (e) {
+    addLog('qaudit', `DB fetch error: ${e.message}`, 'fail');
+  }
+  agent.apiUsed++;
+
+  // Fallback if DB returned nothing
+  if (!blurbs || blurbs.length === 0) {
+    addLog('qaudit', 'No blurbs fetched from DB — skipping cycle.', 'warn');
+    agent.status = 'idle';
+    updateAgentStatusUI('qaudit');
+    return;
+  }
 
   let slopCount = 0, cleanCount = 0;
-  sampleBlurbs.forEach((blurb, i) => {
+  blurbs.forEach((row) => {
+    const blurb = row.best_for_oneliner || '';
+    const rid = row.restaurant_id ? row.restaurant_id.slice(0, 8) : '??';
     const foundSlop = BANNED_PATTERNS.filter(p => blurb.toLowerCase().includes(p.toLowerCase()));
     if (foundSlop.length > 0) {
       slopCount++;
-      addLog('qaudit', `SLOP detected in blurb #${agent.audits + i + 1}: "${foundSlop.join('", "')}"`, 'fail');
+      addLog('qaudit', `SLOP [${rid}]: "${foundSlop.join('", "')}"`, 'fail');
     } else {
       cleanCount++;
     }
   });
 
-  agent.audits += sampleBlurbs.length;
+  agent.audits += blurbs.length;
   agent.slop += slopCount;
   agent.clean += cleanCount;
 
@@ -324,7 +396,7 @@ function runQauditCycle() {
 
   agent.hp = Math.max(0, 100 - Math.round(slopRate * 200));
   awardXP('qaudit', slopCount === 0 ? 20 : 5);
-  addLog('qaudit', `Audit cycle: ${cleanCount} clean, ${slopCount} slop. Grade: ${agent.grade}`, slopCount > 0 ? 'warn' : 'pass');
+  addLog('qaudit', `Audit cycle: ${cleanCount} clean, ${slopCount} slop (${blurbs.length} real blurbs). Grade: ${agent.grade}`, slopCount > 0 ? 'warn' : 'pass');
 
   agent.status = 'idle';
   updateAgentCardUI('qaudit');
@@ -376,6 +448,9 @@ async function runSentinelCycle() {
     const sv9 = result.scoring_v9 || {};
     state.sessionResults.push({
       query: gq.query,
+      query_category: gq.cat || 'regression',
+      query_difficulty: 'golden',
+      pass_threshold: gq.minScore,
       donde_match: dm,
       category: gq.cat || sv9.relevance_type || 'regression',
       gap_type: determineGapType(result, dm),

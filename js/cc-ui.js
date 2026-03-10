@@ -17,6 +17,19 @@ function updateSystemStatus(text, color) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
+// Statistics Helpers
+// ═══════════════════════════════════════════════════════════════════
+
+/** 95% confidence interval margin (±%) for a pass rate proportion. */
+function confidenceInterval95(p, n) {
+  if (n <= 0) return 0;
+  // Wilson score interval approximation — z=1.96 for 95%
+  const z = 1.96;
+  const margin = z * Math.sqrt((p * (1 - p)) / n);
+  return Math.round(margin * 100);
+}
+
+// ═══════════════════════════════════════════════════════════════════
 // Clock
 // ═══════════════════════════════════════════════════════════════════
 
@@ -197,11 +210,14 @@ function updatePulseCards() {
   const guardian = state.agents.guardian;
   const results = state.sessionResults || [];
 
-  // 1. System Health — composite
+  // 1. System Health — composite (difficulty-aware pass rate)
   let healthScore = 0, healthParts = 0;
   let passRate = 0;
   if (results.length > 0) {
-    const passed = results.filter(r => r.donde_match >= 60).length;
+    const passed = results.filter(r => {
+      const t = r.pass_threshold || (typeof DIFFICULTY_LEVELS !== 'undefined' && DIFFICULTY_LEVELS[r.query_difficulty]?.tolerance) || 60;
+      return r.donde_match >= t;
+    }).length;
     passRate = Math.round((passed / results.length) * 100);
     healthScore += passRate; healthParts++;
   } else if (atlas.total > 0) {
@@ -231,7 +247,11 @@ function updatePulseCards() {
       healthRing.style.strokeDashoffset = offset;
       healthRing.style.stroke = compositeHealth >= 80 ? 'var(--cc-green)' : compositeHealth >= 60 ? 'var(--cc-amber)' : 'var(--cc-red)';
     }
-    if (healthSub) healthSub.textContent = `Pass ${passRate}% \u00b7 Coverage ${guardian.coverage !== '--' ? guardian.coverage : '--'} \u00b7 Grade ${qaudit.grade}`;
+    if (healthSub) {
+      const n = results.length || atlas.total || 0;
+      const ciText = n > 0 ? ` \u00b1${confidenceInterval95(passRate / 100, n)}%` : '';
+      healthSub.textContent = `Pass ${passRate}%${ciText} \u00b7 Coverage ${guardian.coverage !== '--' ? guardian.coverage : '--'} \u00b7 Grade ${qaudit.grade}`;
+    }
   }
 
   // 2. Avg DondeMatch
@@ -621,6 +641,7 @@ function updateHeroKPIs() {
   updateFocusStrip();
   computeSuggestion();
   updatePageTitle();
+  updateCatProgress();
 
   // Update test action button hint
   const hint = document.getElementById('action-test-hint');
@@ -650,6 +671,70 @@ function updateHeroKPIsFromGauntlet(data) {
     if (body) body.style.display = '';
     if (chevron) chevron.innerHTML = '&#9662;';
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Live Category + Difficulty Progress
+// ═══════════════════════════════════════════════════════════════════
+
+function updateCatProgress() {
+  const el = document.getElementById('cat-progress');
+  if (!el) return;
+  const results = state.sessionResults || [];
+  if (results.length === 0) { el.style.display = 'none'; return; }
+
+  el.style.display = '';
+
+  // Per-category stats
+  const cats = Object.keys(QUERY_CATEGORIES || {});
+  const catStats = {};
+  for (const cat of cats) {
+    const catResults = results.filter(r => r.query_category === cat);
+    const passed = catResults.filter(r => {
+      const t = r.pass_threshold || (typeof DIFFICULTY_LEVELS !== 'undefined' && DIFFICULTY_LEVELS[r.query_difficulty]?.tolerance) || 60;
+      return r.donde_match >= t;
+    }).length;
+    catStats[cat] = { total: catResults.length, passed, rate: catResults.length > 0 ? Math.round(passed / catResults.length * 100) : 0 };
+  }
+
+  // Per-difficulty stats
+  const diffs = typeof DIFFICULTY_LEVELS !== 'undefined' ? Object.keys(DIFFICULTY_LEVELS) : [];
+  const diffStats = {};
+  for (const d of diffs) {
+    const dResults = results.filter(r => r.query_difficulty === d);
+    const passed = dResults.filter(r => {
+      const t = r.pass_threshold || DIFFICULTY_LEVELS[d]?.tolerance || 60;
+      return r.donde_match >= t;
+    }).length;
+    diffStats[d] = { total: dResults.length, passed, rate: dResults.length > 0 ? Math.round(passed / dResults.length * 100) : 0 };
+  }
+
+  // Render category bars
+  let html = '<div class="cc-cat-progress__bars">';
+  for (const cat of cats) {
+    const s = catStats[cat];
+    const color = QUERY_CATEGORIES[cat]?.color || '#888';
+    const ragCls = s.rate >= 80 ? 'rag-green' : s.rate >= 60 ? 'rag-amber' : 'rag-red';
+    html += `<div class="cc-cat-progress__bar">
+      <div class="cc-cat-progress__label">${cat}</div>
+      <div class="cc-cat-progress__track"><div class="cc-cat-progress__fill" style="width:${s.rate}%;background:${color}"></div></div>
+      <div class="cc-cat-progress__val ${ragCls}">${s.rate}%<span class="cc-cat-progress__count">(${s.passed}/${s.total})</span></div>
+    </div>`;
+  }
+  html += '</div>';
+
+  // Difficulty breakdown
+  const diffParts = diffs.filter(d => diffStats[d].total > 0).map(d => {
+    const ds = diffStats[d];
+    const label = typeof DIFFICULTY_LEVELS !== 'undefined' ? DIFFICULTY_LEVELS[d].label : d;
+    const color = ds.rate >= 80 ? 'var(--cc-green)' : ds.rate >= 60 ? 'var(--cc-amber)' : 'var(--cc-red)';
+    return `<span style="color:${color}">${label}: ${ds.rate}%</span>`;
+  });
+  if (diffParts.length > 0) {
+    html += `<div class="cc-cat-progress__diff">${diffParts.join(' &middot; ')}</div>`;
+  }
+
+  el.innerHTML = html;
 }
 
 function setKPI(id, value, colorClass) {
@@ -893,6 +978,7 @@ function initSectionToggles() {
 
 const agentFilter = { atlas: true, sentinel: true, hunter: true, qaudit: true, guardian: true };
 const catFilter = { Food: true, Vibe: true, Service: true, Rep: true, Conv: true };
+const diffFilter = { easy: true, medium: true, hard: false, very_hard: false };
 
 const FILTER_PRESETS = {
   full:       { atlas: true, sentinel: true, hunter: true, qaudit: true, guardian: true },
@@ -937,18 +1023,65 @@ function getQueryCount() {
 
 function getFilteredQueryPool() {
   const enabledCats = Object.keys(catFilter).filter(k => catFilter[k]);
-  const atlas = ATLAS_QUERIES.filter(q => enabledCats.includes(q.cat));
+  const enabledDiffs = Object.keys(diffFilter).filter(k => diffFilter[k]);
+  const atlas = ATLAS_QUERIES.filter(q => enabledCats.includes(q.cat) && enabledDiffs.includes(q.diff || 'medium'));
   const golden = GOLDEN_QUERIES.filter(q => enabledCats.includes(q.cat));
-  return { atlas, golden, enabledCats };
+  return { atlas, golden, enabledCats, enabledDiffs };
 }
 
 function updateCatCoverage() {
   const el = document.getElementById('cat-coverage');
   if (!el) return;
   const { atlas, golden, enabledCats } = getFilteredQueryPool();
-  const total = atlas.length + golden.length;
-  const allTotal = ATLAS_QUERIES.length + GOLDEN_QUERIES.length;
-  el.textContent = `${total}/${allTotal} queries across ${enabledCats.length} categories`;
+  const poolSize = atlas.length + golden.length;
+  const requested = getQueryCount();
+
+  // Per-category breakdown
+  const catCounts = {};
+  for (const cat of enabledCats) {
+    catCounts[cat] = atlas.filter(q => q.cat === cat).length;
+  }
+  const catParts = enabledCats.map(c => `${c}: ${catCounts[c]}`).join(' | ');
+
+  // Per-difficulty breakdown
+  const enabledDiffs = Object.keys(diffFilter || {}).filter(k => diffFilter[k]);
+  const diffCounts = {};
+  for (const d of enabledDiffs) {
+    diffCounts[d] = atlas.filter(q => q.diff === d).length;
+  }
+  const diffParts = enabledDiffs.map(d => {
+    const label = typeof DIFFICULTY_LEVELS !== 'undefined' ? DIFFICULTY_LEVELS[d]?.label || d : d;
+    return `${label}: ${diffCounts[d] || 0}`;
+  }).join(' | ');
+
+  let html = `<div class="cc-coverage-line">${poolSize} queries [${catParts}]</div>`;
+  if (diffParts) html += `<div class="cc-coverage-line">[${diffParts}]</div>`;
+  if (requested > poolSize) {
+    html += `<div class="cc-warn">Repeats after ${poolSize} queries.</div>`;
+  }
+  el.innerHTML = html;
+}
+
+function updateDiffTolerance() {
+  const el = document.getElementById('diff-tolerance');
+  if (!el) return;
+  const enabledDiffs = Object.keys(diffFilter).filter(k => diffFilter[k]);
+  if (typeof DIFFICULTY_LEVELS === 'undefined') { el.textContent = ''; return; }
+  const parts = enabledDiffs.map(d => {
+    const def = DIFFICULTY_LEVELS[d];
+    return def ? `${def.label}: DM \u2265${def.tolerance}` : '';
+  }).filter(Boolean);
+  el.textContent = parts.length ? 'Pass: ' + parts.join(' | ') : '';
+}
+
+function updateSampleReliability() {
+  const el = document.getElementById('sample-reliability');
+  if (!el) return;
+  const n = getQueryCount();
+  if (n < 20) { el.textContent = 'Low (exploratory)'; el.style.color = 'var(--cc-red)'; }
+  else if (n <= 50) { el.textContent = 'Standard'; el.style.color = 'var(--cc-text-2)'; }
+  else if (n <= 100) { el.textContent = 'High'; el.style.color = 'var(--cc-green)'; }
+  else { el.textContent = 'Statistical'; el.style.color = 'var(--cc-green)'; }
 }
 
 function updateFilterSummary() {
@@ -1003,6 +1136,37 @@ function renderCatChips() {
   });
 }
 
+function renderDiffChips() {
+  const container = document.getElementById('diff-filter-chips');
+  if (!container || typeof DIFFICULTY_LEVELS === 'undefined') return;
+
+  // Count queries per difficulty
+  const counts = {};
+  for (const q of ATLAS_QUERIES) counts[q.diff || 'medium'] = (counts[q.diff || 'medium'] || 0) + 1;
+
+  container.innerHTML = Object.entries(DIFFICULTY_LEVELS).map(([key, def]) => {
+    const checked = diffFilter[key];
+    return `<label class="cc-cat-chip${checked ? ' cc-cat-chip--checked' : ''}" data-diff="${key}">
+      <input type="checkbox" ${checked ? 'checked' : ''} style="display:none">
+      <span class="cc-cat-chip__dot" style="background:${def.color}"></span>
+      ${def.label} <span class="cc-cat-chip__count">${counts[key] || 0}</span>
+    </label>`;
+  }).join('');
+
+  container.querySelectorAll('.cc-cat-chip').forEach(chip => {
+    chip.addEventListener('click', (e) => {
+      e.preventDefault();
+      const diff = chip.dataset.diff;
+      diffFilter[diff] = !diffFilter[diff];
+      if (Object.values(diffFilter).every(v => !v)) diffFilter[diff] = true;
+      renderDiffChips();
+      updateCatCoverage();
+      updateDiffTolerance();
+      updateFilterSummary();
+    });
+  });
+}
+
 function initStartDropdown() {
   const slider = document.getElementById('test-count-slider');
   const input = document.getElementById('test-count-input');
@@ -1012,16 +1176,19 @@ function initStartDropdown() {
       const count = parseInt(slider.value);
       input.value = count;
       syncQueryCountUI(count);
+      updateCatCoverage();
+      updateSampleReliability();
     });
 
     input.addEventListener('input', () => {
       let val = parseInt(input.value);
       if (isNaN(val) || val < 1) val = 1;
       if (val > 1000) { val = 1000; input.value = 1000; }
-      // Sync slider if value is within slider range
       if (val <= 100) slider.value = Math.round(val / 5) * 5;
       else slider.value = 100;
       syncQueryCountUI(val);
+      updateCatCoverage();
+      updateSampleReliability();
     });
 
     input.addEventListener('blur', () => {
@@ -1043,9 +1210,12 @@ function initStartDropdown() {
     });
   });
 
-  // Render category chips and coverage
+  // Render category + difficulty chips and coverage
   renderCatChips();
+  renderDiffChips();
   updateCatCoverage();
+  updateDiffTolerance();
+  updateSampleReliability();
   updateFilterSummary();
 
   document.addEventListener('click', (e) => {
