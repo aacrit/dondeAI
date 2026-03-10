@@ -151,9 +151,15 @@
           </div>
           <div class="cc-filter-divider"></div>
           <label class="cc-start-dropdown__label">Test Queries (Atlas)</label>
-          <input type="range" id="test-count-slider" class="cc-start-dropdown__slider" min="5" max="30" step="5" value="10">
-          <div class="cc-start-dropdown__value"><span id="test-count-val">10</span> queries</div>
+          <div class="cc-query-count-row">
+            <input type="range" id="test-count-slider" class="cc-start-dropdown__slider" min="5" max="100" step="5" value="10">
+            <input type="number" id="test-count-input" class="cc-query-count-input" min="1" max="1000" value="10" aria-label="Query count">
+          </div>
           <div class="cc-start-dropdown__cost" id="test-cost-estimate">Est. ~$0.10 API usage</div>
+          <div class="cc-filter-divider"></div>
+          <label class="cc-start-dropdown__label">Query Categories</label>
+          <div class="cc-cat-chips" id="cat-filter-chips"></div>
+          <div class="cc-cat-coverage" id="cat-coverage"></div>
           <div class="cc-filter-divider"></div>
           <div class="cc-filter-summary" id="filter-summary">5 agents &middot; 10 queries &middot; ~$0.10</div>
         </div>
