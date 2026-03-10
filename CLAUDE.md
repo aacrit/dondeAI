@@ -34,7 +34,7 @@ AI restaurant recommendations for Chicago. One craving in, one perfect spot out.
 | `/ceo-advisor` | Strategic product advisor — Top 10 prioritized recommendations | Manual |
 | `/donde-premium-advisor` | Premium app audit (UI polish, backend, marketing psychology, Claude Code mastery) | Manual |
 | `/donde-ciso` | Security audit across 10 domains — severity-ranked findings with remediation | Manual or auto on security changes |
-| `/update-docs` | Scans codebase and updates all MD files to reflect current state — run after major changes | Manual or after major changes |
+| `/update-docs` | Scans codebase and updates all MD files to reflect current state | Auto when Claude judges changes are significant |
 
 All skills in `.claude/skills/`. Frontend design review checklist (7 points): accent usage, type voice, motion curve + symmetry, theme coverage, keyboard nav, reduced-motion, badge neutrality.
 
