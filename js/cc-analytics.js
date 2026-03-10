@@ -357,11 +357,7 @@ function updateSmartSuggestion() {
   } else if (run.gap_count > 0) {
     text.textContent = `${run.gap_count} issue${run.gap_count > 1 ? 's' : ''} found. ${pct(run.passed_60, run.total)}% pass rate.`;
     btn.textContent = 'View Issues';
-    btn.onclick = () => {
-      switchTab('test');
-      const firstRow = document.querySelector('.cc-run-row[data-run-id]');
-      if (firstRow) firstRow.click();
-    };
+    btn.onclick = () => switchTab('issues');
     btn.style.display = '';
     strip.style.display = 'flex';
   } else {

@@ -90,7 +90,7 @@ function initPulseClicks() {
   });
 
   if (attention) attention.addEventListener('click', () => {
-    switchTab('test');
+    switchTab('issues');
     // If there's a latest run with gaps, expand it
     const firstRow = document.querySelector('.cc-run-history__table tbody tr[data-run-id]');
     if (firstRow && !firstRow.classList.contains('cc-run-row--expanded')) {
