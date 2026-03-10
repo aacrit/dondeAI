@@ -192,6 +192,10 @@ body {
   cursor: pointer;
   position: relative;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .cc-pulse__card:active {
@@ -227,12 +231,12 @@ body {
 
 .cc-pulse__ring {
   position: relative;
-  width: 80px;
-  height: 80px;
+  width: clamp(80px, 12vw, 120px);
+  height: clamp(80px, 12vw, 120px);
   margin: 0 auto 8px;
 }
 
-.cc-pulse__svg { width: clamp(80px, 12vw, 120px); height: clamp(80px, 12vw, 120px); }
+.cc-pulse__svg { width: 100%; height: 100%; }
 .cc-pulse__svg circle:last-child { transition: stroke-dashoffset 0.9s cubic-bezier(0.22, 1, 0.36, 1); }
 
 .cc-pulse__value {
