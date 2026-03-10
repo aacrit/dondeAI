@@ -1045,6 +1045,22 @@ function easeInOutCubic(t) {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 }
 
+// Calligraphic ease: slow start (ink touching paper), fast middle (confident stroke),
+// slow end (settling into curve). Maps to variable stroke-width for ink pressure feel.
+function calligraphicEase(t) {
+  if (t < 0.15) return (t / 0.15) ** 3 * 0.05;           // Slow start
+  if (t < 0.6)  return 0.05 + ((t - 0.15) / 0.45) * 0.7; // Fast middle
+  const end = (t - 0.6) / 0.4;
+  return 0.75 + (1 - Math.pow(1 - end, 2.5)) * 0.25;     // Slow end
+}
+
+// Approximate speed (derivative) of calligraphicEase for stroke-width variation
+function calligraphicSpeed(t) {
+  if (t < 0.15) return (t / 0.15) ** 2 * 0.33;
+  if (t < 0.6)  return 1.55;
+  return (1 - ((t - 0.6) / 0.4)) ** 1.5 * 1.55;
+}
+
 /**
  * Ink Bloom: Start the logo emergence animation then transition to breathe loop.
  * Act 1 (Emergence): Dot lands → curve draws upward → tines bloom outward
@@ -1108,20 +1124,27 @@ export function initLogoAnimation(craving) {
         }
       }
 
-      // Curve draws upward from dot (120→400ms) with variable speed
-      // Tines bloom outward (350→600ms)
+      // Curve draws upward from dot (120→400ms) with calligraphic variable speed
+      // Tines bloom outward (350→600ms) with standard ease-out
       _pathData.forEach(({ el, len, delay }) => {
         const duration = delay < 200 ? EMERGE_STEM_MS : EMERGE_TINE_MS;
         const localElapsed = elapsed - delay;
         if (localElapsed <= 0) return;
         const localT = Math.min(1, localElapsed / duration);
-        // Variable speed: slow start, fast middle, slow end (ink capillary feel)
-        const eased = easeInOutCubic(localT);
-        el.style.strokeDashoffset = len * (1 - eased);
-        // Calligraphic pressure: thinner when fast, thicker when slow
-        const speedFactor = Math.abs(eased - (localT > 0.01 ? easeInOutCubic(localT - 0.01) : 0));
-        const strokeW = 2.0 + (1 - speedFactor * 50) * 0.8;
-        el.style.strokeWidth = Math.max(1.8, Math.min(2.8, strokeW));
+
+        if (delay < 200) {
+          // Curve: calligraphic ease with stroke-width variation
+          const eased = calligraphicEase(localT);
+          el.style.strokeDashoffset = len * (1 - eased);
+          // Thinner at high speed (mid-stroke), wider at turns (start/end)
+          const speed = calligraphicSpeed(localT);
+          const strokeW = 2.8 - speed * 0.6;
+          el.style.strokeWidth = Math.max(2.0, Math.min(3.2, strokeW));
+        } else {
+          // Tines: simple ease-out bloom
+          const eased = easeOutCubic(localT);
+          el.style.strokeDashoffset = len * (1 - eased);
+        }
       });
 
       _bloomId = requestAnimationFrame(tick);
