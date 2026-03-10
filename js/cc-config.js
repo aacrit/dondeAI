@@ -133,7 +133,49 @@ let state = {
   pulseMode: 'test',        // 'test' (run-based) | 'prod' (live 7d data)
   blurbMode: 'quick',       // 'quick' (regex) | 'deep' (Claude API)
   expandedPulse: null,      // which pulse card is expanded: 'health'|'quality'|'attention'|null
+  // Comparative Run View
+  compareRunA: null,        // run_id for comparison base
+  compareRunB: null,        // run_id for comparison target
+  compareData: [],          // results from get_run_comparison RPC
+  compareFilter: 'all',     // 'all'|'improved'|'regressed'|'unchanged'
+  compareOpen: false,       // compare panel visible
+  // Auto-refresh
+  autoRefresh: false,
+  autoRefreshSecs: 60,      // 30 | 60
+  autoRefreshTimer: null,
+  autoRefreshCountdown: 0,
+  // Trend & analytics
+  trendData: [],            // last 10 runs' summary for sparklines
+  heatmapData: {},          // category × difficulty coverage grid
+  anomalyAlert: null,       // { message, severity, runId } or null
+  perfBaseline: { p50: 0, p90: 0, p99: 0 },
+  // Keyboard nav
+  focusedRunIdx: -1,        // j/k navigation index in run history
 };
+
+// Session persistence keys
+const SESSION_KEYS = ['activeTab', 'liveFilter', 'pulseMode', 'blurbMode', 'autoRefresh', 'autoRefreshSecs'];
+
+function saveSession() {
+  try {
+    const session = {};
+    for (const k of SESSION_KEYS) session[k] = state[k];
+    if (state.issueFilters) session.issueFilters = state.issueFilters;
+    localStorage.setItem('cc-session', JSON.stringify(session));
+  } catch (_) {}
+}
+
+function restoreSession() {
+  try {
+    const raw = localStorage.getItem('cc-session');
+    if (!raw) return;
+    const session = JSON.parse(raw);
+    for (const k of SESSION_KEYS) {
+      if (session[k] !== undefined) state[k] = session[k];
+    }
+    if (session.issueFilters) state.issueFilters = session.issueFilters;
+  } catch (_) {}
+}
 
 // Supabase client (set by cc-analytics.js after auth)
 let sbClient = null;
