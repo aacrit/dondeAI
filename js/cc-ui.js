@@ -871,6 +871,7 @@ async function retestIssue(idx) {
   if (btn) { btn.textContent = 'Testing...'; btn.disabled = true; }
 
   try {
+    const prevDm = issue.dm;
     const resp = await callAPI(issue.query);
     const newDm = resp.donde_match || 0;
     issue.retestDm = newDm;
@@ -891,6 +892,17 @@ async function retestIssue(idx) {
 
     // Update restaurant name if it changed
     if (resp.restaurant?.name) issue.restaurant = resp.restaurant.name;
+
+    // Log retest as a gauntlet run
+    const pass = newDm >= 60;
+    const gap = pass ? null : (issue.gapType || determineGapType(resp, newDm));
+    if (typeof persistResults === 'function') {
+      await persistResults({ type: 'retest', results: [{
+        query: issue.query, cat: issue.category || 'unknown', dm: newDm, pass,
+        gap, restaurant: issue.restaurant, severity: issue.severity,
+        prevDm, queryId: issue.queryId || `retest-${idx}`,
+      }] });
+    }
 
     // Re-render with filters
     applyIssueFilters();
@@ -918,6 +930,7 @@ async function retestSelectedIssues() {
   if (progressEl) progressEl.style.display = '';
 
   let fixed = 0, improved = 0, unchanged = 0;
+  const retestResults = [];
 
   for (let i = 0; i < indices.length; i++) {
     const idx = indices[i];
@@ -928,6 +941,7 @@ async function retestSelectedIssues() {
     if (fillEl) fillEl.style.width = `${((i + 1) / total) * 100}%`;
 
     try {
+      const prevDm = issue.dm;
       const resp = await callAPI(issue.query);
       const newDm = resp.donde_match || 0;
       issue.retestDm = newDm;
@@ -947,9 +961,22 @@ async function retestSelectedIssues() {
       }
 
       if (resp.restaurant?.name) issue.restaurant = resp.restaurant.name;
+
+      const pass = newDm >= 60;
+      const gap = pass ? null : (issue.gapType || determineGapType(resp, newDm));
+      retestResults.push({
+        query: issue.query, cat: issue.category || 'unknown', dm: newDm, pass,
+        gap, restaurant: issue.restaurant, severity: issue.severity,
+        prevDm, queryId: issue.queryId || `retest-${idx}`,
+      });
     } catch (e) {
       unchanged++;
     }
+  }
+
+  // Log all retest results as a single gauntlet run
+  if (retestResults.length && typeof persistResults === 'function') {
+    await persistResults({ type: 'retest', results: retestResults });
   }
 
   state.retesting = false;
