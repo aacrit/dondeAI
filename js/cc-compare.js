@@ -577,42 +577,126 @@ async function openDeepDive(type, data) {
     }
 
   } else if (type === 'pulse') {
-    if (title) title.textContent = `Trend Analysis: ${data?.label || 'Overview'}`;
+    if (title) title.textContent = `Executive Intelligence Brief`;
     const trend = state.trendData || [];
     if (!trend.length) {
-      body.innerHTML = '<div class="cc-empty-state"><div class="cc-empty-state__text">Not enough data for trend analysis</div></div>';
+      body.innerHTML = '<div class="cc-empty-state"><div class="cc-empty-state__text">Not enough data for analysis</div></div>';
       return;
     }
 
+    const latest = trend[0];
+    const prev = trend.length > 1 ? trend[1] : null;
+    const ordered = trend.slice().reverse();
+
+    // Compute key metrics
+    const latestPassRate = latest.total > 0 ? (latest.passed_60 / latest.total * 100) : 0;
+    const prevPassRate = prev && prev.total > 0 ? (prev.passed_60 / prev.total * 100) : null;
+    const avgDmAll = trend.reduce((s, r) => s + Number(r.avg_dm), 0) / trend.length;
+    const recent5 = trend.slice(0, Math.min(5, trend.length));
+    const older5 = trend.slice(5, 10);
+    const recent5Avg = recent5.reduce((s, r) => s + Number(r.avg_dm), 0) / recent5.length;
+    const older5Avg = older5.length ? older5.reduce((s, r) => s + Number(r.avg_dm), 0) / older5.length : null;
+
+    // Trend direction
+    let trendDirection, trendCls;
+    if (older5Avg !== null) {
+      const d = recent5Avg - older5Avg;
+      if (d > 1.5) { trendDirection = 'Improving'; trendCls = 'rag-green'; }
+      else if (d < -1.5) { trendDirection = 'Declining'; trendCls = 'rag-red'; }
+      else { trendDirection = 'Stable'; trendCls = 'rag-amber'; }
+    } else {
+      trendDirection = 'Establishing baseline'; trendCls = '';
+    }
+
+    // Issue breakdown
+    const issues = state.issues || [];
+    const openIssues = issues.filter(i => (!i.status || i.status === 'open'));
+    const p0Count = openIssues.filter(i => i.severity === 'P0').length;
+    const p1Count = openIssues.filter(i => i.severity === 'P1').length;
+
+    // Category analysis from issues
+    const catMap = {};
+    for (const i of openIssues) {
+      const cat = i.category && i.category !== '--' && i.category !== 'unknown' ? i.category : null;
+      if (cat) {
+        if (!catMap[cat]) catMap[cat] = { count: 0, sumDm: 0 };
+        catMap[cat].count++;
+        catMap[cat].sumDm += i.dm;
+      }
+    }
+    const cats = Object.entries(catMap).map(([c, d]) => ({ name: c, count: d.count, avgDm: d.sumDm / d.count })).sort((a, b) => a.avgDm - b.avgDm);
+
+    // Gap type patterns
+    const gapMap = {};
+    for (const i of openIssues) { gapMap[i.gapType] = (gapMap[i.gapType] || 0) + 1; }
+    const gapTypes = Object.entries(gapMap).sort((a, b) => b[1] - a[1]);
+
+    // Best/worst runs
+    const bestRun = trend.reduce((best, r) => Number(r.avg_dm) > Number(best.avg_dm) ? r : best, trend[0]);
+    const worstRun = trend.reduce((worst, r) => Number(r.avg_dm) < Number(worst.avg_dm) ? r : worst, trend[0]);
+
     body.innerHTML = `
-      <div class="cc-deep-dive__charts">
-        <div class="cc-deep-dive__chart-section">
-          <div class="cc-deep-dive__chart-title">Avg DondeMatch (last ${trend.length} runs)</div>
-          <div class="cc-deep-dive__sparkline-large">
-            ${trend.slice().reverse().map(r => {
-              const height = Math.max(Number(r.avg_dm) * 0.8, 4);
-              return `<div class="cc-sparkline__bar-lg ${ragClass(Number(r.avg_dm))}" style="height:${height}px" title="DM ${r1(r.avg_dm)} — ${new Date(r.created_at).toLocaleDateString()}"></div>`;
+      <div class="cc-brief">
+        <div class="cc-brief__section">
+          <div class="cc-brief__heading">System Status</div>
+          <div class="cc-brief__kpi-row">
+            <div class="cc-brief__kpi">
+              <span class="cc-brief__kpi-val ${ragClass(latestPassRate)}">${latestPassRate.toFixed(0)}%</span>
+              <span class="cc-brief__kpi-label">Pass Rate</span>
+              ${prevPassRate !== null ? `<span class="cc-brief__kpi-delta ${latestPassRate >= prevPassRate ? 'rag-green' : 'rag-red'}">${latestPassRate >= prevPassRate ? '+' : ''}${(latestPassRate - prevPassRate).toFixed(1)}%</span>` : ''}
+            </div>
+            <div class="cc-brief__kpi">
+              <span class="cc-brief__kpi-val ${ragClass(Number(latest.avg_dm))}">${r1(latest.avg_dm)}</span>
+              <span class="cc-brief__kpi-label">Avg DondeMatch</span>
+              ${latest.delta_avg_dm != null ? `<span class="cc-brief__kpi-delta ${latest.delta_avg_dm >= 0 ? 'rag-green' : 'rag-red'}">${latest.delta_avg_dm >= 0 ? '+' : ''}${r1(latest.delta_avg_dm)}</span>` : ''}
+            </div>
+            <div class="cc-brief__kpi">
+              <span class="cc-brief__kpi-val ${latest.gap_count > 5 ? 'rag-red' : latest.gap_count > 0 ? 'rag-amber' : 'rag-green'}">${latest.gap_count}</span>
+              <span class="cc-brief__kpi-label">Active Gaps</span>
+            </div>
+            <div class="cc-brief__kpi">
+              <span class="cc-brief__kpi-val ${trendCls}">${trendDirection}</span>
+              <span class="cc-brief__kpi-label">5-Run Trend</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="cc-brief__section">
+          <div class="cc-brief__heading">Trend (last ${trend.length} runs)</div>
+          <div class="cc-brief__trend-table">
+            ${ordered.map((r, i) => {
+              const pr = r.total > 0 ? (r.passed_60 / r.total * 100).toFixed(0) : 0;
+              const isLatest = i === ordered.length - 1;
+              return `<div class="cc-brief__trend-row ${isLatest ? 'cc-brief__trend-row--latest' : ''}">
+                <span class="cc-brief__trend-date">${new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                <span class="cc-brief__trend-bar" style="width: ${Math.max(Number(r.avg_dm), 5)}%">
+                  <span class="cc-brief__trend-fill ${ragClass(Number(r.avg_dm))}" style="width: 100%"></span>
+                </span>
+                <span class="cc-brief__trend-val ${ragClass(Number(r.avg_dm))}">${r1(r.avg_dm)}</span>
+                <span class="cc-brief__trend-pass">${pr}%</span>
+                <span class="cc-brief__trend-gaps ${r.gap_count > 5 ? 'rag-red' : ''}">${r.gap_count} gaps</span>
+              </div>`;
             }).join('')}
           </div>
         </div>
-        <div class="cc-deep-dive__chart-section">
-          <div class="cc-deep-dive__chart-title">Pass Rate %</div>
-          <div class="cc-deep-dive__sparkline-large">
-            ${trend.slice().reverse().map(r => {
-              const pctVal = r.total > 0 ? r.passed_60 / r.total * 100 : 0;
-              const height = Math.max(pctVal * 0.6, 4);
-              return `<div class="cc-sparkline__bar-lg ${ragClass(pctVal)}" style="height:${height}px" title="${Math.round(pctVal)}% — ${new Date(r.created_at).toLocaleDateString()}"></div>`;
-            }).join('')}
+
+        ${openIssues.length > 0 ? `
+        <div class="cc-brief__section">
+          <div class="cc-brief__heading">Risk Assessment</div>
+          <div class="cc-brief__risks">
+            ${p0Count > 0 ? `<div class="cc-brief__risk cc-brief__risk--critical"><span class="cc-brief__risk-badge">P0</span> ${p0Count} critical — ${openIssues.filter(i => i.severity === 'P0').map(i => '"' + escapeHtml(i.query) + '"').join(', ')}</div>` : ''}
+            ${p1Count > 0 ? `<div class="cc-brief__risk cc-brief__risk--important"><span class="cc-brief__risk-badge">P1</span> ${p1Count} important</div>` : ''}
+            ${gapTypes.length > 0 ? `<div class="cc-brief__risk"><strong>Top failure pattern:</strong> ${gapTypes[0][0]} (${gapTypes[0][1]}x)${gapTypes.length > 1 ? `, ${gapTypes[1][0]} (${gapTypes[1][1]}x)` : ''}</div>` : ''}
+            ${cats.length > 0 ? `<div class="cc-brief__risk"><strong>Weakest category:</strong> ${cats[0].name} — avg DM ${cats[0].avgDm.toFixed(0)} (${cats[0].count} issues)</div>` : ''}
           </div>
-        </div>
-        <div class="cc-deep-dive__chart-section">
-          <div class="cc-deep-dive__chart-title">Gap Count</div>
-          <div class="cc-deep-dive__sparkline-large">
-            ${trend.slice().reverse().map(r => {
-              const maxGap = Math.max(...trend.map(t => t.gap_count), 1);
-              const height = Math.max((r.gap_count / maxGap) * 60, 4);
-              return `<div class="cc-sparkline__bar-lg ${r.gap_count > 5 ? 'rag-red' : r.gap_count > 0 ? 'rag-amber' : 'rag-green'}" style="height:${height}px" title="${r.gap_count} gaps — ${new Date(r.created_at).toLocaleDateString()}"></div>`;
-            }).join('')}
+        </div>` : '<div class="cc-brief__section"><div class="cc-brief__heading">Risk Assessment</div><div class="cc-brief__all-clear">All clear — no open issues</div></div>'}
+
+        <div class="cc-brief__section">
+          <div class="cc-brief__heading">Run Extremes</div>
+          <div class="cc-brief__extremes">
+            <span>Best: <strong class="rag-green">DM ${r1(bestRun.avg_dm)}</strong> on ${new Date(bestRun.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+            <span>Worst: <strong class="rag-red">DM ${r1(worstRun.avg_dm)}</strong> on ${new Date(worstRun.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+            <span>Overall avg: <strong>${avgDmAll.toFixed(1)}</strong> across ${trend.length} runs</span>
           </div>
         </div>
       </div>

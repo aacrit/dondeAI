@@ -1524,9 +1524,16 @@ body {
   color: var(--cc-text-2);
 }
 .cc-pulse__card--expanded .cc-pulse__expand {
-  max-height: 120px;
+  max-height: 220px;
   opacity: 1;
   margin-top: 8px;
+  overflow-y: auto;
+}
+.cc-pulse__verdict {
+  font-size: 0.78rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+  line-height: 1.4;
 }
 .cc-pulse__detail {
   display: block;
@@ -1535,11 +1542,35 @@ body {
   color: var(--cc-text-2);
   line-height: 1.6;
 }
+.cc-pulse__detail strong { color: var(--cc-text); font-weight: 600; }
+.cc-pulse__detail--action {
+  color: var(--cc-accent);
+  font-weight: 500;
+  margin-top: 4px;
+}
+.cc-pulse__detail--action:hover { text-decoration: underline; }
 .cc-pulse__detail--gap {
   color: var(--cc-text);
   padding: 2px 0;
   border-bottom: 1px solid var(--cc-border);
 }
+.cc-pulse__issue-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 3px 0;
+  border-bottom: 1px solid var(--cc-border);
+}
+.cc-pulse__issue-sev {
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.cc-pulse__issue-sev--p0 { background: rgba(239,100,97,0.2); color: var(--cc-red); }
+.cc-pulse__issue-sev--p1 { background: rgba(240,166,58,0.2); color: var(--cc-amber); }
+.cc-pulse__issue-sev--p2 { background: rgba(139,143,245,0.15); color: var(--cc-text-2); }
 .cc-pulse__sparkline {
   display: inline-flex;
   align-items: flex-end;
@@ -2065,6 +2096,71 @@ body {
   color: var(--cc-text-2);
   margin-bottom: 6px;
 }
+
+/* ─── Executive Brief ─── */
+.cc-brief { display: flex; flex-direction: column; gap: 20px; }
+.cc-brief__section { border-bottom: 1px solid var(--cc-border); padding-bottom: 16px; }
+.cc-brief__section:last-child { border-bottom: none; }
+.cc-brief__heading {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--cc-text-3);
+  margin-bottom: 10px;
+}
+.cc-brief__kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.cc-brief__kpi { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.cc-brief__kpi-val { font-size: 1.3rem; font-weight: 700; font-family: var(--cc-mono); }
+.cc-brief__kpi-label { font-size: 0.65rem; color: var(--cc-text-3); text-transform: uppercase; }
+.cc-brief__kpi-delta { font-size: 0.7rem; font-family: var(--cc-mono); font-weight: 600; }
+.cc-brief__trend-table { display: flex; flex-direction: column; gap: 4px; }
+.cc-brief__trend-row {
+  display: grid;
+  grid-template-columns: 60px 1fr 45px 40px 55px;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.72rem;
+  font-family: var(--cc-mono);
+  padding: 3px 0;
+}
+.cc-brief__trend-row--latest { font-weight: 700; background: rgba(139,143,245,0.06); border-radius: 4px; padding: 4px 6px; }
+.cc-brief__trend-date { color: var(--cc-text-3); }
+.cc-brief__trend-bar { height: 8px; border-radius: 4px; background: var(--cc-surface-3); overflow: hidden; }
+.cc-brief__trend-fill { display: block; height: 100%; border-radius: 4px; }
+.cc-brief__trend-fill.rag-green { background: var(--cc-green); }
+.cc-brief__trend-fill.rag-amber { background: var(--cc-amber); }
+.cc-brief__trend-fill.rag-red { background: var(--cc-red); }
+.cc-brief__trend-val { text-align: right; font-weight: 600; }
+.cc-brief__trend-pass { text-align: right; color: var(--cc-text-2); }
+.cc-brief__trend-gaps { text-align: right; color: var(--cc-text-3); font-size: 0.68rem; }
+.cc-brief__risks { display: flex; flex-direction: column; gap: 8px; }
+.cc-brief__risk {
+  font-size: 0.75rem;
+  color: var(--cc-text-2);
+  line-height: 1.5;
+  padding: 6px 8px;
+  background: var(--cc-surface-2);
+  border-radius: 4px;
+}
+.cc-brief__risk strong { color: var(--cc-text); }
+.cc-brief__risk--critical { border-left: 3px solid var(--cc-red); }
+.cc-brief__risk--important { border-left: 3px solid var(--cc-amber); }
+.cc-brief__risk-badge {
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 3px;
+  margin-right: 6px;
+}
+.cc-brief__risk--critical .cc-brief__risk-badge { background: rgba(239,100,97,0.2); color: var(--cc-red); }
+.cc-brief__risk--important .cc-brief__risk-badge { background: rgba(240,166,58,0.2); color: var(--cc-amber); }
+.cc-brief__all-clear { font-size: 0.8rem; color: var(--cc-green); font-weight: 500; }
+.cc-brief__extremes {
+  display: flex; flex-direction: column; gap: 4px;
+  font-size: 0.75rem; color: var(--cc-text-2);
+}
+.cc-brief__extremes strong { font-family: var(--cc-mono); }
 
 /* ─── Loading Skeletons ─── */
 .cc-skeleton {
