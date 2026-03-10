@@ -1,10 +1,10 @@
 # Frontend Architecture
 
-Last updated: 2026-03-05
+Last updated: 2026-03-10
 
 ## Tech Stack
 
-Vanilla HTML/CSS/JS, ES modules (`type="module"`), no build step. Custom pub/sub store (`js/state.js`). 2-view sliding cockpit (`js/router.js`). 5 cultures × 2 modes = 10 CSS theme variants. Backend: Supabase Edge Function V9.
+Vanilla HTML/CSS/JS, ES modules (`type="module"`), no build step. Custom pub/sub store (`js/state.js`). 2-view sliding cockpit (`js/router.js`). 5 cultures × 2 modes = 10 CSS theme variants. Backend: Supabase Edge Function V11.
 
 ## File Tree
 
