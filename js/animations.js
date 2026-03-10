@@ -1009,267 +1009,184 @@ export function chaosToOrderReveal(element, text) {
   });
 }
 
-/* ---- Unified Loading: Continuous Draw-Loop + Word Rotation ---- */
+/* ---- Ink Bloom: Emergence → Breathe → Resolve ---- */
 
-// Draw-loop state
-let _drawLoopId = null;
-let _drawLoopRunning = false;
+// Animation state
+let _bloomId = null;
+let _bloomRunning = false;
 let _wordRotationId = null;
-let _pathData = []; // { el, len, delayMs, drawMs }
-let _inkPulseId = null;
+let _pathData = []; // { el, len, delay }
 let _statusPhase = 0;
 
-// Timing (total cycle ≈ 2400ms: draw 800ms + hold 400ms + erase 800ms + pause 400ms)
-const DRAW_MS   = 800;
-const HOLD_MS   = 400;
-const ERASE_MS  = 800;
-const PAUSE_MS  = 400;
-const CYCLE_MS  = DRAW_MS + HOLD_MS + ERASE_MS + PAUSE_MS;
+// Emergence timing
+const EMERGE_DOT_MS   = 200;   // Dot lands (0→200ms)
+const EMERGE_STEM_MS  = 280;   // Curve draws (120→400ms)
+const EMERGE_TINE_MS  = 250;   // Tines bloom (350→600ms)
+const EMERGE_TOTAL_MS = 600;   // Full emergence
 
-// Spring ease-out curve (approximation for manual interpolation)
+// Breathe parameters (ambient sine waves)
+const BREATHE_DOT_PERIOD   = 3000;  // Dot luminance + scale
+const BREATHE_FLOAT_PERIOD = 4000;  // Vertical float
+const BREATHE_STROKE_PERIOD = 2500; // Stroke opacity
+
+// Easing functions
 function springEase(t) {
-  // cubic-bezier(0.34, 1.56, 0.64, 1) approximation
-  return t < 0.5
-    ? 4 * t * t * t
-    : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  // Overshoot spring: goes past 1.0 then settles
+  const c4 = (2 * Math.PI) / 3;
+  return t === 0 ? 0 : t === 1 ? 1
+    : Math.pow(2, -10 * t) * Math.sin((t * 10 - 0.75) * c4) + 1;
 }
 
 function easeOutCubic(t) {
   return 1 - Math.pow(1 - t, 3);
 }
 
+function easeInOutCubic(t) {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
 /**
- * Start the continuous draw-loop animation on the loading logo.
- * Strokes draw in (forward), hold, then erase (reverse) in a seamless loop.
- * The dot breathes with a gentle scale pulse throughout.
+ * Ink Bloom: Start the logo emergence animation then transition to breathe loop.
+ * Act 1 (Emergence): Dot lands → curve draws upward → tines bloom outward
+ * Act 2 (Breathe): Gentle ambient sine waves — dot pulse, logo float, stroke breathe
  */
 export function initLogoAnimation(craving) {
   const svg = document.querySelector('.logo-mark--loading');
   if (!svg) return;
 
-  // Measure all drawable paths
   const tineL = svg.querySelector('.logo-mark__tine--left.logo-mark__tine--draw');
   const tineR = svg.querySelector('.logo-mark__tine--right.logo-mark__tine--draw');
   const curve = svg.querySelector('.logo-mark__curve--draw');
   const dot   = svg.querySelector('.logo-mark__dot--draw');
 
+  // Measure and hide all paths
   _pathData = [];
-  // Staggered draw-in: left tine (0ms) → right tine (80ms) → curve (160ms)
+  // Order: curve first (draws from dot upward), then tines bloom
   [
-    { el: tineL, delay: 0 },
-    { el: tineR, delay: 80 },
-    { el: curve, delay: 160 },
+    { el: curve, delay: 120 },   // Stem grows after dot (120→400ms)
+    { el: tineL, delay: 350 },   // Left tine blooms (350→580ms)
+    { el: tineR, delay: 370 },   // Right tine 20ms after left (370→600ms)
   ].forEach(({ el, delay }) => {
     if (!el || !el.getTotalLength) return;
     const len = el.getTotalLength();
     el.style.strokeDasharray = len;
     el.style.strokeDashoffset = len;
+    el.style.opacity = '1';
     _pathData.push({ el, len, delay });
   });
 
-  // Reset dot — will be animated in the loop
+  // Hide dot initially
   if (dot) {
     dot.style.opacity = '0';
     dot.style.transform = 'scale(0)';
   }
 
   if (REDUCED.matches) {
-    // Reduced motion: just show the logo static
     _pathData.forEach(({ el }) => { el.style.strokeDashoffset = '0'; });
     if (dot) { dot.style.opacity = '1'; dot.style.transform = 'scale(1)'; }
+    _startInkTrail();
+    _startStatusText(craving);
     return;
   }
 
-  _drawLoopRunning = true;
+  _bloomRunning = true;
   const startTime = performance.now();
 
   function tick(now) {
-    if (!_drawLoopRunning) return;
+    if (!_bloomRunning) return;
+    const elapsed = now - startTime;
 
-    const elapsed = (now - startTime) % CYCLE_MS;
+    // --- Act 1: Emergence (0→600ms) ---
+    if (elapsed < EMERGE_TOTAL_MS) {
+      // Dot lands first (0→200ms) — spring overshoot scale
+      if (dot) {
+        const dotT = Math.min(1, elapsed / EMERGE_DOT_MS);
+        if (dotT <= 1) {
+          const eased = springEase(dotT);
+          dot.style.opacity = Math.min(1, dotT * 2);
+          dot.style.transform = `scale(${eased})`;
+        }
+      }
 
-    // Phase 1: Draw in (0 → DRAW_MS)
-    if (elapsed < DRAW_MS) {
-      const baseT = elapsed / DRAW_MS;
+      // Curve draws upward from dot (120→400ms) with variable speed
+      // Tines bloom outward (350→600ms)
       _pathData.forEach(({ el, len, delay }) => {
-        const localT = Math.max(0, Math.min(1, (elapsed - delay) / (DRAW_MS - delay)));
-        const eased = springEase(localT);
+        const duration = delay < 200 ? EMERGE_STEM_MS : EMERGE_TINE_MS;
+        const localElapsed = elapsed - delay;
+        if (localElapsed <= 0) return;
+        const localT = Math.min(1, localElapsed / duration);
+        // Variable speed: slow start, fast middle, slow end (ink capillary feel)
+        const eased = easeInOutCubic(localT);
         el.style.strokeDashoffset = len * (1 - eased);
+        // Calligraphic pressure: thinner when fast, thicker when slow
+        const speedFactor = Math.abs(eased - (localT > 0.01 ? easeInOutCubic(localT - 0.01) : 0));
+        const strokeW = 2.0 + (1 - speedFactor * 50) * 0.8;
+        el.style.strokeWidth = Math.max(1.8, Math.min(2.8, strokeW));
       });
-      // Dot springs in during last 40% of draw phase
-      if (dot) {
-        const dotT = Math.max(0, (baseT - 0.6) / 0.4);
-        const dotEased = springEase(dotT);
-        dot.style.opacity = dotEased;
-        dot.style.transform = `scale(${dotEased})`;
-      }
-    }
-    // Phase 2: Hold (DRAW_MS → DRAW_MS + HOLD_MS)
-    else if (elapsed < DRAW_MS + HOLD_MS) {
-      // Everything fully drawn — gentle dot pulse
-      _pathData.forEach(({ el }) => { el.style.strokeDashoffset = '0'; });
-      if (dot) {
-        const holdT = (elapsed - DRAW_MS) / HOLD_MS;
-        const pulse = 1 + 0.08 * Math.sin(holdT * Math.PI);
-        dot.style.opacity = '1';
-        dot.style.transform = `scale(${pulse})`;
-      }
-    }
-    // Phase 3: Erase / un-draw (DRAW_MS + HOLD_MS → DRAW_MS + HOLD_MS + ERASE_MS)
-    else if (elapsed < DRAW_MS + HOLD_MS + ERASE_MS) {
-      const eraseT = (elapsed - DRAW_MS - HOLD_MS) / ERASE_MS;
-      const eased = easeOutCubic(eraseT);
-      // Erase in reverse order: curve → right tine → left tine
-      _pathData.forEach(({ el, len, delay }, i) => {
-        const reverseDelay = (_pathData.length - 1 - i) * 80;
-        const localT = Math.max(0, Math.min(1, (eraseT * ERASE_MS - reverseDelay) / (ERASE_MS - reverseDelay * _pathData.length * 0.3)));
-        const localEased = easeOutCubic(Math.min(1, localT));
-        el.style.strokeDashoffset = len * localEased;
-      });
-      // Dot fades out during first 40% of erase
-      if (dot) {
-        const dotT = Math.min(1, eraseT / 0.4);
-        dot.style.opacity = 1 - easeOutCubic(dotT);
-        dot.style.transform = `scale(${1 - easeOutCubic(dotT) * 0.3})`;
-      }
-    }
-    // Phase 4: Pause (fully erased, brief rest)
-    else {
-      _pathData.forEach(({ el, len }) => { el.style.strokeDashoffset = len; });
-      if (dot) {
-        dot.style.opacity = '0';
-        dot.style.transform = 'scale(0)';
-      }
+
+      _bloomId = requestAnimationFrame(tick);
+      return;
     }
 
-    _drawLoopId = requestAnimationFrame(tick);
+    // --- Act 2: Breathe (600ms→∞) ---
+    // Ensure everything is fully drawn
+    _pathData.forEach(({ el }) => {
+      el.style.strokeDashoffset = '0';
+      el.style.strokeWidth = '';
+    });
+    if (dot) {
+      dot.style.opacity = '1';
+    }
+
+    // Breathe loop — layered sine waves for organic idle
+    const breatheTime = elapsed - EMERGE_TOTAL_MS;
+
+    // 1. Dot luminance pulse: opacity 0.85→1.0 + scale 1.0→1.04
+    if (dot) {
+      const dotPhase = (breatheTime / BREATHE_DOT_PERIOD) * Math.PI * 2;
+      const dotPulse = Math.sin(dotPhase);
+      dot.style.opacity = 0.85 + dotPulse * 0.15;
+      dot.style.transform = `scale(${1 + dotPulse * 0.04})`;
+    }
+
+    // 2. Logo float: translateY ±1.5px (phase-offset from dot)
+    const logo = document.getElementById('loading-logo');
+    if (logo) {
+      const floatPhase = (breatheTime / BREATHE_FLOAT_PERIOD) * Math.PI * 2 + Math.PI / 3;
+      const floatY = Math.sin(floatPhase) * 1.5;
+      logo.style.transform = `translateY(${floatY.toFixed(2)}px)`;
+    }
+
+    // 3. Stroke opacity micro-breathe: 0.92→1.0
+    const strokePhase = (breatheTime / BREATHE_STROKE_PERIOD) * Math.PI * 2;
+    const strokeOp = 0.92 + Math.sin(strokePhase) * 0.08;
+    _pathData.forEach(({ el }) => {
+      el.style.opacity = strokeOp;
+    });
+
+    _bloomId = requestAnimationFrame(tick);
   }
 
-  _drawLoopId = requestAnimationFrame(tick);
+  _bloomId = requestAnimationFrame(tick);
 
-  // Ink Pulse: Start oscillating calligraphic line
-  _startInkPulse();
+  // Start ink trail + status text
+  _startInkTrail();
   _startStatusText(craving);
 }
 
-/** Ink Pulse: Oscillating calligraphic line below the fork logo */
-function _startInkPulse() {
-  const svg = document.getElementById('ink-pulse');
-  const stroke = document.getElementById('ink-pulse-stroke');
-  if (!svg || !stroke) return;
-
-  svg.classList.add('ink-pulse--active');
-
-  const baseY = 6;
-  const startX = 10;
-  const endX = 110;
-  const totalLen = endX - startX;
-  const segments = 8;
-  const segLen = totalLen / segments;
-  const start = performance.now();
-
-  function pulseTick(now) {
-    if (!_drawLoopRunning) return;
-
-    const elapsed = (now - start) / 1000;
-
-    // Progress: asymptotic curve 0→~0.85 (quick to ~60%, crawls toward ~85%)
-    const progress = Math.min(0.85, 1 - 1 / (1 + elapsed * 0.4));
-
-    // Amplitude decays with progress: wild at 0%, gentle tremor at 85%
-    const ampScale = 1 - progress * 0.85;
-    const breath = Math.sin(elapsed * 0.8) * 0.5 + 0.5;
-    const maxAmp = (2.5 + breath * 1.5) * ampScale;
-
-    // Stroke extends rightward with progress (starts at 15% so always visible)
-    const drawEnd = startX + totalLen * (0.15 + progress * 0.85);
-
-    // Build path only up to drawEnd
-    let d = `M${startX} ${baseY}`;
-    let lastDrawnX = startX;
-    for (let i = 1; i <= segments; i++) {
-      const t = i / segments;
-      const x = startX + totalLen * t;
-      if (x > drawEnd) break;
-
-      const freq = 2.5 + i * 0.3;
-      const phase = elapsed * freq - i * 0.7;
-      const taper = Math.sin(t * Math.PI);
-      const amp = maxAmp * taper;
-      const y = baseY + Math.sin(phase) * amp;
-
-      const cpX = startX + totalLen * (t - 0.5 / segments);
-      const cpY = baseY + Math.sin(phase - 0.3) * amp * 0.6;
-      d += ` Q${cpX.toFixed(1)} ${cpY.toFixed(1)}, ${x.toFixed(1)} ${y.toFixed(1)}`;
-      lastDrawnX = x;
-    }
-
-    // Extend to exact drawEnd if it falls between segments
-    if (drawEnd > lastDrawnX + 1) {
-      const finalT = (drawEnd - startX) / totalLen;
-      const finalAmp = maxAmp * Math.sin(finalT * Math.PI);
-      const finalY = baseY + Math.sin(elapsed * 3.5) * finalAmp;
-      d += ` L${drawEnd.toFixed(1)} ${finalY.toFixed(1)}`;
-    }
-
-    stroke.setAttribute('d', d);
-
-    // Stroke width breathes slightly (ink pressure variation)
-    const widthPulse = 1.8 + Math.sin(elapsed * 1.2) * 0.3;
-    stroke.style.strokeWidth = widthPulse;
-
-    _inkPulseId = requestAnimationFrame(pulseTick);
-  }
-
-  _inkPulseId = requestAnimationFrame(pulseTick);
+/** Ink Trail: Activate the 3-dot wave animation via CSS */
+function _startInkTrail() {
+  const trail = document.getElementById('ink-trail');
+  if (trail) trail.classList.add('ink-trail--active');
 }
 
-/** Ink Pulse: Animate from current progress to full width + flat (resolve) */
-function _animateInkResolve(stroke, startTime) {
-  const duration = 400;
-  const baseY = 6;
-  const startX = 10;
-  const endX = 110;
-  const totalLen = endX - startX;
-
-  function resolveTick(now) {
-    const t = Math.min(1, (now - startTime) / duration);
-    const eased = easeOutCubic(t);
-
-    // Extend stroke to full width over the resolve duration
-    const drawEnd = startX + totalLen * (0.85 + 0.15 * eased);
-    // Amplitude settles to zero (starts small since progress already calmed it)
-    const remainingAmp = (1 - eased) * 1.5;
-
-    let d = `M${startX} ${baseY}`;
-    for (let i = 1; i <= 8; i++) {
-      const segT = i / 8;
-      const x = startX + totalLen * segT;
-      if (x > drawEnd) break;
-      const y = baseY + Math.sin(i * 1.5) * remainingAmp * Math.sin(segT * Math.PI);
-      const cpX = startX + totalLen * (segT - 0.0625);
-      d += ` Q${cpX.toFixed(1)} ${y.toFixed(1)}, ${x.toFixed(1)} ${y.toFixed(1)}`;
-    }
-    stroke.setAttribute('d', d);
-
-    if (t < 1) {
-      requestAnimationFrame(resolveTick);
-    } else {
-      stroke.setAttribute('d', 'M10 6 Q35 6, 60 6 Q85 6, 110 6');
-    }
-  }
-
-  requestAnimationFrame(resolveTick);
-}
-
-/** Ink Resolve: Status text fades between states */
+/** Status text: blur-transition between phrases */
 function _startStatusText(craving) {
   const el = document.getElementById('loading-status');
   if (!el) return;
 
   _statusPhase = 0;
 
-  // Personalized status phrases based on craving keywords
   let phrases;
   if (craving && craving.trim().length > 3) {
     const short = craving.trim().split(/\s+/).slice(0, 3).join(' ');
@@ -1280,43 +1197,30 @@ function _startStatusText(craving) {
 
   el.textContent = phrases[0];
   el.style.opacity = '0.7';
+  el.style.filter = '';
+  el.classList.remove('loading-status--blurring');
 
   if (REDUCED.matches) return;
 
-  // Transition to "Almost there..." after 4 seconds
-  setTimeout(() => {
-    if (!_drawLoopRunning) return;
-    el.style.opacity = '0';
+  // Helper: blur-transition to new text
+  function blurSwap(newText, newOpacity) {
+    if (!_bloomRunning) return;
+    el.classList.add('loading-status--blurring');
     setTimeout(() => {
-      el.textContent = phrases[1];
-      el.style.opacity = '0.7';
-      _statusPhase = 1;
-    }, 300);
-  }, 4000);
+      el.textContent = newText;
+      el.classList.remove('loading-status--blurring');
+      el.style.opacity = newOpacity;
+    }, 200);
+  }
 
-  // Elapsed time comfort messages — manage expectations on slow responses
-  setTimeout(() => {
-    if (!_drawLoopRunning) return;
-    el.style.opacity = '0';
-    setTimeout(() => {
-      el.textContent = 'Still searching\u2026';
-      el.style.opacity = '0.5';
-    }, 300);
-  }, 8000);
-
-  setTimeout(() => {
-    if (!_drawLoopRunning) return;
-    el.style.opacity = '0';
-    setTimeout(() => {
-      el.textContent = 'Taking longer than usual\u2026';
-      el.style.opacity = '0.5';
-    }, 300);
-  }, 13000);
+  setTimeout(() => blurSwap(phrases[1], '0.7'), 4000);
+  setTimeout(() => blurSwap('Still searching\u2026', '0.5'), 8000);
+  setTimeout(() => blurSwap('Taking longer than usual\u2026', '0.5'), 13000);
 }
 
 /**
  * Start rotating food/bar words below the logo.
- * Words cycle with a smooth fade-out-up / fade-in-up transition.
+ * Words cycle with breath-dissolve: blur + letter-spacing expansion.
  * @param {string[]} phrases - Array of words to cycle through
  */
 export function startWordRotation(phrases) {
@@ -1324,14 +1228,13 @@ export function startWordRotation(phrases) {
   if (!el || !phrases || !phrases.length) return;
 
   let idx = 0;
-  // Show first word immediately
   el.textContent = phrases[0];
   el.classList.remove('loading-word--exiting', 'loading-word--entering');
   el.style.opacity = '1';
-  el.style.transform = '';
+  el.style.filter = '';
+  el.style.letterSpacing = '';
 
   if (REDUCED.matches) {
-    // Reduced motion: just swap text without animation
     _wordRotationId = setInterval(() => {
       idx = (idx + 1) % phrases.length;
       el.textContent = phrases[idx];
@@ -1340,11 +1243,10 @@ export function startWordRotation(phrases) {
   }
 
   _wordRotationId = setInterval(() => {
-    // Fade out current word (slide up)
+    // Breath dissolve out: blur + letter-spacing expand
     el.classList.add('loading-word--exiting');
 
     setTimeout(() => {
-      // Swap text, prepare enter position
       idx = (idx + 1) % phrases.length;
       el.textContent = phrases[idx];
       el.classList.remove('loading-word--exiting');
@@ -1353,7 +1255,7 @@ export function startWordRotation(phrases) {
       // Force reflow, then animate in
       void el.offsetWidth;
       el.classList.remove('loading-word--entering');
-    }, 260);
+    }, 240);
   }, 2000);
 }
 
@@ -1365,91 +1267,103 @@ export function stopWordRotation() {
   }
 }
 
-/** Resolve logo to "found" state — Ink Resolve: ring snaps, dot pulses, status shows name. */
+/**
+ * Act 3: Resolve — "Ink Settles"
+ * Logo stops breathing, dot blooms with glow, strokes thicken,
+ * ink trail converges to confident dash.
+ */
 export function resolveLogoToFound(restaurantName) {
   const logo = document.getElementById('loading-logo');
   if (!logo) return Promise.resolve();
 
-  // Stop the draw loop + ink pulse animation
-  _drawLoopRunning = false;
-  if (_drawLoopId) {
-    cancelAnimationFrame(_drawLoopId);
-    _drawLoopId = null;
-  }
-  if (_inkPulseId) {
-    cancelAnimationFrame(_inkPulseId);
-    _inkPulseId = null;
+  // Stop breathe loop
+  _bloomRunning = false;
+  if (_bloomId) {
+    cancelAnimationFrame(_bloomId);
+    _bloomId = null;
   }
   stopWordRotation();
 
   if (REDUCED.matches) {
     logo.style.transform = '';
     logo.style.opacity = '1';
-    // Show resolved ink pulse + status instantly
-    const inkSvg = document.getElementById('ink-pulse');
-    if (inkSvg) inkSvg.classList.add('ink-pulse--resolved');
+    const trail = document.getElementById('ink-trail');
+    if (trail) trail.classList.add('ink-trail--resolved');
     const statusEl = document.getElementById('loading-status');
     if (statusEl && restaurantName) statusEl.textContent = restaurantName;
     return Promise.resolve();
   }
 
-  // Snap all strokes to fully drawn for the confirmation pulse
-  _pathData.forEach(({ el }) => { el.style.strokeDashoffset = '0'; });
-  const dot = document.querySelector('.logo-mark--loading .logo-mark__dot--draw');
-  if (dot) { dot.style.opacity = '1'; dot.style.transform = 'scale(1)'; }
+  // Snap all strokes to fully drawn + reset breathe state
+  _pathData.forEach(({ el }) => {
+    el.style.strokeDashoffset = '0';
+    el.style.opacity = '1';
+  });
 
-  // Ink Pulse: Resolve — line settles to confident flat stroke
-  const inkSvg = document.getElementById('ink-pulse');
-  const inkStroke = document.getElementById('ink-pulse-stroke');
-  if (inkSvg && inkStroke) {
-    inkSvg.classList.add('ink-pulse--resolved');
-    _animateInkResolve(inkStroke, performance.now());
+  const svg = document.querySelector('.logo-mark--loading');
+  const dot = svg?.querySelector('.logo-mark__dot--draw');
+
+  // Snap logo to center (stop floating)
+  logo.style.transition = 'transform 150ms cubic-bezier(0.2, 1, 0.4, 1)';
+  logo.style.transform = 'translateY(0)';
+
+  // Dot bloom with glow
+  if (dot) {
+    dot.style.opacity = '1';
+    dot.style.transition = 'transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
+    dot.style.transform = 'scale(1.3)';
+    setTimeout(() => {
+      dot.style.transition = 'transform 250ms cubic-bezier(0.2, 1, 0.4, 1)';
+      dot.style.transform = 'scale(1)';
+    }, 200);
   }
 
-  // Status text: show restaurant name
+  // Add resolved class for dot glow filter
+  if (svg) svg.classList.add('logo-mark--resolved');
+
+  // Strokes thicken confidently
+  _pathData.forEach(({ el }) => {
+    el.style.transition = 'stroke-width 200ms cubic-bezier(0.34, 1.56, 0.64, 1)';
+    el.style.strokeWidth = '2.9';
+  });
+
+  // Ink trail: dots converge to dash
+  const trail = document.getElementById('ink-trail');
+  if (trail) trail.classList.add('ink-trail--resolved');
+
+  // Status text: blur-swap to restaurant name
   const statusEl = document.getElementById('loading-status');
   if (statusEl && restaurantName) {
-    statusEl.style.opacity = '0';
+    statusEl.classList.add('loading-status--blurring');
     setTimeout(() => {
       statusEl.textContent = restaurantName;
+      statusEl.classList.remove('loading-status--blurring');
       statusEl.style.opacity = '1';
     }, 200);
   }
 
   return new Promise(resolve => {
-    // "Found" confirmation pulse — spring scale up then settle
-    logo.style.transition = 'transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
-    logo.style.transform = 'scale(1.08)';
-
-    // Dot emphasis pulse (period at end of sentence)
-    if (dot) {
-      dot.style.transition = 'transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
-      dot.style.transform = 'scale(1.3)';
-      setTimeout(() => {
-        dot.style.transition = 'transform 250ms cubic-bezier(0.2, 1, 0.4, 1)';
-        dot.style.transform = 'scale(1)';
-      }, 200);
-    }
+    // Logo scale pulse: 1→1.06→1
+    setTimeout(() => {
+      logo.style.transition = 'transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
+      logo.style.transform = 'scale(1.06)';
+    }, 50);
 
     setTimeout(() => {
       logo.style.transition = 'transform 250ms cubic-bezier(0.2, 1, 0.4, 1)';
       logo.style.transform = 'scale(1)';
-    }, 200);
+    }, 250);
 
     setTimeout(resolve, 500);
   });
 }
 
-/** Stop draw loop + cleanup for cancel/back navigation. */
+/** Stop bloom + cleanup for cancel/back navigation. */
 export function cleanupLoadingLogo() {
-  _drawLoopRunning = false;
-  if (_drawLoopId) {
-    cancelAnimationFrame(_drawLoopId);
-    _drawLoopId = null;
-  }
-  if (_inkPulseId) {
-    cancelAnimationFrame(_inkPulseId);
-    _inkPulseId = null;
+  _bloomRunning = false;
+  if (_bloomId) {
+    cancelAnimationFrame(_bloomId);
+    _bloomId = null;
   }
   stopWordRotation();
   _pathData = [];
@@ -1458,32 +1372,58 @@ export function cleanupLoadingLogo() {
   if (logo) {
     logo.style.transform = '';
     logo.style.opacity = '';
+    logo.style.transition = '';
   }
 
-  // Reset ink pulse
-  const inkSvg = document.getElementById('ink-pulse');
-  if (inkSvg) inkSvg.classList.remove('ink-pulse--active', 'ink-pulse--resolved');
-  const inkStroke = document.getElementById('ink-pulse-stroke');
-  if (inkStroke) {
-    inkStroke.setAttribute('d', 'M10 6 Q30 6, 40 6 T60 6 T80 6 T110 6');
-    inkStroke.style.strokeWidth = '';
-  }
+  // Reset SVG resolved state
+  const svg = document.querySelector('.logo-mark--loading');
+  if (svg) svg.classList.remove('logo-mark--resolved');
+
+  // Reset ink trail
+  const trail = document.getElementById('ink-trail');
+  if (trail) trail.classList.remove('ink-trail--active', 'ink-trail--resolved');
 
   // Reset status text
   const statusEl = document.getElementById('loading-status');
-  if (statusEl) { statusEl.textContent = ''; statusEl.style.opacity = ''; }
+  if (statusEl) {
+    statusEl.textContent = '';
+    statusEl.style.opacity = '';
+    statusEl.style.filter = '';
+    statusEl.classList.remove('loading-status--blurring');
+  }
 
   // Reset word element
   const word = document.getElementById('loading-word');
   if (word) {
     word.textContent = '';
+    word.style.filter = '';
+    word.style.letterSpacing = '';
     word.classList.remove('loading-word--exiting', 'loading-word--entering');
+  }
+
+  // Reset path styles
+  if (svg) {
+    const paths = svg.querySelectorAll('.logo-mark__tine--draw, .logo-mark__curve--draw');
+    paths.forEach(p => {
+      p.style.strokeDashoffset = '';
+      p.style.strokeDasharray = '';
+      p.style.strokeWidth = '';
+      p.style.opacity = '';
+      p.style.transition = '';
+    });
+    const dot = svg.querySelector('.logo-mark__dot--draw');
+    if (dot) {
+      dot.style.opacity = '';
+      dot.style.transform = '';
+      dot.style.transition = '';
+      dot.style.filter = '';
+    }
   }
 }
 
-// Keep exports compatible — these are now no-ops, draw-loop handles everything
-export function startSearchPulse() { /* unified into draw-loop */ }
-export function stopSearchPulse() { /* unified into draw-loop */ }
+// Keep exports compatible
+export function startSearchPulse() { /* no-op — ink bloom handles everything */ }
+export function stopSearchPulse() { /* no-op — ink bloom handles everything */ }
 
 /* ---- Particle System ---- */
 let particleAnimId = null;
