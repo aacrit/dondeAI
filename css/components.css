@@ -4392,9 +4392,17 @@
   animation: gentleBreathe 4s var(--ease-out) infinite;
 }
 
-/* ---- Header Logo Hover ---- */
+/* ---- Header Logo Hover: Dot Glow + Nod ---- */
 .header__logo:hover .logo-mark {
   animation: logoNod 600ms var(--spring) forwards;
+}
+.header__logo:hover .logo-mark__dot {
+  filter: drop-shadow(0 0 6px var(--ac));
+  transition: filter 400ms var(--ease-out);
+}
+.header__logo:active .logo-mark__dot {
+  transform: scale(1.25);
+  transition: transform 150ms var(--spring), filter 400ms var(--ease-out);
 }
 
 /* ---- Wordmark Typography (Multi-Voice) ---- */
@@ -4497,22 +4505,52 @@
   will-change: transform, opacity;
 }
 
-/* ---- Ink Pulse Line (replaces progress ring) ---- */
-.ink-pulse {
+/* ---- Ink Trail: 3-dot wave progress indicator ---- */
+.ink-trail {
+  display: flex;
+  align-items: center;
+  gap: 14px;
   margin-top: var(--space-sm);
   opacity: 0;
   transition: opacity 300ms var(--ease-out);
   will-change: opacity;
 }
-.ink-pulse--active { opacity: 1; }
-.ink-pulse__track { will-change: opacity; }
-.ink-pulse__stroke { will-change: d, stroke-width; }
-.ink-pulse--resolved .ink-pulse__stroke {
-  stroke-width: 2.4;
-  transition: stroke-width 500ms var(--spring);
+.ink-trail--active { opacity: 1; }
+.ink-trail__dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--ac);
+  opacity: 0.3;
+  will-change: transform, opacity;
+}
+.ink-trail__dot:nth-child(1) { animation-delay: 0ms; }
+.ink-trail__dot:nth-child(2) { animation-delay: 180ms; }
+.ink-trail__dot:nth-child(3) { animation-delay: 360ms; }
+.ink-trail--active .ink-trail__dot {
+  animation: inkTrailWave 1000ms ease-in-out infinite;
+}
+/* Resolve state: dots converge to single dash */
+.ink-trail--resolved {
+  gap: 0;
+  transition: gap 200ms var(--spring), opacity 300ms var(--ease-out);
+}
+.ink-trail--resolved .ink-trail__dot {
+  animation: none;
+  opacity: 1;
+  width: 16px;
+  height: 3px;
+  border-radius: 2px;
+  transition: width 200ms var(--spring), height 200ms var(--spring),
+              border-radius 200ms var(--ease-out), opacity 200ms var(--ease-out);
+}
+.ink-trail--resolved .ink-trail__dot:nth-child(1),
+.ink-trail--resolved .ink-trail__dot:nth-child(3) {
+  width: 0;
+  opacity: 0;
 }
 
-/* Ink Resolve: Status text below word */
+/* ---- Loading Status Text (blur transition) ---- */
 .loading-status {
   position: relative;
   z-index: calc(var(--z-particle) + 1);
@@ -4522,14 +4560,18 @@
   margin-top: var(--space-sm);
   text-align: center;
   min-height: 1.2em;
-  transition: opacity 300ms var(--ease-out);
+  transition: opacity 180ms var(--ease-out), filter 180ms var(--ease-out);
+}
+.loading-status--blurring {
+  opacity: 0;
+  filter: blur(3px);
 }
 
-/* ---- Loading Logo: Continuous draw-loop ---- */
-/* stroke-dasharray/offset set + animated by JS for seamless forward/reverse */
+/* ---- Loading Logo: Ink Bloom draw system ---- */
+/* stroke-dasharray/offset animated by JS for emergence + breathe */
 .logo-mark--loading .logo-mark__tine--draw,
 .logo-mark--loading .logo-mark__curve--draw {
-  will-change: stroke-dashoffset;
+  will-change: stroke-dashoffset, stroke-width, opacity;
 }
 
 .logo-mark--loading .logo-mark__dot--draw {
@@ -4537,7 +4579,13 @@
   will-change: transform, opacity;
 }
 
-/* ---- Rotating Loading Word ---- */
+/* Dot glow on resolve */
+.logo-mark--loading.logo-mark--resolved .logo-mark__dot--draw {
+  filter: drop-shadow(0 0 6px var(--ac));
+  transition: filter 300ms var(--spring);
+}
+
+/* ---- Loading Word: Breath Dissolve ---- */
 .loading-word {
   position: relative;
   z-index: calc(var(--z-particle) + 1);
@@ -4548,17 +4596,21 @@
   margin-top: var(--space-md);
   min-height: 1.2em;
   text-align: center;
-  transition: opacity 250ms var(--ease-out), transform 250ms var(--ease-out);
+  transition: opacity 220ms var(--ease-out),
+              letter-spacing 220ms var(--ease-out),
+              filter 220ms var(--ease-out);
 }
 
 .loading-word--exiting {
   opacity: 0;
-  transform: translateY(-6px);
+  letter-spacing: 0.16em;
+  filter: blur(3px);
 }
 
 .loading-word--entering {
   opacity: 0;
-  transform: translateY(6px);
+  letter-spacing: 0.16em;
+  filter: blur(3px);
 }
 
 /* ---- Custom Focus Rings (Spring-animated) ---- */

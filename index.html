@@ -645,21 +645,16 @@
                   d="M21.5 1 C21.5 1, 22 8.5, 19.5 11.5 Q18 13, 17.5 13.5"
                   fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
             <path class="logo-mark__curve logo-mark__curve--draw"
-                  d="M16 13.5 C22 11, 29 14, 28 21 C27 27, 19 29, 16 31 L16 34"
+                  d="M16 34 L16 31 C19 29, 27 27, 28 21 C29 14, 22 11, 16 13.5"
                   fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>
             <circle class="logo-mark__dot logo-mark__dot--draw" cx="16" cy="40" r="2.8" fill="var(--ac)"/>
           </svg>
-          <!-- Ink Pulse: Progress stroke extending left→right below logo -->
-          <svg class="ink-pulse" id="ink-pulse" viewBox="0 0 120 12" width="120" height="12" aria-hidden="true">
-            <path class="ink-pulse__track"
-                  d="M10 6 Q35 6, 60 6 Q85 6, 110 6"
-                  fill="none" stroke="var(--fg3)" stroke-width="0.5"
-                  stroke-linecap="round" opacity="0.15"/>
-            <path class="ink-pulse__stroke" id="ink-pulse-stroke"
-                  d="M10 6 Q30 6, 40 6 T60 6 T80 6 T110 6"
-                  fill="none" stroke="var(--ac)" stroke-width="1.8"
-                  stroke-linecap="round"/>
-          </svg>
+          <!-- Ink Trail: 3-dot wave progress indicator -->
+          <div class="ink-trail" id="ink-trail" aria-hidden="true">
+            <span class="ink-trail__dot"></span>
+            <span class="ink-trail__dot"></span>
+            <span class="ink-trail__dot"></span>
+          </div>
         </div>
         <p class="loading-status type-structural" id="loading-status" aria-live="polite"></p>
         <p class="loading-word type-structural" id="loading-word" aria-live="polite"></p>

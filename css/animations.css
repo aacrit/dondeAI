@@ -296,6 +296,18 @@
   }
 }
 
+/* ---- Ink Trail Wave (3-dot loading indicator) ---- */
+@keyframes inkTrailWave {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.5);
+  }
+}
+
 /* ---- Ink Write Utility Class ---- */
 .ink-write {
   clip-path: inset(0 100% 0 0);
@@ -722,9 +734,13 @@
     transition: none !important;
   }
 
-  /* Ink Pulse — show static flat line */
-  .ink-pulse { opacity: 1; }
-  .ink-pulse__stroke { transition: none; }
+  /* Ink Trail — show static dots */
+  .ink-trail { opacity: 1; }
+  .ink-trail__dot { animation: none !important; opacity: 0.6; }
+
+  /* Loading word — instant swap, no blur */
+  .loading-word { filter: none !important; transition: none !important; }
+  .loading-status { filter: none !important; transition: none !important; }
 
   /* Ink Manifests — instant transitions */
   .ink-write {
