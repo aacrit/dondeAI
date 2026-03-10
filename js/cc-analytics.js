@@ -59,6 +59,7 @@ async function initDashboard() {
     loadRunHistory(),
     loadLiveFeed(),
     pollPipelines(),
+    loadIssues(),
   ]);
 
   // Check API health
@@ -166,13 +167,20 @@ async function loadLiveFeed() {
 
   try {
     // Load ALL user queries with restaurant name via FK join
-    const { data: queries, error } = await sbClient
+    let { data: queries, error } = await sbClient
       .from('user_queries')
-      .select('id, special_request, donde_match, created_at, recommended_restaurant_id, restaurants(name)')
+      .select('id, special_request, donde_match, created_at, recommended_restaurant_id, restaurants!recommended_restaurant_id(name)')
       .order('created_at', { ascending: false });
 
+    // Fallback: if FK join fails, load without restaurant names
     if (error) {
-      console.error('Live feed query error:', error.message, error.details, error.hint);
+      console.warn('Live feed FK join failed, falling back:', error.message);
+      const fallback = await sbClient
+        .from('user_queries')
+        .select('id, special_request, donde_match, created_at')
+        .order('created_at', { ascending: false });
+      queries = fallback.data;
+      if (fallback.error) console.error('Live feed fallback also failed:', fallback.error.message, fallback.error.hint);
     }
 
     if (queries && queries.length > 0) {
@@ -251,7 +259,7 @@ async function pollLiveFeed() {
   try {
     let query = sbClient
       .from('user_queries')
-      .select('id, special_request, donde_match, created_at, recommended_restaurant_id, restaurants(name)')
+      .select('id, special_request, donde_match, created_at, recommended_restaurant_id, restaurants!recommended_restaurant_id(name)')
       .order('created_at', { ascending: false })
       .limit(20);
 
@@ -368,4 +376,139 @@ function updateSmartSuggestion() {
 function dismissSuggestion() {
   const strip = document.getElementById('suggest-strip');
   if (strip) strip.style.display = 'none';
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Issues Triage (Issues tab)
+// ═══════════════════════════════════════════════════════════════════
+
+const ISSUE_SEVERITY = {
+  P0: { label: 'P0', class: 'cc-issues-badge--p0' },
+  P1: { label: 'P1', class: 'cc-issues-badge--p1' },
+  P2: { label: 'P2', class: 'cc-issues-badge--p2' },
+};
+
+function classifySeverity(dm, gapType) {
+  if (dm < 40 || gapType === 'intent') return 'P0';
+  if (dm < 60 || gapType === 'scoring' || gapType === 'relevance_ceiling') return 'P1';
+  return 'P2';
+}
+
+function gapTypeFixAction(gapType) {
+  switch (gapType) {
+    case 'intent': return 'Add keyword to intent-classifier-v5.ts dictionaries';
+    case 'scoring': return 'Adjust scoring-v9.ts weight profiles for the weak factor';
+    case 'relevance_ceiling': return 'Review RELEVANCE_FLOORS in scoring-v9.ts';
+    case 'contract': return 'Fix response structure in response-builder-v9.ts';
+    case 'regression': return 'Investigate scoring regression vs baseline';
+    case 'cliché': return 'Fix blurb template in prompts-v5.ts';
+    case 'missing': return 'Run enrichment pipeline for missing data';
+    default: return 'Investigate query scoring';
+  }
+}
+
+async function loadIssues() {
+  if (!sbClient) return;
+
+  try {
+    // Parallel fetch: test gaps + prod low scores + historical data
+    const [gapsRes, prodRes, histRes] = await Promise.all([
+      // Test gaps from latest runs
+      sbClient.from('gauntlet_results')
+        .select('query, donde_match, gap_type, gap_severity, category, restaurant_name, food, vibe, service, reputation, convenience, relevance_type, run_id')
+        .not('gap_type', 'is', null)
+        .order('donde_match', { ascending: true })
+        .limit(100),
+
+      // Production low-score queries
+      sbClient.from('user_queries')
+        .select('id, special_request, donde_match, created_at, response_time_ms, was_fallback, restaurants!recommended_restaurant_id(name)')
+        .lt('donde_match', 60)
+        .not('donde_match', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(50),
+
+      // Historical gap analysis
+      fetch('data/gap-details.json').then(r => r.ok ? r.json() : null).catch(() => null),
+    ]);
+
+    const issues = [];
+    const seen = new Set();
+
+    // Process test gaps
+    if (gapsRes.data) {
+      for (const g of gapsRes.data) {
+        const key = g.query.toLowerCase().trim();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const severity = g.gap_severity || classifySeverity(g.donde_match, g.gap_type);
+        issues.push({
+          query: g.query,
+          dm: g.donde_match,
+          gapType: g.gap_type,
+          severity,
+          category: g.category || 'unknown',
+          restaurant: g.restaurant_name || '--',
+          source: 'test',
+          sourceDetail: g.run_id,
+          factors: { food: g.food, vibe: g.vibe, service: g.service, reputation: g.reputation, convenience: g.convenience },
+          relevanceType: g.relevance_type,
+          fixAction: gapTypeFixAction(g.gap_type),
+        });
+      }
+    }
+
+    // Process production low scores
+    if (prodRes.data) {
+      for (const q of prodRes.data) {
+        const key = (q.special_request || '').toLowerCase().trim();
+        if (!key || seen.has(key)) continue;
+        seen.add(key);
+        const severity = classifySeverity(q.donde_match, null);
+        issues.push({
+          query: q.special_request,
+          dm: q.donde_match,
+          gapType: 'low_score',
+          severity,
+          category: '--',
+          restaurant: q.restaurants?.name || '--',
+          source: 'prod',
+          sourceDetail: fmtTime(q.created_at),
+          factors: null,
+          relevanceType: null,
+          fixAction: 'Investigate low production score',
+          responseTime: q.response_time_ms,
+          wasFallback: q.was_fallback,
+        });
+      }
+    }
+
+    // Enrich from historical gap-details.json
+    if (histRes?.gaps) {
+      const histMap = new Map(histRes.gaps.map(g => [g.query.toLowerCase().trim(), g]));
+      for (const issue of issues) {
+        const hist = histMap.get(issue.query.toLowerCase().trim());
+        if (hist) {
+          if (hist.fix_action) issue.fixAction = hist.fix_action;
+          if (hist.impact_score) issue.impactScore = hist.impact_score;
+          if (hist.gap_severity && !issue.severity) issue.severity = hist.gap_severity;
+        }
+      }
+    }
+
+    // Sort: P0 first, then P1, then P2; within each, by DM ascending
+    const sevOrder = { P0: 0, P1: 1, P2: 2 };
+    issues.sort((a, b) => (sevOrder[a.severity] || 9) - (sevOrder[b.severity] || 9) || a.dm - b.dm);
+
+    state.issues = issues;
+    state.issueFilters = { severity: 'all', type: 'all', source: 'all' };
+    state.selectedIssues = new Set();
+
+    renderIssues(issues);
+    updateIssuesBadge(issues);
+  } catch (e) {
+    console.error('Failed to load issues:', e);
+    const list = document.getElementById('issues-list');
+    if (list) list.innerHTML = '<div class="cc-empty-state"><div class="cc-empty-state__icon">&#9888;</div><div class="cc-empty-state__text">Failed to load issues</div></div>';
+  }
 }

@@ -450,6 +450,7 @@ function initKeyboardShortcuts() {
       case '1': switchTab('test'); break;
       case '2': switchTab('live'); break;
       case '3': switchTab('data'); break;
+      case '4': switchTab('issues'); break;
       case 't':
         if (state.activeTest) stopTest();
         else startTest('broad');
@@ -529,10 +530,10 @@ async function openQueryDetail(queryId) {
         id, special_request, occasion, price_level, neighborhood_id,
         donde_match, created_at, recommended_restaurant_id, response_time_ms,
         was_fallback, feedback,
-        restaurants (
+        restaurants!recommended_restaurant_id (
           name, address, cuisine_type, google_rating, google_review_count,
           price_level, noise_level, best_for_oneliner,
-          photo_urls, neighborhoods(name)
+          photo_urls, neighborhoods!neighborhood_id(name)
         )
       `)
       .eq('id', queryId)
@@ -620,4 +621,248 @@ function closeQueryPanel() {
   const backdrop = document.getElementById('query-panel-backdrop');
   if (panel) panel.classList.remove('cc-query-panel--open');
   if (backdrop) backdrop.classList.remove('cc-query-panel__backdrop--visible');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Issues Triage Tab
+// ═══════════════════════════════════════════════════════════════════
+
+function renderIssues(issues) {
+  const list = document.getElementById('issues-list');
+  if (!list) return;
+
+  if (!issues || issues.length === 0) {
+    list.innerHTML = '<div class="cc-empty-state"><div class="cc-empty-state__icon">&#9989;</div><div class="cc-empty-state__text">No issues found. System is healthy!</div></div>';
+    updateIssueSummary(0, 0, 0);
+    return;
+  }
+
+  // Count by severity
+  const p0 = issues.filter(i => i.severity === 'P0').length;
+  const p1 = issues.filter(i => i.severity === 'P1').length;
+  const p2 = issues.filter(i => i.severity === 'P2').length;
+  updateIssueSummary(p0, p1, p2);
+
+  let currentSev = null;
+  let html = '';
+
+  for (let idx = 0; idx < issues.length; idx++) {
+    const i = issues[idx];
+    // Severity group header
+    if (i.severity !== currentSev) {
+      currentSev = i.severity;
+      html += `<div class="cc-issues-group-header cc-issues-group-header--${i.severity.toLowerCase()}">${i.severity} Issues</div>`;
+    }
+
+    const factors = i.factors
+      ? `<div class="cc-issue__factors">F:${r1(i.factors.food)} V:${r1(i.factors.vibe)} S:${r1(i.factors.service)} R:${r1(i.factors.reputation)} C:${r1(i.factors.convenience)}</div>`
+      : '';
+
+    const sourceLabel = i.source === 'test'
+      ? `Test ${i.sourceDetail || ''}`
+      : `Prod ${i.sourceDetail || ''}`;
+
+    html += `
+      <div class="cc-issue" data-idx="${idx}" data-severity="${i.severity}" data-type="${i.gapType}" data-source="${i.source}">
+        <div class="cc-issue__top">
+          <label class="cc-issue__check">
+            <input type="checkbox" data-issue-idx="${idx}" onchange="toggleIssueSelect(${idx}, this.checked)">
+          </label>
+          <span class="cc-issue__dm ${ragClass(i.dm)}">${i.dm}</span>
+          <span class="cc-issue__query">"${escapeHtml(i.query)}"</span>
+          <span class="cc-issue__gap-type">${escapeHtml(i.gapType)}</span>
+          <span class="cc-issue__severity cc-issues-badge--${i.severity.toLowerCase()}">${i.severity}</span>
+        </div>
+        <div class="cc-issue__meta">
+          <span>${escapeHtml(i.restaurant)}</span>
+          <span class="cc-issue__sep">&middot;</span>
+          <span>${escapeHtml(i.category)}</span>
+          <span class="cc-issue__sep">&middot;</span>
+          <span>${sourceLabel}</span>
+        </div>
+        ${factors}
+        <div class="cc-issue__fix">
+          <span class="cc-issue__fix-text">${escapeHtml(i.fixAction)}</span>
+          <button class="cc-btn cc-btn--sm" onclick="copyFixPrompt(${idx})">Copy Fix Prompt</button>
+        </div>
+      </div>
+    `;
+  }
+
+  list.innerHTML = html;
+}
+
+function updateIssueSummary(p0, p1, p2) {
+  const el = (id, text) => { const e = document.getElementById(id); if (e) e.textContent = text; };
+  el('issues-p0-count', `P0: ${p0}`);
+  el('issues-p1-count', `P1: ${p1}`);
+  el('issues-p2-count', `P2: ${p2}`);
+}
+
+function updateIssuesBadge(issues) {
+  const btn = document.getElementById('tab-issues-btn');
+  if (!btn) return;
+  const count = issues.filter(i => i.severity !== 'P2').length;
+  btn.innerHTML = count > 0
+    ? `Issues <span class="cc-tab__badge">${count}</span>`
+    : 'Issues';
+}
+
+// ─── Filters ───
+
+function setIssueFilter(filterType, value) {
+  if (!state.issueFilters) return;
+  state.issueFilters[filterType] = value;
+
+  // Update active button states
+  document.querySelectorAll(`.cc-issues-filter[data-filter="${filterType}"]`).forEach(btn => {
+    btn.classList.toggle('cc-issues-filter--active', btn.dataset.val === value);
+  });
+
+  applyIssueFilters();
+}
+
+function applyIssueFilters() {
+  const { severity, type, source } = state.issueFilters || {};
+  let filtered = (state.issues || []).filter(i => {
+    if (severity !== 'all' && i.severity !== severity) return false;
+    if (type !== 'all' && i.gapType !== type) return false;
+    if (source !== 'all' && i.source !== source) return false;
+    return true;
+  });
+  renderIssues(filtered);
+}
+
+// ─── Selection ───
+
+function toggleIssueSelect(idx, checked) {
+  if (!state.selectedIssues) state.selectedIssues = new Set();
+  if (checked) state.selectedIssues.add(idx);
+  else state.selectedIssues.delete(idx);
+  updateBulkUI();
+}
+
+function toggleSelectAllIssues(checked) {
+  const checkboxes = document.querySelectorAll('.cc-issue__check input[type="checkbox"]');
+  state.selectedIssues = new Set();
+  checkboxes.forEach(cb => {
+    cb.checked = checked;
+    if (checked) state.selectedIssues.add(Number(cb.dataset.issueIdx));
+  });
+  updateBulkUI();
+}
+
+function updateBulkUI() {
+  const count = state.selectedIssues?.size || 0;
+  const countEl = document.getElementById('issues-selected-count');
+  const bulkBtn = document.getElementById('issues-bulk-copy');
+  if (countEl) countEl.textContent = `${count} selected`;
+  if (bulkBtn) bulkBtn.style.display = count > 0 ? '' : 'none';
+}
+
+// ─── Prompt Generation ───
+
+function generateFixPrompt(issue) {
+  const factorStr = issue.factors
+    ? `Factor scores: food=${r1(issue.factors.food)}, vibe=${r1(issue.factors.vibe)}, service=${r1(issue.factors.service)}, reputation=${r1(issue.factors.reputation)}, convenience=${r1(issue.factors.convenience)}.`
+    : '';
+
+  const weakest = issue.factors
+    ? Object.entries(issue.factors)
+        .filter(([, v]) => v != null)
+        .sort((a, b) => a[1] - b[1])[0]
+    : null;
+
+  let prompt = '';
+
+  if (issue.gapType === 'intent') {
+    prompt = `Fix DondeMatch intent gap for query "${issue.query}" (DM: ${issue.dm}).
+Matched: ${issue.restaurant} — relevance_type: ${issue.relevanceType || 'unknown'}.
+The intent classifier didn't recognize this query pattern.
+Category: ${issue.category}.
+
+Check: supabase/functions/recommend/_shared/intent-classifier-v5.ts
+Action: Add "${issue.query}" keywords to the appropriate dictionary (CUISINE_KEYWORDS, VIBE_KEYWORDS, REPUTATION_KEYWORDS, etc.)
+Then verify with: ./tests/compare-scores.sh "${issue.query}"`;
+
+  } else if (issue.gapType === 'scoring') {
+    prompt = `Fix DondeMatch scoring gap for query "${issue.query}" (DM: ${issue.dm}).
+Matched: ${issue.restaurant}. ${factorStr}
+Category: ${issue.category}. ${weakest ? `Weakest factor: ${weakest[0]} at ${r1(weakest[1])}.` : ''}
+
+Check: supabase/functions/recommend/_shared/scoring-v9.ts
+Look at the weight profile for ${issue.relevanceType || 'this'} queries — the ${weakest ? weakest[0] : 'lowest'} weight may need adjustment.
+Then verify with: ./tests/compare-scores.sh "${issue.query}"`;
+
+  } else if (issue.gapType === 'relevance_ceiling') {
+    prompt = `Fix DondeMatch relevance ceiling for query "${issue.query}" (DM: ${issue.dm}).
+Matched: ${issue.restaurant}. Relevance hits floor but quality can't push past 60.
+${factorStr}
+
+Check: supabase/functions/recommend/_shared/scoring-v9.ts — RELEVANCE_FLOORS
+Consider: Is the relevance_type (${issue.relevanceType || 'unknown'}) correct? Should this query match a higher-relevance type?
+Then verify with: ./tests/compare-scores.sh "${issue.query}"`;
+
+  } else {
+    prompt = `Fix DondeMatch issue for query "${issue.query}" (DM: ${issue.dm}).
+Gap type: ${issue.gapType}. Matched: ${issue.restaurant}.
+Category: ${issue.category}. Source: ${issue.source}.
+${factorStr}
+
+Action: ${issue.fixAction}
+Then verify with: ./tests/compare-scores.sh "${issue.query}"`;
+  }
+
+  return prompt;
+}
+
+function copyFixPrompt(idx) {
+  const issue = state.issues?.[idx];
+  if (!issue) return;
+  const prompt = generateFixPrompt(issue);
+  navigator.clipboard?.writeText(prompt).then(() => {
+    if (typeof showToast === 'function') showToast('Fix prompt copied!');
+  }).catch(() => {
+    if (typeof showToast === 'function') showToast('Could not copy to clipboard');
+  });
+}
+
+function copyBulkFixPrompt() {
+  if (!state.selectedIssues?.size || !state.issues) return;
+
+  const selected = [...state.selectedIssues].map(idx => state.issues[idx]).filter(Boolean);
+  const p0 = selected.filter(i => i.severity === 'P0');
+  const p1 = selected.filter(i => i.severity === 'P1');
+
+  // Find common patterns
+  const typeCounts = {};
+  const catCounts = {};
+  selected.forEach(i => {
+    typeCounts[i.gapType] = (typeCounts[i.gapType] || 0) + 1;
+    catCounts[i.category] = (catCounts[i.category] || 0) + 1;
+  });
+  const topType = Object.entries(typeCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'mixed';
+  const topCat = Object.entries(catCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'mixed';
+
+  let prompt = `Fix ${selected.length} DondeMatch issues (${p0.length} P0, ${p1.length} P1):\n\n`;
+
+  selected.forEach(i => {
+    prompt += `- "${i.query}" DM:${i.dm} [${i.gapType}] → ${i.restaurant} (${i.category})\n`;
+  });
+
+  prompt += `\nCommon pattern: ${topType} gaps. Most affected category: ${topCat}.\n`;
+  prompt += `\nStart with the P0 issues. For each:\n`;
+  prompt += `1. Run ./tests/compare-scores.sh "<query>" to see current scoring\n`;
+  prompt += `2. Apply the fix in the relevant file\n`;
+  prompt += `3. Re-run to verify improvement\n`;
+  prompt += `\nFiles to check:\n`;
+  prompt += `- supabase/functions/recommend/_shared/intent-classifier-v5.ts (for intent gaps)\n`;
+  prompt += `- supabase/functions/recommend/_shared/scoring-v9.ts (for scoring/ceiling gaps)\n`;
+  prompt += `- supabase/functions/recommend/_shared/prompts-v5.ts (for blurb issues)\n`;
+
+  navigator.clipboard?.writeText(prompt).then(() => {
+    if (typeof showToast === 'function') showToast(`Bulk fix prompt copied (${selected.length} issues)!`);
+  }).catch(() => {
+    if (typeof showToast === 'function') showToast('Could not copy to clipboard');
+  });
 }
