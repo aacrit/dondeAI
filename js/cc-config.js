@@ -128,6 +128,11 @@ let state = {
   pipePollTimer: null,
   livePollTimer: null,
   retesting: false,   // true while retest in progress
+  runHistory: [],           // last 10 gauntlet runs
+  selectedRunId: null,      // currently selected run in Recent Runs
+  pulseMode: 'test',        // 'test' (run-based) | 'prod' (live 7d data)
+  blurbMode: 'quick',       // 'quick' (regex) | 'deep' (Claude API)
+  expandedPulse: null,      // which pulse card is expanded: 'health'|'quality'|'attention'|null
 };
 
 // Supabase client (set by cc-analytics.js after auth)

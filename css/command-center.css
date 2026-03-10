@@ -1501,3 +1501,95 @@ body {
   .cc-shortcuts-grid { grid-template-columns: 1fr; }
   .cc-live-filter { flex-wrap: wrap; }
 }
+
+/* ─── Selected Run Row ─── */
+.cc-run-row--selected {
+  background: var(--cc-surface-3);
+  box-shadow: inset 3px 0 0 var(--cc-accent);
+}
+
+/* ─── Prod Mode Pulse Border ─── */
+.cc-pulse--prod .cc-pulse__card {
+  border-color: var(--cc-accent);
+}
+
+/* ─── Pulse Expand Panel ─── */
+.cc-pulse__expand {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 200ms ease, opacity 200ms ease;
+  opacity: 0;
+  margin-top: 0;
+  font-size: 0.75rem;
+  color: var(--cc-text-2);
+}
+.cc-pulse__card--expanded .cc-pulse__expand {
+  max-height: 120px;
+  opacity: 1;
+  margin-top: 8px;
+}
+.cc-pulse__detail {
+  display: block;
+  font-family: var(--cc-mono);
+  font-size: 0.72rem;
+  color: var(--cc-text-2);
+  line-height: 1.6;
+}
+.cc-pulse__detail--gap {
+  color: var(--cc-text);
+  padding: 2px 0;
+  border-bottom: 1px solid var(--cc-border);
+}
+.cc-pulse__sparkline {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 3px;
+  margin-top: 4px;
+}
+.cc-sparkline__bar {
+  display: inline-block;
+  width: 6px;
+  background: var(--cc-accent);
+  border-radius: 2px;
+  min-height: 4px;
+}
+
+/* ─── Value Change Animation ─── */
+.cc-pulse__big, .cc-pulse__value {
+  transition: color 0.3s ease;
+}
+
+/* ─── Active States for Buttons ─── */
+.cc-live-filter__btn:active,
+.cc-issues-filter:active,
+.cc-cat-pill:active {
+  transform: scale(0.96);
+}
+
+/* ─── Blurb Mode Toggle ─── */
+.cc-blurb-mode {
+  display: flex;
+  gap: 2px;
+  background: var(--cc-surface);
+  border: 1px solid var(--cc-border);
+  border-radius: var(--cc-radius);
+  padding: 2px;
+  margin-bottom: 8px;
+  width: fit-content;
+}
+.cc-blurb-mode button {
+  padding: 4px 12px;
+  font-size: 0.72rem;
+  font-family: var(--cc-font);
+  background: transparent;
+  border: none;
+  border-radius: calc(var(--cc-radius) - 2px);
+  color: var(--cc-text-3);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.cc-blurb-mode button:hover { color: var(--cc-text); }
+.cc-blurb-mode button.active {
+  background: var(--cc-accent);
+  color: #fff;
+}

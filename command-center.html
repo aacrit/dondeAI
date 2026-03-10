@@ -48,7 +48,7 @@
 
     <!-- ═══ Pulse: 3 hero KPI cards ═══ -->
     <section class="cc-pulse" id="pulse-section">
-      <div class="cc-pulse__card cc-pulse__card--health" id="pulse-health" role="button" tabindex="0" title="Click to view test history" aria-live="polite">
+      <div class="cc-pulse__card cc-pulse__card--health" id="pulse-health" role="button" tabindex="0" title="Click to expand details" aria-live="polite">
         <div class="cc-pulse__ring">
           <svg viewBox="0 0 80 80" class="cc-pulse__svg">
             <circle cx="40" cy="40" r="34" fill="none" stroke="var(--cc-surface-3)" stroke-width="5"/>
@@ -61,20 +61,23 @@
         <div class="cc-pulse__label">System Health</div>
         <div class="cc-pulse__sub" id="pulse-health-sub">Loading...</div>
         <div class="cc-pulse__freshness" id="pulse-health-fresh"></div>
+        <div class="cc-pulse__expand"></div>
       </div>
 
-      <div class="cc-pulse__card cc-pulse__card--quality" id="pulse-quality" role="button" tabindex="0" title="Click to view live production">
+      <div class="cc-pulse__card cc-pulse__card--quality" id="pulse-quality" role="button" tabindex="0" title="Click to expand details">
         <div class="cc-pulse__big" id="pulse-quality-val">--</div>
         <div class="cc-pulse__label">Avg DondeMatch</div>
         <div class="cc-pulse__sub" id="pulse-quality-sub">Loading...</div>
         <div class="cc-pulse__freshness" id="pulse-quality-fresh"></div>
+        <div class="cc-pulse__expand"></div>
       </div>
 
-      <div class="cc-pulse__card cc-pulse__card--attention" id="pulse-attention" role="button" tabindex="0" title="Click to view issues">
+      <div class="cc-pulse__card cc-pulse__card--attention" id="pulse-attention" role="button" tabindex="0" title="Click to expand details">
         <div class="cc-pulse__big cc-pulse__big--attention" id="pulse-attention-val">--</div>
         <div class="cc-pulse__label">Needs Attention</div>
         <div class="cc-pulse__sub" id="pulse-attention-sub">Loading...</div>
         <div class="cc-pulse__freshness" id="pulse-attention-fresh"></div>
+        <div class="cc-pulse__expand"></div>
       </div>
     </section>
 
@@ -123,6 +126,10 @@
       <!-- More Tests (engineering-focused, collapsed by default) -->
       <details class="cc-more-tests" id="more-tests">
         <summary class="cc-more-tests__toggle">More Tests</summary>
+        <div class="cc-blurb-mode">
+          <button data-mode="quick" class="active" onclick="setBlurbMode('quick')">Quick (regex)</button>
+          <button data-mode="deep" onclick="setBlurbMode('deep')">Deep (Claude)</button>
+        </div>
         <div class="cc-test-grid cc-test-grid--secondary">
           <button class="cc-test-card cc-test-card--secondary" data-test="edge" onclick="startTest('edge')">
             <div class="cc-test-card__icon">&#128737;</div>
@@ -133,8 +140,8 @@
           <button class="cc-test-card cc-test-card--secondary" data-test="blurb" onclick="startTest('blurb')">
             <div class="cc-test-card__icon">&#9998;</div>
             <div class="cc-test-card__name">Blurb Quality</div>
-            <div class="cc-test-card__desc">10 blurbs checked for clich&eacute; phrases</div>
-            <div class="cc-test-card__meta">~$0.05 &middot; ~30s</div>
+            <div class="cc-test-card__desc">10 blurbs checked for clich&eacute;s &middot; <span id="blurb-mode-label">Quick</span></div>
+            <div class="cc-test-card__meta">~$0.05 &middot; ~30s (Quick) / ~$1.00 &middot; ~30s (Deep)</div>
           </button>
           <button class="cc-test-card cc-test-card--secondary" data-test="coverage" onclick="startTest('coverage')">
             <div class="cc-test-card__icon">&#9744;</div>
@@ -345,8 +352,8 @@
           <button class="cc-issues-filter" data-filter="source" data-val="prod" onclick="setIssueFilter('source','prod')">Prod</button>
         </div>
         <div class="cc-issues-filter-group">
-          <button class="cc-issues-filter cc-issues-filter--active" data-filter="status" data-val="all" onclick="setIssueFilter('status','all')">All</button>
-          <button class="cc-issues-filter" data-filter="status" data-val="open" onclick="setIssueFilter('status','open')">Open</button>
+          <button class="cc-issues-filter" data-filter="status" data-val="all" onclick="setIssueFilter('status','all')">All</button>
+          <button class="cc-issues-filter cc-issues-filter--active" data-filter="status" data-val="open" onclick="setIssueFilter('status','open')">Open</button>
           <button class="cc-issues-filter" data-filter="status" data-val="fixed" onclick="setIssueFilter('status','fixed')">Fixed</button>
           <button class="cc-issues-filter" data-filter="status" data-val="improved" onclick="setIssueFilter('status','improved')">Improved</button>
         </div>
