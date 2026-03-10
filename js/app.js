@@ -1018,26 +1018,28 @@ function wireEvents() {
 
           if ($resultCard && !REDUCED_MOTION.matches) {
             _swapInFlight = true;
-            // Per-element crossfade: fade out individual elements, update, fade back in
-            $resultCard.classList.add('result-card--crossfading');
-            setTimeout(() => {
+            // Card swap: flick old card off-desk, land new one with spring
+            $resultCard.classList.add('result-card--swapping-out');
+            animationTimers.push(setTimeout(() => {
               renderResult(nextResult);
-              $resultCard.classList.remove('result-card--crossfading');
-              // Score animates after content settles
-              setTimeout(() => {
+              $resultCard.classList.remove('result-card--swapping-out', 'result-card--crossfading');
+              $resultCard.classList.add('result-card--swapping-in');
+              // Score animates after card lands
+              animationTimers.push(setTimeout(() => {
                 const dondeScore = Math.round(parseFloat(nextResult.donde_match) || 80);
                 const $matchScore = document.getElementById('match-pill-score');
                 if ($matchScore) animateScoreCountUp($matchScore, dondeScore);
+                $resultCard.classList.remove('result-card--swapping-in');
                 _swapInFlight = false;
                 document.querySelector('.cta-btn--loading')?.classList.remove('cta-btn--loading');
                 // Celebration for 88%+ scores (matches initial reveal behavior)
                 if (dondeScore >= 88) {
-                  setTimeout(() => { fireCelebration(); playCelebrationChime(); haptic(HAPTICS.celebration); }, 1400);
+                  animationTimers.push(setTimeout(() => { fireCelebration(); playCelebrationChime(); haptic(HAPTICS.celebration); }, 1400));
                 }
-              }, 300);
+              }, 400));
               // Announce swap to screen readers
               announce(`Now showing: ${nextResult.restaurant?.name || 'new recommendation'}`);
-            }, 300);
+            }, 280));
           } else {
             renderResult(nextResult);
             const dondeScore = Math.round(parseFloat(nextResult.donde_match) || 80);
@@ -2300,6 +2302,8 @@ function reverseCanvasFold() {
   stopWordRotation();
   _scaffoldTimers.forEach(clearTimeout);
   _scaffoldTimers = [];
+  // Cancel any running score count-up RAF
+  if (_scoreCountUpRaf) { cancelAnimationFrame(_scoreCountUpRaf); _scoreCountUpRaf = null; }
 
   const $canvas = document.querySelector('.canvas-layout');
 
@@ -2401,7 +2405,13 @@ function clearEdgeHintTimers() {
 }
 
 /* ---- V7: Score Count-Up Animation (reusable) ---- */
+let _scoreCountUpRaf = null;
 function animateScoreCountUp($el, targetScore, customDuration) {
+  // Cancel any prior count-up RAF to prevent orphaned animations
+  if (_scoreCountUpRaf) {
+    cancelAnimationFrame(_scoreCountUpRaf);
+    _scoreCountUpRaf = null;
+  }
   const $arcFill = document.getElementById('match-pill-arc-fill');
   const arcLength = 2 * Math.PI * 25; // ~157.08 (full circle, r=25)
   if ($arcFill) {
@@ -2427,8 +2437,9 @@ function animateScoreCountUp($el, targetScore, customDuration) {
         $arcFill.style.stroke = thresholdColor;
       }
       if (progress < 1) {
-        requestAnimationFrame(animate);
+        _scoreCountUpRaf = requestAnimationFrame(animate);
       } else {
+        _scoreCountUpRaf = null;
         // Completion pulse on the score ring wrap
         const $scoreWrap = document.querySelector('.match-mini__score-wrap');
         if ($scoreWrap) {
@@ -2438,7 +2449,7 @@ function animateScoreCountUp($el, targetScore, customDuration) {
         }
       }
     };
-    requestAnimationFrame(animate);
+    _scoreCountUpRaf = requestAnimationFrame(animate);
   } else {
     $el.textContent = targetScore;
     const finalColor = getScoreThresholdColor(targetScore);
@@ -3275,6 +3286,28 @@ function renderPhotos(data) {
       }
     }, { root: $photos, threshold: 0.6 });
     $photos.querySelectorAll('.result-photos__img').forEach(img => observer.observe(img));
+
+    // Ken Burns: activate subtle drift on visible photo after 3s idle
+    let _kenBurnsTimer = null;
+    const activateKenBurns = () => {
+      if (_kenBurnsTimer) clearTimeout(_kenBurnsTimer);
+      // Remove from all first
+      $photos.querySelectorAll('.result-photos__img--active').forEach(el =>
+        el.classList.remove('result-photos__img--active'));
+      _kenBurnsTimer = setTimeout(() => {
+        if (REDUCED_MOTION.matches) return;
+        // Find the currently visible photo
+        const imgs = $photos.querySelectorAll('.result-photos__img');
+        const visible = Array.from(imgs).find(img => {
+          const r = img.getBoundingClientRect();
+          const pr = $photos.getBoundingClientRect();
+          return r.left >= pr.left - 10 && r.right <= pr.right + 10;
+        });
+        if (visible) visible.classList.add('result-photos__img--active');
+      }, 3000);
+    };
+    $photos.addEventListener('scroll', () => activateKenBurns(), { passive: true });
+    activateKenBurns(); // Start idle timer on initial load
   }
 
   // Haptic on photo scroll

@@ -19,6 +19,44 @@
   }
 }
 
+/* ---- Paper Land (spring settle with subtle overshoot) ---- */
+@keyframes paperLand {
+  0% {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(-3px) scale(1.005);
+  }
+  80% {
+    transform: translateY(1px) scale(1);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ---- Spring Pop (for icons, badges, pills) ---- */
+@keyframes springPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+  80% {
+    transform: scale(0.97);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 .stagger-in > * {
   opacity: 0;
   animation: fadeInUp var(--dur-normal) var(--ease-out) forwards;
@@ -35,15 +73,17 @@
 .stagger-in > *:nth-child(9) { animation-delay: 400ms; }
 .stagger-in > *:nth-child(10) { animation-delay: 450ms; }
 
-/* ---- Chip Pop (selection feedback) ---- */
+/* ---- Chip Pop (spring selection feedback with overshoot) ---- */
 @keyframes chipPop {
   0%   { transform: scale(1); }
-  40%  { transform: scale(1.08); }
-  100% { transform: scale(1.02); }
+  35%  { transform: scale(1.1); }
+  65%  { transform: scale(0.97); }
+  85%  { transform: scale(1.02); }
+  100% { transform: scale(1); }
 }
 
 .chip-pop {
-  animation: chipPop 350ms var(--spring);
+  animation: chipPop 400ms var(--spring);
 }
 
 /* ---- Pulse (recording indicator) ---- */
@@ -64,13 +104,20 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ---- Card Entrance (paper-landing settle) ---- */
+/* ---- Card Entrance (paper-landing settle with spring overshoot) ---- */
 @keyframes cardEntrance {
-  from {
+  0% {
     opacity: 0;
     transform: translateY(20px) scale(0.96) rotate(-0.5deg);
   }
-  to {
+  55% {
+    opacity: 1;
+    transform: translateY(-4px) scale(1.01) rotate(0.1deg);
+  }
+  75% {
+    transform: translateY(1px) scale(1) rotate(0deg);
+  }
+  100% {
     opacity: 1;
     transform: translateY(0) scale(1) rotate(0deg);
   }
@@ -188,13 +235,20 @@
   to { opacity: 1; transform: translate(-50%, -100%) translateY(0); }
 }
 
-/* ---- Toast Entrance ---- */
+/* ---- Toast Entrance (spring pop from below) ---- */
 @keyframes toastIn {
-  from {
+  0% {
     opacity: 0;
-    transform: translateX(-50%) translateY(20px) scale(0.95);
+    transform: translateX(-50%) translateY(24px) scale(0.92);
   }
-  to {
+  55% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-4px) scale(1.02);
+  }
+  75% {
+    transform: translateX(-50%) translateY(1px) scale(0.995);
+  }
+  100% {
     opacity: 1;
     transform: translateX(-50%) translateY(0) scale(1);
   }
@@ -226,8 +280,9 @@
 /* ---- (Old loading keyframes removed — draw-loop is now JS-driven) ---- */
 
 @keyframes revealUp {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
+  0%   { opacity: 0; transform: translateY(10px); }
+  65%  { opacity: 1; transform: translateY(-2px); }
+  100% { opacity: 1; transform: translateY(0); }
 }
 
 /* ============================================
@@ -419,17 +474,20 @@
   }
 }
 
-/* ---- Tile Reveal (score tiles stagger) ---- */
+/* ---- Tile Reveal (score tiles stagger — spring overshoot) ---- */
 @keyframes tileRevealIn {
-  from {
+  0% {
     opacity: 0;
-    transform: translateY(12px) scale(0.96);
+    transform: translateY(12px) scale(0.94);
   }
-  70% {
+  55% {
     opacity: 1;
-    transform: translateY(-2px) scale(1.01);
+    transform: translateY(-3px) scale(1.02);
   }
-  to {
+  75% {
+    transform: translateY(1px) scale(0.995);
+  }
+  100% {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
@@ -613,10 +671,12 @@
   animation: ringCelebrate 800ms ease-out;
 }
 
-/* ---- Heart Pop (bookmark/like feedback button) ---- */
+/* ---- Heart Pop (bookmark/like feedback — spring overshoot settle) ---- */
 @keyframes heartPop {
   0%   { transform: scale(1); }
-  40%  { transform: scale(1.3); }
+  30%  { transform: scale(1.35); }
+  55%  { transform: scale(0.9); }
+  75%  { transform: scale(1.08); }
   100% { transform: scale(1); }
 }
 
@@ -640,17 +700,19 @@
   to   { box-shadow: 0 0 0 6px transparent; }
 }
 
-/* ---- V7: Card Swap Out (flicked off desk — slight rotation) ---- */
+/* ---- V7: Card Swap Out (flicked off desk — slight rotation + scale) ---- */
 @keyframes cardSwapOut {
-  from { opacity: 1; transform: translateX(0) scale(1) rotate(0deg); }
-  to   { opacity: 0; transform: translateX(-24px) scale(0.96) rotate(-0.5deg); }
+  0%   { opacity: 1; transform: translateX(0) scale(1) rotate(0deg); }
+  40%  { opacity: 0.7; transform: translateX(-12px) scale(0.98) rotate(-0.3deg); }
+  100% { opacity: 0; transform: translateX(-32px) scale(0.94) rotate(-1deg); }
 }
 
-/* ---- V7: Card Swap In (new card landing on desk from stack) ---- */
+/* ---- V7: Card Swap In (new card landing on desk from right — spring settle) ---- */
 @keyframes cardSwapIn {
-  0%   { opacity: 0; transform: translateX(24px) translateY(4px) scale(0.96); }
-  60%  { opacity: 1; transform: translateX(-2px) translateY(-1px) scale(1.01); }
-  100% { opacity: 1; transform: translateX(0) translateY(0) scale(1); }
+  0%   { opacity: 0; transform: translateX(32px) translateY(6px) scale(0.94) rotate(0.5deg); }
+  50%  { opacity: 1; transform: translateX(-4px) translateY(-2px) scale(1.01) rotate(-0.1deg); }
+  75%  { transform: translateX(1px) translateY(0) scale(1) rotate(0deg); }
+  100% { opacity: 1; transform: translateX(0) translateY(0) scale(1) rotate(0deg); }
 }
 
 /* ---- Reduced Motion: Gentle fallback (100ms linear, not 0ms) ---- */
@@ -1103,4 +1165,205 @@
 .ambient__blob {
   border-radius: var(--blob-shape, 40% 60% 55% 45% / 50% 50% 50% 50%);
   transition: border-radius 2s ease;
+}
+
+/* ============================================
+   V10.1: Premium Micro-Interactions
+   ============================================ */
+
+/* ---- Photo Strip Ken Burns (subtle idle drift) ---- */
+.result-photos__img--active {
+  animation: kenBurnsDrift 12s ease-in-out infinite alternate;
+}
+
+@keyframes kenBurnsDrift {
+  0%   { transform: scale(1) translate(0, 0); }
+  100% { transform: scale(1.04) translate(-1%, -0.5%); }
+}
+
+/* ---- Badge / Pill Spring-Pop Stagger (result meta pills) ---- */
+.result-card--revealing .result-meta__pill {
+  opacity: 0;
+  animation: springPop 350ms var(--spring) forwards;
+}
+
+.result-card--revealing .result-meta__pill:nth-child(1) { animation-delay: 120ms; }
+.result-card--revealing .result-meta__pill:nth-child(2) { animation-delay: 180ms; }
+.result-card--revealing .result-meta__pill:nth-child(3) { animation-delay: 240ms; }
+.result-card--revealing .result-meta__pill:nth-child(4) { animation-delay: 300ms; }
+
+/* ---- Quick Action Icons Spring-Pop ---- */
+.result-card--revealing .quick-action {
+  opacity: 0;
+  animation: springPop 300ms var(--spring) forwards;
+}
+
+.result-card--revealing .quick-action:nth-child(1) { animation-delay: 300ms; }
+.result-card--revealing .quick-action:nth-child(2) { animation-delay: 360ms; }
+.result-card--revealing .quick-action:nth-child(3) { animation-delay: 420ms; }
+
+/* ---- Feedback Button Spring Press ---- */
+.feedback-btn:active:not(:disabled) {
+  transform: scale(0.88);
+  transition: transform 80ms var(--ease-out);
+}
+
+.feedback-btn {
+  transition: transform 300ms var(--spring),
+              color 200ms var(--ease-out),
+              background 200ms var(--ease-out),
+              border-color 200ms var(--ease-out);
+}
+
+/* ---- Going / Try Another Button Spring Press ---- */
+.going-btn:active,
+.try-btn:active,
+[data-action="try-again"]:active,
+[data-action="start-over"]:active {
+  transform: scale(0.96);
+  transition: transform 80ms var(--ease-out);
+}
+
+.going-btn,
+.try-btn,
+[data-action="try-again"],
+[data-action="start-over"] {
+  transition: transform 300ms var(--spring),
+              background 200ms var(--ease-out),
+              border-color 200ms var(--ease-out),
+              color 200ms var(--ease-out),
+              box-shadow 200ms var(--ease-out);
+}
+
+/* ---- Tell More Button Spring-Expand ---- */
+.tell-more-btn:active {
+  transform: scale(0.97);
+  transition: transform 80ms var(--ease-out);
+}
+
+.tell-more-btn {
+  transition: transform 300ms var(--spring),
+              background 200ms var(--ease-out),
+              border-color 200ms var(--ease-out);
+}
+
+/* ---- Filter Pill Ink-Ripple Enhancement ---- */
+.filter-pill {
+  transition: transform 300ms var(--spring),
+              background 200ms var(--ease-out),
+              border-color 200ms var(--ease-out),
+              color 200ms var(--ease-out),
+              box-shadow 200ms var(--ease-out);
+}
+
+.filter-pill:active {
+  transform: scale(0.95);
+  transition: transform 80ms var(--ease-out);
+}
+
+/* ---- Score Tile Hover Lift ---- */
+.score-tile--expandable {
+  transition: transform 300ms var(--spring),
+              box-shadow 300ms var(--ease-out);
+}
+
+.score-tile--expandable:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.score-tile--expandable:active {
+  transform: translateY(0) scale(0.98);
+  transition: transform 100ms var(--ease-out);
+}
+
+/* ---- Navigation Pill Spring Tap ---- */
+.glance-nav__pill:active {
+  transform: scale(0.94);
+  transition: transform 80ms var(--ease-out);
+}
+
+.glance-nav__pill {
+  transition: transform 300ms var(--spring),
+              background 200ms var(--ease-out),
+              color 200ms var(--ease-out);
+}
+
+/* ---- Card Swap Enhanced Transition (Try Another) ---- */
+.result-card--swapping-out {
+  animation: cardSwapOut 280ms var(--ease-out) forwards;
+}
+
+.result-card--swapping-in {
+  animation: cardSwapIn 400ms var(--spring) forwards;
+}
+
+/* ---- Insider Tip Border Draw (progressive reveal) ---- */
+.result-card--revealing .insider-tip__border {
+  transform-origin: top;
+  animation: tipBorderGrow 500ms var(--ease-out) 400ms forwards;
+  transform: scaleY(0);
+}
+
+@keyframes tipBorderGrow {
+  0%   { transform: scaleY(0); }
+  60%  { transform: scaleY(1.02); }
+  100% { transform: scaleY(1); }
+}
+
+/* ---- Score Number Emphasis Pulse (after count-up completes) ---- */
+@keyframes scoreSettle {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.08); }
+  70%  { transform: scale(0.97); }
+  100% { transform: scale(1); }
+}
+
+/* ---- V10.1: Reduced Motion — disable all new micro-interactions ---- */
+@media (prefers-reduced-motion: reduce) {
+  .result-photos__img--active {
+    animation: none;
+  }
+
+  .result-card--revealing .result-meta__pill,
+  .result-card--revealing .quick-action {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .feedback-btn,
+  .going-btn,
+  .try-btn,
+  [data-action="try-again"],
+  [data-action="start-over"],
+  .tell-more-btn,
+  .filter-pill,
+  .score-tile--expandable,
+  .glance-nav__pill {
+    transition: background 0ms, color 0ms, border-color 0ms !important;
+    transform: none !important;
+  }
+
+  .feedback-btn:active,
+  .going-btn:active,
+  .try-btn:active,
+  [data-action="try-again"]:active,
+  [data-action="start-over"]:active,
+  .tell-more-btn:active,
+  .filter-pill:active,
+  .score-tile--expandable:active,
+  .glance-nav__pill:active {
+    transform: none !important;
+  }
+
+  .result-card--swapping-out,
+  .result-card--swapping-in {
+    animation: none;
+  }
+
+  .result-card--revealing .insider-tip__border {
+    animation: none;
+    transform: none;
+  }
 }
