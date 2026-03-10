@@ -82,7 +82,7 @@ async function loadInitData() {
     const [runsRes, totalRes, enrichedRes, tagsRes, queriesRes, occasionRes] = await Promise.all([
       // Latest gauntlet run
       sbClient.from('gauntlet_runs')
-        .select('run_id, avg_dm, passed_60, gap_count, total, created_at, mode')
+        .select('run_id, avg_dm, passed_60, gap_count, total, created_at, mode, delta_avg_dm')
         .order('created_at', { ascending: false })
         .limit(1),
       // Total active restaurants
@@ -118,7 +118,7 @@ async function loadInitData() {
     if (latestRun) {
       const passRate = latestRun.total > 0 ? (latestRun.passed_60 / latestRun.total * 100) : 0;
       updatePulseHealth(passRate, `from ${latestRun.mode || 'test'} run ${timeAgo(latestRun.created_at)}`);
-      updatePulseQuality(latestRun.avg_dm, `${latestRun.total} queries tested`);
+      updatePulseQuality(latestRun.avg_dm, `${latestRun.total} queries tested`, latestRun.delta_avg_dm);
       updatePulseAttention(latestRun.gap_count, latestRun.gap_count > 5 ? 'action needed' : 'manageable');
     }
 
@@ -287,6 +287,9 @@ async function checkApiHealth() {
 
     if (versionEl) versionEl.textContent = `Engine: V${data.version || '??'}`;
     if (latencyEl) latencyEl.textContent = `Latency: ${latency}ms`;
+    // Update the live KPI response time
+    const rtEl = document.getElementById('live-response-time');
+    if (rtEl) rtEl.textContent = `${latency}ms`;
     if (statusEl) {
       statusEl.textContent = `Status: ${data.status || 'unknown'}`;
       statusEl.className = data.status === 'ok' ? 'cc-api-ok' : 'cc-api-warn';
@@ -324,20 +327,32 @@ function updateSmartSuggestion() {
 
   if (run.gap_count > 5) {
     text.textContent = `${run.gap_count} low-score queries detected in last run.`;
-    btn.textContent = 'Run Broad Scan';
-    btn.onclick = () => startTest('broad');
+    btn.textContent = 'Run Regression Guard';
+    btn.onclick = () => startTest('regression');
+    btn.style.display = '';
     strip.style.display = 'flex';
   } else if (hoursSinceRun > 24) {
     text.textContent = `No tests run in ${Math.floor(hoursSinceRun)}h.`;
     btn.textContent = 'Run Broad Scan';
     btn.onclick = () => startTest('broad');
+    btn.style.display = '';
     strip.style.display = 'flex';
-  } else if (run.gap_count === 0) {
-    text.textContent = `System healthy. ${pct(run.passed_60, run.total)}% pass rate.`;
-    btn.style.display = 'none';
+  } else if (run.gap_count > 0) {
+    text.textContent = `${run.gap_count} issue${run.gap_count > 1 ? 's' : ''} found. ${pct(run.passed_60, run.total)}% pass rate.`;
+    btn.textContent = 'View Issues';
+    btn.onclick = () => {
+      switchTab('test');
+      const firstRow = document.querySelector('.cc-run-row[data-run-id]');
+      if (firstRow) firstRow.click();
+    };
+    btn.style.display = '';
     strip.style.display = 'flex';
   } else {
-    strip.style.display = 'none';
+    text.textContent = `All clear. ${pct(run.passed_60, run.total)}% pass rate, avg DM ${r1(run.avg_dm)}.`;
+    btn.textContent = 'Run Broad Scan';
+    btn.onclick = () => startTest('broad');
+    btn.style.display = '';
+    strip.style.display = 'flex';
   }
 }
 

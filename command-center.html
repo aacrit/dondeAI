@@ -114,25 +114,32 @@
           <div class="cc-test-card__desc">23 golden queries with baseline scores</div>
           <div class="cc-test-card__meta">~$0.25 &middot; ~3 min</div>
         </button>
-        <button class="cc-test-card" data-test="edge" onclick="startTest('edge')">
-          <div class="cc-test-card__icon">&#128737;</div>
-          <div class="cc-test-card__name">Edge Cases</div>
-          <div class="cc-test-card__desc">20 probes: SQL injection, empty, unicode</div>
-          <div class="cc-test-card__meta">~$0.20 &middot; ~1 min</div>
-        </button>
-        <button class="cc-test-card" data-test="blurb" onclick="startTest('blurb')">
-          <div class="cc-test-card__icon">&#9998;</div>
-          <div class="cc-test-card__name">Blurb Quality</div>
-          <div class="cc-test-card__desc">10 blurbs checked for clich&eacute; phrases</div>
-          <div class="cc-test-card__meta">~$0.05 &middot; ~30s</div>
-        </button>
-        <button class="cc-test-card" data-test="coverage" onclick="startTest('coverage')">
-          <div class="cc-test-card__icon">&#9744;</div>
-          <div class="cc-test-card__name">Data Coverage</div>
-          <div class="cc-test-card__desc">10 restaurants checked for missing fields</div>
-          <div class="cc-test-card__meta">~$0.05 &middot; ~30s</div>
-        </button>
       </div>
+
+      <!-- More Tests (engineering-focused, collapsed by default) -->
+      <details class="cc-more-tests" id="more-tests">
+        <summary class="cc-more-tests__toggle">More Tests</summary>
+        <div class="cc-test-grid cc-test-grid--secondary">
+          <button class="cc-test-card cc-test-card--secondary" data-test="edge" onclick="startTest('edge')">
+            <div class="cc-test-card__icon">&#128737;</div>
+            <div class="cc-test-card__name">Edge Cases</div>
+            <div class="cc-test-card__desc">20 probes: SQL injection, empty, unicode</div>
+            <div class="cc-test-card__meta">~$0.20 &middot; ~1 min</div>
+          </button>
+          <button class="cc-test-card cc-test-card--secondary" data-test="blurb" onclick="startTest('blurb')">
+            <div class="cc-test-card__icon">&#9998;</div>
+            <div class="cc-test-card__name">Blurb Quality</div>
+            <div class="cc-test-card__desc">10 blurbs checked for clich&eacute; phrases</div>
+            <div class="cc-test-card__meta">~$0.05 &middot; ~30s</div>
+          </button>
+          <button class="cc-test-card cc-test-card--secondary" data-test="coverage" onclick="startTest('coverage')">
+            <div class="cc-test-card__icon">&#9744;</div>
+            <div class="cc-test-card__name">Data Coverage</div>
+            <div class="cc-test-card__desc">10 restaurants checked for missing fields</div>
+            <div class="cc-test-card__meta">~$0.05 &middot; ~30s</div>
+          </button>
+        </div>
+      </details>
 
       <!-- Category Picker (shown when Category Focus is selected) -->
       <div class="cc-cat-picker" id="cat-picker" style="display:none">
@@ -194,8 +201,8 @@
           <div class="cc-live-kpi__label">Low Scores (&lt;60)</div>
         </div>
         <div class="cc-live-kpi">
-          <div class="cc-live-kpi__val" id="live-errors">--</div>
-          <div class="cc-live-kpi__label">Errors</div>
+          <div class="cc-live-kpi__val" id="live-response-time">--</div>
+          <div class="cc-live-kpi__label">Avg Response</div>
         </div>
       </div>
 

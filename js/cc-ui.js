@@ -10,6 +10,7 @@
 document.addEventListener('DOMContentLoaded', () => {
   checkAuth();
   initKeyboardShortcuts();
+  initPulseClicks();
   positionTabIndicator();
 });
 
@@ -69,6 +70,35 @@ function updateSystemStatus(text, color) {
 // Pulse Cards
 // ═══════════════════════════════════════════════════════════════════
 
+// ── Pulse Card Click Handlers ──
+
+function initPulseClicks() {
+  const health = document.getElementById('pulse-health');
+  const quality = document.getElementById('pulse-quality');
+  const attention = document.getElementById('pulse-attention');
+
+  if (health) health.addEventListener('click', () => {
+    switchTab('test');
+    // Scroll to run history
+    const hist = document.getElementById('run-history');
+    if (hist) hist.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
+  if (quality) quality.addEventListener('click', () => {
+    switchTab('live');
+    setLiveFilter('today');
+  });
+
+  if (attention) attention.addEventListener('click', () => {
+    switchTab('test');
+    // If there's a latest run with gaps, expand it
+    const firstRow = document.querySelector('.cc-run-history__table tbody tr[data-run-id]');
+    if (firstRow && !firstRow.classList.contains('cc-run-row--expanded')) {
+      firstRow.click();
+    }
+  });
+}
+
 function updatePulseHealth(pctVal, sub) {
   const ring = document.getElementById('pulse-health-ring');
   const val = document.getElementById('pulse-health-val');
@@ -88,14 +118,22 @@ function updatePulseHealth(pctVal, sub) {
   if (card) card.className = `cc-pulse__card cc-pulse__card--health ${ragClass(pctVal)}`;
 }
 
-function updatePulseQuality(dm, sub) {
+function updatePulseQuality(dm, sub, delta) {
   const val = document.getElementById('pulse-quality-val');
   const subEl = document.getElementById('pulse-quality-sub');
   if (val) {
     val.textContent = Math.round(dm);
     val.className = `cc-pulse__big ${ragClass(dm)}`;
   }
-  if (subEl) subEl.textContent = sub;
+  if (subEl) {
+    let text = sub;
+    if (delta != null && delta !== 0) {
+      const sign = delta > 0 ? '+' : '';
+      const cls = delta > 0 ? 'rag-green' : 'rag-red';
+      text += ` <span class="${cls}">${sign}${Math.round(delta * 10) / 10}</span>`;
+    }
+    subEl.innerHTML = text;
+  }
 }
 
 function updatePulseAttention(count, sub) {
@@ -229,7 +267,7 @@ function renderLiveFeed(queries) {
   }).join('');
 }
 
-function updateLiveKPIs(searches, avgDm, lowScores, errors) {
+function updateLiveKPIs(searches, avgDm, lowScores, responseTime) {
   const el = (id, val) => {
     const e = document.getElementById(id);
     if (e) e.textContent = typeof val === 'number' ? (Number.isInteger(val) ? val : val.toFixed(1)) : val;
@@ -237,7 +275,7 @@ function updateLiveKPIs(searches, avgDm, lowScores, errors) {
   el('live-searches', searches);
   el('live-avg-dm', Math.round(avgDm));
   el('live-low-scores', lowScores);
-  el('live-errors', errors);
+  el('live-response-time', responseTime ? `${responseTime}ms` : '--');
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -306,17 +344,97 @@ function renderRunHistory(runs) {
     const passRate = r.total > 0 ? pct(r.passed_60, r.total) : '--';
     const delta = r.delta_avg_dm != null ? (r.delta_avg_dm >= 0 ? `+${r1(r.delta_avg_dm)}` : r1(r.delta_avg_dm)) : '--';
     const deltaClass = r.delta_avg_dm > 0 ? 'rag-green' : r.delta_avg_dm < 0 ? 'rag-red' : '';
+    const hasGaps = r.gap_count > 0;
     return `
-      <tr>
+      <tr class="cc-run-row ${hasGaps ? 'cc-run-row--has-gaps' : ''}" data-run-id="${escapeHtml(r.run_id)}" onclick="toggleRunDetail(this)" style="cursor:pointer" title="${hasGaps ? 'Click to see issues' : 'Click to see details'}">
         <td>${date}</td>
         <td>${escapeHtml(r.mode || 'test')}</td>
         <td>${r.total || r.dataset_size || '--'}</td>
         <td class="${ragClass(r.avg_dm)}">${r1(r.avg_dm)}</td>
         <td>${passRate}%</td>
-        <td class="${deltaClass}">${delta}</td>
+        <td class="${deltaClass}">${delta} ${hasGaps ? '<span class="cc-run-row__expand">&#9660;</span>' : ''}</td>
+      </tr>
+      <tr class="cc-run-detail" id="detail-${escapeHtml(r.run_id)}" style="display:none">
+        <td colspan="6"><div class="cc-run-detail__content">Loading...</div></td>
       </tr>
     `;
   }).join('');
+}
+
+async function toggleRunDetail(row) {
+  const runId = row.dataset.runId;
+  const detailRow = document.getElementById(`detail-${runId}`);
+  if (!detailRow) return;
+
+  const isExpanded = row.classList.contains('cc-run-row--expanded');
+
+  // Collapse all other expanded rows
+  document.querySelectorAll('.cc-run-row--expanded').forEach(r => {
+    r.classList.remove('cc-run-row--expanded');
+    const detId = r.dataset.runId;
+    const det = document.getElementById(`detail-${detId}`);
+    if (det) det.style.display = 'none';
+  });
+
+  if (isExpanded) return; // was open, now closed
+
+  row.classList.add('cc-run-row--expanded');
+  detailRow.style.display = 'table-row';
+
+  const content = detailRow.querySelector('.cc-run-detail__content');
+  if (!content || content.dataset.loaded) return;
+
+  // Load results from Supabase
+  if (!sbClient) { content.textContent = 'Not authenticated'; return; }
+
+  try {
+    const { data: results } = await sbClient
+      .from('gauntlet_results')
+      .select('query, category, donde_match, score_pass, gap_type, restaurant_name')
+      .eq('run_id', runId)
+      .order('donde_match', { ascending: true });
+
+    if (!results || results.length === 0) {
+      content.textContent = 'No detailed results stored for this run.';
+      content.dataset.loaded = '1';
+      return;
+    }
+
+    // Show gaps first, then passes
+    const gaps = results.filter(r => r.gap_type);
+    const passes = results.filter(r => !r.gap_type);
+
+    let html = '';
+    if (gaps.length > 0) {
+      html += `<div class="cc-run-detail__section"><strong>${gaps.length} issue${gaps.length > 1 ? 's' : ''}:</strong></div>`;
+      html += gaps.map(r => `
+        <div class="cc-run-detail__row cc-run-detail__row--gap">
+          <span class="cc-run-detail__dm ${ragClass(r.donde_match)}">DM ${r.donde_match}</span>
+          <span class="cc-run-detail__query">"${escapeHtml(r.query)}"</span>
+          <span class="cc-run-detail__gap">${escapeHtml(r.gap_type)}</span>
+          ${r.restaurant_name ? `<span class="cc-run-detail__rest">&rarr; ${escapeHtml(r.restaurant_name)}</span>` : ''}
+        </div>
+      `).join('');
+    }
+
+    if (passes.length > 0) {
+      html += `<div class="cc-run-detail__section"><strong>${passes.length} passed:</strong></div>`;
+      html += passes.slice(0, 5).map(r => `
+        <div class="cc-run-detail__row">
+          <span class="cc-run-detail__dm ${ragClass(r.donde_match)}">DM ${r.donde_match}</span>
+          <span class="cc-run-detail__query">"${escapeHtml(r.query)}"</span>
+          ${r.restaurant_name ? `<span class="cc-run-detail__rest">&rarr; ${escapeHtml(r.restaurant_name)}</span>` : ''}
+        </div>
+      `).join('');
+      if (passes.length > 5) html += `<div class="cc-run-detail__more">+ ${passes.length - 5} more passing</div>`;
+    }
+
+    content.innerHTML = html;
+    content.dataset.loaded = '1';
+  } catch (e) {
+    content.textContent = 'Failed to load details.';
+    console.warn('Run detail load failed:', e);
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════

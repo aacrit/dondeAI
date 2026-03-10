@@ -147,12 +147,16 @@ body {
   border-radius: var(--cc-radius);
   padding: 20px;
   text-align: center;
-  cursor: default;
+  cursor: pointer;
   transition: all 0.2s ease;
 }
 .cc-pulse__card:hover {
-  border-color: var(--cc-border-focus);
+  border-color: var(--cc-accent, #6366f1);
   background: var(--cc-surface-2);
+  transform: translateY(-1px);
+}
+.cc-pulse__card:active {
+  transform: translateY(0);
 }
 
 .cc-pulse__ring {
@@ -542,6 +546,92 @@ body {
   text-align: center;
   color: var(--cc-text-3);
   padding: 16px;
+}
+
+/* ─── Expandable Run Rows ─── */
+.cc-run-row:hover { background: var(--cc-surface-2); }
+.cc-run-row--has-gaps td:last-child { position: relative; }
+.cc-run-row__expand {
+  font-size: 0.6rem;
+  opacity: 0.5;
+  margin-left: 4px;
+  transition: transform 0.2s ease;
+  display: inline-block;
+}
+.cc-run-row--expanded .cc-run-row__expand { transform: rotate(180deg); }
+
+.cc-run-detail { background: var(--cc-surface); }
+.cc-run-detail__content {
+  padding: 12px 16px;
+  font-size: 0.8rem;
+  max-height: 300px;
+  overflow-y: auto;
+}
+.cc-run-detail__section {
+  margin-bottom: 8px;
+  color: var(--cc-text-2);
+  font-size: 0.75rem;
+}
+.cc-run-detail__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0;
+  font-family: var(--cc-mono);
+  font-size: 0.75rem;
+}
+.cc-run-detail__row--gap { color: var(--cc-text); }
+.cc-run-detail__dm {
+  min-width: 48px;
+  font-weight: 600;
+}
+.cc-run-detail__query {
+  flex: 1;
+  color: var(--cc-text-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cc-run-detail__gap {
+  color: var(--rag-red, #ef4444);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+}
+.cc-run-detail__rest {
+  color: var(--cc-text-3);
+  font-size: 0.7rem;
+}
+.cc-run-detail__more {
+  color: var(--cc-text-3);
+  font-size: 0.7rem;
+  padding: 4px 0;
+}
+
+/* ─── More Tests Toggle ─── */
+.cc-more-tests {
+  margin-top: 8px;
+}
+.cc-more-tests__toggle {
+  cursor: pointer;
+  color: var(--cc-text-3);
+  font-size: 0.8rem;
+  padding: 8px 0;
+  list-style: none;
+  user-select: none;
+}
+.cc-more-tests__toggle::-webkit-details-marker { display: none; }
+.cc-more-tests__toggle::before {
+  content: '+ ';
+  font-family: var(--cc-mono);
+}
+.cc-more-tests[open] .cc-more-tests__toggle::before { content: '- '; }
+.cc-more-tests__toggle:hover { color: var(--cc-text-2); }
+.cc-test-grid--secondary {
+  margin-top: 8px;
+  opacity: 0.85;
+}
+.cc-test-card--secondary {
+  border-style: dashed;
 }
 
 /* ─── Live Filter ─── */
