@@ -110,6 +110,7 @@ async function loadInitData() {
     const enrichedCount = enrichedRes.count || 0;
     const tagCount = tagsRes.count || 0;
     const occasionCount = occasionRes.count || 0;
+    if (queriesRes.error) console.error('User queries error:', queriesRes.error.message, queriesRes.error.hint);
     const todayQueries = queriesRes.data || [];
     const todayCount = todayQueries.length;
     const todayAvgDm = todayCount > 0
@@ -164,11 +165,15 @@ async function loadLiveFeed() {
   if (!sbClient) return;
 
   try {
-    // Load ALL user queries — no limit
-    const { data: queries } = await sbClient
+    // Load ALL user queries with restaurant name via FK join
+    const { data: queries, error } = await sbClient
       .from('user_queries')
-      .select('id, special_request, donde_match, restaurant_name, created_at')
+      .select('id, special_request, donde_match, created_at, recommended_restaurant_id, restaurants(name)')
       .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Live feed query error:', error.message, error.details, error.hint);
+    }
 
     if (queries && queries.length > 0) {
       state.liveFeed = queries;
@@ -246,7 +251,7 @@ async function pollLiveFeed() {
   try {
     let query = sbClient
       .from('user_queries')
-      .select('id, special_request, donde_match, restaurant_name, created_at')
+      .select('id, special_request, donde_match, created_at, recommended_restaurant_id, restaurants(name)')
       .order('created_at', { ascending: false })
       .limit(20);
 
@@ -255,7 +260,8 @@ async function pollLiveFeed() {
       query = query.gt('id', state.liveLastId);
     }
 
-    const { data: newQueries } = await query;
+    const { data: newQueries, error } = await query;
+    if (error) console.error('Live poll error:', error.message);
 
     if (newQueries && newQueries.length > 0) {
       state.liveLastId = newQueries[0].id;

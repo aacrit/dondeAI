@@ -253,6 +253,7 @@ function renderLiveFeed(queries) {
 
   list.innerHTML = queries.map(q => {
     const dm = q.donde_match || 0;
+    const restName = q.restaurants?.name || null;
     const icon = dm >= 60 ? '&#10003;' : dm >= 40 ? '&#9888;' : '&#10007;';
     const iconClass = dm >= 60 ? 'cc-live-icon--pass' : dm >= 40 ? 'cc-live-icon--warn' : 'cc-live-icon--fail';
     return `
@@ -261,7 +262,7 @@ function renderLiveFeed(queries) {
         <span class="cc-live-entry__query">${escapeHtml(q.special_request || '(empty)')}</span>
         <span class="cc-live-entry__dm ${ragClass(dm)}">DM: ${dm}</span>
         <span class="cc-live-entry__icon ${iconClass}">${icon}</span>
-        ${q.restaurant_name ? `<span class="cc-live-entry__rest">${escapeHtml(q.restaurant_name)}</span>` : ''}
+        ${restName ? `<span class="cc-live-entry__rest">${escapeHtml(restName)}</span>` : ''}
       </div>
     `;
   }).join('');
@@ -521,16 +522,17 @@ async function openQueryDetail(queryId) {
   if (!sbClient) { body.innerHTML = '<p>Not authenticated</p>'; return; }
 
   try {
-    // Load full query data with restaurant join
+    // Load full query data with restaurant join via recommended_restaurant_id FK
     const { data: query } = await sbClient
       .from('user_queries')
       .select(`
-        id, special_request, occasion, neighborhood, price_level,
-        donde_match, created_at, restaurant_name, recommended_restaurant_id,
+        id, special_request, occasion, price_level, neighborhood_id,
+        donde_match, created_at, recommended_restaurant_id, response_time_ms,
+        was_fallback, feedback,
         restaurants (
           name, address, cuisine_type, google_rating, google_review_count,
-          price_level, noise_level, best_for_oneliner, neighborhood_name,
-          photo_urls
+          price_level, noise_level, best_for_oneliner,
+          photo_urls, neighborhoods(name)
         )
       `)
       .eq('id', queryId)
@@ -558,9 +560,9 @@ async function openQueryDetail(queryId) {
         <div class="cc-query-panel__val">${escapeHtml(query.occasion)}</div>
       </div>` : ''}
 
-      ${query.neighborhood ? `<div class="cc-query-panel__section">
+      ${query.neighborhood_id ? `<div class="cc-query-panel__section">
         <div class="cc-query-panel__label">Neighborhood</div>
-        <div class="cc-query-panel__val">${escapeHtml(query.neighborhood)}</div>
+        <div class="cc-query-panel__val">${escapeHtml(r?.neighborhoods?.name || query.neighborhood_id)}</div>
       </div>` : ''}
 
       ${query.price_level ? `<div class="cc-query-panel__section">
@@ -576,7 +578,7 @@ async function openQueryDetail(queryId) {
           <div class="cc-query-panel__restaurant">${escapeHtml(r.name)}</div>
           <div class="cc-query-panel__meta">${escapeHtml(r.cuisine_type || '')} ${r.price_level ? '&middot; ' + escapeHtml(r.price_level) : ''}</div>
           <div class="cc-query-panel__meta">${escapeHtml(r.address || '')}</div>
-          <div class="cc-query-panel__meta">${escapeHtml(r.neighborhood_name || '')}</div>
+          <div class="cc-query-panel__meta">${escapeHtml(r.neighborhoods?.name || '')}</div>
         </div>
         ${r.google_rating ? `<div class="cc-query-panel__section">
           <div class="cc-query-panel__label">Google</div>
@@ -596,6 +598,16 @@ async function openQueryDetail(queryId) {
         <div class="cc-query-panel__label">Time</div>
         <div class="cc-query-panel__val">${new Date(query.created_at).toLocaleString('en-US', { timeZone: 'America/Chicago', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
       </div>
+
+      <div class="cc-query-panel__section">
+        <div class="cc-query-panel__label">Response</div>
+        <div class="cc-query-panel__val">${query.response_time_ms ? query.response_time_ms + 'ms' : '--'}${query.was_fallback ? ' &middot; <span style="color:var(--cc-amber)">fallback</span>' : ''}</div>
+      </div>
+
+      ${query.feedback ? `<div class="cc-query-panel__section">
+        <div class="cc-query-panel__label">Feedback</div>
+        <div class="cc-query-panel__val">${query.feedback === 'like' ? '&#128077; Liked' : '&#128078; Disliked'}</div>
+      </div>` : ''}
     `;
   } catch (e) {
     body.innerHTML = '<p>Failed to load query details.</p>';
