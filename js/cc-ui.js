@@ -256,7 +256,7 @@ function renderLiveFeed(queries) {
     const icon = dm >= 60 ? '&#10003;' : dm >= 40 ? '&#9888;' : '&#10007;';
     const iconClass = dm >= 60 ? 'cc-live-icon--pass' : dm >= 40 ? 'cc-live-icon--warn' : 'cc-live-icon--fail';
     return `
-      <div class="cc-live-entry">
+      <div class="cc-live-entry" data-query-id="${q.id}" onclick="openQueryDetail('${q.id}')" style="cursor:pointer" title="Click for details">
         <span class="cc-live-entry__time">${fmtTime(q.created_at)}</span>
         <span class="cc-live-entry__query">${escapeHtml(q.special_request || '(empty)')}</span>
         <span class="cc-live-entry__dm ${ragClass(dm)}">DM: ${dm}</span>
@@ -457,6 +457,7 @@ function initKeyboardShortcuts() {
         toggleShortcuts();
         break;
       case 'Escape':
+        closeQueryPanel();
         closeShortcuts();
         break;
     }
@@ -479,3 +480,132 @@ function closeShortcuts(e) {
 // ═══════════════════════════════════════════════════════════════════
 
 window.addEventListener('resize', () => positionTabIndicator());
+
+// ═══════════════════════════════════════════════════════════════════
+// Pulse Freshness Ticker
+// ═══════════════════════════════════════════════════════════════════
+
+let _freshnessTimer = null;
+
+function startFreshnessTicker() {
+  updateFreshness();
+  _freshnessTimer = setInterval(updateFreshness, 30000); // every 30s
+}
+
+function updateFreshness() {
+  const run = state.latestRun;
+  if (!run) return;
+
+  const ago = timeAgo(run.created_at);
+  const els = ['pulse-health-fresh', 'pulse-quality-fresh', 'pulse-attention-fresh'];
+  els.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = `Updated ${ago}`;
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Query Detail Slide-Out Panel
+// ═══════════════════════════════════════════════════════════════════
+
+async function openQueryDetail(queryId) {
+  const panel = document.getElementById('query-panel');
+  const backdrop = document.getElementById('query-panel-backdrop');
+  const body = document.getElementById('query-panel-body');
+  if (!panel || !body) return;
+
+  body.innerHTML = '<div class="cc-query-panel__loading">Loading query details...</div>';
+  panel.classList.add('cc-query-panel--open');
+  if (backdrop) backdrop.classList.add('cc-query-panel__backdrop--visible');
+
+  if (!sbClient) { body.innerHTML = '<p>Not authenticated</p>'; return; }
+
+  try {
+    // Load full query data with restaurant join
+    const { data: query } = await sbClient
+      .from('user_queries')
+      .select(`
+        id, special_request, occasion, neighborhood, price_level,
+        donde_match, created_at, restaurant_name, recommended_restaurant_id,
+        restaurants (
+          name, address, cuisine_type, google_rating, google_review_count,
+          price_level, noise_level, best_for_oneliner, neighborhood_name,
+          photo_urls
+        )
+      `)
+      .eq('id', queryId)
+      .single();
+
+    if (!query) { body.innerHTML = '<p>Query not found</p>'; return; }
+
+    const dm = query.donde_match || 0;
+    const r = query.restaurants;
+    const photo = r?.photo_urls?.[0] || null;
+
+    body.innerHTML = `
+      <div class="cc-query-panel__score">
+        <span class="cc-query-panel__dm ${ragClass(dm)}">${dm}</span>
+        <span class="cc-query-panel__dm-label">DondeMatch</span>
+      </div>
+
+      <div class="cc-query-panel__section">
+        <div class="cc-query-panel__label">Query</div>
+        <div class="cc-query-panel__val">"${escapeHtml(query.special_request || '(empty)')}"</div>
+      </div>
+
+      ${query.occasion ? `<div class="cc-query-panel__section">
+        <div class="cc-query-panel__label">Occasion</div>
+        <div class="cc-query-panel__val">${escapeHtml(query.occasion)}</div>
+      </div>` : ''}
+
+      ${query.neighborhood ? `<div class="cc-query-panel__section">
+        <div class="cc-query-panel__label">Neighborhood</div>
+        <div class="cc-query-panel__val">${escapeHtml(query.neighborhood)}</div>
+      </div>` : ''}
+
+      ${query.price_level ? `<div class="cc-query-panel__section">
+        <div class="cc-query-panel__label">Price</div>
+        <div class="cc-query-panel__val">${escapeHtml(query.price_level)}</div>
+      </div>` : ''}
+
+      ${r ? `
+        <hr class="cc-query-panel__divider">
+        ${photo ? `<img class="cc-query-panel__photo" src="${photo}" alt="${escapeHtml(r.name)}" loading="lazy">` : ''}
+        <div class="cc-query-panel__section">
+          <div class="cc-query-panel__label">Recommended</div>
+          <div class="cc-query-panel__restaurant">${escapeHtml(r.name)}</div>
+          <div class="cc-query-panel__meta">${escapeHtml(r.cuisine_type || '')} ${r.price_level ? '&middot; ' + escapeHtml(r.price_level) : ''}</div>
+          <div class="cc-query-panel__meta">${escapeHtml(r.address || '')}</div>
+          <div class="cc-query-panel__meta">${escapeHtml(r.neighborhood_name || '')}</div>
+        </div>
+        ${r.google_rating ? `<div class="cc-query-panel__section">
+          <div class="cc-query-panel__label">Google</div>
+          <div class="cc-query-panel__val">${r.google_rating} &#9733; (${r.google_review_count || '?'} reviews)</div>
+        </div>` : ''}
+        ${r.noise_level ? `<div class="cc-query-panel__section">
+          <div class="cc-query-panel__label">Noise</div>
+          <div class="cc-query-panel__val">${escapeHtml(r.noise_level)}</div>
+        </div>` : ''}
+        ${r.best_for_oneliner ? `<div class="cc-query-panel__section">
+          <div class="cc-query-panel__label">Best For</div>
+          <div class="cc-query-panel__val">${escapeHtml(r.best_for_oneliner)}</div>
+        </div>` : ''}
+      ` : '<div class="cc-query-panel__section"><div class="cc-query-panel__val">No restaurant data</div></div>'}
+
+      <div class="cc-query-panel__section">
+        <div class="cc-query-panel__label">Time</div>
+        <div class="cc-query-panel__val">${new Date(query.created_at).toLocaleString('en-US', { timeZone: 'America/Chicago', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
+      </div>
+    `;
+  } catch (e) {
+    body.innerHTML = '<p>Failed to load query details.</p>';
+    console.warn('Query detail load failed:', e);
+  }
+}
+
+function closeQueryPanel() {
+  const panel = document.getElementById('query-panel');
+  const backdrop = document.getElementById('query-panel-backdrop');
+  if (panel) panel.classList.remove('cc-query-panel--open');
+  if (backdrop) backdrop.classList.remove('cc-query-panel__backdrop--visible');
+}

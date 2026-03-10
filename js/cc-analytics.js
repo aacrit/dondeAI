@@ -69,6 +69,9 @@ async function initDashboard() {
 
   // Smart suggestion
   updateSmartSuggestion();
+
+  // Start freshness ticker on pulse cards
+  if (typeof startFreshnessTicker === 'function') startFreshnessTicker();
 }
 
 // ═══════════════════════════════════════════════════════════════════

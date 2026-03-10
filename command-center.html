@@ -48,7 +48,7 @@
 
     <!-- ═══ Pulse: 3 hero KPI cards ═══ -->
     <section class="cc-pulse" id="pulse-section">
-      <div class="cc-pulse__card cc-pulse__card--health" id="pulse-health" role="button" tabindex="0" title="System health from latest test run" aria-live="polite">
+      <div class="cc-pulse__card cc-pulse__card--health" id="pulse-health" role="button" tabindex="0" title="Click to view test history" aria-live="polite">
         <div class="cc-pulse__ring">
           <svg viewBox="0 0 80 80" class="cc-pulse__svg">
             <circle cx="40" cy="40" r="34" fill="none" stroke="var(--cc-surface-3)" stroke-width="5"/>
@@ -60,18 +60,21 @@
         </div>
         <div class="cc-pulse__label">System Health</div>
         <div class="cc-pulse__sub" id="pulse-health-sub">Loading...</div>
+        <div class="cc-pulse__freshness" id="pulse-health-fresh"></div>
       </div>
 
-      <div class="cc-pulse__card cc-pulse__card--quality" id="pulse-quality" role="button" tabindex="0" title="Average DondeMatch score">
+      <div class="cc-pulse__card cc-pulse__card--quality" id="pulse-quality" role="button" tabindex="0" title="Click to view live production">
         <div class="cc-pulse__big" id="pulse-quality-val">--</div>
         <div class="cc-pulse__label">Avg DondeMatch</div>
         <div class="cc-pulse__sub" id="pulse-quality-sub">Loading...</div>
+        <div class="cc-pulse__freshness" id="pulse-quality-fresh"></div>
       </div>
 
-      <div class="cc-pulse__card cc-pulse__card--attention" id="pulse-attention" role="button" tabindex="0" title="Issues needing attention">
+      <div class="cc-pulse__card cc-pulse__card--attention" id="pulse-attention" role="button" tabindex="0" title="Click to view issues">
         <div class="cc-pulse__big cc-pulse__big--attention" id="pulse-attention-val">--</div>
         <div class="cc-pulse__label">Needs Attention</div>
         <div class="cc-pulse__sub" id="pulse-attention-sub">Loading...</div>
+        <div class="cc-pulse__freshness" id="pulse-attention-fresh"></div>
       </div>
     </section>
 
@@ -229,6 +232,18 @@
         </div>
       </div>
     </div>
+
+    <!-- ═══ Query Detail Slide-Out ═══ -->
+    <div class="cc-query-panel" id="query-panel">
+      <div class="cc-query-panel__header">
+        <span class="cc-query-panel__title">Query Detail</span>
+        <button class="cc-query-panel__close" onclick="closeQueryPanel()" title="Close">&times;</button>
+      </div>
+      <div class="cc-query-panel__body" id="query-panel-body">
+        <!-- Populated dynamically -->
+      </div>
+    </div>
+    <div class="cc-query-panel__backdrop" id="query-panel-backdrop" onclick="closeQueryPanel()"></div>
 
     <!-- ═══ Tab Panel: DATA ═══ -->
     <div class="cc-tab-panel" id="panel-data" role="tabpanel">

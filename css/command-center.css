@@ -1024,6 +1024,133 @@ body {
 ::-webkit-scrollbar-thumb:hover { background: var(--cc-border-focus); }
 
 /* ─── Reduced Motion ─── */
+/* ─── Pulse Freshness ─── */
+.cc-pulse__freshness {
+  font-size: 0.65rem;
+  color: var(--cc-text-3);
+  margin-top: 4px;
+  opacity: 0.7;
+}
+
+/* ─── Query Detail Slide-Out ─── */
+.cc-query-panel {
+  position: fixed;
+  top: 0;
+  right: -420px;
+  width: 400px;
+  max-width: 90vw;
+  height: 100vh;
+  background: var(--cc-surface);
+  border-left: 1px solid var(--cc-border);
+  z-index: 100;
+  overflow-y: auto;
+  transition: right 300ms cubic-bezier(0.22, 1, 0.36, 1);
+  padding: 0;
+}
+.cc-query-panel--open { right: 0; }
+
+.cc-query-panel__backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 99;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 300ms ease;
+}
+.cc-query-panel__backdrop--visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.cc-query-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--cc-border);
+  position: sticky;
+  top: 0;
+  background: var(--cc-surface);
+  z-index: 1;
+}
+.cc-query-panel__title {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--cc-text);
+}
+.cc-query-panel__close {
+  background: none;
+  border: none;
+  color: var(--cc-text-3);
+  font-size: 1.4rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+.cc-query-panel__close:hover { background: var(--cc-surface-2); color: var(--cc-text); }
+
+.cc-query-panel__body { padding: 20px; }
+.cc-query-panel__loading { color: var(--cc-text-3); font-size: 0.85rem; }
+
+.cc-query-panel__score {
+  text-align: center;
+  margin-bottom: 20px;
+}
+.cc-query-panel__dm {
+  font-family: var(--cc-mono);
+  font-size: 2.5rem;
+  font-weight: 700;
+  display: block;
+}
+.cc-query-panel__dm-label {
+  font-size: 0.75rem;
+  color: var(--cc-text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.cc-query-panel__section { margin-bottom: 14px; }
+.cc-query-panel__label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--cc-text-3);
+  margin-bottom: 2px;
+}
+.cc-query-panel__val {
+  font-size: 0.85rem;
+  color: var(--cc-text);
+}
+.cc-query-panel__restaurant {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--cc-text);
+  margin-bottom: 2px;
+}
+.cc-query-panel__meta {
+  font-size: 0.78rem;
+  color: var(--cc-text-2);
+}
+.cc-query-panel__divider {
+  border: none;
+  border-top: 1px solid var(--cc-border);
+  margin: 16px 0;
+}
+.cc-query-panel__photo {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  border-radius: var(--cc-radius);
+  margin-bottom: 12px;
+}
+
+/* ─── Live entry hover ─── */
+.cc-live-entry:hover {
+  background: var(--cc-surface-2);
+  border-radius: 4px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
@@ -1033,19 +1160,37 @@ body {
 
 /* ─── Responsive ─── */
 @media (max-width: 768px) {
-  .cc-pulse { grid-template-columns: 1fr; }
+  .cc-pulse { grid-template-columns: 1fr; gap: 12px; }
+  .cc-pulse__card {
+    padding: 24px 20px;
+    min-height: 80px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    /* Larger touch target on mobile */
+    -webkit-tap-highlight-color: transparent;
+  }
+  .cc-pulse__ring { width: 64px; height: 64px; margin-bottom: 6px; }
+  .cc-pulse__big { font-size: 2rem; }
+  .cc-pulse__label { font-size: 0.9rem; }
+  .cc-pulse__sub { font-size: 0.8rem; }
   .cc-test-grid { grid-template-columns: repeat(2, 1fr); }
   .cc-live-kpis { grid-template-columns: repeat(2, 1fr); }
   .cc-db-overview { grid-template-columns: repeat(2, 1fr); }
   .cc-pipeline-grid { grid-template-columns: repeat(2, 1fr); }
   .cc-main { padding: 16px 12px; }
+  .cc-query-panel { width: 100vw; max-width: 100vw; right: -100vw; }
+  .cc-live-entry { padding: 10px 8px; }
 }
 
 @media (max-width: 480px) {
+  .cc-pulse__card { padding: 20px 16px; }
   .cc-test-grid { grid-template-columns: 1fr; }
   .cc-pipeline-grid { grid-template-columns: 1fr; }
   .cc-live-kpis { grid-template-columns: 1fr; }
   .cc-header { padding: 10px 12px; }
   .cc-header__title { display: none; }
   .cc-shortcuts-grid { grid-template-columns: 1fr; }
+  .cc-live-filter { flex-wrap: wrap; }
 }
