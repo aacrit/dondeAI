@@ -1,6 +1,6 @@
 /**
- * DondeAI Command Center — Configuration & Constants
- * Shared state, agent definitions, query banks
+ * DondeAI Command Center v2 — Configuration & Constants
+ * Simplified: no agent gamification, focused on test types + live monitoring
  */
 
 // ═══════════════════════════════════════════════════════════════════
@@ -11,21 +11,32 @@ const SUPABASE_URL = 'https://vwbzkgsxmgwcvmvuxnbe.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3YnprZ3N4bWd3Y3ZtdnV4bmJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk5NjUzNTYsImV4cCI6MjA4NTU0MTM1Nn0.YBhmusYxc28TD5FOZv4TBpFpDVHHk1V894wUkNtJtcc';
 const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3YnprZ3N4bWd3Y3ZtdnV4bmJlIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2OTk2NTM1NiwiZXhwIjoyMDg1NTQxMzU2fQ.LZCrx5IKqkbfO0j9tCeYz309q59lmVuqyfm0DS6JOxk';
 const ADMIN_EMAIL = 'aacrit@gmail.com';
-const DAILY_BUDGET = 50;
-const XP_PER_LEVEL = 500;
-const POLL_INTERVAL_RUNNING = 3000;
-const POLL_INTERVAL_PAUSED = 10000;
-const MAX_LOG_ENTRIES = 100;
 const API_BASE = 'https://vwbzkgsxmgwcvmvuxnbe.supabase.co/functions/v1/recommend';
+const LIVE_POLL_INTERVAL = 10000;
+const PIPE_POLL_INTERVAL = 15000;
 
-const AGENT_DEFS = {
-  atlas:    { name: 'Atlas',    title: 'Search Coverage',   budget: 20, color: '#3b82f6' },
-  qaudit:   { name: 'QAudit',   title: 'Blurb Quality',     budget: 5,  color: '#8b5cf6' },
-  sentinel: { name: 'Sentinel', title: 'Regression Watch',  budget: 15, color: '#f59e0b' },
-  hunter:   { name: 'Hunter',   title: 'Edge Cases',        budget: 10, color: '#ef4444' },
-  guardian: { name: 'Guardian', title: 'Data Integrity',    budget: 5,  color: '#22c55e' },
+// ═══════════════════════════════════════════════════════════════════
+// Test Type Definitions
+// ═══════════════════════════════════════════════════════════════════
+
+const TEST_TYPES = {
+  broad:      { name: 'Broad Scan',       count: 20, cost: '~$0.20', time: '~2 min' },
+  category:   { name: 'Category Focus',   count: 15, cost: '~$0.15', time: '~1 min' },
+  regression: { name: 'Regression Guard',  count: 23, cost: '~$0.25', time: '~3 min' },
+  edge:       { name: 'Edge Cases',        count: 20, cost: '~$0.20', time: '~1 min' },
+  blurb:      { name: 'Blurb Quality',     count: 10, cost: '~$0.05', time: '~30s' },
+  coverage:   { name: 'Data Coverage',     count: 10, cost: '~$0.05', time: '~30s' },
 };
 
+const QUERY_CATEGORIES = {
+  Food:    { label: 'Food',    color: '#f97316', desc: 'Dish & cuisine queries' },
+  Vibe:    { label: 'Vibe',    color: '#a855f7', desc: 'Atmosphere & mood' },
+  Service: { label: 'Service', color: '#3b82f6', desc: 'Occasion & group' },
+  Rep:     { label: 'Rep',     color: '#eab308', desc: 'Reputation & prestige' },
+  Conv:    { label: 'Conv',    color: '#22c55e', desc: 'Convenience & access' },
+};
+
+// Banned cliché patterns for Blurb QA
 const BANNED_PATTERNS = [
   'culinary', 'gastronomic', 'delectable', 'exquisite', 'tantalizing',
   'delightful', 'mouthwatering', 'nestled', 'tucked away', 'hidden gem',
@@ -39,6 +50,7 @@ const BANNED_PATTERNS = [
   'crafted with', 'something for everyone',
 ];
 
+// Edge case probes for Edge Case tests
 const EDGE_PROBES = [
   { id: 'EC-01', input: '', name: 'Empty request' },
   { id: 'EC-02', input: 'a'.repeat(500), name: 'Max length input' },
@@ -62,6 +74,7 @@ const EDGE_PROBES = [
   { id: 'EC-20', input: 'Find me a place that is not too expensive but also not cheap with good vibes and great food preferably Italian or maybe Mexican actually surprise me', name: 'Run-on multi-intent' },
 ];
 
+// Golden queries with baseline scores for Regression Guard
 const GOLDEN_QUERIES = [
   { id: 'GD-F01', cat: 'Food', query: 'best burger in Chicago', minScore: 55 },
   { id: 'GD-F02', cat: 'Food', query: 'authentic Chinese food', minScore: 55 },
@@ -88,98 +101,35 @@ const GOLDEN_QUERIES = [
   { id: 'GD-C03', cat: 'Conv', query: 'cheap eats', minScore: 45 },
 ];
 
-// ATLAS_QUERIES — merged at runtime from CHICAGO_QUERIES (cc-queries.js) + handcrafted extras
-// CHICAGO_QUERIES is loaded from cc-queries.js (1042 queries from golden dataset + atlas JSONL)
-// This merges and deduplicates at init time
-const ATLAS_QUERIES = (() => {
-  const pool = typeof CHICAGO_QUERIES !== 'undefined' ? [...CHICAGO_QUERIES] : [];
-  return pool;
-})();
+// Pipeline definitions for Data tab
+const PIPELINES = [
+  { id: 'discovery',    name: 'Discovery',     icon: '&#128269;' },
+  { id: 'enrichment',   name: 'Enrichment',    icon: '&#9878;' },
+  { id: 'scores_tags',  name: 'Scores & Tags', icon: '&#9733;' },
+  { id: 'audit',        name: 'Full Audit',    icon: '&#128203;' },
+];
 
-// Fisher-Yates shuffle
-function shuffle(arr) {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
-// Query category definitions for coverage filtering
-const QUERY_CATEGORIES = {
-  Food:    { label: 'Food',    color: '#f97316', desc: 'Dish & cuisine queries' },
-  Vibe:    { label: 'Vibe',    color: '#a855f7', desc: 'Atmosphere & mood' },
-  Service: { label: 'Service', color: '#3b82f6', desc: 'Occasion & group' },
-  Rep:     { label: 'Rep',     color: '#eab308', desc: 'Reputation & prestige' },
-  Conv:    { label: 'Conv',    color: '#22c55e', desc: 'Convenience & access' },
-};
+// Required fields for Data Coverage test
+const REQUIRED_FIELDS = ['name', 'address', 'cuisine_type', 'google_rating', 'noise_level', 'price_level', 'phone', 'neighborhood_name', 'lighting_ambiance'];
 
 // ═══════════════════════════════════════════════════════════════════
-// Global State
+// Global State (simplified — no agent gamification)
 // ═══════════════════════════════════════════════════════════════════
 
 let state = {
-  systemState: 'idle',
-  startTime: null,
-  soundEnabled: false,
-  logFilter: 'all',
-  budgetUsed: 0,
-  budgetDate: new Date().toISOString().split('T')[0],
-  notifications: [],
-  pollTimer: null,
-  clockTimer: null,
-  agents: {
-    atlas:    { status: 'idle', hp: 100, xp: 0, level: 1, queries: 0, pass: 0, total: 0, avgDm: 0, gaps: 0, apiUsed: 0 },
-    qaudit:   { status: 'idle', hp: 100, xp: 0, level: 1, audits: 0, grade: '--', slop: 0, clean: 0 },
-    sentinel: { status: 'idle', hp: 100, xp: 0, level: 1, checks: 0, regressions: 0, baseline: '--', delta: '--', apiUsed: 0 },
-    hunter:   { status: 'idle', hp: 100, xp: 0, level: 1, probes: 0, vulns: 0, contract: '--', errors: 0, apiUsed: 0 },
-    guardian: { status: 'idle', hp: 100, xp: 0, level: 1, records: 0, issues: 0, orphans: 0, coverage: '--', apiUsed: 0 },
-  },
-  logs: [],
-  cycleTimers: {},
-  sessionResults: [],  // Per-query results accumulated during active session (not persisted to localStorage)
-  maxTestQueries: 10,  // Configurable via Start dropdown slider
+  activeTab: 'test',
+  activeTest: null,       // { type, abortController, progress, total, results[], startTime }
+  livePolling: false,
+  liveFeed: [],
+  liveLastId: null,
+  latestRun: null,
+  pipelineStatuses: {},
+  pipePollTimer: null,
+  livePollTimer: null,
 };
 
-// Maintenance state
-let maintenanceLoaded = false;
-let maintenancePollTimer = null;
-
-// Pipeline definitions for Data Maintenance section
-const PIPELINES = [
-  {
-    id: 'discovery', name: 'Restaurant Discovery', icon: '&#128269;',
-    desc: 'Find new restaurants via Google Places API across cuisines and neighborhoods.',
-    cost: 'Free (Google API)', script: 'discovery.ts',
-    stages: ['Google Search', 'Filter Quality', 'Insert New', 'Deduplicate'],
-  },
-  {
-    id: 'enrichment', name: 'Data Enrichment', icon: '&#9889;',
-    desc: 'Fill missing fields (ambiance, dietary, cuisine) using Claude AI analysis.',
-    cost: '~$2-5 per run', script: 'enrich-new-or-gaps.ts',
-    stages: ['Find Gaps', 'Claude Enrich', 'Update DB', 'Validate'],
-  },
-  {
-    id: 'scores_tags', name: 'Scores & Tags', icon: '&#127991;',
-    desc: 'Generate occasion scores and descriptive tags for unscored restaurants.',
-    cost: '~$1-2 per run', script: 'generate-occasion-scores.ts + generate-tags.ts',
-    stages: ['Load Unscored', 'Score Occasions', 'Generate Tags', 'Verify'],
-  },
-  {
-    id: 'audit', name: 'Audit & Cleanup', icon: '&#128202;',
-    desc: 'Full dataset scan for quality grading, integrity issues, and cleanup.',
-    cost: 'Free (read-only)', script: 'audit-full-dataset.ts',
-    stages: ['Full Scan', 'Grade Quality', 'Flag Issues', 'Report'],
-  },
-];
-
-// Gauntlet analytics state
-let dashData = null;
-let allGapsRef = [];
-let historyLoaded = false;
-let gapDetailsData = null;
-let gapDetailsLoaded = false;
+// Supabase client (set by cc-analytics.js after auth)
+let sbClient = null;
 
 // ═══════════════════════════════════════════════════════════════════
 // Helpers
@@ -206,12 +156,6 @@ function escapeHtml(s) {
   return d.innerHTML;
 }
 
-function factorColor(v) {
-  if (v >= 7) return 'var(--cc-green)';
-  if (v >= 5) return 'var(--cc-amber)';
-  return 'var(--cc-red)';
-}
-
 function determineGapType(result, dm) {
   if (!result || dm >= 60) return null;
   const sv9 = result.scoring_v9 || {};
@@ -224,31 +168,25 @@ function determineGapType(result, dm) {
   return 'scoring';
 }
 
-function loadState() {
-  try {
-    const saved = localStorage.getItem('arcade-ops-state');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (parsed.budgetDate !== new Date().toISOString().split('T')[0]) {
-        parsed.budgetUsed = 0;
-        parsed.budgetDate = new Date().toISOString().split('T')[0];
-        Object.values(parsed.agents).forEach(a => { if (a.apiUsed !== undefined) a.apiUsed = 0; });
-      }
-      Object.assign(state.agents, parsed.agents || {});
-      state.budgetUsed = parsed.budgetUsed || 0;
-      state.budgetDate = parsed.budgetDate || state.budgetDate;
-      state.logs = parsed.logs || [];
-    }
-  } catch (e) { /* ignore */ }
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
 }
 
-function saveState() {
-  try {
-    localStorage.setItem('arcade-ops-state', JSON.stringify({
-      agents: state.agents,
-      budgetUsed: state.budgetUsed,
-      budgetDate: state.budgetDate,
-      logs: state.logs.slice(-MAX_LOG_ENTRIES),
-    }));
-  } catch (e) { /* ignore */ }
+function timeAgo(ts) {
+  const diff = Date.now() - new Date(ts).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
+
+function fmtTime(ts) {
+  return new Date(ts).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 }
