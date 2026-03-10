@@ -111,6 +111,95 @@ export function playCelebrationChime() {
   pulseBlobs();
 }
 
+/** Tier 1 settle chime — single warm note for 70-79 scores */
+export function playSettleChime() {
+  const { soundEnabled, theme } = getState();
+  if (!soundEnabled) return;
+  const ctx = getCtx();
+  if (!ctx) return;
+  const profile = CHIME_PROFILES[theme.culture] || CHIME_PROFILES.neutral;
+  const now = ctx.currentTime;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = profile.wave;
+  osc.frequency.value = profile.freq[0];
+  gain.gain.setValueAtTime(0.1, now);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + profile.decay + 0.2);
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start(now);
+  osc.stop(now + profile.decay + 0.3);
+}
+
+/** Tier 2 glow chime — 2-note for 80-87 scores */
+export function playGlowChime() {
+  const { soundEnabled, theme } = getState();
+  if (!soundEnabled) return;
+  const ctx = getCtx();
+  if (!ctx) return;
+  const profile = CHIME_PROFILES[theme.culture] || CHIME_PROFILES.neutral;
+  const now = ctx.currentTime;
+  profile.freq.slice(0, 2).forEach((freq, i) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = profile.wave;
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.12, now + i * 0.1);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.1 + profile.decay);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now + i * 0.1);
+    osc.stop(now + i * 0.1 + profile.decay + 0.1);
+  });
+  pulseBlobs();
+}
+
+/** Tier 4 spectacle chime — full arpeggio + bass hit for 95-100 scores */
+export function playSpectacleChime() {
+  const { soundEnabled, theme } = getState();
+  if (!soundEnabled) return;
+  const ctx = getCtx();
+  if (!ctx) return;
+  const profile = CHIME_PROFILES[theme.culture] || CHIME_PROFILES.neutral;
+  const now = ctx.currentTime;
+
+  // Deep bass hit first
+  const bassOsc = ctx.createOscillator();
+  const bassGain = ctx.createGain();
+  bassOsc.type = 'sine';
+  bassOsc.frequency.value = profile.freq[0] / 2; // octave below
+  bassGain.gain.setValueAtTime(0.18, now);
+  bassGain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+  bassOsc.connect(bassGain);
+  bassGain.connect(ctx.destination);
+  bassOsc.start(now);
+  bassOsc.stop(now + 0.9);
+
+  // Then the full celebration arpeggio (delayed slightly)
+  const celebFreqs = [
+    ...profile.freq,
+    profile.freq[2] * 1.26,
+    profile.freq[2] * 1.5,
+    profile.freq[2] * 2, // extra octave for spectacle
+  ];
+  celebFreqs.forEach((freq, i) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = profile.wave;
+    osc.frequency.value = freq;
+    const start = now + 0.15 + i * 0.09;
+    const vol = 0.14 - i * 0.01;
+    gain.gain.setValueAtTime(Math.max(vol, 0.06), start);
+    gain.gain.exponentialRampToValueAtTime(0.001, start + 1.0);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(start);
+    osc.stop(start + 1.1);
+  });
+
+  pulseBlobs();
+}
+
 function pulseBlobs() {
   const blobs = document.querySelectorAll('.ambient__blob');
   if (!blobs.length) return;

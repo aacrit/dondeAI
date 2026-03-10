@@ -6,7 +6,34 @@
 
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)');
 
+/* ---- Rive Runtime (async, non-blocking) ---- */
+let _rive = null;
+let _riveReady = false;
+
+/**
+ * Initialize Rive runtime for logo + celebration animations.
+ * Falls back gracefully to existing SVG animations if Rive fails to load.
+ * Call loadRive() once at app boot — it's non-blocking.
+ */
+export function loadRive() {
+  // Dynamic import — only loads if .riv assets exist
+  import('https://cdn.jsdelivr.net/npm/@rive-app/canvas@2/+esm')
+    .then((mod) => {
+      _rive = mod;
+      _riveReady = true;
+    })
+    .catch(() => {
+      // Rive not available — SVG fallback will be used
+      _riveReady = false;
+    });
+}
+
+/** Check if Rive is ready */
+export function hasRive() { return _riveReady; }
+
 /* ---- Match Ring Animation (Percentage-based, 0-100) ---- */
+let _scoreRingSpring = null;
+
 export function animateScoreRing(rawScore) {
   const pct = Math.round(parseFloat(rawScore) || 80);
   const fill = document.getElementById('score-ring-fill');
@@ -14,38 +41,41 @@ export function animateScoreRing(rawScore) {
   const verdictEl = document.getElementById('score-verdict');
   if (!fill || !numEl) return;
 
+  // Cancel any prior spring animation
+  if (_scoreRingSpring) { _scoreRingSpring.stop(); _scoreRingSpring = null; }
+
   const circumference = 2 * Math.PI * 45; // r=45
-  const target = circumference - (pct / 100) * circumference;
+  const targetOffset = circumference - (pct / 100) * circumference;
 
   fill.style.stroke = 'var(--ac)';
 
   if (REDUCED.matches) {
-    fill.style.strokeDashoffset = target;
+    fill.style.strokeDashoffset = targetOffset;
     numEl.textContent = pct + '%';
     return;
   }
 
-  // Animate ring fill
+  // Set initial state
   fill.style.strokeDasharray = circumference;
   fill.style.strokeDashoffset = circumference;
+  fill.style.transition = 'none';
 
-  requestAnimationFrame(() => {
-    fill.style.transition = `stroke-dashoffset 1200ms cubic-bezier(0.34, 1.56, 0.64, 1)`;
-    fill.style.strokeDashoffset = target;
+  // Spring-driven ring fill + count-up (real spring physics via Motion One)
+  _scoreRingSpring = springValue({
+    from: 0,
+    to: pct,
+    spring: SPRINGS.score,
+    onUpdate(v) {
+      const current = Math.round(v);
+      numEl.textContent = current + '%';
+      fill.style.strokeDashoffset = circumference - (v / 100) * circumference;
+    },
+    onComplete() {
+      numEl.textContent = pct + '%';
+      fill.style.strokeDashoffset = targetOffset;
+      _scoreRingSpring = null;
+    }
   });
-
-  // Count-up to percentage
-  const duration = 1200;
-  const start = performance.now();
-  function tick(now) {
-    const elapsed = now - start;
-    const progress = Math.min(elapsed / duration, 1);
-    const eased = 1 - Math.pow(1 - progress, 3);
-    numEl.textContent = Math.round(pct * eased) + '%';
-    if (progress < 1) requestAnimationFrame(tick);
-    else numEl.textContent = pct + '%';
-  }
-  requestAnimationFrame(tick);
 
   // Verdict word label: ink-reveal entrance (left-to-right clip) after number settles
   if (verdictEl) {
@@ -58,34 +88,27 @@ export function animateScoreRing(rawScore) {
       verdictEl.style.clipPath = 'inset(0 0 0 0)';
     }, 1000);
 
-    // Scale emphasis pulse after ink-reveal completes
-    if (!REDUCED.matches) {
+    // Scale emphasis pulse via spring after ink-reveal completes
+    setTimeout(() => {
+      springAnimate(verdictEl, { transform: 'scale(1.08)' }, { spring: SPRINGS.snappy, duration: 300 });
       setTimeout(() => {
-        verdictEl.style.transition = 'transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
-        verdictEl.style.transform = 'scale(1.08)';
-        setTimeout(() => {
-          verdictEl.style.transform = 'scale(1)';
-        }, 150);
-      }, 1500);
-    }
+        springAnimate(verdictEl, { transform: 'scale(1)' }, { spring: SPRINGS.snappy, duration: 200 });
+      }, 150);
+    }, 1500);
   }
 
-  // Celebration glow for exceptional matches
-  // V5: Perfect Match tier — celebration at 88+ (was 85+ in V4)
-  if (!REDUCED.matches && pct >= 88) {
+  // Celebration — now tiered (see fireCelebration)
+  if (pct >= 70) {
+    const delay = pct >= 88 ? 1400 : 1600;
     setTimeout(() => {
-      const tile = document.getElementById('score-tile-donde');
-      if (tile) {
-        tile.classList.add('score-tile--celebrating');
-        tile.addEventListener('animationend',
-          () => tile.classList.remove('score-tile--celebrating'), { once: true });
-      }
-    }, 1400);
+      fireCelebration(pct);
+    }, delay);
   }
 }
 
 /* ---- Imports ---- */
 import { svgIcon, buildVibeSummary, getScoreThresholdColor, getScoreTier, getFactorColor, humanizeSnake, humanizeSignal, getFactorLabel, strengthDots } from './utils.js';
+import { springValue, springAnimate, SPRINGS, hasMotion } from './spring.js';
 
 /** V5 Factor dimensions */
 const FACTOR_DIMS = [
@@ -572,6 +595,12 @@ export function renderFactorBars(scoringData, timers = [], restaurantData = null
 
     // Staggered fade-in + bar fill
     const fill = row.querySelector('.factor-row__bar-fill');
+    // Set CSS custom property for scroll-timeline animation
+    if (fill) {
+      fill.style.setProperty('--factor-pct', (parseFloat(fill.dataset.width) / 100).toFixed(2));
+      // Add scroll-driven class for progressive enhancement
+      fill.classList.add('factor-row__bar-fill--scroll-driven');
+    }
     if (!REDUCED.matches) {
       wrapper.style.opacity = '0';
       wrapper.style.transform = 'translateY(4px)';
@@ -1498,11 +1527,13 @@ export function startParticles(canvasEl) {
     const accentColor = getComputedStyle(canvasEl).getPropertyValue('--ac').trim() || '#6c5ce7';
 
     for (const p of particles) {
-      // Gentle inward drift — particles slowly move toward center
+      // Gentle inward drift + sine-wave wind for organic floating
       const dx = p.targetX - p.x;
       const dy = p.targetY - p.y;
-      p.x += dx * 0.003 + (Math.random() - 0.5) * 0.8;
-      p.y += dy * 0.003 + (Math.random() - 0.5) * 0.8;
+      const windX = Math.sin(now * 0.0008 + p.speed * 20) * 0.4;
+      const windY = Math.cos(now * 0.0006 + p.speed * 15) * 0.2;
+      p.x += dx * 0.003 + (Math.random() - 0.5) * 0.6 + windX;
+      p.y += dy * 0.003 + (Math.random() - 0.5) * 0.6 + windY;
 
       const alpha = 0.15 + Math.sin(elapsed * 0.001 + p.speed * 10) * 0.08;
 
@@ -1534,16 +1565,59 @@ export function stopParticles() {
 /* ---- Celebration Burst (confetti particles for 90%+ scores) ---- */
 let celebAnimId = null;
 
-export function fireCelebration() {
-  if (REDUCED.matches) return;
+/* ---- Tiered Celebration System ---- */
+/**
+ * Tier 1 (70-79): Settle — ring pulse glow, soft chime
+ * Tier 2 (80-87): Glow — ring glow + subtle particle burst (12)
+ * Tier 3 (88-94): Confetti — full confetti (36) + glow + arpeggio
+ * Tier 4 (95-100): Spectacle — screen shimmer + confetti + "Perfect Match" ink-reveal
+ */
+function getCelebrationTier(score) {
+  if (score >= 95) return 4;
+  if (score >= 88) return 3;
+  if (score >= 80) return 2;
+  if (score >= 70) return 1;
+  return 0;
+}
 
+export function fireCelebration(score) {
+  if (REDUCED.matches) return;
+  const tier = typeof score === 'number' ? getCelebrationTier(score) : 3;
+  if (tier === 0) return;
+
+  // Tier 1+: Ring pulse glow
+  const ringWrap = document.querySelector('.score-hero__ring-wrap');
+  if (ringWrap) {
+    ringWrap.classList.add('score-hero__ring-wrap--celebrating');
+    ringWrap.addEventListener('animationend',
+      () => ringWrap.classList.remove('score-hero__ring-wrap--celebrating'), { once: true });
+  }
+  const tile = document.getElementById('score-tile-donde');
+  if (tile) {
+    tile.classList.add('score-tile--celebrating');
+    tile.addEventListener('animationend',
+      () => tile.classList.remove('score-tile--celebrating'), { once: true });
+  }
+
+  // Tier 2+: Particle burst
+  if (tier >= 2) {
+    const count = tier >= 3 ? 36 : 12;
+    _fireParticleBurst(count, tier >= 3);
+  }
+
+  // Tier 4: Spectacle
+  if (tier >= 4) {
+    _fireSpectacle(score);
+  }
+}
+
+function _fireParticleBurst(count, addTrails) {
   const canvas = document.getElementById('particle-canvas');
   if (!canvas) return;
 
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
 
-  // Ensure canvas matches viewport
   canvas.width = canvas.offsetWidth * (window.devicePixelRatio || 1);
   canvas.height = canvas.offsetHeight * (window.devicePixelRatio || 1);
   canvas.style.display = '';
@@ -1551,31 +1625,27 @@ export function fireCelebration() {
 
   const w = canvas.offsetWidth;
   const h = canvas.offsetHeight;
-
-  // Get accent color for theming particles
   const ac = getComputedStyle(document.documentElement).getPropertyValue('--ac').trim() || '#6c5ce7';
-
-  // Generate confetti particles bursting from center-top area (where score ring is)
   const originX = w / 2;
   const originY = h * 0.3;
   const particles = [];
-
   const COLORS = [ac, '#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4'];
 
-  for (let i = 0; i < 36; i++) {
-    const angle = (Math.random() * Math.PI * 2);
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2;
     const speed = 2 + Math.random() * 4;
     particles.push({
-      x: originX,
-      y: originY,
+      x: originX, y: originY,
       vx: Math.cos(angle) * speed,
-      vy: Math.sin(angle) * speed - 2, // bias upward initially
+      vy: Math.sin(angle) * speed - 2,
       size: 3 + Math.random() * 4,
       color: COLORS[Math.floor(Math.random() * COLORS.length)],
       alpha: 1,
       rotation: Math.random() * 360,
       rotSpeed: (Math.random() - 0.5) * 8,
       shape: Math.random() > 0.5 ? 'rect' : 'circle',
+      trail: addTrails ? [] : null,
+      phase: Math.random() * Math.PI * 2,
     });
   }
 
@@ -1584,22 +1654,36 @@ export function fireCelebration() {
 
   function draw(now) {
     const elapsed = now - startTime;
-    if (elapsed > DURATION) {
-      celebAnimId = null;
-      return;
-    }
+    if (elapsed > DURATION) { celebAnimId = null; return; }
 
     ctx.clearRect(0, 0, w, h);
-
     const progress = elapsed / DURATION;
 
+    // Additive blending for glow
+    ctx.globalCompositeOperation = 'lighter';
+
     for (const p of particles) {
-      p.x += p.vx;
+      // Wind simulation — organic sine drift
+      p.x += p.vx + Math.sin(now * 0.001 + p.phase) * 0.3;
       p.y += p.vy;
-      p.vy += 0.12; // gravity
-      p.vx *= 0.99;  // friction
+      p.vy += 0.12;
+      p.vx *= 0.99;
       p.rotation += p.rotSpeed;
       p.alpha = Math.max(0, 1 - progress * 1.2);
+
+      // Particle trails
+      if (p.trail) {
+        p.trail.push({ x: p.x, y: p.y, a: p.alpha });
+        if (p.trail.length > 5) p.trail.shift();
+        for (let t = 0; t < p.trail.length - 1; t++) {
+          const tp = p.trail[t];
+          ctx.globalAlpha = tp.a * (t / p.trail.length) * 0.3;
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(tp.x, tp.y, p.size / 3, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
 
       ctx.save();
       ctx.translate(p.x, p.y);
@@ -1614,13 +1698,44 @@ export function fireCelebration() {
         ctx.arc(0, 0, p.size / 2, 0, Math.PI * 2);
         ctx.fill();
       }
-
       ctx.restore();
     }
 
+    ctx.globalCompositeOperation = 'source-over';
     celebAnimId = requestAnimationFrame(draw);
   }
 
   if (celebAnimId) cancelAnimationFrame(celebAnimId);
   celebAnimId = requestAnimationFrame(draw);
+}
+
+/** Tier 4: Screen-edge shimmer + "Perfect Match" ink-reveal */
+function _fireSpectacle(score) {
+  let shimmer = document.querySelector('.celebration-spectacle');
+  if (!shimmer) {
+    shimmer = document.createElement('div');
+    shimmer.className = 'celebration-spectacle';
+    shimmer.setAttribute('aria-hidden', 'true');
+    document.querySelector('.app')?.appendChild(shimmer);
+  }
+  shimmer.classList.add('celebration-spectacle--active');
+  shimmer.addEventListener('animationend', () => {
+    shimmer.classList.remove('celebration-spectacle--active');
+  }, { once: true });
+
+  let banner = document.querySelector('.celebration-banner');
+  if (!banner) {
+    banner = document.createElement('div');
+    banner.className = 'celebration-banner type-emotional';
+    banner.setAttribute('aria-hidden', 'true');
+    document.querySelector('.app')?.appendChild(banner);
+  }
+  banner.textContent = score >= 98 ? 'Flawless Match' : 'Perfect Match';
+  banner.classList.add('celebration-banner--active');
+  setTimeout(() => {
+    banner.classList.add('celebration-banner--fading');
+    setTimeout(() => {
+      banner.classList.remove('celebration-banner--active', 'celebration-banner--fading');
+    }, 600);
+  }, 2000);
 }

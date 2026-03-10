@@ -1367,3 +1367,166 @@
     transform: none;
   }
 }
+
+/* ============================================
+   V11: Tiered Celebration System
+   ============================================ */
+
+/* ---- Tier 4: Screen-Edge Shimmer ---- */
+@keyframes screenShimmer {
+  0%   { opacity: 0; background-position: 0% 0%; }
+  15%  { opacity: 1; }
+  85%  { opacity: 1; }
+  100% { opacity: 0; background-position: 400% 0%; }
+}
+
+.celebration-spectacle {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: var(--z-particle);
+  opacity: 0;
+  /* Animated border glow using conic gradient */
+  background: conic-gradient(
+    from 0deg,
+    transparent 0%,
+    var(--ac) 10%,
+    transparent 20%,
+    transparent 50%,
+    var(--ac) 60%,
+    transparent 70%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  padding: 3px;
+  border-radius: 0;
+}
+
+.celebration-spectacle--active {
+  animation: screenShimmer 2.5s var(--ease-out) forwards;
+}
+
+/* ---- Tier 4: "Perfect Match" Ink-Reveal Banner ---- */
+@keyframes bannerInkReveal {
+  0%   { clip-path: inset(0 100% 0 0); opacity: 0; }
+  10%  { opacity: 1; }
+  100% { clip-path: inset(0 0% 0 0); opacity: 1; }
+}
+
+@keyframes bannerFadeOut {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-8px); }
+}
+
+.celebration-banner {
+  position: fixed;
+  top: 15vh;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: var(--text-xl);
+  color: var(--ac);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  pointer-events: none;
+  z-index: var(--z-particle);
+  opacity: 0;
+  white-space: nowrap;
+  text-shadow: 0 2px 12px color-mix(in srgb, var(--ac) 30%, transparent);
+}
+
+.celebration-banner--active {
+  animation: bannerInkReveal 800ms cubic-bezier(0.2, 1, 0.4, 1) forwards;
+}
+
+.celebration-banner--fading {
+  animation: bannerFadeOut 600ms var(--ease-out) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .celebration-spectacle--active,
+  .celebration-banner--active,
+  .celebration-banner--fading {
+    animation: none;
+    opacity: 0;
+  }
+}
+
+/* ============================================
+   V11: View Transitions API
+   ============================================ */
+::view-transition-old(donde-photo),
+::view-transition-new(donde-photo) {
+  animation-duration: 300ms;
+  animation-timing-function: var(--ease-out);
+}
+
+::view-transition-old(donde-photo) {
+  animation-name: fadeAndScaleOut;
+}
+
+::view-transition-new(donde-photo) {
+  animation-name: fadeAndScaleIn;
+}
+
+@keyframes fadeAndScaleOut {
+  from { opacity: 1; transform: scale(1); }
+  to   { opacity: 0; transform: scale(0.95); }
+}
+
+@keyframes fadeAndScaleIn {
+  from { opacity: 0; transform: scale(1.05); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* ============================================
+   V11: CSS Scroll-Timeline (Progressive Enhancement)
+   Factor bars fill as they enter viewport.
+   Insider tip fades in on scroll.
+   ============================================ */
+@supports (animation-timeline: view()) {
+  .factor-row__bar-fill--scroll-driven {
+    animation: factorScrollFill linear both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 100%;
+  }
+
+  @keyframes factorScrollFill {
+    from { transform: scaleX(0); }
+    to   { transform: scaleX(var(--factor-pct, 0.5)); }
+  }
+
+  .insider-tip--scroll-reveal {
+    animation: scrollRevealUp linear both;
+    animation-timeline: view();
+    animation-range: entry 20% entry 80%;
+  }
+
+  @keyframes scrollRevealUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+}
+
+/* ============================================
+   V11: Typography Animations
+   ============================================ */
+
+/* ---- Restaurant Name Entrance (letter-spacing settle) ---- */
+@keyframes nameSettle {
+  from { letter-spacing: 0.15em; opacity: 0; }
+  to   { letter-spacing: 0; opacity: 1; }
+}
+
+.result-card--revealing .result-name--animated {
+  animation: nameSettle 600ms var(--ease-out) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .result-card--revealing .result-name--animated {
+    animation: none;
+    opacity: 1;
+    letter-spacing: 0;
+  }
+}
