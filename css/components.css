@@ -2151,28 +2151,31 @@
   text-overflow: ellipsis;
 }
 
-/* ---- Awards & Recognition Pills ---- */
-/* ---- Detail Strip: awards + perfect-for + comparable (unified inline) ---- */
+/* ---- Detail Strip: awards + perfect-for + comparable (unified compact row) ---- */
 .detail-strip {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
+  align-items: center;
   gap: var(--space-2xs);
-  color: var(--fg3);
 }
 
-.detail-strip__item {
+.detail-strip__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px var(--space-xs);
+  font-size: var(--text-2xs);
+  font-family: var(--font-data);
+  color: var(--fg3);
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
   white-space: nowrap;
 }
 
-.detail-strip__accent {
-  color: var(--fg2);
-}
-
-.detail-strip__dot {
-  opacity: 0.25;
-  font-size: 0.6em;
-  user-select: none;
+.detail-strip__pill svg {
+  opacity: 0.5;
+  flex-shrink: 0;
 }
 
 /* ---- V11: Semantic Concept Tags (factor drill-down) ---- */

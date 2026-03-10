@@ -3824,48 +3824,40 @@ function updateFeedbackSubmitState() {
   if ($submit) $submit.disabled = !(hasCat && hasText);
 }
 
-/* ---- V11: Detail Strip — awards + perfect-for + comparable (unified) ---- */
+/* ---- V11: Detail Strip — awards + perfect-for + comparable as compact pills ---- */
 function renderPerfectFor(data) {
   const $strip = document.getElementById('detail-strip');
   if (!$strip) return;
   $strip.innerHTML = '';
 
-  const items = [];
+  const pills = [];
 
   // Awards (stored by prepareTier2)
   const awards = data._awardBadges || [];
-  awards.forEach(a => items.push({ text: a, accent: true }));
+  awards.forEach(a => pills.push({ icon: 'starFull', text: a }));
 
   // Perfect-for scenarios
   const scenarios = data.deep_context?.best_for_scenarios;
   if (scenarios?.length) {
-    scenarios.slice(0, 3).forEach(s => items.push({ text: s }));
+    scenarios.slice(0, 3).forEach(s => pills.push({ icon: 'heart', text: s }));
   }
 
-  // Comparable restaurants
+  // Comparable restaurants — "like X · Y"
   const comparables = data.deep_context?.comparable_restaurants;
   if (comparables?.length) {
-    items.push({ text: comparables.slice(0, 2).join(' \u00b7 '), italic: true });
+    const text = comparables.slice(0, 2).join(' \u00b7 ');
+    pills.push({ icon: 'forkKnife', text: `like ${text}` });
   }
 
-  if (items.length === 0) {
+  if (pills.length === 0) {
     $strip.style.display = 'none';
     return;
   }
 
-  items.forEach((item, i) => {
-    if (i > 0) {
-      const dot = document.createElement('span');
-      dot.className = 'detail-strip__dot';
-      dot.textContent = '\u00b7';
-      dot.setAttribute('aria-hidden', 'true');
-      $strip.appendChild(dot);
-    }
+  pills.forEach(item => {
     const span = document.createElement('span');
-    span.className = 'detail-strip__item type-data--sm';
-    if (item.accent) span.classList.add('detail-strip__accent');
-    if (item.italic) span.style.fontStyle = 'italic';
-    span.textContent = item.text;
+    span.className = 'detail-strip__pill';
+    span.innerHTML = `${svgIcon(item.icon, 10)}<span>${item.text}</span>`;
     $strip.appendChild(span);
   });
 
