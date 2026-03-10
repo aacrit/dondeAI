@@ -232,7 +232,7 @@ body {
   margin: 0 auto 8px;
 }
 
-.cc-pulse__svg { width: 80px; height: 80px; }
+.cc-pulse__svg { width: clamp(80px, 12vw, 120px); height: clamp(80px, 12vw, 120px); }
 .cc-pulse__svg circle:last-child { transition: stroke-dashoffset 0.9s cubic-bezier(0.22, 1, 0.36, 1); }
 
 .cc-pulse__value {
@@ -311,7 +311,7 @@ body {
 
 .cc-prod-strip__val {
   font-family: var(--cc-mono);
-  font-size: 1.1rem;
+  font-size: 1.3rem;
   font-weight: 700;
   color: var(--cc-text);
 }
@@ -1842,6 +1842,83 @@ tr.expandable:hover td { background: var(--cc-surface-2); }
   color: var(--cc-text-3);
   margin-top: 4px;
 }
+.cc-diff-tolerance {
+  font-size: 0.62rem;
+  color: var(--cc-text-3);
+  margin-top: 4px;
+}
+.cc-sample-guide {
+  font-size: 0.65rem;
+  color: var(--cc-text-3);
+  text-align: center;
+  margin-bottom: 4px;
+}
+.cc-sample-guide span {
+  font-weight: 600;
+  color: var(--cc-text-2);
+}
+.cc-warn {
+  color: var(--cc-amber);
+  font-weight: 500;
+}
+.cc-coverage-line {
+  font-size: 0.65rem;
+  font-family: var(--cc-mono);
+  color: var(--cc-text-2);
+  line-height: 1.5;
+}
+
+/* ─── Category Progress Strip ─── */
+.cc-cat-progress {
+  padding: 12px 16px;
+  background: var(--cc-surface);
+  border: 1px solid var(--cc-border);
+  border-radius: var(--cc-radius);
+  margin: 0 16px 8px;
+}
+.cc-cat-progress__bars { display: flex; flex-direction: column; gap: 6px; }
+.cc-cat-progress__bar { display: flex; align-items: center; gap: 8px; }
+.cc-cat-progress__label {
+  font-size: 0.65rem;
+  font-family: var(--cc-mono);
+  color: var(--cc-text-2);
+  min-width: 50px;
+  text-align: right;
+}
+.cc-cat-progress__track {
+  flex: 1;
+  height: 6px;
+  background: var(--cc-surface-3);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.cc-cat-progress__fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease-out;
+}
+.cc-cat-progress__val {
+  font-size: 0.7rem;
+  font-family: var(--cc-mono);
+  font-weight: 600;
+  min-width: 80px;
+}
+.cc-cat-progress__count {
+  font-weight: 400;
+  color: var(--cc-text-3);
+  margin-left: 4px;
+  font-size: 0.6rem;
+}
+.cc-cat-progress__diff {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--cc-border);
+  font-size: 0.7rem;
+  font-family: var(--cc-mono);
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
 
 /* ─── Filter Presets ─── */
 .cc-filter-presets {
@@ -2756,3 +2833,12 @@ tr.expandable:hover td { background: var(--cc-surface-2); }
 ::-webkit-scrollbar-track { background: var(--cc-bg); }
 ::-webkit-scrollbar-thumb { background: var(--cc-surface-3); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--cc-border-focus); }
+
+/* ─── Reduced Motion ─── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
