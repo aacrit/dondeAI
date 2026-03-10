@@ -1181,16 +1181,7 @@
   100% { transform: scale(1.04) translate(-1%, -0.5%); }
 }
 
-/* ---- Badge / Pill Spring-Pop Stagger (result meta pills) ---- */
-.result-card--revealing .result-meta__pill {
-  opacity: 0;
-  animation: springPop 350ms var(--spring) forwards;
-}
-
-.result-card--revealing .result-meta__pill:nth-child(1) { animation-delay: 120ms; }
-.result-card--revealing .result-meta__pill:nth-child(2) { animation-delay: 180ms; }
-.result-card--revealing .result-meta__pill:nth-child(3) { animation-delay: 240ms; }
-.result-card--revealing .result-meta__pill:nth-child(4) { animation-delay: 300ms; }
+/* result-meta__pill stagger removed — replaced by Info Stream in Tier 2 */
 
 /* ---- Quick Action Icons Spring-Pop ---- */
 .result-card--revealing .quick-action {
@@ -1325,7 +1316,6 @@
     animation: none;
   }
 
-  .result-card--revealing .result-meta__pill,
   .result-card--revealing .quick-action {
     animation: none;
     opacity: 1;

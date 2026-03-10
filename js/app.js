@@ -2513,6 +2513,9 @@ function renderResult(data) {
   animationTimers.forEach(clearTimeout);
   animationTimers = [];
 
+  // Destroy previous Info Stream
+  if (_activeInfoStream) { _activeInfoStream.destroy(); _activeInfoStream = null; }
+
   // Reset tier animation flags for fresh render
   _tier2Animated = false;
   // Reset typewriter flags on story elements
@@ -2636,8 +2639,7 @@ function renderResult(data) {
   const $headerHood = document.getElementById('header-hood');
   if ($headerHood) $headerHood.style.display = 'none';
 
-  // Restaurant meta: website, cuisine, what to order, open/closed pills
-  renderResultMeta(data);
+  // Context pills now rendered by Info Stream in Tier 2 (renderInfoStream)
 
   // Quick actions row: Reserve, Share, Website, Phone (subtle utility pills)
   renderQuickActions(data);
@@ -3926,80 +3928,107 @@ function updateFeedbackSubmitState() {
   if ($submit) $submit.disabled = !(hasCat && hasText);
 }
 
-/* ---- V11: Detail Strip — awards + perfect-for + comparable as compact pills ---- */
-function renderPerfectFor(data) {
-  const $strip = document.getElementById('detail-strip');
-  if (!$strip) return;
-  $strip.innerHTML = '';
+/* ═══════════════════════════════════════════════════════════════════════
+   INFO STREAM — Unified living metadata surface
+   Replaces: renderPerfectFor, renderQuickStats, renderDeepContextExtras,
+             renderResultMeta (context pills portion)
+   ═══════════════════════════════════════════════════════════════════════ */
 
-  const pills = [];
+let _activeInfoStream = null;
 
-  // Awards (stored by prepareTier2)
-  const awards = data._awardBadges || [];
-  awards.forEach(a => pills.push({ icon: 'starFull', text: a }));
-
-  // Perfect-for scenarios
-  const scenarios = data.deep_context?.best_for_scenarios;
-  if (scenarios?.length) {
-    scenarios.slice(0, 3).forEach(s => pills.push({ icon: 'heart', text: s }));
-  }
-
-  if (pills.length === 0) {
-    $strip.style.display = 'none';
-    return;
-  }
-
-  pills.forEach(item => {
-    const span = document.createElement('span');
-    span.className = 'detail-strip__pill';
-    span.innerHTML = `${svgIcon(item.icon, 10)}<span>${item.text}</span>`;
-    $strip.appendChild(span);
-  });
-
-  $strip.style.display = '';
-}
-
-/* ---- 1D: Render Deep Context Extras (USP, Wow Factors, Origin Story) ---- */
-function renderDeepContextExtras(data) {
-  const dc = data.deep_context;
-  if (!dc) return;
-
-  // V11: "Perfect for" scenario pills + "Similar to" comparables
-  renderPerfectFor(data);
-
-  // Quick Stats ribbon — compact deep-context data strip (includes wow factors)
-  renderQuickStats(data);
-
-  // V8: Cuisine drawer — signature dishes + menu highlights + flavor (replaces Known For)
-  renderCuisineDrawer(data);
-
-  // Origin Story
-  const $origin = document.getElementById('origin-story');
-  const $originText = document.getElementById('origin-story-text');
-  if ($origin && $originText && dc.origin_story) {
-    $originText.textContent = dc.origin_story;
-    $origin.style.display = '';
-  } else if ($origin) {
-    $origin.style.display = 'none';
-  }
-}
-
-/* ---- Quick Stats: Impact-ranked deep-context ribbon ---- */
-function renderQuickStats(data) {
-  const $stats = document.getElementById('quick-stats');
-  if (!$stats) return;
-  $stats.innerHTML = '';
-
-  const dc = data.deep_context;
-  if (!dc) { $stats.style.display = 'none'; return; }
-
-  // Dimension weights from scoring — drives which stats surface first
+/* ---- Collect all info items from API response into a single pool ---- */
+function collectInfoStreamItems(data) {
+  const items = [];
+  const r = data.restaurant || {};
+  const dc = data.deep_context || {};
   const dw = data.scoring?.weights_used || data.scoring_v9?.weights_used ||
     { food: 0.25, vibe: 0.20, service: 0.15, reputation: 0.20, convenience: 0.20 };
 
-  const candidates = [];
+  // Ensure dimension weights have fallbacks for derived dimensions
+  const pw = dw.practical ?? dw.convenience ?? 0.20;
+  const ow = dw.occasion ?? dw.service ?? 0.15;
+  const cw = dw.craving ?? dw.food ?? 0.25;
 
-  // -- Wow factors (discovery dimension) --
+  // ── Context items (always in initial visible set) ──
+  const rawHood = r.neighborhood_name || '';
+  const neighborhood = /^chicago$/i.test(rawHood.trim()) ? '' : rawHood;
+  if (neighborhood) {
+    items.push({ id: 'hood', icon: 'pin', text: neighborhood, priority: 1.0, category: 'context' });
+  }
+
+  if (r.cuisine_type) {
+    items.push({
+      id: 'cuisine', icon: 'plate', text: r.cuisine_type, priority: 1.0,
+      category: 'context',
+      interactive: { action: 'open-cuisine-drawer', role: 'button', ariaHaspopup: 'dialog' }
+    });
+  }
+
+  const oh = r.opening_hours;
+  if (oh?.open_now != null) {
+    items.push({
+      id: 'hours', icon: 'clock', text: oh.open_now ? 'Open Now' : 'Closed',
+      priority: 1.0, category: 'context',
+      modifier: oh.open_now ? 'open' : 'closed',
+      interactive: { action: 'toggle-badge-popout', role: 'button', ariaExpanded: 'false', ariaHaspopup: 'true' },
+      hoursData: oh
+    });
+  }
+
+  // ── Practical items ──
+  if (dc.review_value_score != null && dc.review_value_score >= 7) {
+    items.push({ id: 'value', icon: 'heart', text: 'Great Value', priority: dw.food * 0.5, category: 'practical' });
+  }
+
+  if (dc.check_average_per_person) {
+    const notable = dc.check_average_per_person >= 60 ? 1.2 : 1.0;
+    items.push({ id: 'price', icon: 'tag', text: `~$${dc.check_average_per_person}/pp`, priority: pw * 0.90 * notable, category: 'practical' });
+  }
+
+  if (dc.reservation_difficulty && dc.reservation_difficulty !== 'none') {
+    const resMap = { easy: 'Walk-ins OK', moderate: 'Reservations rec.', hard: 'Hard to book' };
+    const notable = dc.reservation_difficulty === 'hard' ? 1.5 : 1.0;
+    items.push({ id: 'reserv', icon: 'calendar', text: resMap[dc.reservation_difficulty] || humanizeSnake(dc.reservation_difficulty), priority: pw * 0.85 * notable, category: 'practical' });
+  }
+
+  if (dc.typical_wait_minutes) {
+    const notable = dc.typical_wait_minutes >= 20 ? 1.3 : 1.0;
+    items.push({ id: 'wait', icon: 'clock', text: `~${dc.typical_wait_minutes} min wait`, priority: pw * 0.70 * notable, category: 'practical' });
+  }
+
+  if (dc.group_size_sweet_spot) {
+    const range = dc.group_size_sweet_spot.replace(/[\[\]()]/g, '').replace(',', '-');
+    items.push({ id: 'group', icon: 'usersThree', text: `Best for ${range}`, priority: pw * 0.50, category: 'practical' });
+  }
+
+  if (dc.transit_accessibility) {
+    items.push({ id: 'transit', icon: 'train', text: dc.transit_accessibility, priority: pw * 0.35, category: 'practical' });
+  }
+
+  // ── Vibe items ──
+  if (dc.energy_level != null) {
+    const e = dc.energy_level;
+    const notable = (e >= 8 || e <= 2) ? 1.3 : 1.0;
+    items.push({ id: 'energy', icon: 'bolt', text: e >= 8 ? 'High energy' : e >= 5 ? 'Moderate energy' : 'Chill vibe', priority: dw.vibe * 0.65 * notable, category: 'vibe' });
+  }
+
+  if (dc.cultural_authenticity != null) {
+    const a = dc.cultural_authenticity;
+    const notable = a >= 8 ? 1.2 : 1.0;
+    items.push({ id: 'auth', icon: 'globe', text: a >= 8 ? 'Very authentic' : a >= 5 ? 'Authentic' : 'Fusion', priority: dw.vibe * 0.55 * notable, category: 'vibe' });
+  }
+
+  if (dc.conversation_friendliness != null) {
+    const c = dc.conversation_friendliness;
+    const notable = c <= 3 ? 1.4 : 1.0;
+    items.push({ id: 'noise', icon: 'chat', text: c >= 7 ? 'Great for convo' : c >= 4 ? 'Moderate noise' : 'Loud', priority: ow * 0.70 * notable, category: 'vibe' });
+  }
+
+  if (dc.spice_level && dc.spice_level !== 'none') {
+    items.push({ id: 'spice', icon: 'fire', text: formatSpiceLevel(dc.spice_level), priority: cw * 0.55, category: 'vibe' });
+  }
+
+  // ── Discovery items ──
   const WOW_LABELS = {
     open_kitchen: 'Open Kitchen', rooftop_skyline_view: 'Rooftop Views',
     tableside_preparation: 'Tableside Prep', secret_entrance: 'Secret Entrance',
@@ -4018,94 +4047,289 @@ function renderQuickStats(data) {
     garden_dining: 'patio', fireplace: 'fire',
     chef_interaction: 'user',
   };
-  // (wow factors rendered as subtle accent line below — not in candidate pool)
 
-  // -- Value signal (V9: review_value_score exposed from backend) --
-  if (dc.review_value_score != null && dc.review_value_score >= 7) {
-    candidates.push({ icon: 'heart', text: 'Great Value', priority: dw.food * 0.5 });
-  }
-
-  // -- Practical stats --
-  if (dc.check_average_per_person) {
-    const notable = dc.check_average_per_person >= 60 ? 1.2 : 1.0;
-    candidates.push({ icon: 'tag', text: `~$${dc.check_average_per_person}/pp`,
-      priority: dw.practical * 0.90 * notable });
-  }
-  if (dc.reservation_difficulty && dc.reservation_difficulty !== 'none') {
-    const resMap = { easy: 'Walk-ins OK', moderate: 'Reservations rec.', hard: 'Hard to book' };
-    const notable = dc.reservation_difficulty === 'hard' ? 1.5 : 1.0;
-    candidates.push({ icon: 'calendar', text: resMap[dc.reservation_difficulty] || humanizeSnake(dc.reservation_difficulty),
-      priority: dw.practical * 0.85 * notable });
-  }
-  if (dc.typical_wait_minutes) {
-    const notable = dc.typical_wait_minutes >= 20 ? 1.3 : 1.0;
-    candidates.push({ icon: 'clock', text: `~${dc.typical_wait_minutes} min wait`,
-      priority: dw.practical * 0.70 * notable });
-  }
-  if (dc.group_size_sweet_spot) {
-    const range = dc.group_size_sweet_spot.replace(/[\[\]()]/g, '').replace(',', '-');
-    candidates.push({ icon: 'usersThree', text: `Best for ${range}`,
-      priority: dw.practical * 0.50 });
-  }
-  if (dc.transit_accessibility) {
-    candidates.push({ icon: 'train', text: dc.transit_accessibility,
-      priority: dw.practical * 0.35 });
-  }
-
-  // -- Vibe stats --
-  if (dc.energy_level != null) {
-    const e = dc.energy_level;
-    const notable = (e >= 8 || e <= 2) ? 1.3 : 1.0;
-    candidates.push({ icon: 'bolt', text: e >= 8 ? 'High energy' : e >= 5 ? 'Moderate energy' : 'Chill vibe',
-      priority: dw.vibe * 0.65 * notable });
-  }
-  if (dc.cultural_authenticity != null) {
-    const a = dc.cultural_authenticity;
-    const notable = a >= 8 ? 1.2 : 1.0;
-    candidates.push({ icon: 'globe', text: a >= 8 ? 'Very authentic' : a >= 5 ? 'Authentic' : 'Fusion',
-      priority: dw.vibe * 0.55 * notable });
-  }
-
-  // -- Occasion stats --
-  if (dc.conversation_friendliness != null) {
-    const c = dc.conversation_friendliness;
-    const notable = c <= 3 ? 1.4 : 1.0;
-    candidates.push({ icon: 'chat', text: c >= 7 ? 'Great for convo' : c >= 4 ? 'Moderate noise' : 'Loud',
-      priority: dw.occasion * 0.70 * notable });
-  }
-
-  // -- Craving stats --
-  if (dc.spice_level && dc.spice_level !== 'none') {
-    candidates.push({ icon: 'fire', text: formatSpiceLevel(dc.spice_level),
-      priority: dw.craving * 0.55 });
-  }
-
-  // Merge wow factors into candidates (as regular items, not separate accent line)
-  const wows = (dc.wow_factors || [])
-    .filter(w => w !== 'unique_decor')
-    .slice(0, 2);
-  wows.forEach(w => {
+  const wows = (dc.wow_factors || []).filter(w => w !== 'unique_decor').slice(0, 3);
+  wows.forEach((w, i) => {
     const label = WOW_LABELS[w] || humanizeSnake(w);
     const icon = WOW_ICONS[w] || 'diamond';
-    candidates.push({ icon, text: label, priority: 0.3 });
+    items.push({ id: `wow-${i}`, icon, text: label, priority: 0.3, category: 'discovery' });
   });
 
-  // Rank by priority, take top 4
-  candidates.sort((a, b) => b.priority - a.priority);
-  const shown = candidates.slice(0, 4);
-  if (shown.length === 0) {
-    $stats.style.display = 'none';
+  const awards = data._awardBadges || [];
+  awards.forEach((a, i) => {
+    items.push({ id: `award-${i}`, icon: 'starFull', text: a, priority: 0.5, category: 'discovery' });
+  });
+
+  const scenarios = dc.best_for_scenarios || [];
+  scenarios.slice(0, 3).forEach((s, i) => {
+    items.push({ id: `scenario-${i}`, icon: 'heart', text: s, priority: 0.4, category: 'discovery' });
+  });
+
+  // Sort: context first (always), then by priority descending
+  items.sort((a, b) => {
+    if (a.category === 'context' && b.category !== 'context') return -1;
+    if (b.category === 'context' && a.category !== 'context') return 1;
+    return b.priority - a.priority;
+  });
+
+  return items;
+}
+
+
+/* ---- InfoStream: living metadata rotation engine ---- */
+class InfoStream {
+  constructor($container, items, options = {}) {
+    this.$container = $container;
+    this.allItems = items;
+    this.visibleCount = options.visibleCount || 4;
+    this.interval = options.interval || 4000;
+    this.visible = [];    // Currently displayed items
+    this.queue = [];      // Items waiting to rotate in
+    this.pinned = new Set();
+    this.rotateIdx = 0;
+    this.timer = null;
+    this.paused = false;
+    this._onPointerEnter = () => this.pause();
+    this._onPointerLeave = () => this.resume();
+    this._onClick = (e) => this._handleClick(e);
+  }
+
+  start() {
+    // Split items into initial visible + queue
+    const contextItems = this.allItems.filter(it => it.category === 'context');
+    const restItems = this.allItems.filter(it => it.category !== 'context');
+
+    // Context items always visible first, fill remaining with top-priority rest
+    const initialCount = Math.min(this.visibleCount, this.allItems.length);
+    this.visible = [...contextItems];
+    for (const item of restItems) {
+      if (this.visible.length >= initialCount) break;
+      this.visible.push(item);
+    }
+
+    // Queue = everything not in initial visible set
+    const visibleIds = new Set(this.visible.map(it => it.id));
+    this.queue = this.allItems.filter(it => !visibleIds.has(it.id));
+
+    this.render();
+
+    // Reduced motion: show ALL items statically
+    if (REDUCED_MOTION.matches) {
+      this.visible = [...this.allItems];
+      this.render();
+      return;
+    }
+
+    // Attach interaction listeners
+    this.$container.addEventListener('pointerenter', this._onPointerEnter);
+    this.$container.addEventListener('pointerleave', this._onPointerLeave);
+    this.$container.addEventListener('click', this._onClick);
+
+    // Start rotation timer (only if there are items to rotate through)
+    if (this.queue.length > 0) {
+      this.timer = setInterval(() => {
+        if (!this.paused) this.rotateOne();
+      }, this.interval);
+    }
+  }
+
+  render() {
+    this.$container.innerHTML = '';
+    this.visible.forEach(item => {
+      this.$container.appendChild(this._createItemEl(item));
+    });
+    this.$container.style.display = this.visible.length > 0 ? '' : 'none';
+  }
+
+  _createItemEl(item) {
+    const el = document.createElement('span');
+    let cls = 'info-stream__item';
+    if (item.modifier) cls += ` info-stream__item--${item.modifier}`;
+    if (item.interactive) cls += ' info-stream__item--interactive';
+    if (this.pinned.has(item.id)) cls += ' info-stream__item--pinned';
+    el.className = cls;
+    el.dataset.streamId = item.id;
+
+    // Accessibility for interactive items
+    if (item.interactive) {
+      el.setAttribute('role', item.interactive.role || 'button');
+      el.setAttribute('tabindex', '0');
+      el.setAttribute('data-action', item.interactive.action);
+      if (item.interactive.ariaHaspopup) el.setAttribute('aria-haspopup', item.interactive.ariaHaspopup);
+      if (item.interactive.ariaExpanded) el.setAttribute('aria-expanded', item.interactive.ariaExpanded);
+    }
+
+    el.innerHTML = `${svgIcon(item.icon, 10)}<span>${item.text}</span>`;
+
+    // Hours popout: build inline child (reuses existing badge-popout pattern)
+    if (item.hoursData?.weekday_text?.length) {
+      const popout = document.createElement('div');
+      popout.className = 'badge-popout badge-popout--hours';
+      popout.setAttribute('role', 'tooltip');
+      const title = document.createElement('span');
+      title.className = 'badge-popout__title';
+      title.textContent = 'Hours';
+      popout.appendChild(title);
+      const today = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+      const table = document.createElement('div');
+      table.className = 'hours-table';
+      item.hoursData.weekday_text.forEach(line => {
+        const colonIdx = line.indexOf(':');
+        if (colonIdx < 0) return;
+        const dayPart = line.slice(0, colonIdx).trim();
+        const timePart = line.slice(colonIdx + 1).trim();
+        const isToday = dayPart.toLowerCase() === today;
+        const row = document.createElement('div');
+        row.className = `hours-table__row${isToday ? ' hours-table__row--today' : ''}`;
+        const dayEl = document.createElement('span');
+        dayEl.className = 'hours-table__day';
+        dayEl.textContent = dayPart.slice(0, 3);
+        const timeEl = document.createElement('span');
+        timeEl.className = 'hours-table__time';
+        timeEl.textContent = timePart
+          .replace(/(\d{1,2}):00\s*(AM|PM)/gi, (_, h, ap) => `${h}${ap[0].toLowerCase()}`)
+          .replace(/(\d{1,2}:\d{2})\s*(AM|PM)/gi, (_, t, ap) => `${t}${ap[0].toLowerCase()}`)
+          .replace(/\s*[–—-]\s*/g, ' – ');
+        row.appendChild(dayEl);
+        row.appendChild(timeEl);
+        table.appendChild(row);
+      });
+      popout.appendChild(table);
+      el.appendChild(popout);
+    }
+
+    return el;
+  }
+
+  rotateOne() {
+    if (this.queue.length === 0) {
+      // Refill queue from non-pinned visible items
+      const unpinnedVisible = this.visible.filter(it => !this.pinned.has(it.id));
+      if (unpinnedVisible.length === 0) return;
+      // No queue refill needed — we cycle by swapping visible ↔ pool
+      // Rebuild queue from allItems not currently visible
+      const visIds = new Set(this.visible.map(it => it.id));
+      this.queue = this.allItems.filter(it => !visIds.has(it.id) && !this.pinned.has(it.id));
+      if (this.queue.length === 0) return;
+    }
+
+    // Find next unpinned slot (round-robin)
+    let attempts = 0;
+    while (attempts < this.visible.length) {
+      const idx = this.rotateIdx % this.visible.length;
+      this.rotateIdx++;
+      if (!this.pinned.has(this.visible[idx].id) && this.visible[idx].category !== 'context') {
+        this._swapSlot(idx);
+        return;
+      }
+      attempts++;
+    }
+  }
+
+  _swapSlot(slotIdx) {
+    const nextItem = this.queue.shift();
+    if (!nextItem) return;
+    const oldItem = this.visible[slotIdx];
+    const $el = this.$container.children[slotIdx];
+    if (!$el) return;
+
+    // Phase 1: exit (300ms)
+    $el.classList.add('info-stream__item--exiting');
+
+    setTimeout(() => {
+      // Push old item back to queue end
+      this.queue.push(oldItem);
+      this.visible[slotIdx] = nextItem;
+
+      // Replace DOM element
+      const $new = this._createItemEl(nextItem);
+      $new.classList.add('info-stream__item--entering');
+      $el.replaceWith($new);
+
+      // Phase 2: enter (remove entering class on next frame to trigger transition)
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          $new.classList.remove('info-stream__item--entering');
+        });
+      });
+    }, 300);
+  }
+
+  _handleClick(e) {
+    const $item = e.target.closest('.info-stream__item');
+    if (!$item) return;
+    const id = $item.dataset.streamId;
+
+    // Interactive items: let existing data-action delegation handle it, don't pin
+    if ($item.classList.contains('info-stream__item--interactive')) return;
+
+    // Toggle pin
+    if (this.pinned.has(id)) {
+      this.pinned.delete(id);
+      $item.classList.remove('info-stream__item--pinned');
+    } else {
+      this.pinned.add(id);
+      $item.classList.add('info-stream__item--pinned');
+    }
+  }
+
+  pause() { this.paused = true; }
+  resume() { this.paused = false; }
+
+  stop() {
+    if (this.timer) { clearInterval(this.timer); this.timer = null; }
+  }
+
+  destroy() {
+    this.stop();
+    this.$container.removeEventListener('pointerenter', this._onPointerEnter);
+    this.$container.removeEventListener('pointerleave', this._onPointerLeave);
+    this.$container.removeEventListener('click', this._onClick);
+    this.$container.innerHTML = '';
+  }
+}
+
+
+/* ---- Render Info Stream: unified metadata surface ---- */
+function renderInfoStream(data) {
+  const $container = document.getElementById('info-stream');
+  if (!$container) return;
+
+  // Destroy previous stream if active
+  if (_activeInfoStream) { _activeInfoStream.destroy(); _activeInfoStream = null; }
+
+  const items = collectInfoStreamItems(data);
+  if (items.length < 2) {
+    $container.style.display = 'none';
     return;
   }
 
-  shown.forEach(item => {
-    const span = document.createElement('span');
-    span.className = 'quick-stat';
-    span.innerHTML = `${svgIcon(item.icon, 10)}<span>${item.text}</span>`;
-    $stats.appendChild(span);
-  });
+  const stream = new InfoStream($container, items);
+  stream.start();
+  _activeInfoStream = stream;
+}
 
-  $stats.style.display = '';
+
+/* ---- Render Deep Context Extras (Info Stream + Cuisine Drawer) ---- */
+function renderDeepContextExtras(data) {
+  const dc = data.deep_context;
+  if (!dc) return;
+
+  // Info Stream — unified living metadata surface
+  renderInfoStream(data);
+
+  // V8: Cuisine drawer — signature dishes + menu highlights + flavor (separate bottom-sheet)
+  renderCuisineDrawer(data);
+
+  // Origin Story
+  const $origin = document.getElementById('origin-story');
+  const $originText = document.getElementById('origin-story-text');
+  if ($origin && $originText && dc.origin_story) {
+    $originText.textContent = dc.origin_story;
+    $origin.style.display = '';
+  } else if ($origin) {
+    $origin.style.display = 'none';
+  }
 }
 
 /* ---- V8: Cuisine Drawer — populates bottom-sheet / anchored panel ---- */

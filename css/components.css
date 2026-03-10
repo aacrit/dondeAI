@@ -2149,36 +2149,22 @@
   text-overflow: ellipsis;
 }
 
-/* ── Result Context: neighborhood + cuisine + open/closed (Tier 2) ── */
-.result-context {
+/* ── Info Stream: living metadata surface (replaces result-context + card-meta-block) ── */
+.info-stream {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2xs);
   align-items: center;
-}
-
-/* ── Card Meta Block: detail-strip + quick-stats merged ── */
-.card-meta-block {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2xs);
+  min-height: 2.5rem;
   padding-top: var(--space-xs);
   border-top: 1px solid var(--border);
 }
 
-/* ---- Detail Strip: awards + perfect-for (unified compact row) ---- */
-.detail-strip {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2xs);
-}
-
-.detail-strip__pill {
+.info-stream__item {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
-  padding: 1px var(--space-xs);
+  gap: 3px;
+  padding: 2px var(--space-xs);
   font-size: var(--text-2xs);
   font-family: var(--font-data);
   color: var(--fg3);
@@ -2186,11 +2172,78 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-pill);
   white-space: nowrap;
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity var(--dur-normal) var(--ease-out),
+              transform var(--dur-normal) var(--ease-out),
+              border-color var(--dur-fast) var(--ease-out);
+  cursor: default;
+  user-select: none;
 }
 
-.detail-strip__pill svg {
+.info-stream__item svg {
   opacity: 0.5;
   flex-shrink: 0;
+}
+
+/* Pinned: accent border + dot */
+.info-stream__item--pinned {
+  border-color: var(--ac);
+  color: var(--fg2);
+}
+.info-stream__item--pinned::after {
+  content: '';
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--ac);
+  margin-left: 2px;
+}
+
+/* Exit/enter crossfade transitions */
+.info-stream__item--exiting {
+  opacity: 0;
+  transform: translateY(-6px);
+  pointer-events: none;
+}
+.info-stream__item--entering {
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+/* Open/Closed RAG coloring */
+.info-stream__item--open {
+  color: var(--rag-green);
+  border-color: var(--rag-green);
+}
+.info-stream__item--closed {
+  color: var(--rag-red);
+  border-color: var(--rag-red);
+}
+
+/* Interactive items (cuisine → drawer, hours → popout) */
+.info-stream__item--interactive {
+  cursor: pointer;
+}
+.info-stream__item--interactive:hover {
+  background: var(--bg3);
+}
+.info-stream__item--interactive::after {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg);
+  opacity: 0.5;
+  margin-left: 1px;
+}
+
+/* Reduced motion: no animation */
+@media (prefers-reduced-motion: reduce) {
+  .info-stream__item {
+    transition: none;
+  }
 }
 
 /* ---- V11: Semantic Concept Tags (factor drill-down) ---- */
@@ -5447,27 +5500,7 @@
   field-sizing: content;
 }
 
-/* ---- Quick Stats ribbon (compact deep-context data) ---- */
-.quick-stats {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2xs);
-}
-
-.quick-stat {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  font-size: var(--text-2xs);
-  color: var(--fg3);
-  white-space: nowrap;
-}
-
-.quick-stat svg {
-  opacity: 0.5;
-  flex-shrink: 0;
-}
+/* quick-stats styles removed — replaced by .info-stream */
 
 /* V8: Known For section removed — merged into cuisine drawer */
 
