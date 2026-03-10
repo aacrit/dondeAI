@@ -1,10 +1,10 @@
 # DondeAI Frontend
 
-Last updated: 2026-03-05
+Last updated: 2026-03-10
 
 > **Read this file first. Only read `docs/*.md` when task-relevant. Only open source files when modifying code.**
 
-AI restaurant recommendations for Chicago. One craving in, one perfect spot out.
+AI restaurant recommendations for Chicago. One craving in, one perfect spot out. Vanilla HTML/CSS/JS (no frameworks, no build). Backend: Supabase Edge Function V11 + PostgreSQL. AI: Claude Haiku 4.5. Data: 913 active restaurants across 14 Chicago neighborhoods.
 
 ## Session Protocol (Token Minimization)
 
@@ -22,44 +22,45 @@ AI restaurant recommendations for Chicago. One craving in, one perfect spot out.
 | `docs/FEATURES.md` | Feature status, what's implemented vs planned |
 | `docs/TEST-CRITICAL.md` | Quick 10-item smoke test before pushing |
 | `docs/TEST-CASES.md` | Full manual test matrix |
+| `docs/OPTIMIZATION-RECOMMENDATIONS.md` | Prioritized optimization roadmap (monolith breakup, learning flywheel, lazy loading, caching, match narrative) |
+| `docs/CEO-COMMAND-CENTER.md` | Admin dashboard architecture (agents, pipelines, data health) |
 | `_archive/VERSION-HISTORY.md` | Pre-V9/V10 specs, removed features, scoring evolution |
 
 ## Skills
 
-**`/frontenddesign`** — auto-activates on UI/animation/layout tasks. See `.claude/skills/frontenddesign/SKILL.md`.
+| Skill | Purpose | Trigger |
+|-------|---------|---------|
+| `/frontenddesign` | UI/animation/layout enforcement (Ink Rule, 3-voice type, motion grammar, 10 themes, WCAG AA) | Auto on UI tasks |
+| `/ceo-advisor` | Strategic product advisor — Top 10 prioritized recommendations | Manual |
+| `/donde-premium-advisor` | Premium app audit (UI polish, backend, marketing psychology, Claude Code mastery) | Manual |
+| `/donde-ciso` | Security audit across 10 domains — severity-ranked findings with remediation | Manual or auto on security changes |
+| `/update-docs` | Scans codebase and updates all MD files to reflect current state | Auto when Claude judges changes are significant |
 
-Enforces: Ink Rule, 3-voice typography, motion grammar (spring/ease, symmetric open/close), 2-view cockpit, 10 theme variants, WCAG 2.1 AA, RAG color system, spatial logic.
+All skills in `.claude/skills/`. Frontend design review checklist (7 points): accent usage, type voice, motion curve + symmetry, theme coverage, keyboard nav, reduced-motion, badge neutrality.
 
-Code review (7 points): accent usage, type voice, motion curve + symmetry, theme coverage, keyboard nav, reduced-motion, badge neutrality.
+## Design Philosophy — "Ink & Momentum" (V10, Locked)
 
-**`/ceo-advisor`** — Strategic product advisor. Reads all product docs (frontend + backend) and delivers Top 10 prioritized recommendations or answers specific CEO questions. See `.claude/skills/ceo-advisor/SKILL.md`.
-
-**`/donde-premium-advisor`** — Premium app advisor. Scans frontend and backend repos, then delivers concrete, prioritized audit report across UI/UX polish, backend optimization, marketing psychology, and Claude Code workflow mastery. Includes reference docs for animation patterns, behavioral psychology, and Claude Code mastery. See `.claude/skills/donde-premium-advisor/SKILL.md`.
-
-**`/donde-ciso`** — Chief Information Security Officer. Audits frontend and backend repos across 10 security domains (secrets, API security, injection, data protection, auth, frontend security, supply chain, infrastructure, AI-specific, compliance). Delivers severity-ranked findings with Security Scorecard. Auto-activates on security-relevant code changes. See `.claude/skills/donde-ciso/SKILL.md`.
-
-## Design Philosophy — "Ink & Momentum" (V10)
-
-**Core idea:** Every interaction feels like writing a wish on paper and watching it come to life.
+Every interaction feels like writing a wish on paper and watching it come to life.
 
 ### V10 Design Decisions (Locked)
 
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| Score display | Circle ring + RAG colors (green >=80, amber >=60, red <60) | Instant quality signal |
-| Tier 1 stack | Photos -> Score + Name -> Blurb -> Address + Actions | Minimal, content-first |
-| Tier 1 removed | Match headline, signal chips, one-liner, quick tags | Redundant — blurb + factor bars suffice |
-| Photo layout | Horizontal scroll strip (equal sizes, scroll-snap) | Clean, swipeable |
-| Known For | Inline pills in Tier 2 (after story) | Reduce Tier 1 density |
-| Loading | Instant slide + 300ms fade (score count-up only animation) | No scaffold, no carousel, no stagger |
-| Blurb | Full text, no height cap, simple 300ms fade | Content-first |
-| Footer | 2-row: Going + Try Another / Feedback + Start Over | Compact |
-| Canvas history | Unified "Your Spots" (recent + saved + visited) | Single section vs three |
-| Signal chips | Removed entirely | Factor bars sufficient |
+| Decision | Choice |
+|----------|--------|
+| Layout | 2-view sliding cockpit: Canvas (input) ↔ Result (output) |
+| Score display | Circle ring + RAG colors (green ≥80, amber ≥60, red <60) |
+| Tier 1 stack | Photos → Score + Name → Blurb → Address + Actions |
+| Tier 1 removed | Match headline, signal chips, one-liner, quick tags (redundant) |
+| Photo layout | Horizontal scroll strip (equal sizes, scroll-snap) |
+| Known For | Inline pills in Tier 2 (after story) |
+| Loading | Instant slide (400ms) + API fetch → Card fade-in (300ms) → Score count-up (1200ms). No scaffold. |
+| Blurb | Full text, no height cap, 300ms fade |
+| Footer | 2-row: Going + Try Another / Feedback + Start Over |
+| Canvas history | Unified "Your Spots" (recent + saved + visited) |
+| Typography | Playfair (emotional), Inter (structural), JetBrains Mono (data) |
+| Themes | 5 cultures × 2 modes = 10 variants (Neutral, Indian, Middle Eastern, Japanese, South American) |
+| The Ink Rule | Accent color earned, not given — only score ring, name, active CTAs, selected pills, logo |
 
-### Animation Consistency Rules
-
-All open/close and in/out animations must be **symmetric** (same duration + easing both directions):
+### Animation Rules (Symmetric open/close)
 
 | Pattern | Duration | Easing |
 |---------|----------|--------|
@@ -71,7 +72,7 @@ All open/close and in/out animations must be **symmetric** (same duration + easi
 | Canvas morph/restore | 400ms | var(--ease-out) |
 | Score count-up | 1200ms | cubic ease-out |
 
-**Sequencing rule:** Canvas morph completes (400ms) before step slide begins. No overlapping animations.
+Sequencing: Canvas morph (400ms) completes before step slide. No overlapping animations. Spring for user actions, ease-out for system reveals. All → 0ms under reduced-motion.
 
 ## API Contract (Immutable)
 
@@ -86,7 +87,7 @@ Request: `{ special_request, occasion, neighborhood, price_level, exclude[], die
 
 Key response fields: `{ success, restaurant{...}, recommendation, insider_tip, donde_match(0-99), scores{...}, scoring_v9{ relevance_score, relevance_type, quality_score, occasion_bonus, food, vibe, service, reputation, convenience, weights_used }, match_narrative{ strongest_factor, key_signals, summary, weak_spots }, ranked_queue[{ rank, restaurant, donde_match, scoring_v9, match_headline }], deep_context, tags[], intent_boost, timestamp }`
 
-Errors: HTTP non-200 -> toast + canvas | `success:false` -> show `recommendation` | network -> "Couldn't reach the engine." | timeout -> "Request timed out."
+Errors: HTTP non-200 → toast + canvas | `success:false` → show `recommendation` | network → "Couldn't reach the engine." | timeout → "Request timed out."
 
 ## State Shape (`state.js`)
 
@@ -103,20 +104,18 @@ Open `index.html` in browser. No build step, no dependencies, no env vars.
 
 ## Git Workflow
 
-After committing to the feature branch, also **merge and push to `main`** so changes are immediately testable. Steps:
-1. Commit and push to the feature branch as normal.
+After committing to the feature branch, also **merge and push to `main`** so changes are immediately testable:
+1. Commit and push to the feature branch.
 2. `git checkout main && git pull origin main`
 3. `git merge <feature-branch> --no-edit`
 4. `git push origin main`
-5. `git checkout <feature-branch>` (return to feature branch for continued work)
-
-The user tests on `main` directly and can revert if needed.
+5. `git checkout <feature-branch>`
 
 ## Coding Standards
 
 - **HTML:** Semantic, `data-action` event delegation, all interactives focusable
 - **CSS:** Custom properties only, mobile-first `min-width`, `clamp()` fluid, BEM-like, no `!important`
 - **JS:** ES modules, plain objects + functions, `requestAnimationFrame`, cached DOM queries, `AbortController`, no circular deps
-- **Motion:** Duration tokens `--dur-instant`(0) -> `--dur-score`(1200), all -> 0ms under reduced-motion. Spring for user actions, ease-out for system reveals. Symmetric open/close timings.
-- **Z-index:** `--z-base`(1) -> `--z-particle`(500)
-- **RAG colors:** `--rag-green`(>=80), `--rag-amber`(>=60), `--rag-red`(<60) — theme-independent, defined in tokens.css
+- **Motion:** Duration tokens `--dur-instant`(0) → `--dur-score`(1200), all → 0ms under reduced-motion. Spring for user actions, ease-out for system reveals. Symmetric open/close.
+- **Z-index:** `--z-base`(1) → `--z-particle`(500)
+- **RAG colors:** `--rag-green`(≥80), `--rag-amber`(≥60), `--rag-red`(<60) — theme-independent, defined in tokens.css
