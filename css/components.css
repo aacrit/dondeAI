@@ -1171,9 +1171,9 @@
   border-top: 1px solid var(--border);
 }
 
-/* Spacing between Tier 2 sections */
+/* Spacing between Tier 2 sections — consistent rhythm */
 .tier--leanin > * + * {
-  margin-top: var(--space-md);
+  margin-top: var(--space-sm);
 }
 
 /* ── Glance Hero — badge left, name+oneliner right ── */
@@ -2152,60 +2152,27 @@
 }
 
 /* ---- Awards & Recognition Pills ---- */
-.result-awards {
+/* ---- Detail Strip: awards + perfect-for + comparable (unified inline) ---- */
+.detail-strip {
   display: flex;
   flex-wrap: wrap;
+  align-items: baseline;
   gap: var(--space-2xs);
-}
-
-.award-pill {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px var(--space-xs);
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-xs);
-  color: var(--fg2);
-  white-space: nowrap;
-}
-
-.award-pill--dashed {
-  border-style: dashed;
-}
-
-/* ---- V11: Perfect For Scenarios ---- */
-.perfect-for {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2xs);
-  margin-top: var(--space-xs);
-}
-
-.perfect-for__label {
   color: var(--fg3);
-  font-style: italic;
+}
+
+.detail-strip__item {
   white-space: nowrap;
 }
 
-.perfect-for__pill {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px var(--space-xs);
-  background: color-mix(in srgb, var(--ac) 12%, var(--bg2));
-  border: 1px solid color-mix(in srgb, var(--ac) 25%, var(--border));
-  border-radius: var(--radius-sm);
+.detail-strip__accent {
   color: var(--fg2);
-  white-space: nowrap;
 }
 
-/* ---- V11: Comparable Restaurants Line ---- */
-.comparable-line {
-  color: var(--fg3);
-  font-style: italic;
-  margin: var(--space-3xs) 0 0;
-  padding-left: var(--space-2xs);
+.detail-strip__dot {
+  opacity: 0.25;
+  font-size: 0.6em;
+  user-select: none;
 }
 
 /* ---- V11: Semantic Concept Tags (factor drill-down) ---- */
@@ -2530,7 +2497,7 @@
 .score-hero__signals {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 6px;
   max-width: 360px;
 }
@@ -2570,12 +2537,9 @@
 .v9-formula-row {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: var(--space-xs);
-  padding: var(--space-xs) var(--space-sm);
-  background: var(--bg2);
-  border-radius: var(--radius-pill);
-  margin: var(--space-xs) 0 var(--space-sm);
+  justify-content: flex-start;
+  gap: var(--space-2xs);
+  margin: 0;
   overflow: visible;
   position: relative;
   opacity: 0;
@@ -2592,15 +2556,15 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-2xs);
-  background: color-mix(in srgb, var(--gate-color, var(--bg2)) 15%, transparent);
-  border: 1px solid color-mix(in srgb, var(--gate-color, var(--border)) 30%, transparent);
+  background: none;
+  border: 1px solid color-mix(in srgb, var(--gate-color, var(--border)) 20%, transparent);
   border-radius: var(--radius-pill);
-  padding: var(--space-2xs) var(--space-sm);
+  padding: 1px var(--space-xs);
   cursor: pointer;
   position: relative;
   transition: background 150ms var(--ease-out);
   font-family: var(--font-data);
-  font-size: var(--text-xs);
+  font-size: var(--text-2xs);
 }
 
 .v9-formula__gate:hover {
@@ -2612,11 +2576,12 @@
 .v9-formula__bonus-pill {
   display: inline-flex;
   align-items: center;
-  padding: var(--space-2xs) var(--space-sm);
+  padding: 1px var(--space-xs);
   border-radius: var(--radius-pill);
   font-family: var(--font-data);
-  font-size: var(--text-xs);
+  font-size: var(--text-2xs);
   font-weight: 500;
+  opacity: 0.7;
 }
 .v9-formula__bonus-pill[data-positive="true"] {
   background: color-mix(in srgb, var(--green, #4ade80) 12%, transparent);
@@ -2630,13 +2595,14 @@
 .v9-formula__boost-pill {
   display: inline-flex;
   align-items: center;
-  padding: 2px 10px;
+  padding: 1px var(--space-xs);
   border-radius: var(--radius-pill, 100px);
   font-family: var(--font-data);
-  font-size: var(--text-xs);
+  font-size: var(--text-2xs);
   font-weight: 500;
   background: color-mix(in srgb, var(--blue, #60a5fa) 12%, transparent);
   color: var(--blue, #60a5fa);
+  opacity: 0.7;
 }
 
 /* Gate popout */
@@ -5463,45 +5429,26 @@
   field-sizing: content;
 }
 
-/* ---- Quick Stats ribbon (compact deep-context data + wow factors) ---- */
+/* ---- Quick Stats ribbon (compact deep-context data) ---- */
 .quick-stats {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
   align-items: center;
-  gap: var(--space-2xs) var(--space-xs);
-  padding: var(--space-xs) 0;
+  gap: var(--space-2xs);
 }
 
 .quick-stat {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  font-size: var(--text-xs);
+  gap: 2px;
+  font-size: var(--text-2xs);
   color: var(--fg3);
   white-space: nowrap;
 }
 
 .quick-stat svg {
-  opacity: 0.6;
+  opacity: 0.5;
   flex-shrink: 0;
-}
-
-.quick-stat__dot {
-  color: var(--fg3);
-  opacity: 0.25;
-  font-size: 0.6em;
-  user-select: none;
-}
-
-.quick-stats__accent {
-  width: 100%;
-  text-align: center;
-  font-size: var(--text-2xs);
-  color: var(--fg3);
-  opacity: 0.4;
-  letter-spacing: 0.04em;
-  padding-top: 1px;
 }
 
 /* V8: Known For section removed — merged into cuisine drawer */
