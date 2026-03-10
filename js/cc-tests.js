@@ -355,6 +355,11 @@ async function runDataCoverage() {
 // Persist Results to Supabase
 // ═══════════════════════════════════════════════════════════════════
 
+/**
+ * Persist any test results to gauntlet_runs + gauntlet_results.
+ * Works for: broad scan, regression, category, edge, blurb, coverage, retest, CLI imports.
+ * @param {Object} test - { type: string, results: [{query, cat, dm, pass, gap, restaurant}], startTime? }
+ */
 async function persistResults(test) {
   if (!sbClient || !test.results.length) return;
 
@@ -370,6 +375,21 @@ async function persistResults(test) {
       .then(buf => Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join(''))
       .catch(() => `${test.type}-${test.results.length}`);
 
+    // Compute delta vs previous run of same type
+    let deltaAvgDm = null;
+    let prevRunId = null;
+    try {
+      const { data: prevRuns } = await sbClient.from('gauntlet_runs')
+        .select('run_id, avg_dm')
+        .eq('mode', test.type)
+        .order('created_at', { ascending: false })
+        .limit(1);
+      if (prevRuns?.[0]) {
+        prevRunId = prevRuns[0].run_id;
+        deltaAvgDm = Math.round((avgDm - prevRuns[0].avg_dm) * 10) / 10;
+      }
+    } catch (_) {}
+
     const { error: runError } = await sbClient.from('gauntlet_runs').insert({
       run_id: runId,
       dataset_hash: datasetHash.slice(0, 16),
@@ -381,6 +401,10 @@ async function persistResults(test) {
       passed_80: passed80,
       avg_dm: Math.round(avgDm * 10) / 10,
       gap_count: gapCount,
+      prev_run_id: prevRunId,
+      delta_avg_dm: deltaAvgDm,
+      delta_passed_60: null,
+      delta_gap_count: null,
     });
 
     if (runError) {
@@ -390,13 +414,16 @@ async function persistResults(test) {
 
     const rows = test.results.map((r, i) => ({
       run_id: runId,
-      query_id: `${test.type}-${i}`,
+      query_id: r.queryId || `${test.type}-${i}`,
       query: r.query,
       category: r.cat || 'unknown',
       donde_match: r.dm || 0,
       score_pass: r.pass,
       gap_type: r.gap || null,
+      gap_severity: r.severity || null,
       restaurant_name: r.restaurant || null,
+      prev_dm: r.prevDm || null,
+      delta_dm: r.prevDm != null ? (r.dm || 0) - r.prevDm : null,
     }));
 
     // Insert in batches of 50
@@ -405,8 +432,9 @@ async function persistResults(test) {
       if (resError) console.error('Failed to persist results batch:', resError.message, resError.hint);
     }
 
-    // Refresh run history
+    // Refresh run history + pulse cards
     if (typeof loadRunHistory === 'function') loadRunHistory();
+    if (typeof loadInitData === 'function') loadInitData();
   } catch (e) {
     console.warn('Failed to persist test results:', e);
   }
