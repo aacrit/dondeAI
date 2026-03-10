@@ -8,14 +8,15 @@ import { getState, setState, subscribe, resetState } from './state.js';
 import { initRouter, goToStep, goToStepInstant } from './router.js';
 import { loadTheme, loadSound, loadHistory, addToHistory, saveTheme, loadBookmarks, addBookmark, removeBookmark, isBookmarked, loadVisits, addVisit, isVisited, getOrCreateUserId, saveFeedback, loadFeedback, clearFeedback, hasGuestDismissed, setGuestDismissed, hasSeenOnboarding, setOnboardingSeen } from './persistence.js';
 import { initTheme, setTheme, setThemeInstant, setThemeVisualOnly, revertAutoTheme, getColorMode, getLabels, CULTURES, CULTURE_DISPLAY_NAMES, setWashOrigin } from './theme.js';
-import { initAudio, toggleSound, playChime, playCelebrationChime } from './audio.js';
+import { initAudio, toggleSound, playChime, playCelebrationChime, playSettleChime, playGlowChime, playSpectacleChime } from './audio.js';
+import { initSpring, springAnimate, SPRINGS } from './spring.js';
 import { initVoice, startVoice } from './voice.js';
 import { initShare, shareResult, closeShareSheet, handleShareChannel } from './share.js';
 import { initOffline, isOnline } from './offline.js';
 import { initAccessibility, announce } from './accessibility.js';
 import { fetchRecommendation, fetchBlurb, sendFeedback, sendVisit, sendAppFeedback } from './api.js';
 import { initAuth, signIn as signInWith, signOut as authSignOut, isAuthenticated as isAuthAuthenticated, getUser as getAuthUser, addFavoriteToServer, removeFavoriteFromServer, addVisitToServer } from './auth.js';
-import { animateScoreRing, renderPetalRadar, renderSentimentBar, renderScoreBloom, renderScoreHero, renderRelevanceGate, renderFactorBars, toggleBloom, resetBloomState, handlePetalTap, handleBloomRingTap, toggleScoreBreakdown, getBloomState, animateBadge, startParticles, stopParticles, chaosToOrderReveal, initLogoAnimation, startWordRotation, stopWordRotation, resolveLogoToFound, cleanupLoadingLogo, fireCelebration } from './animations.js';
+import { animateScoreRing, renderPetalRadar, renderSentimentBar, renderScoreBloom, renderScoreHero, renderRelevanceGate, renderFactorBars, toggleBloom, resetBloomState, handlePetalTap, handleBloomRingTap, toggleScoreBreakdown, getBloomState, animateBadge, startParticles, stopParticles, chaosToOrderReveal, initLogoAnimation, startWordRotation, stopWordRotation, resolveLogoToFound, cleanupLoadingLogo, fireCelebration, loadRive } from './animations.js';
 import {
   getGreeting, getTimePeriod, getCuisineFromResult, svgIcon,
   getScoreTier, getScoreColor, getScoreThresholdColor,
@@ -54,6 +55,8 @@ function init() {
   });
 
   // Initialize all modules
+  initSpring(); // Load Motion One for real spring physics (async, non-blocking)
+  loadRive();    // Load Rive runtime for logo/celebration (async, non-blocking)
   initRouter();
   initTheme();
   initAudio();
@@ -89,6 +92,11 @@ function init() {
 
   // Hood group accordion init
   initHoodGroups();
+
+  // Motion debug overlay (?debug=motion)
+  if (new URLSearchParams(location.search).get('debug') === 'motion') {
+    import('./debug-motion.js').then(m => m.initMotionDebug());
+  }
 
   // Time-based occasion pre-highlight
   applyTimeBasedOccasionHint();
@@ -1032,9 +1040,11 @@ function wireEvents() {
                 $resultCard.classList.remove('result-card--swapping-in');
                 _swapInFlight = false;
                 document.querySelector('.cta-btn--loading')?.classList.remove('cta-btn--loading');
-                // Celebration for 88%+ scores (matches initial reveal behavior)
-                if (dondeScore >= 88) {
-                  animationTimers.push(setTimeout(() => { fireCelebration(); playCelebrationChime(); haptic(HAPTICS.celebration); }, 1400));
+                // Tiered celebration (70+)
+                if (dondeScore >= 70) {
+                  animationTimers.push(setTimeout(() => {
+                    _fireTieredCelebration(dondeScore);
+                  }, 1400));
                 }
               }, 400));
               // Announce swap to screen readers
@@ -1045,8 +1055,8 @@ function wireEvents() {
             const dondeScore = Math.round(parseFloat(nextResult.donde_match) || 80);
             const $matchScore = document.getElementById('match-pill-score');
             if ($matchScore) animateScoreCountUp($matchScore, dondeScore);
-            if (dondeScore >= 88) {
-              setTimeout(() => { fireCelebration(); playCelebrationChime(); haptic(HAPTICS.celebration); }, 1400);
+            if (dondeScore >= 70) {
+              setTimeout(() => { _fireTieredCelebration(dondeScore); }, 1400);
             }
             document.querySelector('.cta-btn--loading')?.classList.remove('cta-btn--loading');
             announce(`Now showing: ${nextResult.restaurant?.name || 'new recommendation'}`);
@@ -1934,6 +1944,34 @@ function autoOpenHoodGroup(value) {
   }
 }
 
+/* ---- Tiered Celebration Orchestrator (audio + haptic sync) ---- */
+function _fireTieredCelebration(score) {
+  const tier = score >= 95 ? 4 : score >= 88 ? 3 : score >= 80 ? 2 : 1;
+  fireCelebration(score);
+
+  // Tier-specific audio
+  if (tier === 1) {
+    playSettleChime();
+    haptic(HAPTICS.tick);
+  } else if (tier === 2) {
+    playGlowChime();
+    haptic(HAPTICS.doublePulse);
+  } else if (tier === 3) {
+    playCelebrationChime();
+    haptic(HAPTICS.celebration);
+  } else {
+    playSpectacleChime();
+    haptic(HAPTICS.spectacle);
+  }
+
+  // Score count-up haptic sync — light taps at milestones
+  if (tier >= 2) {
+    [300, 600, 900].forEach(delay => {
+      setTimeout(() => haptic(HAPTICS.tick), delay);
+    });
+  }
+}
+
 /* ---- Smooth filter drawer close ---- */
 function _animateDrawerClose(content) {
   if (REDUCED_MOTION.matches) {
@@ -2221,10 +2259,15 @@ async function manifestResult(data) {
         $resultCard.classList.add('result-card--revealing');
         $resultCard.style.opacity = '1';
 
+        // Add typography animation class to restaurant name
+        const $rName = $resultCard.querySelector('.result-name');
+        if ($rName) $rName.classList.add('result-name--animated');
+
         // Clean up revealing class after all animations complete
         _scaffoldTimers.push(setTimeout(() => {
           $resultCard.classList.remove('result-card--revealing');
-        }, 500));
+          if ($rName) $rName.classList.remove('result-name--animated');
+        }, 700));
       }
     }, 750));
   }
@@ -2244,12 +2287,10 @@ async function manifestResult(data) {
     );
   }, REDUCED_MOTION.matches ? 0 : 360));
 
-  // Celebration for 88%+ scores
-  if (dondeScore >= 88) {
+  // Tiered celebration (70+)
+  if (dondeScore >= 70) {
     _scaffoldTimers.push(setTimeout(() => {
-      fireCelebration();
-      playCelebrationChime();
-      haptic(HAPTICS.celebration);
+      _fireTieredCelebration(dondeScore);
     }, 1400));
   }
 
@@ -2432,6 +2473,8 @@ function animateScoreCountUp($el, targetScore, customDuration) {
       $el.textContent = current;
       const thresholdColor = getScoreThresholdColor(current);
       $el.style.color = thresholdColor;
+      // Font weight morph: 400 → 600 as score fills
+      $el.style.fontWeight = String(Math.round(400 + progress * 200));
       if ($arcFill) {
         $arcFill.style.strokeDashoffset = String(arcLength - (current / 100) * arcLength);
         $arcFill.style.stroke = thresholdColor;
@@ -3323,24 +3366,43 @@ function renderPhotos(data) {
   $photos.style.display = '';
 }
 
-/* ---- Photo Lightbox ---- */
+/* ---- Photo Lightbox (with View Transitions API morph) ---- */
 function openLightbox(urls, startIndex) {
   const $lightbox = document.getElementById('lightbox');
   const $track = document.getElementById('lightbox-track');
   const $counter = document.getElementById('lightbox-counter');
   if (!$lightbox || !$track) return;
 
-  $track.innerHTML = '';
-  urls.forEach((url, i) => {
-    const img = document.createElement('img');
-    img.src = url;
-    img.alt = `Photo ${i + 1} of ${urls.length}`;
-    img.draggable = false;
-    $track.appendChild(img);
-  });
+  // Set view-transition-name on the source thumbnail for morph
+  const sourceImg = document.querySelectorAll('.result-photos__img')[startIndex];
+  if (sourceImg) sourceImg.style.viewTransitionName = 'donde-photo';
 
-  $lightbox.style.display = '';
-  if ($counter) $counter.textContent = `${startIndex + 1} / ${urls.length}`;
+  const doOpen = () => {
+    $track.innerHTML = '';
+    urls.forEach((url, i) => {
+      const img = document.createElement('img');
+      img.src = url;
+      img.alt = `Photo ${i + 1} of ${urls.length}`;
+      img.draggable = false;
+      // Match view-transition-name on target image
+      if (i === startIndex) img.style.viewTransitionName = 'donde-photo';
+      $track.appendChild(img);
+    });
+
+    $lightbox.style.display = '';
+    if ($counter) $counter.textContent = `${startIndex + 1} / ${urls.length}`;
+  };
+
+  // Use View Transitions API if available (progressive enhancement)
+  if (document.startViewTransition && !REDUCED_MOTION.matches) {
+    const transition = document.startViewTransition(doOpen);
+    transition.finished.then(() => {
+      if (sourceImg) sourceImg.style.viewTransitionName = '';
+    });
+    haptic(HAPTICS.photoSnap);
+  } else {
+    doOpen();
+  }
 
   // Scroll to the clicked photo
   requestAnimationFrame(() => {
@@ -3396,16 +3458,28 @@ function openLightbox(urls, startIndex) {
 function closeLightbox() {
   const $lightbox = document.getElementById('lightbox');
   if (!$lightbox) return;
-  $lightbox.style.display = 'none';
-  $lightbox.classList.remove('lightbox--open');
-  if ($lightbox._cleanup) $lightbox._cleanup();
-  if ($lightbox._keyCleanup) $lightbox._keyCleanup();
-  if ($lightbox._tabCleanup) $lightbox._tabCleanup();
-  document.body.style.overflow = '';
-  // Restore focus to the element that opened the lightbox
-  if ($lightbox._prevFocus) {
-    $lightbox._prevFocus.focus();
-    $lightbox._prevFocus = null;
+
+  const doClose = () => {
+    $lightbox.style.display = 'none';
+    $lightbox.classList.remove('lightbox--open');
+    if ($lightbox._cleanup) $lightbox._cleanup();
+    if ($lightbox._keyCleanup) $lightbox._keyCleanup();
+    if ($lightbox._tabCleanup) $lightbox._tabCleanup();
+    document.body.style.overflow = '';
+    // Clear view-transition-names
+    $lightbox.querySelectorAll('[style*="view-transition-name"]').forEach(el => {
+      el.style.viewTransitionName = '';
+    });
+    if ($lightbox._prevFocus) {
+      $lightbox._prevFocus.focus();
+      $lightbox._prevFocus = null;
+    }
+  };
+
+  if (document.startViewTransition && !REDUCED_MOTION.matches) {
+    document.startViewTransition(doClose);
+  } else {
+    doClose();
   }
 }
 
@@ -4262,10 +4336,14 @@ function wireSwipe() {
     const elapsed = Date.now() - startTime;
     const velocity = Math.abs(dx) / Math.max(elapsed, 1);
 
-    // Clean up visual tracking
+    // Spring snap-back with real physics
     if ($resultStep) {
       $resultStep.classList.remove('step--swiping');
-      $resultStep.style.transform = '';
+      springAnimate($resultStep, { transform: 'translateX(0)' }, {
+        spring: SPRINGS.snappy,
+        duration: 300,
+        easing: 'var(--spring)',
+      });
     }
 
     // Must be a horizontal gesture on the result view

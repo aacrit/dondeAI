@@ -53,6 +53,10 @@ export const HAPTICS = {
   drawerOpen:  [15],                   // V9.1: drawer/sheet opens
   tierExpand:  [30, 15, 30],           // V9.1: show more tap
   peekPulse:   [15],                   // V9.1: tier 2 peek affordance
+  spectacle:   [10, 30, 10, 30, 10, 80, 15, 15, 15], // V11: tier 4 celebration
+  nameReveal:  [5, 50, 8],            // V11: restaurant name entrance
+  tierPop:     [8, 20, 12],           // V11: tier expand pop
+  photoSnap:   [3],                   // V11: photo lightbox snap
 };
 
 /* ---- AbortController for fetch cancellation ---- */
