@@ -62,19 +62,19 @@
           <div class="cc-pulse__value" id="pulse-health-val">--</div>
         </div>
         <div class="cc-pulse__label">System Health</div>
-        <div class="cc-pulse__sub" id="pulse-health-sub">Loading...</div>
+        <div class="cc-pulse__sub" id="pulse-health-sub">Connecting...</div>
       </div>
 
       <div class="cc-pulse__card cc-pulse__card--quality" id="pulse-quality" role="button" tabindex="0" onclick="scrollToSection('results')" title="View test results">
         <div class="cc-pulse__big" id="pulse-quality-val">--</div>
         <div class="cc-pulse__label">Avg DondeMatch</div>
-        <div class="cc-pulse__sub" id="pulse-quality-sub">Loading...</div>
+        <div class="cc-pulse__sub" id="pulse-quality-sub">Connecting...</div>
       </div>
 
       <div class="cc-pulse__card cc-pulse__card--attention" id="pulse-attention" role="button" tabindex="0" onclick="scrollToSection('results')" title="View gaps &amp; issues">
         <div class="cc-pulse__big cc-pulse__big--attention" id="pulse-attention-val">--</div>
         <div class="cc-pulse__label">Needs Attention</div>
-        <div class="cc-pulse__sub" id="pulse-attention-sub">Loading...</div>
+        <div class="cc-pulse__sub" id="pulse-attention-sub">Connecting...</div>
       </div>
     </section>
 
@@ -107,6 +107,12 @@
       <div id="prod-content">
         <div class="cc-loading"><div class="cc-spinner"></div>Loading production data...</div>
       </div>
+    </div>
+
+    <!-- Freshness indicator -->
+    <div class="cc-freshness" id="freshness-bar">
+      <span class="cc-freshness__text" id="freshness-text">Updated just now</span>
+      <button class="cc-freshness__refresh" id="freshness-btn" onclick="refreshInitData()" title="Refresh data">&#8635;</button>
     </div>
 
     <!-- Smart Suggestion (conditional — "what should the CEO do next?") -->
@@ -338,6 +344,11 @@
   <!-- ═══ Paused Overlay ═══ -->
   <div class="cc-paused" id="paused-overlay">
     <div class="cc-paused__text">Paused</div>
+  </div>
+
+  <!-- Keyboard shortcut discovery hint (first visit only) -->
+  <div class="cc-kbd-hint" id="kbd-hint" style="display:none">
+    Press <kbd>?</kbd> for keyboard shortcuts
   </div>
 
   <script src="js/cc-config.js"></script>

@@ -24,6 +24,8 @@ function updateClock() {
   const now = new Date();
   const clockEl = document.getElementById('clock');
   if (clockEl) clockEl.textContent = now.toTimeString().split(' ')[0];
+  // Update freshness every tick (1s interval — text changes at minute boundaries)
+  if (_initDataTimestamp) updateFreshnessText();
 
   if (state.startTime) {
     const elapsed = Math.floor((now - state.startTime) / 1000);
@@ -71,6 +73,8 @@ async function loadInitData() {
 
     // Cache for lazy prod detail expansion
     _initData = { totalCount, enrichedCount, enrichedPct, todayCount, avgDm, lowScoreCount, latestRun: latestRun.data?.[0] || null, todayRows };
+    _initDataTimestamp = Date.now();
+    updateFreshnessText();
 
     // ── Populate Prod Strip ──
     const prodSearches = document.getElementById('prod-searches');
@@ -98,35 +102,59 @@ async function loadInitData() {
     if (!state.startTime) {
       const healthSub = document.getElementById('pulse-health-sub');
       const qualitySub = document.getElementById('pulse-quality-sub');
-      if (_initData.latestRun) {
+      if (!_initData.latestRun) {
+        // Graceful empty state — guide the CEO instead of showing "--"
+        const healthVal = document.getElementById('pulse-health-val');
+        const qualityVal = document.getElementById('pulse-quality-val');
+        const attentionVal = document.getElementById('pulse-attention-val');
+        const attentionSub = document.getElementById('pulse-attention-sub');
+        if (healthVal) { healthVal.textContent = '\u2014'; healthVal.style.color = 'var(--cc-text-3)'; }
+        if (healthSub) healthSub.textContent = 'Run your first test to see health';
+        if (qualityVal) { qualityVal.textContent = '\u2014'; qualityVal.className = 'cc-pulse__big'; }
+        if (qualitySub) qualitySub.textContent = 'No score data yet';
+        if (attentionVal) { attentionVal.textContent = '0'; attentionVal.style.color = 'var(--cc-green)'; }
+        if (attentionSub) attentionSub.textContent = 'All clear';
+      } else if (_initData.latestRun) {
         const r = _initData.latestRun;
         const passRate = r.total > 0 ? Math.round((r.total - r.gap_count) / r.total * 100) : 0;
         const date = new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         if (healthSub) healthSub.textContent = `${passRate}% pass · ${r.total} queries · ${date}`;
         if (qualitySub) qualitySub.textContent = `DM ${r.avg_dm || '--'} · ${r.gap_count} gaps`;
 
-        // Populate pulse values from last run if no session data
+        // Populate pulse values from last run if no session data (with count-up animation)
         const healthVal = document.getElementById('pulse-health-val');
         const healthRing = document.getElementById('pulse-health-ring');
         if (healthVal) {
-          healthVal.textContent = passRate + '%';
           healthVal.style.color = passRate >= 80 ? 'var(--cc-green)' : passRate >= 60 ? 'var(--cc-amber)' : 'var(--cc-red)';
-          const offset = 213.6 * (1 - passRate / 100);
-          if (healthRing) { healthRing.style.strokeDashoffset = offset; healthRing.style.stroke = passRate >= 80 ? 'var(--cc-green)' : passRate >= 60 ? 'var(--cc-amber)' : 'var(--cc-red)'; }
+          if (!_pulseAnimated) {
+            animateCountUp(healthVal, passRate, '%', 900);
+            // Animate health ring with slight delay for effect
+            if (healthRing) {
+              healthRing.style.stroke = passRate >= 80 ? 'var(--cc-green)' : passRate >= 60 ? 'var(--cc-amber)' : 'var(--cc-red)';
+              requestAnimationFrame(() => { healthRing.style.strokeDashoffset = 213.6 * (1 - passRate / 100); });
+            }
+          } else {
+            healthVal.textContent = passRate + '%';
+            const offset = 213.6 * (1 - passRate / 100);
+            if (healthRing) { healthRing.style.strokeDashoffset = offset; healthRing.style.stroke = passRate >= 80 ? 'var(--cc-green)' : passRate >= 60 ? 'var(--cc-amber)' : 'var(--cc-red)'; }
+          }
         }
         const qualityVal = document.getElementById('pulse-quality-val');
         if (qualityVal && r.avg_dm) {
-          qualityVal.textContent = r.avg_dm;
           qualityVal.className = 'cc-pulse__big';
           qualityVal.classList.add(ragClass(r.avg_dm));
+          if (!_pulseAnimated) animateCountUp(qualityVal, r.avg_dm, '', 900);
+          else qualityVal.textContent = r.avg_dm;
         }
         const attentionVal = document.getElementById('pulse-attention-val');
         const attentionSub = document.getElementById('pulse-attention-sub');
         if (attentionVal) {
-          attentionVal.textContent = r.gap_count || 0;
-          attentionVal.style.color = r.gap_count === 0 ? 'var(--cc-green)' : r.gap_count <= 5 ? 'var(--cc-amber)' : 'var(--cc-red)';
+          attentionVal.style.color = (r.gap_count || 0) === 0 ? 'var(--cc-green)' : r.gap_count <= 5 ? 'var(--cc-amber)' : 'var(--cc-red)';
+          if (!_pulseAnimated) animateCountUp(attentionVal, r.gap_count || 0, '', 600);
+          else attentionVal.textContent = r.gap_count || 0;
         }
         if (attentionSub) attentionSub.textContent = r.gap_count > 0 ? `${r.gap_count} gaps from last run` : 'All clear';
+        _pulseAnimated = true;
       }
     }
 
@@ -135,12 +163,23 @@ async function loadInitData() {
 
   } catch (e) {
     console.warn('Init data load failed:', e);
+    // Show inline error instead of dead "--" values
     const prodSearches = document.getElementById('prod-searches');
     const prodAvgDm = document.getElementById('prod-avg-dm');
     const prodLow = document.getElementById('prod-low-scores');
-    if (prodSearches) prodSearches.textContent = '--';
-    if (prodAvgDm) prodAvgDm.textContent = '--';
-    if (prodLow) prodLow.textContent = '--';
+    if (prodSearches) { prodSearches.textContent = '\u26a0'; prodSearches.style.color = 'var(--cc-amber)'; }
+    if (prodAvgDm) { prodAvgDm.textContent = '\u26a0'; prodAvgDm.style.color = 'var(--cc-amber)'; }
+    if (prodLow) { prodLow.textContent = '\u26a0'; prodLow.style.color = 'var(--cc-amber)'; }
+
+    // Show guided empty state on pulse
+    const healthSub = document.getElementById('pulse-health-sub');
+    const qualitySub = document.getElementById('pulse-quality-sub');
+    if (healthSub) healthSub.textContent = 'Offline \u2014 click to retry';
+    if (qualitySub) qualitySub.textContent = 'Could not connect';
+
+    // Update freshness to show error
+    const freshEl = document.getElementById('freshness-text');
+    if (freshEl) { freshEl.textContent = 'Connection failed'; freshEl.style.color = 'var(--cc-red)'; }
   }
 }
 
@@ -176,6 +215,11 @@ function updatePulseCards() {
   }
 
   const compositeHealth = healthParts > 0 ? Math.round(healthScore / healthParts) : null;
+
+  // Don't overwrite guided empty state if no data exists at all
+  const hasAnyData = results.length > 0 || atlas.total > 0 || _initData?.latestRun;
+  if (compositeHealth === null && !hasAnyData) return;
+
   const healthVal = document.getElementById('pulse-health-val');
   const healthRing = document.getElementById('pulse-health-ring');
   const healthSub = document.getElementById('pulse-health-sub');
@@ -503,7 +547,7 @@ async function loadProductionDashboard() {
 
     content.innerHTML = h;
   } catch (e) {
-    content.innerHTML = `<p style="color:var(--cc-red)">Failed to load production data: ${e.message}</p>`;
+    content.innerHTML = `<div class="cc-error-state"><div class="cc-error-state__icon">&#9888;</div><div class="cc-error-state__text">Couldn't load production data</div><div class="cc-error-state__detail">${escapeHtml(e.message)}</div><button class="cc-btn" onclick="productionLoaded=false; loadProductionDashboard()">Retry</button></div>`;
     productionLoaded = false;
   }
 }
@@ -575,6 +619,8 @@ function updateHeroKPIs() {
   updatePulseCards();
   updateAgentDots();
   updateFocusStrip();
+  computeSuggestion();
+  updatePageTitle();
 
   // Update test action button hint
   const hint = document.getElementById('action-test-hint');
@@ -626,6 +672,13 @@ function updateFocusStrip() {
   else if (remaining <= 0) alerts.push({ text: 'API budget exhausted', type: 'red' });
   if (state.agents.atlas.gaps > 10) alerts.push({ text: `Atlas found ${state.agents.atlas.gaps} gaps`, type: 'amber' });
   if (state.agents.qaudit.grade === 'C' || state.agents.qaudit.grade === 'F') alerts.push({ text: `Blurb quality grade: ${state.agents.qaudit.grade}`, type: 'red' });
+
+  // Also check production data at rest (from _initData)
+  if (_initData && state.systemState !== 'running') {
+    if (_initData.avgDm > 0 && _initData.avgDm < 60) alerts.push({ text: `Production avg DM is ${_initData.avgDm} \u2014 below 60 threshold`, type: 'red' });
+    if (_initData.lowScoreCount > 10) alerts.push({ text: `${_initData.lowScoreCount} low scores in production today`, type: 'amber' });
+    if (_initData.enrichedPct < 85) alerts.push({ text: `Enrichment at ${_initData.enrichedPct}% \u2014 below 85% target`, type: 'amber' });
+  }
 
   const strip = document.getElementById('focus-strip');
   const alertsEl = document.getElementById('focus-alerts');
@@ -686,13 +739,6 @@ function renderLogEntry(entry) {
   logEl.appendChild(div);
   logEl.scrollTop = logEl.scrollHeight;
   while (logEl.children.length > MAX_LOG_ENTRIES) logEl.removeChild(logEl.firstChild);
-}
-
-function filterLog(filter) {
-  state.logFilter = filter;
-  document.querySelectorAll('.cc-log__filter').forEach(btn => btn.classList.toggle('cc-log__filter--active', btn.dataset.filter === filter));
-  const logEl = document.getElementById('battle-log');
-  if (logEl) { logEl.innerHTML = ''; state.logs.forEach(entry => renderLogEntry(entry)); }
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -783,6 +829,7 @@ function showGameOver(sessionStartTime) {
 
   if (saveStatusEl) saveStatusEl.textContent = '';
   overlay.classList.add('cc-overlay--visible');
+  updatePageTitle();
 
   // Reset Run Tests button
   const testBtn = document.getElementById('action-test');
@@ -928,7 +975,7 @@ function initStartDropdown() {
 
   document.addEventListener('click', (e) => {
     const dd = document.getElementById('start-dropdown');
-    if (dd && !e.target.closest('.cc-start-group')) dd.classList.remove('cc-start-dropdown--open');
+    if (dd && !e.target.closest('.cc-action-group')) dd.classList.remove('cc-start-dropdown--open');
   });
 }
 
@@ -1065,8 +1112,31 @@ function computeSuggestion() {
     return;
   }
 
-  // No issues — hide
-  strip.style.display = 'none';
+  // Priority 4: Session just completed
+  const results = state.sessionResults || [];
+  if (state.systemState === 'stopped' && results.length > 0) {
+    const passed = results.filter(r => r.donde_match >= 60).length;
+    const passRate = Math.round((passed / results.length) * 100);
+    textEl.textContent = `Session done \u2014 ${passRate}% pass rate across ${results.length} queries`;
+    btnEl.textContent = 'View Results';
+    _suggestionAction = () => scrollToSection('results');
+    strip.style.display = '';
+    return;
+  }
+
+  // Priority 5: Low production scores
+  if (d.avgDm > 0 && d.avgDm < 60) {
+    textEl.textContent = `Production avg DM is ${d.avgDm} \u2014 investigate low scores`;
+    btnEl.textContent = 'View Production';
+    _suggestionAction = () => expandProduction();
+    strip.style.display = '';
+    return;
+  }
+
+  // No issues — hide (but don't hide during running)
+  if (state.systemState !== 'running') {
+    strip.style.display = 'none';
+  }
 }
 
 function executeSuggestion() {
@@ -1145,6 +1215,129 @@ function closeShortcuts(e) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
+// Data Freshness Indicator + Auto-Refresh
+// ═══════════════════════════════════════════════════════════════════
+
+let _initDataTimestamp = 0;
+const AUTO_REFRESH_INTERVAL = 300000; // 5 min
+
+function updateFreshnessText() {
+  const el = document.getElementById('freshness-text');
+  const bar = document.getElementById('freshness-bar');
+  if (!el || !bar || !_initDataTimestamp) return;
+
+  const elapsed = Math.floor((Date.now() - _initDataTimestamp) / 60000); // minutes
+  bar.className = 'cc-freshness';
+
+  if (elapsed < 2) {
+    el.textContent = 'Updated just now';
+  } else if (elapsed < 10) {
+    el.textContent = `Updated ${elapsed}m ago`;
+  } else if (elapsed < 30) {
+    el.textContent = `Updated ${elapsed}m ago`;
+    bar.classList.add('cc-freshness--stale');
+  } else {
+    el.textContent = `Data may be stale (${elapsed}m)`;
+    bar.classList.add('cc-freshness--very-stale');
+  }
+}
+
+function refreshInitData() {
+  const btn = document.getElementById('freshness-btn');
+  if (btn) btn.classList.add('cc-freshness__refresh--spinning');
+  productionLoaded = false;
+  loadInitData().then(() => {
+    if (btn) btn.classList.remove('cc-freshness__refresh--spinning');
+  });
+}
+
+// Auto-refresh: reload data every 5 min when tab is visible
+setInterval(() => {
+  if (document.visibilityState === 'visible' && state.systemState !== 'running') {
+    loadInitData();
+  }
+}, AUTO_REFRESH_INTERVAL);
+
+// ═══════════════════════════════════════════════════════════════════
+// Dynamic Page Title
+// ═══════════════════════════════════════════════════════════════════
+
+function updatePageTitle() {
+  const results = state.sessionResults || [];
+
+  if (state.systemState === 'running') {
+    const count = results.length;
+    const slider = document.getElementById('test-count-slider');
+    const total = slider ? parseInt(slider.value) : '?';
+    document.title = `\u25b6 ${count}/${total} \u2014 DondeAI CC`;
+  } else if (state.systemState === 'paused') {
+    document.title = '\u23f8 Paused \u2014 DondeAI CC';
+  } else if (state.systemState === 'stopped' && results.length > 0) {
+    const passed = results.filter(r => r.donde_match >= 60).length;
+    const passRate = Math.round((passed / results.length) * 100);
+    document.title = `\u2713 Done ${passRate}% \u2014 DondeAI CC`;
+  } else if (_initData?.latestRun) {
+    const r = _initData.latestRun;
+    const passRate = r.total > 0 ? Math.round((r.total - r.gap_count) / r.total * 100) : 0;
+    document.title = `\u2713 ${passRate}% \u2014 DondeAI CC`;
+  } else {
+    document.title = 'Command Center \u2014 DondeAI';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Pulse Score Count-Up Animation
+// ═══════════════════════════════════════════════════════════════════
+
+let _pulseAnimated = false;
+const _prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function animateCountUp(el, target, suffix, duration) {
+  if (!el || target == null) return;
+  if (_prefersReducedMotion) { el.textContent = target + (suffix || ''); return; }
+  duration = duration || 800;
+  const start = performance.now();
+  function tick(now) {
+    const progress = Math.min((now - start) / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+    el.textContent = Math.round(target * eased) + (suffix || '');
+    if (progress < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Keyboard Shortcut Discovery Hint (first-visit only)
+// ═══════════════════════════════════════════════════════════════════
+
+function initKeyboardHint() {
+  if (localStorage.getItem('cc-kbd-hint-dismissed')) return;
+  const hint = document.getElementById('kbd-hint');
+  if (!hint) return;
+
+  const showTimer = setTimeout(() => {
+    hint.style.display = '';
+    // Auto-dismiss after 8 seconds
+    const hideTimer = setTimeout(() => dismissKeyboardHint(), 8000);
+    // Dismiss on any keypress
+    const handler = () => {
+      clearTimeout(hideTimer);
+      dismissKeyboardHint();
+      document.removeEventListener('keydown', handler);
+    };
+    document.addEventListener('keydown', handler);
+  }, 3000);
+}
+
+function dismissKeyboardHint() {
+  const hint = document.getElementById('kbd-hint');
+  if (!hint || hint.style.display === 'none') return;
+  hint.classList.add('cc-kbd-hint--dismissing');
+  setTimeout(() => { hint.style.display = 'none'; }, 300);
+  localStorage.setItem('cc-kbd-hint-dismissed', '1');
+}
+
+// ═══════════════════════════════════════════════════════════════════
 // Init
 // ═══════════════════════════════════════════════════════════════════
 
@@ -1175,8 +1368,14 @@ initStartDropdown();
 // Keyboard shortcuts
 initKeyboardShortcuts();
 
+// Keyboard hint (first visit only)
+initKeyboardHint();
+
 // Auth & analytics (also loads init data)
 checkAuth();
+
+// Initial page title
+updatePageTitle();
 
 // Auto-open section from URL hash (e.g. #maintenance)
 if (window.location.hash) {
