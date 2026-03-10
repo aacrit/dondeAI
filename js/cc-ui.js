@@ -633,15 +633,19 @@ function renderIssues(issues) {
 
   if (!issues || issues.length === 0) {
     list.innerHTML = '<div class="cc-empty-state"><div class="cc-empty-state__icon">&#9989;</div><div class="cc-empty-state__text">No issues found. System is healthy!</div></div>';
-    updateIssueSummary(0, 0, 0);
+    const allIssues = state.issues || [];
+    const fixedAll = allIssues.filter(i => i.status === 'fixed').length;
+    updateIssueSummary(0, 0, 0, fixedAll);
     return;
   }
 
-  // Count by severity
-  const p0 = issues.filter(i => i.severity === 'P0').length;
-  const p1 = issues.filter(i => i.severity === 'P1').length;
-  const p2 = issues.filter(i => i.severity === 'P2').length;
-  updateIssueSummary(p0, p1, p2);
+  // Count by severity (from all issues, not just filtered)
+  const allIssues = state.issues || issues;
+  const p0 = allIssues.filter(i => i.severity === 'P0' && i.status !== 'fixed').length;
+  const p1 = allIssues.filter(i => i.severity === 'P1' && i.status !== 'fixed').length;
+  const p2 = allIssues.filter(i => i.severity === 'P2' && i.status !== 'fixed').length;
+  const fixed = allIssues.filter(i => i.status === 'fixed').length;
+  updateIssueSummary(p0, p1, p2, fixed);
 
   let currentSev = null;
   let html = '';
@@ -662,8 +666,17 @@ function renderIssues(issues) {
       ? `Test ${i.sourceDetail || ''}`
       : `Prod ${i.sourceDetail || ''}`;
 
+    const statusClass = i.status === 'fixed' ? 'cc-issue--fixed' : i.status === 'improved' ? 'cc-issue--improved' : '';
+    const statusBadge = i.status === 'fixed'
+      ? `<span class="cc-issue__status cc-issue__status--fixed">Fixed (DM ${i.retestDm})</span>`
+      : i.status === 'improved'
+      ? `<span class="cc-issue__status cc-issue__status--improved">Improved (${i.dm} → ${i.retestDm})</span>`
+      : i.status === 'regressed'
+      ? `<span class="cc-issue__status cc-issue__status--regressed">Regressed (${i.dm} → ${i.retestDm})</span>`
+      : '';
+
     html += `
-      <div class="cc-issue" data-idx="${idx}" data-severity="${i.severity}" data-type="${i.gapType}" data-source="${i.source}">
+      <div class="cc-issue ${statusClass}" data-idx="${idx}" data-severity="${i.severity}" data-type="${i.gapType}" data-source="${i.source}" data-status="${i.status || 'open'}">
         <div class="cc-issue__top">
           <label class="cc-issue__check">
             <input type="checkbox" data-issue-idx="${idx}" onchange="toggleIssueSelect(${idx}, this.checked)">
@@ -672,6 +685,7 @@ function renderIssues(issues) {
           <span class="cc-issue__query">"${escapeHtml(i.query)}"</span>
           <span class="cc-issue__gap-type">${escapeHtml(i.gapType)}</span>
           <span class="cc-issue__severity cc-issues-badge--${i.severity.toLowerCase()}">${i.severity}</span>
+          ${statusBadge}
         </div>
         <div class="cc-issue__meta">
           <span>${escapeHtml(i.restaurant)}</span>
@@ -683,7 +697,8 @@ function renderIssues(issues) {
         ${factors}
         <div class="cc-issue__fix">
           <span class="cc-issue__fix-text">${escapeHtml(i.fixAction)}</span>
-          <button class="cc-btn cc-btn--sm" onclick="copyFixPrompt(${idx})">Copy Fix Prompt</button>
+          <button class="cc-btn cc-btn--sm" onclick="copyFixPrompt(${idx})">Copy Fix</button>
+          <button class="cc-btn cc-btn--sm cc-btn--retest" onclick="retestIssue(${idx})" ${i.status === 'fixed' ? 'disabled' : ''}>Retest</button>
         </div>
       </div>
     `;
@@ -692,11 +707,20 @@ function renderIssues(issues) {
   list.innerHTML = html;
 }
 
-function updateIssueSummary(p0, p1, p2) {
+function updateIssueSummary(p0, p1, p2, fixed) {
   const el = (id, text) => { const e = document.getElementById(id); if (e) e.textContent = text; };
   el('issues-p0-count', `P0: ${p0}`);
   el('issues-p1-count', `P1: ${p1}`);
   el('issues-p2-count', `P2: ${p2}`);
+  const fixedEl = document.getElementById('issues-fixed-count');
+  if (fixedEl) {
+    if (fixed > 0) {
+      fixedEl.textContent = `Fixed: ${fixed}`;
+      fixedEl.style.display = '';
+    } else {
+      fixedEl.style.display = 'none';
+    }
+  }
 }
 
 function updateIssuesBadge(issues) {
@@ -723,11 +747,15 @@ function setIssueFilter(filterType, value) {
 }
 
 function applyIssueFilters() {
-  const { severity, type, source } = state.issueFilters || {};
+  const { severity, type, source, status } = state.issueFilters || {};
   let filtered = (state.issues || []).filter(i => {
     if (severity !== 'all' && i.severity !== severity) return false;
     if (type !== 'all' && i.gapType !== type) return false;
     if (source !== 'all' && i.source !== source) return false;
+    if (status && status !== 'all') {
+      const issueStatus = i.status || 'open';
+      if (status !== issueStatus) return false;
+    }
     return true;
   });
   renderIssues(filtered);
@@ -756,8 +784,10 @@ function updateBulkUI() {
   const count = state.selectedIssues?.size || 0;
   const countEl = document.getElementById('issues-selected-count');
   const bulkBtn = document.getElementById('issues-bulk-copy');
+  const retestBtn = document.getElementById('issues-bulk-retest');
   if (countEl) countEl.textContent = `${count} selected`;
   if (bulkBtn) bulkBtn.style.display = count > 0 ? '' : 'none';
+  if (retestBtn) retestBtn.style.display = count > 0 ? '' : 'none';
 }
 
 // ─── Prompt Generation ───
@@ -826,6 +856,136 @@ function copyFixPrompt(idx) {
     if (typeof showToast === 'function') showToast('Could not copy to clipboard');
   });
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// Retest Issues
+// ═══════════════════════════════════════════════════════════════════
+
+async function retestIssue(idx) {
+  const issue = state.issues?.[idx];
+  if (!issue || state.retesting) return;
+
+  state.retesting = true;
+  const card = document.querySelector(`.cc-issue[data-idx="${idx}"]`);
+  const btn = card?.querySelector('.cc-btn--retest');
+  if (btn) { btn.textContent = 'Testing...'; btn.disabled = true; }
+
+  try {
+    const resp = await callAPI(issue.query);
+    const newDm = resp.donde_match || 0;
+    issue.retestDm = newDm;
+
+    if (newDm >= 60) {
+      issue.status = 'fixed';
+      showToast(`Fixed! "${issue.query}" now scores DM ${newDm}`);
+    } else if (newDm > issue.dm) {
+      issue.status = 'improved';
+      showToast(`Improved: "${issue.query}" DM ${issue.dm} → ${newDm}`);
+    } else if (newDm < issue.dm) {
+      issue.status = 'regressed';
+      showToast(`Regressed: "${issue.query}" DM ${issue.dm} → ${newDm}`);
+    } else {
+      issue.status = 'open';
+      showToast(`No change: "${issue.query}" still DM ${newDm}`);
+    }
+
+    // Update restaurant name if it changed
+    if (resp.restaurant?.name) issue.restaurant = resp.restaurant.name;
+
+    // Re-render with filters
+    applyIssueFilters();
+    updateIssuesBadge(state.issues);
+    saveIssueStatuses();
+  } catch (e) {
+    showToast(`Retest failed: ${e.message}`);
+    if (btn) { btn.textContent = 'Retest'; btn.disabled = false; }
+  } finally {
+    state.retesting = false;
+  }
+}
+
+async function retestSelectedIssues() {
+  if (!state.selectedIssues?.size || !state.issues || state.retesting) return;
+
+  const indices = [...state.selectedIssues].sort((a, b) => a - b);
+  const total = indices.length;
+  state.retesting = true;
+
+  // Show progress
+  const progressEl = document.getElementById('retest-progress');
+  const fillEl = document.getElementById('retest-progress-fill');
+  const textEl = document.getElementById('retest-progress-text');
+  if (progressEl) progressEl.style.display = '';
+
+  let fixed = 0, improved = 0, unchanged = 0;
+
+  for (let i = 0; i < indices.length; i++) {
+    const idx = indices[i];
+    const issue = state.issues[idx];
+    if (!issue) continue;
+
+    if (textEl) textEl.textContent = `Retesting ${i + 1}/${total}: "${issue.query}"`;
+    if (fillEl) fillEl.style.width = `${((i + 1) / total) * 100}%`;
+
+    try {
+      const resp = await callAPI(issue.query);
+      const newDm = resp.donde_match || 0;
+      issue.retestDm = newDm;
+
+      if (newDm >= 60) {
+        issue.status = 'fixed';
+        fixed++;
+      } else if (newDm > issue.dm) {
+        issue.status = 'improved';
+        improved++;
+      } else if (newDm < issue.dm) {
+        issue.status = 'regressed';
+        unchanged++;
+      } else {
+        issue.status = 'open';
+        unchanged++;
+      }
+
+      if (resp.restaurant?.name) issue.restaurant = resp.restaurant.name;
+    } catch (e) {
+      unchanged++;
+    }
+  }
+
+  state.retesting = false;
+  if (progressEl) progressEl.style.display = 'none';
+
+  showToast(`Retest complete: ${fixed} fixed, ${improved} improved, ${unchanged} unchanged`);
+
+  // Clear selection
+  state.selectedIssues = new Set();
+  updateBulkUI();
+  applyIssueFilters();
+  updateIssuesBadge(state.issues);
+  saveIssueStatuses();
+}
+
+// Persist issue statuses to localStorage so they survive page reload
+function saveIssueStatuses() {
+  if (!state.issues) return;
+  const statuses = {};
+  for (const issue of state.issues) {
+    if (issue.status && issue.status !== 'open') {
+      const key = issue.query.toLowerCase().trim();
+      statuses[key] = { status: issue.status, retestDm: issue.retestDm, ts: Date.now() };
+    }
+  }
+  try { localStorage.setItem('cc-issue-statuses', JSON.stringify(statuses)); } catch (_) {}
+}
+
+function loadIssueStatuses() {
+  try {
+    const raw = localStorage.getItem('cc-issue-statuses');
+    return raw ? JSON.parse(raw) : {};
+  } catch (_) { return {}; }
+}
+
+// ═══════════════════════════════════════════════════════════════════
 
 function copyBulkFixPrompt() {
   if (!state.selectedIssues?.size || !state.issues) return;

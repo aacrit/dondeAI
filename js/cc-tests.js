@@ -364,9 +364,15 @@ async function persistResults(test) {
     const avgDm = test.results.reduce((s, r) => s + (r.dm || 0), 0) / test.results.length;
     const gapCount = test.results.filter(r => r.gap).length;
     const runId = `cc-${test.type}-${Date.now()}`;
+    // Generate a dataset hash from queries for dedup/comparison
+    const queryStr = test.results.map(r => r.query).sort().join('|');
+    const datasetHash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(queryStr))
+      .then(buf => Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join(''))
+      .catch(() => `${test.type}-${test.results.length}`);
 
-    await sbClient.from('gauntlet_runs').insert({
+    const { error: runError } = await sbClient.from('gauntlet_runs').insert({
       run_id: runId,
+      dataset_hash: datasetHash.slice(0, 16),
       dataset_size: test.results.length,
       mode: test.type,
       total: test.results.length,
@@ -376,6 +382,11 @@ async function persistResults(test) {
       avg_dm: Math.round(avgDm * 10) / 10,
       gap_count: gapCount,
     });
+
+    if (runError) {
+      console.error('Failed to persist run:', runError.message, runError.hint);
+      return;
+    }
 
     const rows = test.results.map((r, i) => ({
       run_id: runId,
@@ -390,7 +401,8 @@ async function persistResults(test) {
 
     // Insert in batches of 50
     for (let i = 0; i < rows.length; i += 50) {
-      await sbClient.from('gauntlet_results').insert(rows.slice(i, i + 50));
+      const { error: resError } = await sbClient.from('gauntlet_results').insert(rows.slice(i, i + 50));
+      if (resError) console.error('Failed to persist results batch:', resError.message, resError.hint);
     }
 
     // Refresh run history

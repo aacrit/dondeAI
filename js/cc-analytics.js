@@ -496,8 +496,21 @@ async function loadIssues() {
     const sevOrder = { P0: 0, P1: 1, P2: 2 };
     issues.sort((a, b) => (sevOrder[a.severity] || 9) - (sevOrder[b.severity] || 9) || a.dm - b.dm);
 
+    // Restore saved statuses from localStorage
+    const savedStatuses = typeof loadIssueStatuses === 'function' ? loadIssueStatuses() : {};
+    for (const issue of issues) {
+      const key = issue.query.toLowerCase().trim();
+      const saved = savedStatuses[key];
+      if (saved) {
+        issue.status = saved.status;
+        issue.retestDm = saved.retestDm;
+      } else {
+        issue.status = 'open';
+      }
+    }
+
     state.issues = issues;
-    state.issueFilters = { severity: 'all', type: 'all', source: 'all' };
+    state.issueFilters = { severity: 'all', type: 'all', source: 'all', status: 'all' };
     state.selectedIssues = new Set();
 
     renderIssues(issues);
