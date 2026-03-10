@@ -2578,18 +2578,9 @@ function renderResult(data) {
   const $name = document.getElementById('result-name');
   if ($name) $name.textContent = r.name || '';
 
-  // Neighborhood in header bar
+  // Neighborhood now shown in Tier 2 context pills — hide from header
   const $headerHood = document.getElementById('header-hood');
-  if ($headerHood) {
-    const rawHood = r.neighborhood_name || '';
-    const hood = /^chicago$/i.test(rawHood.trim()) ? '' : rawHood;
-    if (hood) {
-      $headerHood.textContent = hood;
-      $headerHood.style.display = '';
-    } else {
-      $headerHood.style.display = 'none';
-    }
-  }
+  if ($headerHood) $headerHood.style.display = 'none';
 
   // Restaurant meta: website, cuisine, what to order, open/closed pills
   renderResultMeta(data);
@@ -2978,6 +2969,18 @@ function renderQuickActions(data) {
     items.push({ icon: 'phone', label: 'Call', href: `tel:${r.phone}` });
   }
 
+  // Navigation (directions) — first in row, styled same as Reserve/Share
+  const shortAddr = r.address?.split(',')[0] || '';
+  const rawHood = r.neighborhood_name || '';
+  const hood = /^chicago$/i.test(rawHood.trim()) ? '' : rawHood;
+  const navLabel = hood ? `${hood} \u00b7 ${shortAddr}` : shortAddr;
+  const navUrl = r.google_place_id
+    ? `https://www.google.com/maps/place/?q=place_id:${r.google_place_id}`
+    : r.address ? buildMapsUrl(r.address) : null;
+  if (navUrl && navLabel) {
+    items.unshift({ icon: 'pin', label: navLabel, href: navUrl });
+  }
+
   items.forEach(item => {
     const pill = item.href ? document.createElement('a') : document.createElement('span');
     pill.className = 'utility-pill type-data--sm';
@@ -2999,12 +3002,22 @@ function renderQuickActions(data) {
 
 /* ---- Result Meta: website, cuisine, what to order, open/closed pills ---- */
 function renderResultMeta(data) {
-  const $meta = document.getElementById('result-meta');
+  const $meta = document.getElementById('result-context');
   if (!$meta) return;
   $meta.innerHTML = '';
 
   const r = data.restaurant || {};
   const dp = data.deep_context || {};
+
+  // 0. Neighborhood pill
+  const rawHood = r.neighborhood_name || '';
+  const neighborhood = /^chicago$/i.test(rawHood.trim()) ? '' : rawHood;
+  if (neighborhood) {
+    const hoodPill = document.createElement('span');
+    hoodPill.className = 'result-meta__pill type-data--sm';
+    hoodPill.innerHTML = `${svgIcon('pin', 11)} ${neighborhood}`;
+    $meta.appendChild(hoodPill);
+  }
 
   // 1. Cuisine pill → opens cuisine drawer (bottom sheet with signature dishes)
   if (r.cuisine_type) {
@@ -3503,27 +3516,9 @@ function renderRelaxationNotice(data) {
 
 /* ---- F3: Enhanced Map Navigation Tile ---- */
 function renderMapPreview(data) {
-  const r = data.restaurant;
+  // Navigation pill now rendered inline in quick-actions row
   const $glanceNav = document.getElementById('glance-nav');
-  if (!$glanceNav || !r?.address) return;
-  const mapsUrl = r.google_place_id
-    ? `https://www.google.com/maps/place/?q=place_id:${r.google_place_id}`
-    : buildMapsUrl(r.address);
-  // Filter out generic city-level names from neighborhood display
-  const rawHood = r.neighborhood_name || '';
-  const neighborhood = /^chicago$/i.test(rawHood.trim()) ? '' : rawHood;
-  // Short address: just street name, no city/state/zip
-  const shortAddr = r.address.split(',')[0] || r.address;
-  const displayText = neighborhood ? `${neighborhood} · ${shortAddr}` : shortAddr;
-
-  $glanceNav.innerHTML = `
-    <a class="glance-nav__pill" href="${mapsUrl}" target="_blank" rel="noopener noreferrer"
-       aria-label="Get directions to ${r.name}">
-      ${svgIcon('pin', 14)}
-      <span class="glance-nav__pill-text type-data--sm">${displayText}</span>
-      ${svgIcon('chevronRight', 12)}
-    </a>`;
-  $glanceNav.style.display = '';
+  if ($glanceNav) $glanceNav.style.display = 'none';
 }
 
 /* ---- V9: Floating Action Bar ---- */
@@ -3840,13 +3835,6 @@ function renderPerfectFor(data) {
   const scenarios = data.deep_context?.best_for_scenarios;
   if (scenarios?.length) {
     scenarios.slice(0, 3).forEach(s => pills.push({ icon: 'heart', text: s }));
-  }
-
-  // Comparable restaurants — "like X · Y"
-  const comparables = data.deep_context?.comparable_restaurants;
-  if (comparables?.length) {
-    const text = comparables.slice(0, 2).join(' \u00b7 ');
-    pills.push({ icon: 'forkKnife', text: `like ${text}` });
   }
 
   if (pills.length === 0) {

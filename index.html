@@ -455,8 +455,6 @@
                   <div class="glance-hero__info">
                     <div class="result-header">
                       <h2 class="result-name type-emotional--md" id="result-name" tabindex="-1"></h2>
-                      <!-- Cuisine + Open/Closed pills — inline with name -->
-                      <div class="result-meta" id="result-meta"></div>
                     </div>
                     <div class="quick-actions" id="quick-actions"></div>
                     <!-- Compact navigation pill (address → maps) — directly below action buttons -->
@@ -532,11 +530,14 @@
                   </div>
                 </div>
 
-                <!-- Detail strip: awards + perfect-for + comparable (unified) -->
-                <div class="detail-strip" id="detail-strip" style="display: none;"></div>
+                <!-- Context pills: neighborhood + cuisine + open/closed (moved from Tier 1) -->
+                <div class="result-context" id="result-context"></div>
 
-                <!-- Quick Stats ribbon (compact deep-context data, includes wow factors) -->
-                <div class="quick-stats" id="quick-stats" style="display: none;"></div>
+                <!-- Compact metadata block: awards + scenarios + stats -->
+                <div class="card-meta-block" id="card-meta-block">
+                  <div class="detail-strip" id="detail-strip" style="display: none;"></div>
+                  <div class="quick-stats" id="quick-stats" style="display: none;"></div>
+                </div>
 
               </div>
 

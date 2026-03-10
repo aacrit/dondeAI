@@ -2101,12 +2101,8 @@
   min-width: 0;
 }
 
-/* ── Result Header (name + tags inline) ── */
+/* ── Result Header (name only) ── */
 .result-header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-xs);
   width: 100%;
 }
 
@@ -2151,7 +2147,24 @@
   text-overflow: ellipsis;
 }
 
-/* ---- Detail Strip: awards + perfect-for + comparable (unified compact row) ---- */
+/* ── Result Context: neighborhood + cuisine + open/closed (Tier 2) ── */
+.result-context {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs);
+  align-items: center;
+}
+
+/* ── Card Meta Block: detail-strip + quick-stats merged ── */
+.card-meta-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  padding-top: var(--space-xs);
+  border-top: 1px solid var(--border);
+}
+
+/* ---- Detail Strip: awards + perfect-for (unified compact row) ---- */
 .detail-strip {
   display: flex;
   flex-wrap: wrap;
