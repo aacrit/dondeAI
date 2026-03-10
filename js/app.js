@@ -4076,81 +4076,81 @@ function collectInfoStreamItems(data) {
 }
 
 
-/* ---- InfoStream: living metadata rotation engine ---- */
+/* ---- InfoStream: two-tier metadata surface ---- */
+/* Row 1 (primary): interactive context pills */
+/* Row 2 (secondary): dot-separated small text with rotation on mobile */
 class InfoStream {
-  constructor($container, items, options = {}) {
+  constructor($container, primaryItems, secondaryItems) {
     this.$container = $container;
-    this.allItems = items;
-    this.visibleCount = options.visibleCount || 4;
-    this.interval = options.interval || 4000;
-    this.visible = [];    // Currently displayed items
-    this.queue = [];      // Items waiting to rotate in
-    this.pinned = new Set();
+    this.primaryItems = primaryItems;
+    this.secondaryItems = secondaryItems;
+    this.$secondary = null;
+    this.visibleMeta = [];    // Currently visible secondary items
+    this.metaQueue = [];      // Secondary items waiting to rotate in
     this.rotateIdx = 0;
     this.timer = null;
     this.paused = false;
     this._onPointerEnter = () => this.pause();
     this._onPointerLeave = () => this.resume();
-    this._onClick = (e) => this._handleClick(e);
   }
 
   start() {
-    // Split items into initial visible + queue
-    const contextItems = this.allItems.filter(it => it.category === 'context');
-    const restItems = this.allItems.filter(it => it.category !== 'context');
-
-    // Context items always visible first, fill remaining with top-priority rest
-    const initialCount = Math.min(this.visibleCount, this.allItems.length);
-    this.visible = [...contextItems];
-    for (const item of restItems) {
-      if (this.visible.length >= initialCount) break;
-      this.visible.push(item);
-    }
-
-    // Queue = everything not in initial visible set
-    const visibleIds = new Set(this.visible.map(it => it.id));
-    this.queue = this.allItems.filter(it => !visibleIds.has(it.id));
-
-    this.render();
-
-    // Reduced motion: show ALL items statically
-    if (REDUCED_MOTION.matches) {
-      this.visible = [...this.allItems];
-      this.render();
-      return;
-    }
-
-    // Attach interaction listeners
-    this.$container.addEventListener('pointerenter', this._onPointerEnter);
-    this.$container.addEventListener('pointerleave', this._onPointerLeave);
-    this.$container.addEventListener('click', this._onClick);
-
-    // Start rotation timer (only if there are items to rotate through)
-    if (this.queue.length > 0) {
-      this.timer = setInterval(() => {
-        if (!this.paused) this.rotateOne();
-      }, this.interval);
-    }
-  }
-
-  render() {
     this.$container.innerHTML = '';
-    this.visible.forEach(item => {
-      this.$container.appendChild(this._createItemEl(item));
-    });
-    this.$container.style.display = this.visible.length > 0 ? '' : 'none';
+
+    // ── Row 1: Primary pills ──
+    if (this.primaryItems.length > 0) {
+      const $row1 = document.createElement('div');
+      $row1.className = 'info-stream__primary';
+      this.primaryItems.forEach(item => $row1.appendChild(this._createPill(item)));
+      this.$container.appendChild($row1);
+    }
+
+    // ── Row 2: Secondary dot-separated metadata ──
+    if (this.secondaryItems.length > 0) {
+      this.$secondary = document.createElement('div');
+      this.$secondary.className = 'info-stream__secondary';
+
+      if (REDUCED_MOTION.matches) {
+        // Show all items statically
+        this._renderSecondaryItems(this.secondaryItems);
+      } else {
+        // Determine visible count based on viewport (mobile: ~6, desktop: all)
+        const isMobile = window.innerWidth < 768;
+        const maxVisible = isMobile ? 6 : this.secondaryItems.length;
+
+        this.visibleMeta = this.secondaryItems.slice(0, maxVisible);
+        this.metaQueue = this.secondaryItems.slice(maxVisible);
+        this._renderSecondaryItems(this.visibleMeta);
+
+        // Add line clamp for mobile
+        if (isMobile) {
+          this.$secondary.classList.add('info-stream__secondary--capped');
+        }
+
+        // Rotation timer (only if overflow items exist)
+        if (this.metaQueue.length > 0) {
+          this.$secondary.addEventListener('pointerenter', this._onPointerEnter);
+          this.$secondary.addEventListener('pointerleave', this._onPointerLeave);
+          this.timer = setInterval(() => {
+            if (!this.paused) this._rotateOneMeta();
+          }, 4000);
+        }
+      }
+
+      this.$container.appendChild(this.$secondary);
+    }
+
+    this.$container.style.display =
+      (this.primaryItems.length > 0 || this.secondaryItems.length > 0) ? '' : 'none';
   }
 
-  _createItemEl(item) {
+  _createPill(item) {
     const el = document.createElement('span');
-    let cls = 'info-stream__item';
-    if (item.modifier) cls += ` info-stream__item--${item.modifier}`;
-    if (item.interactive) cls += ' info-stream__item--interactive';
-    if (this.pinned.has(item.id)) cls += ' info-stream__item--pinned';
+    let cls = 'info-stream__pill';
+    if (item.modifier) cls += ` info-stream__pill--${item.modifier}`;
+    if (item.interactive) cls += ' info-stream__pill--interactive';
     el.className = cls;
-    el.dataset.streamId = item.id;
 
-    // Accessibility for interactive items
     if (item.interactive) {
       el.setAttribute('role', item.interactive.role || 'button');
       el.setAttribute('tabindex', '0');
@@ -4161,7 +4161,7 @@ class InfoStream {
 
     el.innerHTML = `${svgIcon(item.icon, 10)}<span>${item.text}</span>`;
 
-    // Hours popout: build inline child (reuses existing badge-popout pattern)
+    // Hours popout child
     if (item.hoursData?.weekday_text?.length) {
       const popout = document.createElement('div');
       popout.className = 'badge-popout badge-popout--hours';
@@ -4201,76 +4201,52 @@ class InfoStream {
     return el;
   }
 
-  rotateOne() {
-    if (this.queue.length === 0) {
-      // Refill queue from non-pinned visible items
-      const unpinnedVisible = this.visible.filter(it => !this.pinned.has(it.id));
-      if (unpinnedVisible.length === 0) return;
-      // No queue refill needed — we cycle by swapping visible ↔ pool
-      // Rebuild queue from allItems not currently visible
-      const visIds = new Set(this.visible.map(it => it.id));
-      this.queue = this.allItems.filter(it => !visIds.has(it.id) && !this.pinned.has(it.id));
-      if (this.queue.length === 0) return;
-    }
-
-    // Find next unpinned slot (round-robin)
-    let attempts = 0;
-    while (attempts < this.visible.length) {
-      const idx = this.rotateIdx % this.visible.length;
-      this.rotateIdx++;
-      if (!this.pinned.has(this.visible[idx].id) && this.visible[idx].category !== 'context') {
-        this._swapSlot(idx);
-        return;
+  _renderSecondaryItems(items) {
+    this.$secondary.innerHTML = '';
+    items.forEach((item, i) => {
+      if (i > 0) {
+        const dot = document.createElement('span');
+        dot.className = 'info-stream__dot';
+        dot.textContent = '\u00B7';
+        this.$secondary.appendChild(dot);
       }
-      attempts++;
-    }
+      const span = document.createElement('span');
+      span.className = 'info-stream__meta';
+      span.dataset.metaId = item.id;
+      span.textContent = item.text;
+      this.$secondary.appendChild(span);
+    });
   }
 
-  _swapSlot(slotIdx) {
-    const nextItem = this.queue.shift();
-    if (!nextItem) return;
-    const oldItem = this.visible[slotIdx];
-    const $el = this.$container.children[slotIdx];
+  _rotateOneMeta() {
+    if (this.metaQueue.length === 0) {
+      // Rebuild queue from all secondaryItems not currently visible
+      const visIds = new Set(this.visibleMeta.map(it => it.id));
+      this.metaQueue = this.secondaryItems.filter(it => !visIds.has(it.id));
+      if (this.metaQueue.length === 0) return;
+    }
+
+    const slotIdx = this.rotateIdx % this.visibleMeta.length;
+    this.rotateIdx++;
+
+    const nextItem = this.metaQueue.shift();
+    const oldItem = this.visibleMeta[slotIdx];
+
+    // Find the span in the DOM (spans interleaved with dot separators)
+    const $metaSpans = this.$secondary.querySelectorAll('.info-stream__meta');
+    const $el = $metaSpans[slotIdx];
     if (!$el) return;
 
-    // Phase 1: exit (300ms)
-    $el.classList.add('info-stream__item--exiting');
+    // Fade out
+    $el.classList.add('info-stream__meta--exiting');
 
     setTimeout(() => {
-      // Push old item back to queue end
-      this.queue.push(oldItem);
-      this.visible[slotIdx] = nextItem;
-
-      // Replace DOM element
-      const $new = this._createItemEl(nextItem);
-      $new.classList.add('info-stream__item--entering');
-      $el.replaceWith($new);
-
-      // Phase 2: enter (remove entering class on next frame to trigger transition)
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          $new.classList.remove('info-stream__item--entering');
-        });
-      });
+      this.metaQueue.push(oldItem);
+      this.visibleMeta[slotIdx] = nextItem;
+      $el.textContent = nextItem.text;
+      $el.dataset.metaId = nextItem.id;
+      $el.classList.remove('info-stream__meta--exiting');
     }, 300);
-  }
-
-  _handleClick(e) {
-    const $item = e.target.closest('.info-stream__item');
-    if (!$item) return;
-    const id = $item.dataset.streamId;
-
-    // Interactive items: let existing data-action delegation handle it, don't pin
-    if ($item.classList.contains('info-stream__item--interactive')) return;
-
-    // Toggle pin
-    if (this.pinned.has(id)) {
-      this.pinned.delete(id);
-      $item.classList.remove('info-stream__item--pinned');
-    } else {
-      this.pinned.add(id);
-      $item.classList.add('info-stream__item--pinned');
-    }
   }
 
   pause() { this.paused = true; }
@@ -4282,29 +4258,32 @@ class InfoStream {
 
   destroy() {
     this.stop();
-    this.$container.removeEventListener('pointerenter', this._onPointerEnter);
-    this.$container.removeEventListener('pointerleave', this._onPointerLeave);
-    this.$container.removeEventListener('click', this._onClick);
+    if (this.$secondary) {
+      this.$secondary.removeEventListener('pointerenter', this._onPointerEnter);
+      this.$secondary.removeEventListener('pointerleave', this._onPointerLeave);
+    }
     this.$container.innerHTML = '';
   }
 }
 
 
-/* ---- Render Info Stream: unified metadata surface ---- */
+/* ---- Render Info Stream: two-tier metadata surface ---- */
 function renderInfoStream(data) {
   const $container = document.getElementById('info-stream');
   if (!$container) return;
 
-  // Destroy previous stream if active
   if (_activeInfoStream) { _activeInfoStream.destroy(); _activeInfoStream = null; }
 
   const items = collectInfoStreamItems(data);
-  if (items.length < 2) {
+  const primary = items.filter(it => it.category === 'context');
+  const secondary = items.filter(it => it.category !== 'context');
+
+  if (primary.length === 0 && secondary.length === 0) {
     $container.style.display = 'none';
     return;
   }
 
-  const stream = new InfoStream($container, items);
+  const stream = new InfoStream($container, primary, secondary);
   stream.start();
   _activeInfoStream = stream;
 }

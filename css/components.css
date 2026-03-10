@@ -2149,18 +2149,26 @@
   text-overflow: ellipsis;
 }
 
-/* ── Info Stream: living metadata surface (replaces result-context + card-meta-block) ── */
+/* ── Info Stream: two-tier metadata surface ── */
+/* Row 1 (primary): interactive pills — neighborhood, cuisine, hours */
+/* Row 2 (secondary): dot-separated small text — all other metadata */
 .info-stream {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2xs);
-  align-items: center;
-  min-height: 2.5rem;
+  flex-direction: column;
+  gap: var(--space-3xs);
   padding-top: var(--space-xs);
   border-top: 1px solid var(--border);
 }
 
-.info-stream__item {
+/* ── Primary row: interactive context pills ── */
+.info-stream__primary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs);
+  align-items: center;
+}
+
+.info-stream__pill {
   display: inline-flex;
   align-items: center;
   gap: 3px;
@@ -2172,76 +2180,91 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-pill);
   white-space: nowrap;
-  opacity: 1;
-  transform: translateY(0);
-  transition: opacity var(--dur-normal) var(--ease-out),
-              transform var(--dur-normal) var(--ease-out),
-              border-color var(--dur-fast) var(--ease-out);
   cursor: default;
   user-select: none;
+  transition: border-color var(--dur-fast) var(--ease-out),
+              background var(--dur-fast) var(--ease-out);
 }
 
-.info-stream__item svg {
+.info-stream__pill svg {
   opacity: 0.5;
   flex-shrink: 0;
 }
 
-/* Pinned: accent border + dot */
-.info-stream__item--pinned {
-  border-color: var(--ac);
-  color: var(--fg2);
-}
-.info-stream__item--pinned::after {
-  content: '';
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: var(--ac);
-  margin-left: 2px;
-}
-
-/* Exit/enter crossfade transitions */
-.info-stream__item--exiting {
-  opacity: 0;
-  transform: translateY(-6px);
-  pointer-events: none;
-}
-.info-stream__item--entering {
-  opacity: 0;
-  transform: translateY(6px);
-}
-
 /* Open/Closed RAG coloring */
-.info-stream__item--open {
+.info-stream__pill--open {
   color: var(--rag-green);
   border-color: var(--rag-green);
 }
-.info-stream__item--closed {
+.info-stream__pill--closed {
   color: var(--rag-red);
   border-color: var(--rag-red);
 }
 
-/* Interactive items (cuisine → drawer, hours → popout) */
-.info-stream__item--interactive {
+/* Interactive pills (cuisine → drawer, hours → popout) */
+.info-stream__pill--interactive {
   cursor: pointer;
 }
-.info-stream__item--interactive:hover {
+.info-stream__pill--interactive:hover {
   background: var(--bg3);
 }
-.info-stream__item--interactive::after {
+.info-stream__pill--interactive::after {
   content: '';
   width: 5px;
   height: 5px;
   border-right: 1.5px solid currentColor;
   border-bottom: 1.5px solid currentColor;
   transform: rotate(45deg);
-  opacity: 0.5;
+  opacity: 0.4;
   margin-left: 1px;
+}
+
+/* ── Secondary row: dot-separated metadata text ── */
+.info-stream__secondary {
+  font-size: var(--text-3xs, 0.65rem);
+  font-family: var(--font-data);
+  color: var(--fg4, var(--fg3));
+  line-height: 1.5;
+  overflow: hidden;
+}
+
+/* Individual secondary items (inline, separated by dots) */
+.info-stream__meta {
+  white-space: nowrap;
+  opacity: 1;
+  transition: opacity var(--dur-normal) var(--ease-out);
+}
+
+.info-stream__meta--exiting {
+  opacity: 0;
+}
+
+.info-stream__dot {
+  display: inline;
+  margin: 0 0.35em;
+  opacity: 0.35;
+  font-size: 0.5em;
+  vertical-align: middle;
+}
+
+/* Mobile: cap secondary at 2 lines */
+.info-stream__secondary--capped {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* Desktop: full row, no clamp */
+@media (min-width: 768px) {
+  .info-stream__secondary--capped {
+    display: block;
+    -webkit-line-clamp: unset;
+  }
 }
 
 /* Reduced motion: no animation */
 @media (prefers-reduced-motion: reduce) {
-  .info-stream__item {
+  .info-stream__meta {
     transition: none;
   }
 }
