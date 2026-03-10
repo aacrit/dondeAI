@@ -2620,24 +2620,15 @@ function renderResult(data) {
     }
   }
 
-  // V5: Intent Boost badge — shown between score arc and factor bars
-  renderIntentBoostBadge(data);
+  // V5: Intent Boost badge — removed (redundant with formula row boost pill)
+  // renderIntentBoostBadge(data);
 
   // V5: Relaxation notice — shown above result card when filters were expanded
   renderRelaxationNotice(data);
 
-  // Match signal — surface strongest factor in Tier 1 (trust layer)
+  // Match signal — removed (redundant with blurb + formula row)
   const $matchSignal = document.getElementById('match-signal');
-  if ($matchSignal) {
-    const narrative = data.match_narrative;
-    const label = narrative?.strongest_factor_label || '';
-    if (label) {
-      $matchSignal.textContent = `Matched on: ${label.toLowerCase()}`;
-      $matchSignal.style.display = '';
-    } else {
-      $matchSignal.style.display = 'none';
-    }
-  }
+  if ($matchSignal) $matchSignal.style.display = 'none';
 
   // DondeAI Recommendation blurb — the editorial voice in Tier 1
   const $rec = document.getElementById('result-recommendation');
@@ -2813,26 +2804,12 @@ function prepareTier2(data, cuisine) {
     }
   }
 
-  // Awards badges
-  const $awards = document.getElementById('result-awards');
-  if ($awards) {
-    $awards.innerHTML = '';
-    const dc = data.deep_context;
-    const badges = [];
-    if (dc?.awards_recognition?.length > 0) {
-      dc.awards_recognition.slice(0, 3).forEach(a => badges.push({ text: a }));
-    }
-    if (badges.length > 0) {
-      badges.forEach(b => {
-        const span = document.createElement('span');
-        span.className = 'award-pill type-data--sm';
-        span.textContent = b.text;
-        $awards.appendChild(span);
-      });
-      $awards.style.display = '';
-    } else {
-      $awards.style.display = 'none';
-    }
+  // Awards — rendered into unified detail-strip (populated later by renderPerfectFor)
+  // Store awards on data for renderPerfectFor to merge them
+  data._awardBadges = [];
+  const dc2 = data.deep_context;
+  if (dc2?.awards_recognition?.length > 0) {
+    data._awardBadges = dc2.awards_recognition.slice(0, 3);
   }
 
 
@@ -3847,41 +3824,52 @@ function updateFeedbackSubmitState() {
   if ($submit) $submit.disabled = !(hasCat && hasText);
 }
 
-/* ---- V11: Perfect For scenarios + Comparable restaurants ---- */
+/* ---- V11: Detail Strip — awards + perfect-for + comparable (unified) ---- */
 function renderPerfectFor(data) {
-  const $wrap = document.getElementById('perfect-for-scenarios');
-  const $comp = document.getElementById('comparable-line');
-  if (!$wrap) return;
-  $wrap.innerHTML = '';
+  const $strip = document.getElementById('detail-strip');
+  if (!$strip) return;
+  $strip.innerHTML = '';
 
+  const items = [];
+
+  // Awards (stored by prepareTier2)
+  const awards = data._awardBadges || [];
+  awards.forEach(a => items.push({ text: a, accent: true }));
+
+  // Perfect-for scenarios
   const scenarios = data.deep_context?.best_for_scenarios;
-  if (!scenarios?.length) {
-    $wrap.style.display = 'none';
-    if ($comp) $comp.style.display = 'none';
+  if (scenarios?.length) {
+    scenarios.slice(0, 3).forEach(s => items.push({ text: s }));
+  }
+
+  // Comparable restaurants
+  const comparables = data.deep_context?.comparable_restaurants;
+  if (comparables?.length) {
+    items.push({ text: comparables.slice(0, 2).join(' \u00b7 '), italic: true });
+  }
+
+  if (items.length === 0) {
+    $strip.style.display = 'none';
     return;
   }
 
-  const label = document.createElement('span');
-  label.className = 'perfect-for__label type-data--sm';
-  label.textContent = 'Perfect for';
-  $wrap.appendChild(label);
-
-  scenarios.slice(0, 3).forEach(s => {
-    const pill = document.createElement('span');
-    pill.className = 'perfect-for__pill type-data--sm';
-    pill.textContent = s;
-    $wrap.appendChild(pill);
+  items.forEach((item, i) => {
+    if (i > 0) {
+      const dot = document.createElement('span');
+      dot.className = 'detail-strip__dot';
+      dot.textContent = '\u00b7';
+      dot.setAttribute('aria-hidden', 'true');
+      $strip.appendChild(dot);
+    }
+    const span = document.createElement('span');
+    span.className = 'detail-strip__item type-data--sm';
+    if (item.accent) span.classList.add('detail-strip__accent');
+    if (item.italic) span.style.fontStyle = 'italic';
+    span.textContent = item.text;
+    $strip.appendChild(span);
   });
-  $wrap.style.display = '';
 
-  // Comparable restaurants — subtle line below
-  const comparables = data.deep_context?.comparable_restaurants;
-  if ($comp && comparables?.length > 0) {
-    $comp.textContent = comparables.slice(0, 2).join(' \u00b7 ');
-    $comp.style.display = '';
-  } else if ($comp) {
-    $comp.style.display = 'none';
-  }
+  $strip.style.display = '';
 }
 
 /* ---- 1D: Render Deep Context Extras (USP, Wow Factors, Origin Story) ---- */
@@ -4005,39 +3993,30 @@ function renderQuickStats(data) {
       priority: dw.craving * 0.55 });
   }
 
-  // Rank by priority, take top 6
+  // Merge wow factors into candidates (as regular items, not separate accent line)
+  const wows = (dc.wow_factors || [])
+    .filter(w => w !== 'unique_decor')
+    .slice(0, 2);
+  wows.forEach(w => {
+    const label = WOW_LABELS[w] || humanizeSnake(w);
+    const icon = WOW_ICONS[w] || 'diamond';
+    candidates.push({ icon, text: label, priority: 0.3 });
+  });
+
+  // Rank by priority, take top 4
   candidates.sort((a, b) => b.priority - a.priority);
-  const shown = candidates.slice(0, 6);
+  const shown = candidates.slice(0, 4);
   if (shown.length === 0) {
     $stats.style.display = 'none';
     return;
   }
 
-  shown.forEach((item, i) => {
-    if (i > 0) {
-      const dot = document.createElement('span');
-      dot.className = 'quick-stat__dot';
-      dot.textContent = '\u00b7';
-      dot.setAttribute('aria-hidden', 'true');
-      $stats.appendChild(dot);
-    }
+  shown.forEach(item => {
     const span = document.createElement('span');
     span.className = 'quick-stat';
-    span.innerHTML = `${svgIcon(item.icon, 12)}<span>${item.text}</span>`;
+    span.innerHTML = `${svgIcon(item.icon, 10)}<span>${item.text}</span>`;
     $stats.appendChild(span);
   });
-
-  // Subtle wow-factor accent line (below main stats)
-  const wows = (dc.wow_factors || [])
-    .filter(w => w !== 'unique_decor')
-    .slice(0, 2)
-    .map(w => WOW_LABELS[w] || humanizeSnake(w));
-  if (wows.length) {
-    const accent = document.createElement('div');
-    accent.className = 'quick-stats__accent';
-    accent.textContent = wows.join(' \u00b7 ');
-    $stats.appendChild(accent);
-  }
 
   $stats.style.display = '';
 }

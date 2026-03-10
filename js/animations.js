@@ -400,11 +400,6 @@ export function renderRelevanceGate(scoringV9, container, timers = [], intentBoo
     ? `<span class="v9-formula__bonus-pill" data-positive="${occasion_bonus > 0}">${occasion_bonus > 0 ? 'Occasion boost' : 'Occasion mismatch'}</span>`
     : '';
 
-  // Intent boost pill — shown when Claude elevated a better-matching restaurant
-  const boostPill = intentBoost?.active
-    ? `<span class="v9-formula__boost-pill">Boosted for your craving</span>`
-    : '';
-
   row.innerHTML = `
     <button class="v9-formula__gate"
             aria-expanded="false"
@@ -414,7 +409,6 @@ export function renderRelevanceGate(scoringV9, container, timers = [], intentBoo
       <span class="v9-formula__gate-score" style="color:${relColor}">${relPct}%</span>
     </button>
     ${bonusPill}
-    ${boostPill}
   `;
 
   // Gate popout — tapping shows relevance_details explanation
