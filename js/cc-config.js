@@ -79,17 +79,46 @@ const GOLDEN_QUERIES = [
 ];
 
 const ATLAS_QUERIES = [
-  'Italian beef sandwich', 'deep dish pizza', 'best sushi Chicago',
-  'authentic Mexican food', 'Thai food delivery', 'Ethiopian restaurant',
-  'date night West Loop', 'cheap eats Wicker Park', 'brunch Lincoln Park',
-  'late night food', 'vegan restaurant', 'steakhouse downtown',
-  'like Portillos', 'dinner before Cubs game', 'Devon Avenue food',
-  'Chinatown dim sum', 'tavern-style pizza', 'craft cocktails',
-  'farm to table', 'hole in the wall', 'food near Navy Pier',
-  'birthday dinner', 'solo dining bar', 'gluten free options',
-  'outdoor patio dining', 'ramen near me', 'upscale Italian',
-  'BBQ ribs', 'seafood restaurant', 'Mediterranean food',
+  { cat: 'Food', query: 'Italian beef sandwich' },
+  { cat: 'Food', query: 'deep dish pizza' },
+  { cat: 'Food', query: 'best sushi Chicago' },
+  { cat: 'Food', query: 'authentic Mexican food' },
+  { cat: 'Conv', query: 'Thai food delivery' },
+  { cat: 'Food', query: 'Ethiopian restaurant' },
+  { cat: 'Vibe', query: 'date night West Loop' },
+  { cat: 'Conv', query: 'cheap eats Wicker Park' },
+  { cat: 'Food', query: 'brunch Lincoln Park' },
+  { cat: 'Conv', query: 'late night food' },
+  { cat: 'Food', query: 'vegan restaurant' },
+  { cat: 'Food', query: 'steakhouse downtown' },
+  { cat: 'Rep', query: 'like Portillos' },
+  { cat: 'Service', query: 'dinner before Cubs game' },
+  { cat: 'Food', query: 'Devon Avenue food' },
+  { cat: 'Food', query: 'Chinatown dim sum' },
+  { cat: 'Food', query: 'tavern-style pizza' },
+  { cat: 'Vibe', query: 'craft cocktails' },
+  { cat: 'Vibe', query: 'farm to table' },
+  { cat: 'Vibe', query: 'hole in the wall' },
+  { cat: 'Conv', query: 'food near Navy Pier' },
+  { cat: 'Service', query: 'birthday dinner' },
+  { cat: 'Vibe', query: 'solo dining bar' },
+  { cat: 'Food', query: 'gluten free options' },
+  { cat: 'Vibe', query: 'outdoor patio dining' },
+  { cat: 'Food', query: 'ramen near me' },
+  { cat: 'Food', query: 'upscale Italian' },
+  { cat: 'Food', query: 'BBQ ribs' },
+  { cat: 'Food', query: 'seafood restaurant' },
+  { cat: 'Food', query: 'Mediterranean food' },
 ];
+
+// Query category definitions for coverage filtering
+const QUERY_CATEGORIES = {
+  Food:    { label: 'Food',    color: '#f97316', desc: 'Dish & cuisine queries' },
+  Vibe:    { label: 'Vibe',    color: '#a855f7', desc: 'Atmosphere & mood' },
+  Service: { label: 'Service', color: '#3b82f6', desc: 'Occasion & group' },
+  Rep:     { label: 'Rep',     color: '#eab308', desc: 'Reputation & prestige' },
+  Conv:    { label: 'Conv',    color: '#22c55e', desc: 'Convenience & access' },
+};
 
 // ═══════════════════════════════════════════════════════════════════
 // Global State

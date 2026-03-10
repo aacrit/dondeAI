@@ -892,6 +892,7 @@ function initSectionToggles() {
 // ═══════════════════════════════════════════════════════════════════
 
 const agentFilter = { atlas: true, sentinel: true, hunter: true, qaudit: true, guardian: true };
+const catFilter = { Food: true, Vibe: true, Service: true, Rep: true, Conv: true };
 
 const FILTER_PRESETS = {
   full:       { atlas: true, sentinel: true, hunter: true, qaudit: true, guardian: true },
@@ -929,12 +930,32 @@ function detectActivePreset() {
   return null;
 }
 
+function getQueryCount() {
+  const input = document.getElementById('test-count-input');
+  return input ? parseInt(input.value) || 10 : 10;
+}
+
+function getFilteredQueryPool() {
+  const enabledCats = Object.keys(catFilter).filter(k => catFilter[k]);
+  const atlas = ATLAS_QUERIES.filter(q => enabledCats.includes(q.cat));
+  const golden = GOLDEN_QUERIES.filter(q => enabledCats.includes(q.cat));
+  return { atlas, golden, enabledCats };
+}
+
+function updateCatCoverage() {
+  const el = document.getElementById('cat-coverage');
+  if (!el) return;
+  const { atlas, golden, enabledCats } = getFilteredQueryPool();
+  const total = atlas.length + golden.length;
+  const allTotal = ATLAS_QUERIES.length + GOLDEN_QUERIES.length;
+  el.textContent = `${total}/${allTotal} queries across ${enabledCats.length} categories`;
+}
+
 function updateFilterSummary() {
   const el = document.getElementById('filter-summary');
   if (!el) return;
   const count = Object.values(agentFilter).filter(Boolean).length;
-  const slider = document.getElementById('test-count-slider');
-  const queries = slider ? parseInt(slider.value) : 10;
+  const queries = getQueryCount();
   const apiCalls = (agentFilter.atlas ? queries : 0) + (agentFilter.sentinel ? Math.min(15, Math.ceil(queries * 0.5)) : 0) + (agentFilter.hunter ? Math.min(10, Math.ceil(queries * 0.3)) : 0) + (agentFilter.guardian ? Math.min(5, Math.ceil(queries * 0.2)) : 0);
   const est = (apiCalls * 0.01).toFixed(2);
   el.textContent = `${count} agent${count !== 1 ? 's' : ''} \u00b7 ${agentFilter.atlas ? queries + ' queries \u00b7 ' : ''}~$${est}`;
@@ -945,17 +966,68 @@ function toggleStartDropdown(e) {
   document.getElementById('start-dropdown').classList.toggle('cc-start-dropdown--open');
 }
 
+function syncQueryCountUI(value) {
+  const costEl = document.getElementById('test-cost-estimate');
+  if (costEl) costEl.textContent = `Est. ~$${(value * 1.3 * 0.01).toFixed(2)} API usage`;
+  updateFilterSummary();
+}
+
+function renderCatChips() {
+  const container = document.getElementById('cat-filter-chips');
+  if (!container) return;
+  // Count queries per category across both pools
+  const counts = {};
+  for (const q of GOLDEN_QUERIES) counts[q.cat] = (counts[q.cat] || 0) + 1;
+  for (const q of ATLAS_QUERIES) counts[q.cat] = (counts[q.cat] || 0) + 1;
+
+  container.innerHTML = Object.entries(QUERY_CATEGORIES).map(([key, def]) => {
+    const checked = catFilter[key];
+    return `<label class="cc-cat-chip${checked ? ' cc-cat-chip--checked' : ''}" data-cat="${key}">
+      <input type="checkbox" ${checked ? 'checked' : ''} style="display:none">
+      <span class="cc-cat-chip__dot" style="background:${def.color}"></span>
+      ${def.label} <span class="cc-cat-chip__count">${counts[key] || 0}</span>
+    </label>`;
+  }).join('');
+
+  container.querySelectorAll('.cc-cat-chip').forEach(chip => {
+    chip.addEventListener('click', (e) => {
+      e.preventDefault();
+      const cat = chip.dataset.cat;
+      catFilter[cat] = !catFilter[cat];
+      // At least one category must remain
+      if (Object.values(catFilter).every(v => !v)) catFilter[cat] = true;
+      renderCatChips();
+      updateCatCoverage();
+      updateFilterSummary();
+    });
+  });
+}
+
 function initStartDropdown() {
   const slider = document.getElementById('test-count-slider');
-  const valEl = document.getElementById('test-count-val');
-  const costEl = document.getElementById('test-cost-estimate');
+  const input = document.getElementById('test-count-input');
 
-  if (slider) {
+  if (slider && input) {
     slider.addEventListener('input', () => {
       const count = parseInt(slider.value);
-      if (valEl) valEl.textContent = count;
-      if (costEl) costEl.textContent = `Est. ~$${(count * 1.3 * 0.01).toFixed(2)} API usage`;
-      updateFilterSummary();
+      input.value = count;
+      syncQueryCountUI(count);
+    });
+
+    input.addEventListener('input', () => {
+      let val = parseInt(input.value);
+      if (isNaN(val) || val < 1) val = 1;
+      if (val > 1000) { val = 1000; input.value = 1000; }
+      // Sync slider if value is within slider range
+      if (val <= 100) slider.value = Math.round(val / 5) * 5;
+      else slider.value = 100;
+      syncQueryCountUI(val);
+    });
+
+    input.addEventListener('blur', () => {
+      let val = parseInt(input.value);
+      if (isNaN(val) || val < 1) { val = 5; input.value = 5; }
+      syncQueryCountUI(val);
     });
   }
 
@@ -971,6 +1043,9 @@ function initStartDropdown() {
     });
   });
 
+  // Render category chips and coverage
+  renderCatChips();
+  updateCatCoverage();
   updateFilterSummary();
 
   document.addEventListener('click', (e) => {
@@ -1267,8 +1342,7 @@ function updatePageTitle() {
 
   if (state.systemState === 'running') {
     const count = results.length;
-    const slider = document.getElementById('test-count-slider');
-    const total = slider ? parseInt(slider.value) : '?';
+    const total = getQueryCount();
     document.title = `\u25b6 ${count}/${total} \u2014 DondeAI CC`;
   } else if (state.systemState === 'paused') {
     document.title = '\u23f8 Paused \u2014 DondeAI CC';

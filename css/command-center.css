@@ -1764,24 +1764,83 @@ tr.expandable:hover td { background: var(--cc-surface-2); }
 }
 
 .cc-start-dropdown__slider {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   accent-color: var(--cc-green);
   cursor: pointer;
 }
 
-.cc-start-dropdown__value {
-  font-size: 0.82rem;
-  font-weight: 600;
-  font-family: var(--cc-mono);
+.cc-query-count-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cc-query-count-input {
+  width: 60px;
+  padding: 4px 6px;
+  border: 1px solid var(--cc-border);
+  border-radius: 4px;
+  background: var(--cc-surface-2);
   color: var(--cc-text);
+  font-family: var(--cc-mono);
+  font-size: 0.78rem;
+  font-weight: 600;
   text-align: center;
-  margin: 6px 0 4px;
+  -moz-appearance: textfield;
+}
+.cc-query-count-input::-webkit-inner-spin-button,
+.cc-query-count-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.cc-query-count-input:focus {
+  outline: none;
+  border-color: var(--cc-accent);
 }
 
 .cc-start-dropdown__cost {
   font-size: 0.65rem;
   color: var(--cc-text-3);
   text-align: center;
+}
+
+/* ─── Category Chips ─── */
+.cc-cat-chips {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.cc-cat-chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--cc-border);
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.68rem;
+  font-family: var(--cc-font);
+  color: var(--cc-text-3);
+  transition: all 0.15s;
+  user-select: none;
+}
+.cc-cat-chip:hover { color: var(--cc-text); border-color: var(--cc-border-focus); }
+.cc-cat-chip--checked { background: var(--cc-surface-3); color: var(--cc-text); }
+.cc-cat-chip__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.cc-cat-chip__count {
+  font-family: var(--cc-mono);
+  font-size: 0.6rem;
+  opacity: 0.6;
+}
+.cc-cat-coverage {
+  font-size: 0.62rem;
+  color: var(--cc-text-3);
+  margin-top: 4px;
 }
 
 /* ─── Filter Presets ─── */

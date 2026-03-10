@@ -49,9 +49,14 @@ function handleStart() {
   state.startTime = state.startTime || new Date();
   state.sessionResults = []; // Fresh session
 
-  // Read test count from slider
-  const slider = document.getElementById('test-count-slider');
-  state.maxTestQueries = slider ? parseInt(slider.value) : 10;
+  // Read test count from input (supports manual override up to 1000)
+  state.maxTestQueries = typeof getQueryCount === 'function' ? getQueryCount() : 10;
+
+  // Build filtered query pools based on selected categories
+  const pool = typeof getFilteredQueryPool === 'function' ? getFilteredQueryPool() : null;
+  state._atlasPool = pool ? pool.atlas : ATLAS_QUERIES;
+  state._goldenPool = pool ? pool.golden : GOLDEN_QUERIES;
+  const enabledCats = pool ? pool.enabledCats : Object.keys(QUERY_CATEGORIES || {});
 
   // Close dropdown if open
   const dd = document.getElementById('start-dropdown');
@@ -67,7 +72,8 @@ function handleStart() {
   const enabledAgents = Object.keys(agentFilter).filter(k => agentFilter[k]);
   state.enabledAgents = enabledAgents;
   const agentNames = enabledAgents.map(k => AGENT_DEFS[k]?.name || k).join(', ');
-  addLog('SYSTEM', `Deployed: ${agentNames} (${state.maxTestQueries} queries). Monitoring active.`, 'star');
+  const catNote = enabledCats.length < 5 ? ` [${enabledCats.join(', ')}]` : '';
+  addLog('SYSTEM', `Deployed: ${agentNames} (${state.maxTestQueries} queries${catNote}). Monitoring active.`, 'star');
 
   // If Atlas not enabled, auto-stop after all enabled agents hit their budget
   if (!agentFilter.atlas) {
@@ -214,7 +220,9 @@ async function runAtlasCycle() {
   agent.status = 'running';
   updateAgentStatusUI('atlas');
 
-  const query = ATLAS_QUERIES[Math.floor(Math.random() * ATLAS_QUERIES.length)];
+  const pool = state._atlasPool || ATLAS_QUERIES;
+  const pick = pool[Math.floor(Math.random() * pool.length)];
+  const query = typeof pick === 'string' ? pick : pick.query;
   addLog('atlas', `Testing: "${query}"`, 'pass');
 
   const result = await callAPI(query);
@@ -340,7 +348,8 @@ async function runSentinelCycle() {
   agent.status = 'running';
   updateAgentStatusUI('sentinel');
 
-  const gq = GOLDEN_QUERIES[Math.floor(Math.random() * GOLDEN_QUERIES.length)];
+  const gqPool = state._goldenPool || GOLDEN_QUERIES;
+  const gq = gqPool[Math.floor(Math.random() * gqPool.length)];
   addLog('sentinel', `Baseline check: [${gq.id}] "${gq.query}"`, 'pass');
 
   const result = await callAPI(gq.query);
