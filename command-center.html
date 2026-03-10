@@ -232,9 +232,26 @@
         <button class="cc-live-filter__btn cc-live-filter__btn--active" data-period="all" onclick="setLiveFilter('all')">All Time</button>
         <button class="cc-live-filter__btn" data-period="today" onclick="setLiveFilter('today')">Today</button>
         <button class="cc-live-filter__btn" data-period="7d" onclick="setLiveFilter('7d')">Last 7 Days</button>
+        <select class="cc-live-filter__select" onchange="setLiveAdvFilter('scoreRange', this.value)">
+          <option value="all">All Scores</option>
+          <option value="high">80+ (Strong)</option>
+          <option value="mid">60-79 (Pass)</option>
+          <option value="low">&lt;60 (Fail)</option>
+        </select>
+        <select class="cc-live-filter__select" onchange="setLiveAdvFilter('fallback', this.value)">
+          <option value="all">All Queries</option>
+          <option value="yes">Fallbacks Only</option>
+          <option value="no">Non-fallbacks</option>
+        </select>
+        <select class="cc-live-filter__select" onchange="setLiveAdvFilter('feedback', this.value)">
+          <option value="all">All Feedback</option>
+          <option value="liked">Liked</option>
+          <option value="disliked">Disliked</option>
+          <option value="none">No Feedback</option>
+        </select>
       </div>
 
-      <!-- Live KPIs -->
+      <!-- Live KPIs (Row 1: Operational) -->
       <div class="cc-live-kpis" id="live-kpis">
         <div class="cc-live-kpi">
           <div class="cc-live-kpi__val" id="live-searches">--</div>
@@ -242,16 +259,45 @@
         </div>
         <div class="cc-live-kpi">
           <div class="cc-live-kpi__val" id="live-avg-dm">--</div>
-          <div class="cc-live-kpi__label">Avg DM (Live)</div>
+          <div class="cc-live-kpi__label">Avg DM</div>
         </div>
         <div class="cc-live-kpi">
-          <div class="cc-live-kpi__val" id="live-low-scores">--</div>
-          <div class="cc-live-kpi__label">Low Scores (&lt;60)</div>
+          <div class="cc-live-kpi__val" id="live-pass-rate">--</div>
+          <div class="cc-live-kpi__label">Pass Rate</div>
         </div>
         <div class="cc-live-kpi">
-          <div class="cc-live-kpi__val" id="live-response-time">--</div>
-          <div class="cc-live-kpi__label">Avg Response</div>
+          <div class="cc-live-kpi__val" id="live-fallback-rate">--</div>
+          <div class="cc-live-kpi__label">Fallback Rate</div>
         </div>
+        <!-- Row 2: Performance -->
+        <div class="cc-live-kpi">
+          <div class="cc-live-kpi__val" id="live-p50">--</div>
+          <div class="cc-live-kpi__label">P50 Response</div>
+        </div>
+        <div class="cc-live-kpi">
+          <div class="cc-live-kpi__val" id="live-p95">--</div>
+          <div class="cc-live-kpi__label">P95 Response</div>
+        </div>
+        <div class="cc-live-kpi">
+          <div class="cc-live-kpi__val" id="live-satisfaction">--</div>
+          <div class="cc-live-kpi__label">Satisfaction</div>
+        </div>
+        <div class="cc-live-kpi">
+          <div class="cc-live-kpi__val" id="live-unmatched">--</div>
+          <div class="cc-live-kpi__label">Unmatched Rate</div>
+        </div>
+      </div>
+
+      <!-- Score Distribution -->
+      <div class="cc-score-dist" id="score-dist">
+        <div class="cc-score-dist__title">Score Distribution</div>
+        <div class="cc-score-dist__bar">
+          <div class="cc-score-dist__seg cc-score-dist__seg--green" id="dist-green"></div>
+          <div class="cc-score-dist__seg cc-score-dist__seg--amber" id="dist-amber"></div>
+          <div class="cc-score-dist__seg cc-score-dist__seg--orange" id="dist-orange"></div>
+          <div class="cc-score-dist__seg cc-score-dist__seg--red" id="dist-red"></div>
+        </div>
+        <div class="cc-score-dist__labels" id="dist-labels"></div>
       </div>
 
       <!-- API Health Strip -->

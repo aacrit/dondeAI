@@ -779,6 +779,98 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.cc-live-entry__badges {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  flex-shrink: 0;
+}
+.cc-live-entry__badge {
+  font-family: var(--cc-mono);
+  font-size: 0.58rem;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.cc-live-entry__badge--fallback { background: var(--cc-amber); color: #000; }
+.cc-live-entry__badge--retry { background: var(--cc-surface-3, #333); color: var(--cc-text-2); }
+.cc-live-entry__badge--liked { color: var(--cc-green); background: none; }
+.cc-live-entry__badge--disliked { color: var(--cc-red); background: none; }
+.cc-live-entry__response {
+  font-family: var(--cc-mono);
+  font-size: 0.62rem;
+  color: var(--cc-text-3);
+}
+
+/* ─── Live Filter Selects ─── */
+.cc-live-filter__select {
+  background: var(--cc-surface);
+  border: 1px solid var(--cc-border);
+  border-radius: var(--cc-radius);
+  padding: 5px 8px;
+  font: var(--f-body);
+  font-size: 0.72rem;
+  color: var(--cc-text);
+  cursor: pointer;
+  transition: border-color 200ms var(--ease-out, ease-out);
+}
+.cc-live-filter__select:hover { border-color: var(--cc-accent, #6366f1); }
+
+/* ─── Score Distribution ─── */
+.cc-score-dist { margin-bottom: 16px; }
+.cc-score-dist__title {
+  font-size: 0.65rem;
+  color: var(--cc-text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-bottom: 6px;
+}
+.cc-score-dist__bar {
+  display: flex;
+  height: 12px;
+  border-radius: var(--cc-radius);
+  overflow: hidden;
+  background: var(--cc-surface-3, #333);
+}
+.cc-score-dist__seg {
+  transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  min-width: 0;
+}
+.cc-score-dist__seg--green { background: var(--cc-green); }
+.cc-score-dist__seg--amber { background: var(--cc-amber); }
+.cc-score-dist__seg--orange { background: #f97316; }
+.cc-score-dist__seg--red { background: var(--cc-red); }
+.cc-score-dist__labels {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--cc-mono);
+  font-size: 0.62rem;
+  color: var(--cc-text-3);
+  margin-top: 4px;
+}
+
+/* ─── Keyword Pills ─── */
+.cc-keyword-pill {
+  display: inline-block;
+  font-family: var(--cc-mono);
+  font-size: 0.62rem;
+  padding: 2px 6px;
+  border-radius: 3px;
+  margin: 2px;
+}
+.cc-keyword-pill--unmatched {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--cc-red);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+/* ─── Query Panel Blurb ─── */
+.cc-query-panel__blurb {
+  font-style: italic;
+  line-height: 1.5;
+  color: var(--cc-text-2);
+}
 
 /* ─── DB Overview ─── */
 .cc-db-overview {

@@ -123,6 +123,7 @@ let state = {
   liveFeed: [],
   liveLastId: null,
   liveFilter: 'all',   // 'all' | 'today' | '7d'
+  liveFilters: {},     // { scoreRange, fallback, feedback } advanced filters
   latestRun: null,
   pipelineStatuses: {},
   pipePollTimer: null,
@@ -154,7 +155,7 @@ let state = {
 };
 
 // Session persistence keys
-const SESSION_KEYS = ['activeTab', 'liveFilter', 'pulseMode', 'blurbMode', 'autoRefresh', 'autoRefreshSecs'];
+const SESSION_KEYS = ['activeTab', 'liveFilter', 'liveFilters', 'pulseMode', 'blurbMode', 'autoRefresh', 'autoRefreshSecs'];
 
 function saveSession() {
   try {
@@ -175,6 +176,14 @@ function restoreSession() {
     }
     if (session.issueFilters) state.issueFilters = session.issueFilters;
   } catch (_) {}
+}
+
+/** Set advanced live filter and re-apply (called from HTML selects) */
+function setLiveAdvFilter(key, value) {
+  if (!state.liveFilters) state.liveFilters = {};
+  state.liveFilters[key] = value === 'all' ? undefined : value;
+  applyLiveFilter();
+  saveSession();
 }
 
 // Supabase client (set by cc-analytics.js after auth)
