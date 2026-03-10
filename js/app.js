@@ -1572,7 +1572,7 @@ function renderSuggestions(matches, query) {
         const before = text.slice(0, matchStart);
         const match = text.slice(matchStart, matchStart + query.length);
         const after = text.slice(matchStart + query.length);
-        textSpan.innerHTML = `${before}<mark>${match}</mark>${after}`;
+        textSpan.innerHTML = `${_escHtml(before)}<mark>${_escHtml(match)}</mark>${_escHtml(after)}`;
       } else {
         textSpan.textContent = text;
       }

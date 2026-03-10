@@ -109,6 +109,7 @@ export function animateScoreRing(rawScore) {
 /* ---- Imports ---- */
 import { svgIcon, buildVibeSummary, getScoreThresholdColor, getScoreTier, getFactorColor, humanizeSnake, humanizeSignal, getFactorLabel, strengthDots } from './utils.js';
 import { springValue, springAnimate, SPRINGS, hasMotion } from './spring.js';
+import { _escHtml } from './globals.js';
 
 /** V5 Factor dimensions */
 const FACTOR_DIMS = [
@@ -198,7 +199,7 @@ function highlightNarrativeKeywords($el, restaurantData) {
   if (escaped.length === 0) return;
 
   const regex = new RegExp(`\\b(${escaped.join('|')})\\b`, 'gi');
-  $el.innerHTML = text.replace(regex, '<strong class="narrative-highlight">$1</strong>');
+  $el.innerHTML = _escHtml(text).replace(regex, '<strong class="narrative-highlight">$1</strong>');
 }
 
 /* ---- Score Hero (Confidence Ring — full circle gauge) ---- */
@@ -441,7 +442,7 @@ export function renderRelevanceGate(scoringV9, container, timers = [], intentBoo
   popout.setAttribute('role', 'tooltip');
   popout.innerHTML = `
     <span class="v9-gate-popout__label">Why this relevance score</span>
-    <p class="v9-gate-popout__detail">${relevance_details || 'Match type determined by your request'}</p>
+    <p class="v9-gate-popout__detail">${_escHtml(relevance_details || 'Match type determined by your request')}</p>
   `;
   gateBtn.appendChild(popout);
 
