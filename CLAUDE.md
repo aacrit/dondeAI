@@ -36,6 +36,8 @@ Code review (7 points): accent usage, type voice, motion curve + symmetry, theme
 
 **`/donde-premium-advisor`** — Premium app advisor. Scans frontend and backend repos, then delivers concrete, prioritized audit report across UI/UX polish, backend optimization, marketing psychology, and Claude Code workflow mastery. Includes reference docs for animation patterns, behavioral psychology, and Claude Code mastery. See `.claude/skills/donde-premium-advisor/SKILL.md`.
 
+**`/donde-ciso`** — Chief Information Security Officer. Audits frontend and backend repos across 10 security domains (secrets, API security, injection, data protection, auth, frontend security, supply chain, infrastructure, AI-specific, compliance). Delivers severity-ranked findings with Security Scorecard. Auto-activates on security-relevant code changes. See `.claude/skills/donde-ciso/SKILL.md`.
+
 ## Design Philosophy — "Ink & Momentum" (V10)
 
 **Core idea:** Every interaction feels like writing a wish on paper and watching it come to life.
