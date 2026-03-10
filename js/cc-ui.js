@@ -123,39 +123,119 @@ function togglePulseExpand(cardId) {
   const trend = state.trendData || [];
 
   if (cardId === 'health' && run) {
-    const passRate = run.total > 0 ? (run.passed_60 / run.total * 100).toFixed(0) : 0;
-    const sparkData = trend.slice(0, 10).reverse().map(r => r.total > 0 ? (r.passed_60 / r.total * 100) : 0);
-    const best = sparkData.length ? Math.max(...sparkData).toFixed(0) : '--';
-    const worst = sparkData.length ? Math.min(...sparkData).toFixed(0) : '--';
+    const passRate = run.total > 0 ? (run.passed_60 / run.total * 100) : 0;
+    const prevRun = trend.length > 1 ? trend[1] : null;
+    const prevPassRate = prevRun && prevRun.total > 0 ? (prevRun.passed_60 / prevRun.total * 100) : null;
+    const delta = prevPassRate !== null ? passRate - prevPassRate : null;
+
+    // Verdict
+    let verdict, verdictClass;
+    if (passRate >= 80) { verdict = 'System is healthy'; verdictClass = 'rag-green'; }
+    else if (passRate >= 60) { verdict = 'Needs attention'; verdictClass = 'rag-amber'; }
+    else { verdict = 'Degraded — action required'; verdictClass = 'rag-red'; }
+
+    // Change narrative
+    let changeNarrative = '';
+    if (delta !== null) {
+      const dir = delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat';
+      const cls = delta >= 0 ? 'rag-green' : 'rag-red';
+      changeNarrative = `<span class="cc-pulse__detail">vs. last run: <span class="${cls}">${delta > 0 ? '+' : ''}${delta.toFixed(1)}%</span> ${dir === 'up' ? '&#8593;' : dir === 'down' ? '&#8595;' : '&#8594;'}</span>`;
+    }
+
+    // Failing queries to surface
+    const openIssues = (state.issues || []).filter(i => (!i.status || i.status === 'open'));
+    const failNote = openIssues.length > 0
+      ? `<span class="cc-pulse__detail cc-pulse__detail--action" onclick="switchTab('issues')" style="cursor:pointer">${openIssues.length} open issue${openIssues.length > 1 ? 's' : ''} — view &rarr;</span>`
+      : '<span class="cc-pulse__detail rag-green">No open issues</span>';
+
     expandEl.innerHTML = `
-      <div class="cc-pulse__expand-row">
-        <span class="cc-pulse__detail">${run.passed_60}/${run.total} passed (${passRate}%)</span>
-        <span class="cc-pulse__stats">Best: ${best}% &middot; Worst: ${worst}%</span>
-      </div>
-      <div class="cc-sparkline">${renderSparkline(sparkData, 100)}</div>
-      <button class="cc-btn cc-btn--xs" onclick="openDeepDive('pulse', {label:'System Health'})">Deep Dive</button>
+      <div class="cc-pulse__verdict ${verdictClass}">${verdict}</div>
+      <span class="cc-pulse__detail">${run.passed_60}/${run.total} queries pass (DM &ge; 60)</span>
+      ${changeNarrative}
+      ${failNote}
     `;
+
   } else if (cardId === 'quality' && run) {
-    const sparkData = trend.slice(0, 10).reverse().map(r => Number(r.avg_dm));
-    const trendArrow = sparkData.length >= 2 ? (sparkData[sparkData.length-1] >= sparkData[sparkData.length-2] ? '&#9650;' : '&#9660;') : '';
+    const avgDm = Number(run.avg_dm);
+    const recentTrend = trend.slice(0, 5).map(r => Number(r.avg_dm));
+    const olderTrend = trend.slice(5, 10).map(r => Number(r.avg_dm));
+    const recentAvg = recentTrend.length ? recentTrend.reduce((a, b) => a + b, 0) / recentTrend.length : 0;
+    const olderAvg = olderTrend.length ? olderTrend.reduce((a, b) => a + b, 0) / olderTrend.length : 0;
+
+    // Trend direction narrative
+    let trendNarrative;
+    if (olderTrend.length === 0) {
+      trendNarrative = 'Not enough history for trend';
+    } else {
+      const trendDelta = recentAvg - olderAvg;
+      const trendDir = trendDelta > 1 ? 'trending up' : trendDelta < -1 ? 'trending down' : 'holding steady';
+      const trendCls = trendDelta > 1 ? 'rag-green' : trendDelta < -1 ? 'rag-red' : 'rag-amber';
+      trendNarrative = `Quality <span class="${trendCls}">${trendDir}</span> — ${Math.abs(trendDelta).toFixed(1)} pts over last ${trend.length} runs`;
+    }
+
+    // Category insight from issues data
+    const issues = state.issues || [];
+    const catScores = {};
+    for (const i of issues) {
+      if (i.category && i.category !== '--' && i.category !== 'unknown') {
+        if (!catScores[i.category]) catScores[i.category] = { sum: 0, count: 0 };
+        catScores[i.category].sum += i.dm;
+        catScores[i.category].count++;
+      }
+    }
+    const cats = Object.entries(catScores).map(([c, d]) => ({ cat: c, avg: d.sum / d.count })).sort((a, b) => a.avg - b.avg);
+    const weakest = cats.length > 0 ? cats[0] : null;
+    const catInsight = weakest
+      ? `<span class="cc-pulse__detail">Weakest category: <strong>${weakest.cat}</strong> (avg DM ${weakest.avg.toFixed(0)}) — ${cats.length > 1 ? `strongest: ${cats[cats.length - 1].cat} (${cats[cats.length - 1].avg.toFixed(0)})` : ''}</span>`
+      : '';
+
+    const deltaNote = run.delta_avg_dm != null
+      ? `<span class="cc-pulse__detail">vs. last run: <span class="${run.delta_avg_dm >= 0 ? 'rag-green' : 'rag-red'}">${run.delta_avg_dm >= 0 ? '+' : ''}${r1(run.delta_avg_dm)}</span></span>`
+      : '';
+
     expandEl.innerHTML = `
-      <div class="cc-pulse__expand-row">
-        <span class="cc-pulse__detail">Avg DM ${r1(run.avg_dm)} ${trendArrow}${run.delta_avg_dm != null ? ` &middot; &Delta; ${run.delta_avg_dm > 0 ? '+' : ''}${r1(run.delta_avg_dm)}` : ''}</span>
-      </div>
-      <div class="cc-sparkline">${renderSparkline(sparkData, 100)}</div>
-      <button class="cc-btn cc-btn--xs" onclick="openDeepDive('pulse', {label:'Avg DondeMatch'})">Deep Dive</button>
+      <div class="cc-pulse__verdict ${ragClass(avgDm)}">Avg DondeMatch: ${r1(avgDm)}</div>
+      <span class="cc-pulse__detail">${trendNarrative}</span>
+      ${deltaNote}
+      ${catInsight}
     `;
+
   } else if (cardId === 'attention' && run) {
-    const gaps = (state.issues || []).filter(i => (!i.status || i.status === 'open')).slice(0, 3);
-    const sparkData = trend.slice(0, 10).reverse().map(r => r.gap_count);
-    const topGaps = gaps.length > 0
-      ? gaps.map(g => `<span class="cc-pulse__detail cc-pulse__detail--gap">"${escapeHtml(g.query)}" <span class="${ragClass(g.dm)}">DM ${g.dm}</span></span>`).join('')
-      : '<span class="cc-pulse__detail">No open issues</span>';
+    const openIssues = (state.issues || []).filter(i => (!i.status || i.status === 'open'));
+    const p0 = openIssues.filter(i => i.severity === 'P0');
+    const p1 = openIssues.filter(i => i.severity === 'P1');
+
+    // Priority summary
+    let urgency, urgencyCls;
+    if (p0.length > 0) { urgency = `${p0.length} critical issue${p0.length > 1 ? 's' : ''} need immediate attention`; urgencyCls = 'rag-red'; }
+    else if (p1.length > 0) { urgency = `${p1.length} important issue${p1.length > 1 ? 's' : ''} to review`; urgencyCls = 'rag-amber'; }
+    else if (openIssues.length > 0) { urgency = `${openIssues.length} minor issue${openIssues.length > 1 ? 's' : ''} tracked`; urgencyCls = 'rag-green'; }
+    else { urgency = 'All clear — no open issues'; urgencyCls = 'rag-green'; }
+
+    // Show top 2 issues with context
+    const topIssues = openIssues.slice(0, 2);
+    const issueLines = topIssues.map(g =>
+      `<div class="cc-pulse__issue-row">
+        <span class="cc-pulse__issue-sev cc-pulse__issue-sev--${g.severity?.toLowerCase() || 'p2'}">${g.severity || 'P2'}</span>
+        <span class="cc-pulse__detail">"${escapeHtml(g.query)}" &mdash; <span class="${ragClass(g.dm)}">DM ${g.dm}</span> &middot; ${escapeHtml(g.gapType || '')}</span>
+      </div>`
+    ).join('');
+
+    // Gap type breakdown
+    const gapTypes = {};
+    for (const i of openIssues) { gapTypes[i.gapType] = (gapTypes[i.gapType] || 0) + 1; }
+    const topGapType = Object.entries(gapTypes).sort((a, b) => b[1] - a[1])[0];
+    const patternNote = topGapType
+      ? `<span class="cc-pulse__detail">Most common pattern: <strong>${topGapType[0]}</strong> (${topGapType[1]}x)</span>`
+      : '';
+
     expandEl.innerHTML = `
-      ${topGaps}
-      <div class="cc-sparkline">${renderSparklineInverted(sparkData)}</div>
-      <button class="cc-btn cc-btn--xs" onclick="openDeepDive('pulse', {label:'Gaps'})">Deep Dive</button>
+      <div class="cc-pulse__verdict ${urgencyCls}">${urgency}</div>
+      ${issueLines}
+      ${patternNote}
+      ${openIssues.length > 2 ? `<span class="cc-pulse__detail cc-pulse__detail--action" onclick="switchTab('issues')" style="cursor:pointer">View all ${openIssues.length} issues &rarr;</span>` : ''}
     `;
+
   } else {
     expandEl.innerHTML = '<span class="cc-pulse__detail">No data yet</span>';
   }
@@ -734,7 +814,7 @@ async function openQueryDetail(queryId) {
 
   try {
     // Load full query data with restaurant join via recommended_restaurant_id FK
-    const { data: query } = await sbClient
+    let { data: query, error } = await sbClient
       .from('user_queries')
       .select(`
         id, special_request, occasion, price_level, neighborhood_id,
@@ -748,6 +828,16 @@ async function openQueryDetail(queryId) {
       `)
       .eq('id', queryId)
       .single();
+
+    // Fallback: if FK join fails, load without restaurant join
+    if (error || !query) {
+      const fallback = await sbClient
+        .from('user_queries')
+        .select('id, special_request, occasion, price_level, neighborhood_id, donde_match, created_at, recommended_restaurant_id, response_time_ms, was_fallback, feedback')
+        .eq('id', queryId)
+        .single();
+      query = fallback.data;
+    }
 
     if (!query) { body.innerHTML = '<p>Query not found</p>'; return; }
 

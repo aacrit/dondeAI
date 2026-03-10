@@ -309,7 +309,11 @@ async function pollLiveFeed() {
 
     if (newQueries && newQueries.length > 0) {
       state.liveLastId = newQueries[0].id;
-      state.liveFeed = [...newQueries, ...state.liveFeed];
+      // Deduplicate by ID and re-sort latest first
+      const existingIds = new Set(state.liveFeed.map(q => q.id));
+      const uniqueNew = newQueries.filter(q => !existingIds.has(q.id));
+      state.liveFeed = [...uniqueNew, ...state.liveFeed]
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
       applyLiveFilter();
     }
   } catch (e) {
