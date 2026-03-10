@@ -20,7 +20,7 @@ const API_BASE = 'https://vwbzkgsxmgwcvmvuxnbe.supabase.co/functions/v1/recommen
 
 const AGENT_DEFS = {
   atlas:    { name: 'Atlas',    title: 'Search Coverage',   budget: 20, color: '#3b82f6' },
-  qaudit:   { name: 'QAudit',   title: 'Blurb Quality',     budget: 0,  color: '#8b5cf6' },
+  qaudit:   { name: 'QAudit',   title: 'Blurb Quality',     budget: 5,  color: '#8b5cf6' },
   sentinel: { name: 'Sentinel', title: 'Regression Watch',  budget: 15, color: '#f59e0b' },
   hunter:   { name: 'Hunter',   title: 'Edge Cases',        budget: 10, color: '#ef4444' },
   guardian: { name: 'Guardian', title: 'Data Integrity',    budget: 5,  color: '#22c55e' },
@@ -50,6 +50,16 @@ const EDGE_PROBES = [
   { id: 'EC-08', input: 'dinner', params: { price_level: '$$$$$$' }, name: 'Invalid price' },
   { id: 'EC-09', input: 'dinner', params: { dietary_restrictions: ['vegan', 'gluten_free', 'halal'] }, name: 'Multi-restriction' },
   { id: 'EC-10', input: 'hmm', name: 'Ultra-short cold start' },
+  { id: 'EC-11', input: '   ', name: 'Whitespace only' },
+  { id: 'EC-12', input: 'dinner', params: { dietary_restrictions: Array(50).fill('vegan') }, name: 'Oversized restriction array' },
+  { id: 'EC-13', input: 'dinner', params: { price_level: '-1' }, name: 'Negative price level' },
+  { id: 'EC-14', input: '🍕🌮🍣🥗🍔', name: 'Emoji-only input' },
+  { id: 'EC-15', input: 'dinner', params: { neighborhood: '' }, name: 'Empty neighborhood' },
+  { id: 'EC-16', input: 'restaurant'.repeat(100), name: 'Repeated word spam' },
+  { id: 'EC-17', input: '{"special_request":"injection"}', name: 'JSON in text field' },
+  { id: 'EC-18', input: 'best food', params: { exclude: Array(100).fill('00000000-0000-0000-0000-000000000000') }, name: 'Oversized exclude list' },
+  { id: 'EC-19', input: 'a', name: 'Single character' },
+  { id: 'EC-20', input: 'Find me a place that is not too expensive but also not cheap with good vibes and great food preferably Italian or maybe Mexican actually surprise me', name: 'Run-on multi-intent' },
 ];
 
 const GOLDEN_QUERIES = [
@@ -78,18 +88,32 @@ const GOLDEN_QUERIES = [
   { id: 'GD-C03', cat: 'Conv', query: 'cheap eats', minScore: 45 },
 ];
 
-const ATLAS_QUERIES = [
-  'Italian beef sandwich', 'deep dish pizza', 'best sushi Chicago',
-  'authentic Mexican food', 'Thai food delivery', 'Ethiopian restaurant',
-  'date night West Loop', 'cheap eats Wicker Park', 'brunch Lincoln Park',
-  'late night food', 'vegan restaurant', 'steakhouse downtown',
-  'like Portillos', 'dinner before Cubs game', 'Devon Avenue food',
-  'Chinatown dim sum', 'tavern-style pizza', 'craft cocktails',
-  'farm to table', 'hole in the wall', 'food near Navy Pier',
-  'birthday dinner', 'solo dining bar', 'gluten free options',
-  'outdoor patio dining', 'ramen near me', 'upscale Italian',
-  'BBQ ribs', 'seafood restaurant', 'Mediterranean food',
-];
+// ATLAS_QUERIES — merged at runtime from CHICAGO_QUERIES (cc-queries.js) + handcrafted extras
+// CHICAGO_QUERIES is loaded from cc-queries.js (1042 queries from golden dataset + atlas JSONL)
+// This merges and deduplicates at init time
+const ATLAS_QUERIES = (() => {
+  const pool = typeof CHICAGO_QUERIES !== 'undefined' ? [...CHICAGO_QUERIES] : [];
+  return pool;
+})();
+
+// Fisher-Yates shuffle
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// Query category definitions for coverage filtering
+const QUERY_CATEGORIES = {
+  Food:    { label: 'Food',    color: '#f97316', desc: 'Dish & cuisine queries' },
+  Vibe:    { label: 'Vibe',    color: '#a855f7', desc: 'Atmosphere & mood' },
+  Service: { label: 'Service', color: '#3b82f6', desc: 'Occasion & group' },
+  Rep:     { label: 'Rep',     color: '#eab308', desc: 'Reputation & prestige' },
+  Conv:    { label: 'Conv',    color: '#22c55e', desc: 'Convenience & access' },
+};
 
 // ═══════════════════════════════════════════════════════════════════
 // Global State

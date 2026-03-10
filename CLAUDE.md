@@ -34,6 +34,8 @@ Code review (7 points): accent usage, type voice, motion curve + symmetry, theme
 
 **`/ceo-advisor`** — Strategic product advisor. Reads all product docs (frontend + backend) and delivers Top 10 prioritized recommendations or answers specific CEO questions. See `.claude/skills/ceo-advisor/SKILL.md`.
 
+**`/donde-premium-advisor`** — Premium app advisor. Scans frontend and backend repos, then delivers concrete, prioritized audit report across UI/UX polish, backend optimization, marketing psychology, and Claude Code workflow mastery. Includes reference docs for animation patterns, behavioral psychology, and Claude Code mastery. See `.claude/skills/donde-premium-advisor/SKILL.md`.
+
 ## Design Philosophy — "Ink & Momentum" (V10)
 
 **Core idea:** Every interaction feels like writing a wish on paper and watching it come to life.
