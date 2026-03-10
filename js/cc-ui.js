@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function switchTab(name) {
   state.activeTab = name;
+  saveSession();
 
   // Update tab buttons
   document.querySelectorAll('.cc-tab').forEach(t => {
@@ -102,13 +103,11 @@ function togglePulseExpand(cardId) {
   if (!card) return;
 
   if (state.expandedPulse === cardId) {
-    // Collapse
     card.classList.remove('cc-pulse__card--expanded');
     state.expandedPulse = null;
     return;
   }
 
-  // Collapse any other expanded card
   if (state.expandedPulse) {
     const prev = document.getElementById(`pulse-${state.expandedPulse}`);
     if (prev) prev.classList.remove('cc-pulse__card--expanded');
@@ -117,34 +116,69 @@ function togglePulseExpand(cardId) {
   state.expandedPulse = cardId;
   card.classList.add('cc-pulse__card--expanded');
 
-  // Populate expand content
   const expandEl = card.querySelector('.cc-pulse__expand');
   if (!expandEl) return;
 
   const run = (state.selectedRunId && state.runHistory.find(r => r.run_id === state.selectedRunId)) || state.latestRun;
+  const trend = state.trendData || [];
 
   if (cardId === 'health' && run) {
     const passRate = run.total > 0 ? (run.passed_60 / run.total * 100).toFixed(0) : 0;
-    // Build sparkline from last 5 runs
-    const last5 = (state.runHistory || []).slice(0, 5).map(r => r.total > 0 ? (r.passed_60 / r.total * 100).toFixed(0) : 0);
-    const sparkline = last5.map(v => `<span class="cc-sparkline__bar" style="height:${Math.max(v * 0.8, 4)}px"></span>`).join('');
+    const sparkData = trend.slice(0, 10).reverse().map(r => r.total > 0 ? (r.passed_60 / r.total * 100) : 0);
+    const best = sparkData.length ? Math.max(...sparkData).toFixed(0) : '--';
+    const worst = sparkData.length ? Math.min(...sparkData).toFixed(0) : '--';
     expandEl.innerHTML = `
-      <span class="cc-pulse__detail">${run.passed_60}/${run.total} passed (${passRate}%)</span>
-      <span class="cc-pulse__sparkline">${sparkline}</span>
+      <div class="cc-pulse__expand-row">
+        <span class="cc-pulse__detail">${run.passed_60}/${run.total} passed (${passRate}%)</span>
+        <span class="cc-pulse__stats">Best: ${best}% &middot; Worst: ${worst}%</span>
+      </div>
+      <div class="cc-sparkline">${renderSparkline(sparkData, 100)}</div>
+      <button class="cc-btn cc-btn--xs" onclick="openDeepDive('pulse', {label:'System Health'})">Deep Dive</button>
     `;
   } else if (cardId === 'quality' && run) {
-    expandEl.innerHTML = `<span class="cc-pulse__detail">Avg DM ${r1(run.avg_dm)} &middot; ${run.total} queries tested${run.delta_avg_dm != null ? ` &middot; &Delta; ${run.delta_avg_dm > 0 ? '+' : ''}${r1(run.delta_avg_dm)}` : ''}</span>`;
+    const sparkData = trend.slice(0, 10).reverse().map(r => Number(r.avg_dm));
+    const trendArrow = sparkData.length >= 2 ? (sparkData[sparkData.length-1] >= sparkData[sparkData.length-2] ? '&#9650;' : '&#9660;') : '';
+    expandEl.innerHTML = `
+      <div class="cc-pulse__expand-row">
+        <span class="cc-pulse__detail">Avg DM ${r1(run.avg_dm)} ${trendArrow}${run.delta_avg_dm != null ? ` &middot; &Delta; ${run.delta_avg_dm > 0 ? '+' : ''}${r1(run.delta_avg_dm)}` : ''}</span>
+      </div>
+      <div class="cc-sparkline">${renderSparkline(sparkData, 100)}</div>
+      <button class="cc-btn cc-btn--xs" onclick="openDeepDive('pulse', {label:'Avg DondeMatch'})">Deep Dive</button>
+    `;
   } else if (cardId === 'attention' && run) {
-    // Show top 3 gap queries inline
     const gaps = (state.issues || []).filter(i => (!i.status || i.status === 'open')).slice(0, 3);
-    if (gaps.length > 0) {
-      expandEl.innerHTML = gaps.map(g => `<span class="cc-pulse__detail cc-pulse__detail--gap">"${escapeHtml(g.query)}" <span class="${ragClass(g.dm)}">DM ${g.dm}</span></span>`).join('');
-    } else {
-      expandEl.innerHTML = `<span class="cc-pulse__detail">No open issues</span>`;
-    }
+    const sparkData = trend.slice(0, 10).reverse().map(r => r.gap_count);
+    const topGaps = gaps.length > 0
+      ? gaps.map(g => `<span class="cc-pulse__detail cc-pulse__detail--gap">"${escapeHtml(g.query)}" <span class="${ragClass(g.dm)}">DM ${g.dm}</span></span>`).join('')
+      : '<span class="cc-pulse__detail">No open issues</span>';
+    expandEl.innerHTML = `
+      ${topGaps}
+      <div class="cc-sparkline">${renderSparklineInverted(sparkData)}</div>
+      <button class="cc-btn cc-btn--xs" onclick="openDeepDive('pulse', {label:'Gaps'})">Deep Dive</button>
+    `;
   } else {
-    expandEl.innerHTML = `<span class="cc-pulse__detail">No data yet</span>`;
+    expandEl.innerHTML = '<span class="cc-pulse__detail">No data yet</span>';
   }
+}
+
+function renderSparkline(values, maxVal) {
+  if (!values.length) return '';
+  const max = maxVal || Math.max(...values, 1);
+  return values.map((v, i) => {
+    const height = Math.max((v / max) * 28, 3);
+    const cls = ragClass(v);
+    return `<span class="cc-sparkline__bar ${cls}" style="height:${height}px" title="${Math.round(v)}"></span>`;
+  }).join('');
+}
+
+function renderSparklineInverted(values) {
+  if (!values.length) return '';
+  const max = Math.max(...values, 1);
+  return values.map(v => {
+    const height = Math.max((v / max) * 28, 3);
+    const cls = v > 5 ? 'rag-red' : v > 0 ? 'rag-amber' : 'rag-green';
+    return `<span class="cc-sparkline__bar ${cls}" style="height:${height}px" title="${v} gaps"></span>`;
+  }).join('');
 }
 
 // ── Pulse Reactivity ──
@@ -542,6 +576,16 @@ async function toggleRunDetail(row) {
       if (passes.length > 5) html += `<div class="cc-run-detail__more">+ ${passes.length - 5} more passing</div>`;
     }
 
+    // Action buttons for this run
+    const run = state.runHistory.find(r => r.run_id === runId);
+    const prevRun = state.runHistory.find((r, i) => i > 0 && state.runHistory[i - 1]?.run_id === runId);
+    html += `<div class="cc-run-detail__actions">`;
+    if (prevRun) {
+      html += `<button class="cc-btn cc-btn--sm" onclick="event.stopPropagation(); openCompareView('${escapeHtml(prevRun.run_id)}', '${escapeHtml(runId)}')">Compare vs Previous</button>`;
+    }
+    html += `<button class="cc-btn cc-btn--sm" onclick="event.stopPropagation(); openDeepDive('run', ${JSON.stringify({run_id: runId, total: run?.total, passed_60: run?.passed_60, avg_dm: run?.avg_dm, gap_count: run?.gap_count, created_at: run?.created_at}).replace(/"/g, '&quot;')})">Deep Dive</button>`;
+    html += `</div>`;
+
     content.innerHTML = html;
     content.dataset.loaded = '1';
   } catch (e) {
@@ -556,7 +600,7 @@ async function toggleRunDetail(row) {
 
 function initKeyboardShortcuts() {
   document.addEventListener('keydown', (e) => {
-    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
 
     switch (e.key) {
       case '1': switchTab('test'); break;
@@ -567,15 +611,69 @@ function initKeyboardShortcuts() {
         if (state.activeTest) stopTest();
         else startTest('broad');
         break;
+      case 'r':
+        e.preventDefault();
+        if (typeof refreshAllData === 'function') refreshAllData();
+        break;
+      case 'e':
+        e.preventDefault();
+        exportCurrentView();
+        break;
+      case 'c':
+        e.preventDefault();
+        if (state.runHistory.length >= 2) {
+          const a = state.runHistory[1]?.run_id;
+          const b = state.runHistory[0]?.run_id;
+          if (a && b && typeof openCompareView === 'function') openCompareView(a, b);
+        }
+        break;
+      case 'j':
+        e.preventDefault();
+        navigateRunHistory(1);
+        break;
+      case 'k':
+        e.preventDefault();
+        navigateRunHistory(-1);
+        break;
+      case 'Enter':
+        if (state.focusedRunIdx >= 0 && state.activeTab === 'test') {
+          const run = state.runHistory[state.focusedRunIdx];
+          if (run) selectRun(run.run_id);
+        }
+        break;
       case '?':
+      case 'h':
+        if (e.key === 'h' && !e.shiftKey) break; // only ? and H
         toggleShortcuts();
         break;
       case 'Escape':
         closeQueryPanel();
         closeShortcuts();
+        if (typeof closeCompareView === 'function') closeCompareView();
+        if (typeof closeDeepDive === 'function') closeDeepDive();
         break;
     }
   });
+}
+
+function navigateRunHistory(dir) {
+  const rows = document.querySelectorAll('.cc-run-row');
+  if (!rows.length) return;
+  state.focusedRunIdx = Math.max(0, Math.min(rows.length - 1, state.focusedRunIdx + dir));
+  rows.forEach((r, i) => r.classList.toggle('cc-run-row--focused', i === state.focusedRunIdx));
+  rows[state.focusedRunIdx]?.scrollIntoView({ block: 'nearest' });
+}
+
+function exportCurrentView() {
+  switch (state.activeTab) {
+    case 'test':
+      if (state.activeTest?.results?.length) exportTestResults();
+      else exportRunHistory();
+      break;
+    case 'live': exportLiveFeed(); break;
+    case 'issues': exportIssues(); break;
+    default: showToast('Nothing to export'); break;
+  }
 }
 
 function toggleShortcuts() {
@@ -811,6 +909,7 @@ function renderIssues(issues) {
           <span class="cc-issue__fix-text">${escapeHtml(i.fixAction)}</span>
           <button class="cc-btn cc-btn--sm" onclick="copyFixPrompt(${idx})">Copy Fix</button>
           <button class="cc-btn cc-btn--sm cc-btn--retest" onclick="retestIssue(${idx})" ${i.status === 'fixed' ? 'disabled' : ''}>Retest</button>
+          <button class="cc-btn cc-btn--xs" onclick="openDeepDive('issue', state.issues[${idx}])">History</button>
         </div>
       </div>
     `;
@@ -849,6 +948,7 @@ function updateIssuesBadge(issues) {
 function setIssueFilter(filterType, value) {
   if (!state.issueFilters) return;
   state.issueFilters[filterType] = value;
+  saveSession();
 
   // Update active button states
   document.querySelectorAll(`.cc-issues-filter[data-filter="${filterType}"]`).forEach(btn => {

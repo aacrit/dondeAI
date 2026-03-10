@@ -53,6 +53,14 @@ function showAccessDenied(sb, session) {
 // ═══════════════════════════════════════════════════════════════════
 
 async function initDashboard() {
+  // Restore saved session state
+  restoreSession();
+
+  // Apply restored tab if different from default
+  if (state.activeTab !== 'test' && typeof switchTab === 'function') {
+    switchTab(state.activeTab);
+  }
+
   // Load everything in parallel
   await Promise.all([
     loadInitData(),
@@ -60,19 +68,47 @@ async function initDashboard() {
     loadLiveFeed(),
     pollPipelines(),
     loadIssues(),
+    loadTrendData(),
   ]);
 
-  // Check API health
+  // Post-load analytics
   checkApiHealth();
-
-  // Start live polling
   startLivePolling();
-
-  // Smart suggestion
   updateSmartSuggestion();
-
-  // Start freshness ticker on pulse cards
   if (typeof startFreshnessTicker === 'function') startFreshnessTicker();
+  if (typeof loadHeatmapData === 'function') loadHeatmapData();
+  if (typeof computePerfBaseline === 'function') computePerfBaseline();
+
+  // Anomaly detection after trend data is loaded
+  if (state.latestRun && typeof checkForAnomalies === 'function') {
+    checkForAnomalies(state.latestRun);
+  }
+
+  // Restore auto-refresh if it was enabled
+  if (state.autoRefresh && typeof startAutoRefresh === 'function') {
+    startAutoRefresh();
+    const btn = document.getElementById('auto-refresh-toggle');
+    if (btn) btn.classList.add('cc-auto-refresh__toggle--active');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Trend Data (for sparklines & anomaly detection)
+// ═══════════════════════════════════════════════════════════════════
+
+async function loadTrendData() {
+  if (!sbClient) return;
+  try {
+    const { data: runs } = await sbClient
+      .from('gauntlet_runs')
+      .select('run_id, avg_dm, passed_60, gap_count, total, created_at, avg_response_ms, mode')
+      .order('created_at', { ascending: false })
+      .limit(20);
+
+    state.trendData = runs || [];
+  } catch (e) {
+    console.warn('Failed to load trend data:', e);
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════

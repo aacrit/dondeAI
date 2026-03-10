@@ -26,6 +26,17 @@
       <div class="cc-header__title">Command Center</div>
     </div>
     <div class="cc-header__right">
+      <div class="cc-auto-refresh">
+        <button class="cc-auto-refresh__toggle" id="auto-refresh-toggle" onclick="toggleAutoRefresh()" title="Auto-refresh data">
+          <svg viewBox="0 0 24 24" width="14" height="14"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="62.8" stroke-dashoffset="0" id="auto-refresh-ring"/></svg>
+          Auto
+        </button>
+        <select class="cc-auto-refresh__select" onchange="setAutoRefreshInterval(this.value)" title="Refresh interval">
+          <option value="30">30s</option>
+          <option value="60" selected>60s</option>
+        </select>
+        <span class="cc-auto-refresh__countdown" id="auto-refresh-countdown"></span>
+      </div>
       <div class="cc-header__status">
         <span class="cc-header__dot cc-header__dot--offline" id="status-dot"></span>
         <span class="cc-header__status-text" id="status-text">Offline</span>
@@ -179,12 +190,38 @@
 
       <!-- Run History -->
       <div class="cc-run-history" id="run-history">
-        <div class="cc-run-history__title">Recent Runs</div>
+        <div class="cc-run-history__title-row">
+          <span class="cc-run-history__title">Recent Runs</span>
+          <div class="cc-run-history__actions">
+            <button class="cc-btn cc-btn--xs" onclick="exportRunHistory()" title="Export CSV">Export</button>
+            <button class="cc-btn cc-btn--xs" onclick="if(state.runHistory.length>=2)openCompareView(state.runHistory[1].run_id,state.runHistory[0].run_id)" title="Compare last 2 runs">Compare</button>
+          </div>
+        </div>
         <table class="cc-run-history__table" id="run-history-table">
           <thead><tr><th>Date</th><th>Type</th><th>Queries</th><th>Avg DM</th><th>Pass%</th><th>&Delta;</th></tr></thead>
           <tbody id="run-history-body"></tbody>
         </table>
       </div>
+
+      <!-- Compare Panel (hidden by default) -->
+      <div class="cc-compare" id="compare-panel" style="display:none">
+        <div class="cc-compare__header">
+          <span class="cc-compare__title">Run Comparison</span>
+          <div class="cc-compare__header-actions">
+            <button class="cc-btn cc-btn--xs" onclick="exportCompareCSV()">Export</button>
+            <button class="cc-compare__close" onclick="closeCompareView()" title="Close">&times;</button>
+          </div>
+        </div>
+        <div class="cc-compare__header-info"></div>
+        <div class="cc-compare__counts"></div>
+        <div class="cc-compare__body"></div>
+      </div>
+
+      <!-- Test Coverage Heatmap -->
+      <details class="cc-heatmap-section" id="heatmap-section">
+        <summary class="cc-heatmap-section__toggle">Test Coverage Heatmap</summary>
+        <div class="cc-heatmap" id="heatmap-grid"></div>
+      </details>
     </div>
 
     <!-- ═══ Tab Panel: LIVE ═══ -->
@@ -224,6 +261,8 @@
         <span id="api-latency">Avg latency: --</span>
         <span class="cc-api-health__sep">&middot;</span>
         <span id="api-status">Status: checking...</span>
+        <span class="cc-api-health__sep">&middot;</span>
+        <span id="api-perf-baseline" class="cc-api-perf"></span>
       </div>
 
       <!-- Live Feed -->
@@ -231,6 +270,7 @@
         <div class="cc-live-feed__header">
           <span>Live Production</span>
           <span class="cc-live-feed__rate" id="live-rate">-- queries/min</span>
+          <button class="cc-btn cc-btn--xs" onclick="exportLiveFeed()" title="Export CSV">Export</button>
         </div>
         <div class="cc-live-feed__list" id="live-feed-list">
           <div class="cc-empty-state">
@@ -323,6 +363,7 @@
         <span class="cc-issues-badge cc-issues-badge--p1" id="issues-p1-count">P1: 0</span>
         <span class="cc-issues-badge cc-issues-badge--p2" id="issues-p2-count">P2: 0</span>
         <span class="cc-issues-badge cc-issues-badge--fixed" id="issues-fixed-count" style="display:none">Fixed: 0</span>
+        <button class="cc-btn cc-btn--xs cc-issues-export" onclick="exportIssues()" title="Export CSV">Export</button>
       </div>
 
       <!-- Retest Progress (hidden by default) -->
@@ -384,6 +425,18 @@
 
   </main>
 
+  <!-- ═══ Deep Dive Overlay (Tier 3 Progressive Disclosure) ═══ -->
+  <div class="cc-overlay" id="deep-dive-overlay" style="display:none">
+    <div class="cc-overlay__backdrop" onclick="closeDeepDive()"></div>
+    <div class="cc-overlay__panel">
+      <div class="cc-overlay__header">
+        <span class="cc-overlay__title">Deep Dive</span>
+        <button class="cc-overlay__close" onclick="closeDeepDive()" title="Close">&times;</button>
+      </div>
+      <div class="cc-overlay__body"></div>
+    </div>
+  </div>
+
   <!-- ═══ Keyboard Shortcuts Overlay ═══ -->
   <div class="cc-modal-overlay" id="shortcuts-overlay" style="display:none" onclick="closeShortcuts(event)">
     <div class="cc-modal cc-modal--shortcuts" onclick="event.stopPropagation()">
@@ -395,7 +448,13 @@
         <div class="cc-shortcut"><kbd>1</kbd><span>Test tab</span></div>
         <div class="cc-shortcut"><kbd>2</kbd><span>Live tab</span></div>
         <div class="cc-shortcut"><kbd>3</kbd><span>Data tab</span></div>
+        <div class="cc-shortcut"><kbd>4</kbd><span>Issues tab</span></div>
         <div class="cc-shortcut"><kbd>t</kbd><span>Start / Stop test</span></div>
+        <div class="cc-shortcut"><kbd>r</kbd><span>Refresh data</span></div>
+        <div class="cc-shortcut"><kbd>e</kbd><span>Export current view</span></div>
+        <div class="cc-shortcut"><kbd>c</kbd><span>Compare runs</span></div>
+        <div class="cc-shortcut"><kbd>j / k</kbd><span>Navigate runs</span></div>
+        <div class="cc-shortcut"><kbd>Enter</kbd><span>Select run</span></div>
         <div class="cc-shortcut"><kbd>Esc</kbd><span>Close overlay</span></div>
         <div class="cc-shortcut"><kbd>?</kbd><span>This help</span></div>
       </div>
@@ -405,6 +464,7 @@
   <script src="js/cc-queries.js"></script>
   <script src="js/cc-config.js"></script>
   <script src="js/cc-tests.js"></script>
+  <script src="js/cc-compare.js"></script>
   <script src="js/cc-analytics.js"></script>
   <script src="js/cc-ui.js"></script>
 </body>
