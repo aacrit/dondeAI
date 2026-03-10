@@ -40,6 +40,19 @@ function switchTab(name) {
   if (name === 'live' && !state.livePollTimer) {
     if (typeof startLivePolling === 'function') startLivePolling();
   }
+
+  // Switch pulse mode based on tab
+  if (name === 'live') {
+    state.pulseMode = 'prod';
+    updatePulseFromProd();
+    document.getElementById('pulse-section')?.classList.add('cc-pulse--prod');
+  } else {
+    state.pulseMode = 'test';
+    document.getElementById('pulse-section')?.classList.remove('cc-pulse--prod');
+    // Restore pulse from selected run or latest run
+    const run = (state.selectedRunId && state.runHistory.find(r => r.run_id === state.selectedRunId)) || state.latestRun;
+    if (run) updatePulseFromRun(run);
+  }
 }
 
 function positionTabIndicator() {
@@ -77,26 +90,125 @@ function initPulseClicks() {
   const quality = document.getElementById('pulse-quality');
   const attention = document.getElementById('pulse-attention');
 
-  if (health) health.addEventListener('click', () => {
-    switchTab('test');
-    // Scroll to run history
-    const hist = document.getElementById('run-history');
-    if (hist) hist.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  });
+  if (health) health.addEventListener('click', () => togglePulseExpand('health'));
+  if (quality) quality.addEventListener('click', () => togglePulseExpand('quality'));
+  if (attention) attention.addEventListener('click', () => togglePulseExpand('attention'));
+}
 
-  if (quality) quality.addEventListener('click', () => {
-    switchTab('live');
-    setLiveFilter('today');
-  });
+// ── Pulse Expand/Collapse ──
 
-  if (attention) attention.addEventListener('click', () => {
-    switchTab('issues');
-    // If there's a latest run with gaps, expand it
-    const firstRow = document.querySelector('.cc-run-history__table tbody tr[data-run-id]');
-    if (firstRow && !firstRow.classList.contains('cc-run-row--expanded')) {
-      firstRow.click();
+function togglePulseExpand(cardId) {
+  const card = document.getElementById(`pulse-${cardId}`);
+  if (!card) return;
+
+  if (state.expandedPulse === cardId) {
+    // Collapse
+    card.classList.remove('cc-pulse__card--expanded');
+    state.expandedPulse = null;
+    return;
+  }
+
+  // Collapse any other expanded card
+  if (state.expandedPulse) {
+    const prev = document.getElementById(`pulse-${state.expandedPulse}`);
+    if (prev) prev.classList.remove('cc-pulse__card--expanded');
+  }
+
+  state.expandedPulse = cardId;
+  card.classList.add('cc-pulse__card--expanded');
+
+  // Populate expand content
+  const expandEl = card.querySelector('.cc-pulse__expand');
+  if (!expandEl) return;
+
+  const run = (state.selectedRunId && state.runHistory.find(r => r.run_id === state.selectedRunId)) || state.latestRun;
+
+  if (cardId === 'health' && run) {
+    const passRate = run.total > 0 ? (run.passed_60 / run.total * 100).toFixed(0) : 0;
+    // Build sparkline from last 5 runs
+    const last5 = (state.runHistory || []).slice(0, 5).map(r => r.total > 0 ? (r.passed_60 / r.total * 100).toFixed(0) : 0);
+    const sparkline = last5.map(v => `<span class="cc-sparkline__bar" style="height:${Math.max(v * 0.8, 4)}px"></span>`).join('');
+    expandEl.innerHTML = `
+      <span class="cc-pulse__detail">${run.passed_60}/${run.total} passed (${passRate}%)</span>
+      <span class="cc-pulse__sparkline">${sparkline}</span>
+    `;
+  } else if (cardId === 'quality' && run) {
+    expandEl.innerHTML = `<span class="cc-pulse__detail">Avg DM ${r1(run.avg_dm)} &middot; ${run.total} queries tested${run.delta_avg_dm != null ? ` &middot; &Delta; ${run.delta_avg_dm > 0 ? '+' : ''}${r1(run.delta_avg_dm)}` : ''}</span>`;
+  } else if (cardId === 'attention' && run) {
+    // Show top 3 gap queries inline
+    const gaps = (state.issues || []).filter(i => (!i.status || i.status === 'open')).slice(0, 3);
+    if (gaps.length > 0) {
+      expandEl.innerHTML = gaps.map(g => `<span class="cc-pulse__detail cc-pulse__detail--gap">"${escapeHtml(g.query)}" <span class="${ragClass(g.dm)}">DM ${g.dm}</span></span>`).join('');
+    } else {
+      expandEl.innerHTML = `<span class="cc-pulse__detail">No open issues</span>`;
     }
+  } else {
+    expandEl.innerHTML = `<span class="cc-pulse__detail">No data yet</span>`;
+  }
+}
+
+// ── Pulse Reactivity ──
+
+function updatePulseFromRun(run) {
+  if (!run) return;
+  const passRate = run.total > 0 ? (run.passed_60 / run.total * 100) : 0;
+  updatePulseHealth(passRate, `from ${run.mode || 'test'} run ${timeAgo(run.created_at)}`);
+  updatePulseQuality(run.avg_dm, `${run.total} queries tested`, run.delta_avg_dm);
+  updatePulseAttention(run.gap_count, run.gap_count > 5 ? 'action needed' : 'manageable');
+
+  // Update freshness to this run's time
+  const ago = timeAgo(run.created_at);
+  ['pulse-health-fresh', 'pulse-quality-fresh', 'pulse-attention-fresh'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = `Updated ${ago}`;
   });
+}
+
+function updatePulseFromProd() {
+  const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+  const prodQueries = (state.liveFeed || []).filter(q => q.created_at >= sevenDaysAgo && q.source !== 'command-center');
+  const count = prodQueries.length;
+  if (count === 0) {
+    updatePulseHealth(0, 'no prod queries (7d)');
+    updatePulseQuality(0, 'no prod data', null);
+    updatePulseAttention(0, 'no data');
+    return;
+  }
+  const avgDm = prodQueries.reduce((s, q) => s + (q.donde_match || 0), 0) / count;
+  const passRate = (prodQueries.filter(q => (q.donde_match || 0) >= 60).length / count * 100);
+  const lowCount = prodQueries.filter(q => (q.donde_match || 0) < 60).length;
+  updatePulseHealth(passRate, `${count} prod queries (7d)`);
+  updatePulseQuality(avgDm, `${count} prod queries (7d)`, null);
+  updatePulseAttention(lowCount, lowCount > 5 ? 'action needed' : 'looks good');
+
+  ['pulse-health-fresh', 'pulse-quality-fresh', 'pulse-attention-fresh'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = 'Live (7d)';
+  });
+}
+
+function selectRun(runId) {
+  const run = (state.runHistory || []).find(r => r.run_id === runId);
+  if (!run) return;
+
+  // Toggle selection
+  if (state.selectedRunId === runId) {
+    state.selectedRunId = null;
+    document.querySelectorAll('.cc-run-row--selected').forEach(r => r.classList.remove('cc-run-row--selected'));
+    // Restore to latest run
+    if (state.latestRun) updatePulseFromRun(state.latestRun);
+    return;
+  }
+
+  state.selectedRunId = runId;
+
+  // Highlight selected row
+  document.querySelectorAll('.cc-run-row--selected').forEach(r => r.classList.remove('cc-run-row--selected'));
+  const row = document.querySelector(`.cc-run-row[data-run-id="${runId}"]`);
+  if (row) row.classList.add('cc-run-row--selected');
+
+  // Update pulse cards from this run
+  updatePulseFromRun(run);
 }
 
 function updatePulseHealth(pctVal, sub) {
@@ -347,7 +459,7 @@ function renderRunHistory(runs) {
     const deltaClass = r.delta_avg_dm > 0 ? 'rag-green' : r.delta_avg_dm < 0 ? 'rag-red' : '';
     const hasGaps = r.gap_count > 0;
     return `
-      <tr class="cc-run-row ${hasGaps ? 'cc-run-row--has-gaps' : ''}" data-run-id="${escapeHtml(r.run_id)}" onclick="toggleRunDetail(this)" style="cursor:pointer" title="${hasGaps ? 'Click to see issues' : 'Click to see details'}">
+      <tr class="cc-run-row ${hasGaps ? 'cc-run-row--has-gaps' : ''}" data-run-id="${escapeHtml(r.run_id)}" onclick="selectRun('${escapeHtml(r.run_id)}'); toggleRunDetail(this)" style="cursor:pointer" title="${hasGaps ? 'Click to see issues' : 'Click to see details'}">
         <td>${date}</td>
         <td>${escapeHtml(r.mode || 'test')}</td>
         <td>${r.total || r.dataset_size || '--'}</td>
@@ -726,7 +838,7 @@ function updateIssueSummary(p0, p1, p2, fixed) {
 function updateIssuesBadge(issues) {
   const btn = document.getElementById('tab-issues-btn');
   if (!btn) return;
-  const count = issues.filter(i => i.severity !== 'P2').length;
+  const count = issues.filter(i => i.severity !== 'P2' && (!i.status || i.status === 'open')).length;
   btn.innerHTML = count > 0
     ? `Issues <span class="cc-tab__badge">${count}</span>`
     : 'Issues';

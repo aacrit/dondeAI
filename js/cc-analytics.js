@@ -119,12 +119,9 @@ async function loadInitData() {
       : 0;
     const lowScoreCount = todayQueries.filter(q => (q.donde_match || 0) < 60).length;
 
-    // Update pulse cards
-    if (latestRun) {
-      const passRate = latestRun.total > 0 ? (latestRun.passed_60 / latestRun.total * 100) : 0;
-      updatePulseHealth(passRate, `from ${latestRun.mode || 'test'} run ${timeAgo(latestRun.created_at)}`);
-      updatePulseQuality(latestRun.avg_dm, `${latestRun.total} queries tested`, latestRun.delta_avg_dm);
-      updatePulseAttention(latestRun.gap_count, latestRun.gap_count > 5 ? 'action needed' : 'manageable');
+    // Update pulse cards from latest run
+    if (latestRun && typeof updatePulseFromRun === 'function') {
+      updatePulseFromRun(latestRun);
     }
 
     // Update live KPIs
@@ -152,7 +149,8 @@ async function loadRunHistory() {
       .order('created_at', { ascending: false })
       .limit(10);
 
-    renderRunHistory(runs || []);
+    state.runHistory = runs || [];
+    renderRunHistory(state.runHistory);
   } catch (e) {
     console.warn('Failed to load run history:', e);
   }
@@ -166,13 +164,14 @@ async function loadLiveFeed() {
   if (!sbClient) return;
 
   try {
-    // Load ALL user queries with restaurant name via FK join
+    // Load ALL user queries with restaurant name via FK join, excluding test data
     let { data: queries, error } = await sbClient
       .from('user_queries')
-      .select('id, special_request, donde_match, created_at, recommended_restaurant_id, restaurants!recommended_restaurant_id(name)')
+      .select('id, special_request, donde_match, created_at, recommended_restaurant_id, source, restaurants!recommended_restaurant_id(name)')
+      .neq('source', 'command-center')
       .order('created_at', { ascending: false });
 
-    // Fallback: if FK join fails, load without restaurant names
+    // Fallback: if FK join fails (or source column doesn't exist yet), load without filters
     if (error) {
       console.warn('Live feed FK join failed, falling back:', error.message);
       const fallback = await sbClient
@@ -259,7 +258,8 @@ async function pollLiveFeed() {
   try {
     let query = sbClient
       .from('user_queries')
-      .select('id, special_request, donde_match, created_at, recommended_restaurant_id, restaurants!recommended_restaurant_id(name)')
+      .select('id, special_request, donde_match, created_at, recommended_restaurant_id, source, restaurants!recommended_restaurant_id(name)')
+      .neq('source', 'command-center')
       .order('created_at', { ascending: false })
       .limit(20);
 
@@ -510,10 +510,11 @@ async function loadIssues() {
     }
 
     state.issues = issues;
-    state.issueFilters = { severity: 'all', type: 'all', source: 'all', status: 'all' };
+    state.issueFilters = { severity: 'all', type: 'all', source: 'all', status: 'open' };
     state.selectedIssues = new Set();
 
-    renderIssues(issues);
+    // Apply default filter (open only) and render
+    applyIssueFilters();
     updateIssuesBadge(issues);
   } catch (e) {
     console.error('Failed to load issues:', e);

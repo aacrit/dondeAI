@@ -15,6 +15,7 @@ async function callAPI(specialRequest, params = {}, signal) {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
       'apikey': SUPABASE_ANON_KEY,
+      'x-donde-source': 'command-center',
     },
     body: JSON.stringify(body),
     signal,
@@ -257,7 +258,9 @@ async function runEdgeCases() {
 // ═══════════════════════════════════════════════════════════════════
 
 async function runBlurbQA() {
-  const ac = initTest('blurb', 10);
+  const isDeep = state.blurbMode === 'deep';
+  const count = isDeep ? 10 : 10;
+  const ac = initTest('blurb', count);
 
   if (!sbClient) {
     appendResultRow({ query: 'Blurb QA', cat: 'QA', dm: 0, pass: false, gap: 'No Supabase client' });
@@ -266,7 +269,7 @@ async function runBlurbQA() {
   }
 
   try {
-    // Fetch 10 random restaurant blurbs
+    // Fetch random restaurant blurbs
     const { data: restaurants } = await sbClient
       .from('restaurants')
       .select('name, recommendation_blurb')
@@ -279,20 +282,60 @@ async function runBlurbQA() {
       return;
     }
 
-    const sample = shuffle(restaurants).slice(0, 10);
+    const sample = shuffle(restaurants).slice(0, count);
 
     for (const r of sample) {
       if (ac.signal.aborted) break;
+
+      // Quick mode: regex check
       const blurb = (r.recommendation_blurb || '').toLowerCase();
       const found = BANNED_PATTERNS.filter(p => blurb.includes(p.toLowerCase()));
-      const pass = found.length === 0;
-      const result = {
-        query: r.name, cat: 'QA', dm: pass ? 100 : Math.max(0, 100 - found.length * 20),
-        pass, gap: pass ? null : `cliché: ${found.slice(0, 3).join(', ')}`,
-        restaurant: r.name,
-      };
-      recordResult(result);
-      appendResultRow(result);
+      const regexPass = found.length === 0;
+      const regexScore = regexPass ? 100 : Math.max(0, 100 - found.length * 20);
+
+      if (!isDeep) {
+        // Quick mode only
+        const result = {
+          query: r.name, cat: 'QA', dm: regexScore,
+          pass: regexPass, gap: regexPass ? null : `cliché: ${found.slice(0, 3).join(', ')}`,
+          restaurant: r.name, diff: 'quick',
+        };
+        recordResult(result);
+        appendResultRow(result);
+      } else {
+        // Deep mode: send blurb to API for Claude evaluation
+        try {
+          const evalResp = await callAPI(
+            `BLURB_EVAL: Rate this restaurant blurb for "${r.name}" on quality (0-100). Is it specific, honest, and free of clichés? Blurb: "${r.recommendation_blurb}"`,
+            {}, ac.signal
+          );
+          // Use the DM score from Claude's evaluation as a quality proxy
+          const claudeDm = evalResp.donde_match || 0;
+          // Combine: average of regex score and Claude evaluation
+          const combinedScore = Math.round((regexScore + claudeDm) / 2);
+          const pass = combinedScore >= 60 && regexPass;
+          const gaps = [];
+          if (!regexPass) gaps.push(`cliché: ${found.slice(0, 3).join(', ')}`);
+          if (claudeDm < 60) gaps.push(`Claude: DM ${claudeDm}`);
+          const result = {
+            query: r.name, cat: 'QA', dm: combinedScore,
+            pass, gap: gaps.length > 0 ? gaps.join(' | ') : null,
+            restaurant: r.name, diff: 'deep',
+          };
+          recordResult(result);
+          appendResultRow(result);
+        } catch (e) {
+          if (e.name === 'AbortError') break;
+          // Fall back to regex-only result on error
+          const result = {
+            query: r.name, cat: 'QA', dm: regexScore,
+            pass: regexPass, gap: regexPass ? null : `cliché: ${found.slice(0, 3).join(', ')}`,
+            restaurant: r.name, diff: 'quick (fallback)',
+          };
+          recordResult(result);
+          appendResultRow(result);
+        }
+      }
     }
   } catch (e) {
     if (e.name !== 'AbortError') {
@@ -300,6 +343,14 @@ async function runBlurbQA() {
     }
   }
   finishTest();
+}
+
+// Blurb mode toggle handler
+function setBlurbMode(mode) {
+  state.blurbMode = mode;
+  document.querySelectorAll('.cc-blurb-mode button').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.mode === mode);
+  });
 }
 
 // ═══════════════════════════════════════════════════════════════════
