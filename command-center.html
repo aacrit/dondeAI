@@ -91,6 +91,7 @@
       <button class="cc-tab cc-tab--active" role="tab" aria-selected="true" data-tab="test" onclick="switchTab('test')">Test</button>
       <button class="cc-tab" role="tab" aria-selected="false" data-tab="live" onclick="switchTab('live')">Live</button>
       <button class="cc-tab" role="tab" aria-selected="false" data-tab="data" onclick="switchTab('data')">Data</button>
+      <button class="cc-tab" role="tab" aria-selected="false" data-tab="issues" onclick="switchTab('issues')" id="tab-issues-btn">Issues</button>
       <div class="cc-tab__indicator" id="tab-indicator"></div>
     </nav>
 
@@ -302,6 +303,56 @@
           <div class="cc-empty-state">
             <div class="cc-empty-state__text">No recent operations</div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ Tab Panel: ISSUES ═══ -->
+    <div class="cc-tab-panel" id="panel-issues" role="tabpanel">
+
+      <!-- Summary Strip -->
+      <div class="cc-issues-summary" id="issues-summary">
+        <span class="cc-issues-badge cc-issues-badge--p0" id="issues-p0-count">P0: 0</span>
+        <span class="cc-issues-badge cc-issues-badge--p1" id="issues-p1-count">P1: 0</span>
+        <span class="cc-issues-badge cc-issues-badge--p2" id="issues-p2-count">P2: 0</span>
+      </div>
+
+      <!-- Filters -->
+      <div class="cc-issues-filters">
+        <div class="cc-issues-filter-group">
+          <button class="cc-issues-filter cc-issues-filter--active" data-filter="severity" data-val="all" onclick="setIssueFilter('severity','all')">All</button>
+          <button class="cc-issues-filter" data-filter="severity" data-val="P0" onclick="setIssueFilter('severity','P0')">P0</button>
+          <button class="cc-issues-filter" data-filter="severity" data-val="P1" onclick="setIssueFilter('severity','P1')">P1</button>
+        </div>
+        <div class="cc-issues-filter-group">
+          <button class="cc-issues-filter cc-issues-filter--active" data-filter="type" data-val="all" onclick="setIssueFilter('type','all')">All Types</button>
+          <button class="cc-issues-filter" data-filter="type" data-val="intent" onclick="setIssueFilter('type','intent')">Intent</button>
+          <button class="cc-issues-filter" data-filter="type" data-val="scoring" onclick="setIssueFilter('type','scoring')">Scoring</button>
+          <button class="cc-issues-filter" data-filter="type" data-val="relevance_ceiling" onclick="setIssueFilter('type','relevance_ceiling')">Ceiling</button>
+        </div>
+        <div class="cc-issues-filter-group">
+          <button class="cc-issues-filter cc-issues-filter--active" data-filter="source" data-val="all" onclick="setIssueFilter('source','all')">All Sources</button>
+          <button class="cc-issues-filter" data-filter="source" data-val="test" onclick="setIssueFilter('source','test')">Test</button>
+          <button class="cc-issues-filter" data-filter="source" data-val="prod" onclick="setIssueFilter('source','prod')">Prod</button>
+        </div>
+      </div>
+
+      <!-- Bulk Actions -->
+      <div class="cc-issues-bulk" id="issues-bulk">
+        <label class="cc-issues-select-all">
+          <input type="checkbox" id="issues-select-all" onchange="toggleSelectAllIssues(this.checked)">
+          <span id="issues-selected-count">0 selected</span>
+        </label>
+        <button class="cc-btn cc-btn--primary" id="issues-bulk-copy" onclick="copyBulkFixPrompt()" style="display:none">
+          Copy Bulk Fix Prompt
+        </button>
+      </div>
+
+      <!-- Issue List -->
+      <div class="cc-issues-list" id="issues-list">
+        <div class="cc-empty-state">
+          <div class="cc-empty-state__icon">&#128269;</div>
+          <div class="cc-empty-state__text">Loading issues...</div>
         </div>
       </div>
     </div>
