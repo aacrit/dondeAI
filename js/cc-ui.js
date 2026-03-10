@@ -10,6 +10,7 @@
 document.addEventListener('DOMContentLoaded', () => {
   checkAuth();
   initKeyboardShortcuts();
+  initPulseClicks();
   positionTabIndicator();
 });
 
@@ -69,6 +70,35 @@ function updateSystemStatus(text, color) {
 // Pulse Cards
 // ═══════════════════════════════════════════════════════════════════
 
+// ── Pulse Card Click Handlers ──
+
+function initPulseClicks() {
+  const health = document.getElementById('pulse-health');
+  const quality = document.getElementById('pulse-quality');
+  const attention = document.getElementById('pulse-attention');
+
+  if (health) health.addEventListener('click', () => {
+    switchTab('test');
+    // Scroll to run history
+    const hist = document.getElementById('run-history');
+    if (hist) hist.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
+  if (quality) quality.addEventListener('click', () => {
+    switchTab('live');
+    setLiveFilter('today');
+  });
+
+  if (attention) attention.addEventListener('click', () => {
+    switchTab('test');
+    // If there's a latest run with gaps, expand it
+    const firstRow = document.querySelector('.cc-run-history__table tbody tr[data-run-id]');
+    if (firstRow && !firstRow.classList.contains('cc-run-row--expanded')) {
+      firstRow.click();
+    }
+  });
+}
+
 function updatePulseHealth(pctVal, sub) {
   const ring = document.getElementById('pulse-health-ring');
   const val = document.getElementById('pulse-health-val');
@@ -88,14 +118,22 @@ function updatePulseHealth(pctVal, sub) {
   if (card) card.className = `cc-pulse__card cc-pulse__card--health ${ragClass(pctVal)}`;
 }
 
-function updatePulseQuality(dm, sub) {
+function updatePulseQuality(dm, sub, delta) {
   const val = document.getElementById('pulse-quality-val');
   const subEl = document.getElementById('pulse-quality-sub');
   if (val) {
     val.textContent = Math.round(dm);
     val.className = `cc-pulse__big ${ragClass(dm)}`;
   }
-  if (subEl) subEl.textContent = sub;
+  if (subEl) {
+    let text = sub;
+    if (delta != null && delta !== 0) {
+      const sign = delta > 0 ? '+' : '';
+      const cls = delta > 0 ? 'rag-green' : 'rag-red';
+      text += ` <span class="${cls}">${sign}${Math.round(delta * 10) / 10}</span>`;
+    }
+    subEl.innerHTML = text;
+  }
 }
 
 function updatePulseAttention(count, sub) {
@@ -218,7 +256,7 @@ function renderLiveFeed(queries) {
     const icon = dm >= 60 ? '&#10003;' : dm >= 40 ? '&#9888;' : '&#10007;';
     const iconClass = dm >= 60 ? 'cc-live-icon--pass' : dm >= 40 ? 'cc-live-icon--warn' : 'cc-live-icon--fail';
     return `
-      <div class="cc-live-entry">
+      <div class="cc-live-entry" data-query-id="${q.id}" onclick="openQueryDetail('${q.id}')" style="cursor:pointer" title="Click for details">
         <span class="cc-live-entry__time">${fmtTime(q.created_at)}</span>
         <span class="cc-live-entry__query">${escapeHtml(q.special_request || '(empty)')}</span>
         <span class="cc-live-entry__dm ${ragClass(dm)}">DM: ${dm}</span>
@@ -229,7 +267,7 @@ function renderLiveFeed(queries) {
   }).join('');
 }
 
-function updateLiveKPIs(searches, avgDm, lowScores, errors) {
+function updateLiveKPIs(searches, avgDm, lowScores, responseTime) {
   const el = (id, val) => {
     const e = document.getElementById(id);
     if (e) e.textContent = typeof val === 'number' ? (Number.isInteger(val) ? val : val.toFixed(1)) : val;
@@ -237,7 +275,7 @@ function updateLiveKPIs(searches, avgDm, lowScores, errors) {
   el('live-searches', searches);
   el('live-avg-dm', Math.round(avgDm));
   el('live-low-scores', lowScores);
-  el('live-errors', errors);
+  el('live-response-time', responseTime ? `${responseTime}ms` : '--');
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -306,17 +344,97 @@ function renderRunHistory(runs) {
     const passRate = r.total > 0 ? pct(r.passed_60, r.total) : '--';
     const delta = r.delta_avg_dm != null ? (r.delta_avg_dm >= 0 ? `+${r1(r.delta_avg_dm)}` : r1(r.delta_avg_dm)) : '--';
     const deltaClass = r.delta_avg_dm > 0 ? 'rag-green' : r.delta_avg_dm < 0 ? 'rag-red' : '';
+    const hasGaps = r.gap_count > 0;
     return `
-      <tr>
+      <tr class="cc-run-row ${hasGaps ? 'cc-run-row--has-gaps' : ''}" data-run-id="${escapeHtml(r.run_id)}" onclick="toggleRunDetail(this)" style="cursor:pointer" title="${hasGaps ? 'Click to see issues' : 'Click to see details'}">
         <td>${date}</td>
         <td>${escapeHtml(r.mode || 'test')}</td>
         <td>${r.total || r.dataset_size || '--'}</td>
         <td class="${ragClass(r.avg_dm)}">${r1(r.avg_dm)}</td>
         <td>${passRate}%</td>
-        <td class="${deltaClass}">${delta}</td>
+        <td class="${deltaClass}">${delta} ${hasGaps ? '<span class="cc-run-row__expand">&#9660;</span>' : ''}</td>
+      </tr>
+      <tr class="cc-run-detail" id="detail-${escapeHtml(r.run_id)}" style="display:none">
+        <td colspan="6"><div class="cc-run-detail__content">Loading...</div></td>
       </tr>
     `;
   }).join('');
+}
+
+async function toggleRunDetail(row) {
+  const runId = row.dataset.runId;
+  const detailRow = document.getElementById(`detail-${runId}`);
+  if (!detailRow) return;
+
+  const isExpanded = row.classList.contains('cc-run-row--expanded');
+
+  // Collapse all other expanded rows
+  document.querySelectorAll('.cc-run-row--expanded').forEach(r => {
+    r.classList.remove('cc-run-row--expanded');
+    const detId = r.dataset.runId;
+    const det = document.getElementById(`detail-${detId}`);
+    if (det) det.style.display = 'none';
+  });
+
+  if (isExpanded) return; // was open, now closed
+
+  row.classList.add('cc-run-row--expanded');
+  detailRow.style.display = 'table-row';
+
+  const content = detailRow.querySelector('.cc-run-detail__content');
+  if (!content || content.dataset.loaded) return;
+
+  // Load results from Supabase
+  if (!sbClient) { content.textContent = 'Not authenticated'; return; }
+
+  try {
+    const { data: results } = await sbClient
+      .from('gauntlet_results')
+      .select('query, category, donde_match, score_pass, gap_type, restaurant_name')
+      .eq('run_id', runId)
+      .order('donde_match', { ascending: true });
+
+    if (!results || results.length === 0) {
+      content.textContent = 'No detailed results stored for this run.';
+      content.dataset.loaded = '1';
+      return;
+    }
+
+    // Show gaps first, then passes
+    const gaps = results.filter(r => r.gap_type);
+    const passes = results.filter(r => !r.gap_type);
+
+    let html = '';
+    if (gaps.length > 0) {
+      html += `<div class="cc-run-detail__section"><strong>${gaps.length} issue${gaps.length > 1 ? 's' : ''}:</strong></div>`;
+      html += gaps.map(r => `
+        <div class="cc-run-detail__row cc-run-detail__row--gap">
+          <span class="cc-run-detail__dm ${ragClass(r.donde_match)}">DM ${r.donde_match}</span>
+          <span class="cc-run-detail__query">"${escapeHtml(r.query)}"</span>
+          <span class="cc-run-detail__gap">${escapeHtml(r.gap_type)}</span>
+          ${r.restaurant_name ? `<span class="cc-run-detail__rest">&rarr; ${escapeHtml(r.restaurant_name)}</span>` : ''}
+        </div>
+      `).join('');
+    }
+
+    if (passes.length > 0) {
+      html += `<div class="cc-run-detail__section"><strong>${passes.length} passed:</strong></div>`;
+      html += passes.slice(0, 5).map(r => `
+        <div class="cc-run-detail__row">
+          <span class="cc-run-detail__dm ${ragClass(r.donde_match)}">DM ${r.donde_match}</span>
+          <span class="cc-run-detail__query">"${escapeHtml(r.query)}"</span>
+          ${r.restaurant_name ? `<span class="cc-run-detail__rest">&rarr; ${escapeHtml(r.restaurant_name)}</span>` : ''}
+        </div>
+      `).join('');
+      if (passes.length > 5) html += `<div class="cc-run-detail__more">+ ${passes.length - 5} more passing</div>`;
+    }
+
+    content.innerHTML = html;
+    content.dataset.loaded = '1';
+  } catch (e) {
+    content.textContent = 'Failed to load details.';
+    console.warn('Run detail load failed:', e);
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -339,6 +457,7 @@ function initKeyboardShortcuts() {
         toggleShortcuts();
         break;
       case 'Escape':
+        closeQueryPanel();
         closeShortcuts();
         break;
     }
@@ -361,3 +480,132 @@ function closeShortcuts(e) {
 // ═══════════════════════════════════════════════════════════════════
 
 window.addEventListener('resize', () => positionTabIndicator());
+
+// ═══════════════════════════════════════════════════════════════════
+// Pulse Freshness Ticker
+// ═══════════════════════════════════════════════════════════════════
+
+let _freshnessTimer = null;
+
+function startFreshnessTicker() {
+  updateFreshness();
+  _freshnessTimer = setInterval(updateFreshness, 30000); // every 30s
+}
+
+function updateFreshness() {
+  const run = state.latestRun;
+  if (!run) return;
+
+  const ago = timeAgo(run.created_at);
+  const els = ['pulse-health-fresh', 'pulse-quality-fresh', 'pulse-attention-fresh'];
+  els.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = `Updated ${ago}`;
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Query Detail Slide-Out Panel
+// ═══════════════════════════════════════════════════════════════════
+
+async function openQueryDetail(queryId) {
+  const panel = document.getElementById('query-panel');
+  const backdrop = document.getElementById('query-panel-backdrop');
+  const body = document.getElementById('query-panel-body');
+  if (!panel || !body) return;
+
+  body.innerHTML = '<div class="cc-query-panel__loading">Loading query details...</div>';
+  panel.classList.add('cc-query-panel--open');
+  if (backdrop) backdrop.classList.add('cc-query-panel__backdrop--visible');
+
+  if (!sbClient) { body.innerHTML = '<p>Not authenticated</p>'; return; }
+
+  try {
+    // Load full query data with restaurant join
+    const { data: query } = await sbClient
+      .from('user_queries')
+      .select(`
+        id, special_request, occasion, neighborhood, price_level,
+        donde_match, created_at, restaurant_name, recommended_restaurant_id,
+        restaurants (
+          name, address, cuisine_type, google_rating, google_review_count,
+          price_level, noise_level, best_for_oneliner, neighborhood_name,
+          photo_urls
+        )
+      `)
+      .eq('id', queryId)
+      .single();
+
+    if (!query) { body.innerHTML = '<p>Query not found</p>'; return; }
+
+    const dm = query.donde_match || 0;
+    const r = query.restaurants;
+    const photo = r?.photo_urls?.[0] || null;
+
+    body.innerHTML = `
+      <div class="cc-query-panel__score">
+        <span class="cc-query-panel__dm ${ragClass(dm)}">${dm}</span>
+        <span class="cc-query-panel__dm-label">DondeMatch</span>
+      </div>
+
+      <div class="cc-query-panel__section">
+        <div class="cc-query-panel__label">Query</div>
+        <div class="cc-query-panel__val">"${escapeHtml(query.special_request || '(empty)')}"</div>
+      </div>
+
+      ${query.occasion ? `<div class="cc-query-panel__section">
+        <div class="cc-query-panel__label">Occasion</div>
+        <div class="cc-query-panel__val">${escapeHtml(query.occasion)}</div>
+      </div>` : ''}
+
+      ${query.neighborhood ? `<div class="cc-query-panel__section">
+        <div class="cc-query-panel__label">Neighborhood</div>
+        <div class="cc-query-panel__val">${escapeHtml(query.neighborhood)}</div>
+      </div>` : ''}
+
+      ${query.price_level ? `<div class="cc-query-panel__section">
+        <div class="cc-query-panel__label">Price</div>
+        <div class="cc-query-panel__val">${escapeHtml(query.price_level)}</div>
+      </div>` : ''}
+
+      ${r ? `
+        <hr class="cc-query-panel__divider">
+        ${photo ? `<img class="cc-query-panel__photo" src="${photo}" alt="${escapeHtml(r.name)}" loading="lazy">` : ''}
+        <div class="cc-query-panel__section">
+          <div class="cc-query-panel__label">Recommended</div>
+          <div class="cc-query-panel__restaurant">${escapeHtml(r.name)}</div>
+          <div class="cc-query-panel__meta">${escapeHtml(r.cuisine_type || '')} ${r.price_level ? '&middot; ' + escapeHtml(r.price_level) : ''}</div>
+          <div class="cc-query-panel__meta">${escapeHtml(r.address || '')}</div>
+          <div class="cc-query-panel__meta">${escapeHtml(r.neighborhood_name || '')}</div>
+        </div>
+        ${r.google_rating ? `<div class="cc-query-panel__section">
+          <div class="cc-query-panel__label">Google</div>
+          <div class="cc-query-panel__val">${r.google_rating} &#9733; (${r.google_review_count || '?'} reviews)</div>
+        </div>` : ''}
+        ${r.noise_level ? `<div class="cc-query-panel__section">
+          <div class="cc-query-panel__label">Noise</div>
+          <div class="cc-query-panel__val">${escapeHtml(r.noise_level)}</div>
+        </div>` : ''}
+        ${r.best_for_oneliner ? `<div class="cc-query-panel__section">
+          <div class="cc-query-panel__label">Best For</div>
+          <div class="cc-query-panel__val">${escapeHtml(r.best_for_oneliner)}</div>
+        </div>` : ''}
+      ` : '<div class="cc-query-panel__section"><div class="cc-query-panel__val">No restaurant data</div></div>'}
+
+      <div class="cc-query-panel__section">
+        <div class="cc-query-panel__label">Time</div>
+        <div class="cc-query-panel__val">${new Date(query.created_at).toLocaleString('en-US', { timeZone: 'America/Chicago', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
+      </div>
+    `;
+  } catch (e) {
+    body.innerHTML = '<p>Failed to load query details.</p>';
+    console.warn('Query detail load failed:', e);
+  }
+}
+
+function closeQueryPanel() {
+  const panel = document.getElementById('query-panel');
+  const backdrop = document.getElementById('query-panel-backdrop');
+  if (panel) panel.classList.remove('cc-query-panel--open');
+  if (backdrop) backdrop.classList.remove('cc-query-panel__backdrop--visible');
+}

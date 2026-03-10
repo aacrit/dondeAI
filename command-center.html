@@ -48,7 +48,7 @@
 
     <!-- ═══ Pulse: 3 hero KPI cards ═══ -->
     <section class="cc-pulse" id="pulse-section">
-      <div class="cc-pulse__card cc-pulse__card--health" id="pulse-health" role="button" tabindex="0" title="System health from latest test run" aria-live="polite">
+      <div class="cc-pulse__card cc-pulse__card--health" id="pulse-health" role="button" tabindex="0" title="Click to view test history" aria-live="polite">
         <div class="cc-pulse__ring">
           <svg viewBox="0 0 80 80" class="cc-pulse__svg">
             <circle cx="40" cy="40" r="34" fill="none" stroke="var(--cc-surface-3)" stroke-width="5"/>
@@ -60,18 +60,21 @@
         </div>
         <div class="cc-pulse__label">System Health</div>
         <div class="cc-pulse__sub" id="pulse-health-sub">Loading...</div>
+        <div class="cc-pulse__freshness" id="pulse-health-fresh"></div>
       </div>
 
-      <div class="cc-pulse__card cc-pulse__card--quality" id="pulse-quality" role="button" tabindex="0" title="Average DondeMatch score">
+      <div class="cc-pulse__card cc-pulse__card--quality" id="pulse-quality" role="button" tabindex="0" title="Click to view live production">
         <div class="cc-pulse__big" id="pulse-quality-val">--</div>
         <div class="cc-pulse__label">Avg DondeMatch</div>
         <div class="cc-pulse__sub" id="pulse-quality-sub">Loading...</div>
+        <div class="cc-pulse__freshness" id="pulse-quality-fresh"></div>
       </div>
 
-      <div class="cc-pulse__card cc-pulse__card--attention" id="pulse-attention" role="button" tabindex="0" title="Issues needing attention">
+      <div class="cc-pulse__card cc-pulse__card--attention" id="pulse-attention" role="button" tabindex="0" title="Click to view issues">
         <div class="cc-pulse__big cc-pulse__big--attention" id="pulse-attention-val">--</div>
         <div class="cc-pulse__label">Needs Attention</div>
         <div class="cc-pulse__sub" id="pulse-attention-sub">Loading...</div>
+        <div class="cc-pulse__freshness" id="pulse-attention-fresh"></div>
       </div>
     </section>
 
@@ -114,25 +117,32 @@
           <div class="cc-test-card__desc">23 golden queries with baseline scores</div>
           <div class="cc-test-card__meta">~$0.25 &middot; ~3 min</div>
         </button>
-        <button class="cc-test-card" data-test="edge" onclick="startTest('edge')">
-          <div class="cc-test-card__icon">&#128737;</div>
-          <div class="cc-test-card__name">Edge Cases</div>
-          <div class="cc-test-card__desc">20 probes: SQL injection, empty, unicode</div>
-          <div class="cc-test-card__meta">~$0.20 &middot; ~1 min</div>
-        </button>
-        <button class="cc-test-card" data-test="blurb" onclick="startTest('blurb')">
-          <div class="cc-test-card__icon">&#9998;</div>
-          <div class="cc-test-card__name">Blurb Quality</div>
-          <div class="cc-test-card__desc">10 blurbs checked for clich&eacute; phrases</div>
-          <div class="cc-test-card__meta">~$0.05 &middot; ~30s</div>
-        </button>
-        <button class="cc-test-card" data-test="coverage" onclick="startTest('coverage')">
-          <div class="cc-test-card__icon">&#9744;</div>
-          <div class="cc-test-card__name">Data Coverage</div>
-          <div class="cc-test-card__desc">10 restaurants checked for missing fields</div>
-          <div class="cc-test-card__meta">~$0.05 &middot; ~30s</div>
-        </button>
       </div>
+
+      <!-- More Tests (engineering-focused, collapsed by default) -->
+      <details class="cc-more-tests" id="more-tests">
+        <summary class="cc-more-tests__toggle">More Tests</summary>
+        <div class="cc-test-grid cc-test-grid--secondary">
+          <button class="cc-test-card cc-test-card--secondary" data-test="edge" onclick="startTest('edge')">
+            <div class="cc-test-card__icon">&#128737;</div>
+            <div class="cc-test-card__name">Edge Cases</div>
+            <div class="cc-test-card__desc">20 probes: SQL injection, empty, unicode</div>
+            <div class="cc-test-card__meta">~$0.20 &middot; ~1 min</div>
+          </button>
+          <button class="cc-test-card cc-test-card--secondary" data-test="blurb" onclick="startTest('blurb')">
+            <div class="cc-test-card__icon">&#9998;</div>
+            <div class="cc-test-card__name">Blurb Quality</div>
+            <div class="cc-test-card__desc">10 blurbs checked for clich&eacute; phrases</div>
+            <div class="cc-test-card__meta">~$0.05 &middot; ~30s</div>
+          </button>
+          <button class="cc-test-card cc-test-card--secondary" data-test="coverage" onclick="startTest('coverage')">
+            <div class="cc-test-card__icon">&#9744;</div>
+            <div class="cc-test-card__name">Data Coverage</div>
+            <div class="cc-test-card__desc">10 restaurants checked for missing fields</div>
+            <div class="cc-test-card__meta">~$0.05 &middot; ~30s</div>
+          </button>
+        </div>
+      </details>
 
       <!-- Category Picker (shown when Category Focus is selected) -->
       <div class="cc-cat-picker" id="cat-picker" style="display:none">
@@ -172,11 +182,18 @@
     <!-- ═══ Tab Panel: LIVE ═══ -->
     <div class="cc-tab-panel" id="panel-live" role="tabpanel">
 
+      <!-- Live Filter -->
+      <div class="cc-live-filter" id="live-filter">
+        <button class="cc-live-filter__btn cc-live-filter__btn--active" data-period="all" onclick="setLiveFilter('all')">All Time</button>
+        <button class="cc-live-filter__btn" data-period="today" onclick="setLiveFilter('today')">Today</button>
+        <button class="cc-live-filter__btn" data-period="7d" onclick="setLiveFilter('7d')">Last 7 Days</button>
+      </div>
+
       <!-- Live KPIs -->
       <div class="cc-live-kpis" id="live-kpis">
         <div class="cc-live-kpi">
           <div class="cc-live-kpi__val" id="live-searches">--</div>
-          <div class="cc-live-kpi__label">Searches Today</div>
+          <div class="cc-live-kpi__label">Searches</div>
         </div>
         <div class="cc-live-kpi">
           <div class="cc-live-kpi__val" id="live-avg-dm">--</div>
@@ -187,8 +204,8 @@
           <div class="cc-live-kpi__label">Low Scores (&lt;60)</div>
         </div>
         <div class="cc-live-kpi">
-          <div class="cc-live-kpi__val" id="live-errors">--</div>
-          <div class="cc-live-kpi__label">Errors</div>
+          <div class="cc-live-kpi__val" id="live-response-time">--</div>
+          <div class="cc-live-kpi__label">Avg Response</div>
         </div>
       </div>
 
@@ -215,6 +232,18 @@
         </div>
       </div>
     </div>
+
+    <!-- ═══ Query Detail Slide-Out ═══ -->
+    <div class="cc-query-panel" id="query-panel">
+      <div class="cc-query-panel__header">
+        <span class="cc-query-panel__title">Query Detail</span>
+        <button class="cc-query-panel__close" onclick="closeQueryPanel()" title="Close">&times;</button>
+      </div>
+      <div class="cc-query-panel__body" id="query-panel-body">
+        <!-- Populated dynamically -->
+      </div>
+    </div>
+    <div class="cc-query-panel__backdrop" id="query-panel-backdrop" onclick="closeQueryPanel()"></div>
 
     <!-- ═══ Tab Panel: DATA ═══ -->
     <div class="cc-tab-panel" id="panel-data" role="tabpanel">

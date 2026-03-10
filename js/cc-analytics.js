@@ -69,6 +69,9 @@ async function initDashboard() {
 
   // Smart suggestion
   updateSmartSuggestion();
+
+  // Start freshness ticker on pulse cards
+  if (typeof startFreshnessTicker === 'function') startFreshnessTicker();
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -82,7 +85,7 @@ async function loadInitData() {
     const [runsRes, totalRes, enrichedRes, tagsRes, queriesRes, occasionRes] = await Promise.all([
       // Latest gauntlet run
       sbClient.from('gauntlet_runs')
-        .select('run_id, avg_dm, passed_60, gap_count, total, created_at, mode')
+        .select('run_id, avg_dm, passed_60, gap_count, total, created_at, mode, delta_avg_dm')
         .order('created_at', { ascending: false })
         .limit(1),
       // Total active restaurants
@@ -91,10 +94,10 @@ async function loadInitData() {
       sbClient.from('restaurants').select('id', { count: 'exact', head: true }).eq('is_active', true).not('noise_level', 'is', null),
       // Tag count
       sbClient.from('tags').select('id', { count: 'exact', head: true }),
-      // Today's user queries (all of them)
+      // Today's user queries (Chicago timezone)
       sbClient.from('user_queries')
         .select('id, donde_match, created_at')
-        .gte('created_at', new Date().toISOString().split('T')[0])
+        .gte('created_at', chicagoTodayStart())
         .order('created_at', { ascending: false }),
       // Occasion scores count
       sbClient.from('occasion_scores').select('id', { count: 'exact', head: true }),
@@ -118,7 +121,7 @@ async function loadInitData() {
     if (latestRun) {
       const passRate = latestRun.total > 0 ? (latestRun.passed_60 / latestRun.total * 100) : 0;
       updatePulseHealth(passRate, `from ${latestRun.mode || 'test'} run ${timeAgo(latestRun.created_at)}`);
-      updatePulseQuality(latestRun.avg_dm, `${latestRun.total} queries tested`);
+      updatePulseQuality(latestRun.avg_dm, `${latestRun.total} queries tested`, latestRun.delta_avg_dm);
       updatePulseAttention(latestRun.gap_count, latestRun.gap_count > 5 ? 'action needed' : 'manageable');
     }
 
@@ -161,31 +164,80 @@ async function loadLiveFeed() {
   if (!sbClient) return;
 
   try {
-    // Load ALL user queries (not just today) — most recent first, limit to 50
+    // Load ALL user queries — no limit
     const { data: queries } = await sbClient
       .from('user_queries')
       .select('id, special_request, donde_match, restaurant_name, created_at')
-      .order('created_at', { ascending: false })
-      .limit(50);
+      .order('created_at', { ascending: false });
 
     if (queries && queries.length > 0) {
       state.liveFeed = queries;
       state.liveLastId = queries[0].id;
-      renderLiveFeed(queries);
-
-      // Update live KPIs from all data
-      const todayStart = new Date().toISOString().split('T')[0];
-      const todayQueries = queries.filter(q => q.created_at >= todayStart);
-      const allCount = todayQueries.length;
-      const avgDm = allCount > 0
-        ? todayQueries.reduce((s, q) => s + (q.donde_match || 0), 0) / allCount
-        : 0;
-      const lowScores = todayQueries.filter(q => (q.donde_match || 0) < 60).length;
-      updateLiveKPIs(allCount, avgDm, lowScores, 0);
+      applyLiveFilter();
+    } else {
+      state.liveFeed = [];
+      applyLiveFilter();
     }
   } catch (e) {
     console.warn('Failed to load live feed:', e);
   }
+}
+
+/** Filter live feed by state.liveFilter and re-render */
+function applyLiveFilter() {
+  const filtered = filterQueriesByPeriod(state.liveFeed, state.liveFilter);
+  renderLiveFeed(filtered);
+  updateLiveKPIsFromQueries(filtered);
+}
+
+/** Set filter and re-render (called from UI) */
+function setLiveFilter(period) {
+  state.liveFilter = period;
+  applyLiveFilter();
+
+  // Update active button
+  document.querySelectorAll('.cc-live-filter__btn').forEach(b => {
+    b.classList.toggle('cc-live-filter__btn--active', b.dataset.period === period);
+  });
+}
+
+/** Get start of "today" in Chicago Central Time as ISO string (UTC) */
+function chicagoTodayStart() {
+  // Get today's date in Chicago timezone (handles DST automatically)
+  const chicagoDate = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Chicago', year: 'numeric', month: '2-digit', day: '2-digit'
+  }).format(new Date()); // "YYYY-MM-DD"
+  // Create midnight in Chicago, convert to UTC
+  // Parse as local then adjust — or use a reliable method:
+  // Midnight Chicago = chicagoDate + T00:00:00 in CT
+  // CT offset: CST=-6, CDT=-5. Detect by comparing two known dates.
+  const midnightLocal = new Date(`${chicagoDate}T00:00:00`);
+  // Get the actual Chicago offset by checking what hour UTC noon is in Chicago
+  const noon = new Date(`${chicagoDate}T12:00:00Z`);
+  const chicagoHour = new Date(noon.toLocaleString('en-US', { timeZone: 'America/Chicago' })).getHours();
+  const offsetHours = 12 - chicagoHour; // 6 for CST, 5 for CDT
+  // Midnight Chicago in UTC = chicagoDate T00:00:00 + offsetHours
+  return `${chicagoDate}T${String(offsetHours).padStart(2, '0')}:00:00.000Z`;
+}
+
+function filterQueriesByPeriod(queries, period) {
+  if (!queries || period === 'all') return queries || [];
+  let cutoff;
+  if (period === 'today') {
+    cutoff = chicagoTodayStart();
+  } else if (period === '7d') {
+    cutoff = new Date(Date.now() - 7 * 86400000).toISOString();
+  }
+  return queries.filter(q => q.created_at >= cutoff);
+}
+
+function updateLiveKPIsFromQueries(queries) {
+  const count = queries.length;
+  const avgDm = count > 0
+    ? queries.reduce((s, q) => s + (q.donde_match || 0), 0) / count
+    : 0;
+  const lowScores = queries.filter(q => (q.donde_match || 0) < 60).length;
+  updateLiveKPIs(count, avgDm, lowScores, 0);
 }
 
 async function pollLiveFeed() {
@@ -196,7 +248,7 @@ async function pollLiveFeed() {
       .from('user_queries')
       .select('id, special_request, donde_match, restaurant_name, created_at')
       .order('created_at', { ascending: false })
-      .limit(10);
+      .limit(20);
 
     // Only fetch new entries since last known ID
     if (state.liveLastId) {
@@ -207,18 +259,8 @@ async function pollLiveFeed() {
 
     if (newQueries && newQueries.length > 0) {
       state.liveLastId = newQueries[0].id;
-      state.liveFeed = [...newQueries, ...state.liveFeed].slice(0, 50);
-      renderLiveFeed(state.liveFeed);
-
-      // Recalculate live KPIs
-      const todayStart = new Date().toISOString().split('T')[0];
-      const todayQueries = state.liveFeed.filter(q => q.created_at >= todayStart);
-      const allCount = todayQueries.length;
-      const avgDm = allCount > 0
-        ? todayQueries.reduce((s, q) => s + (q.donde_match || 0), 0) / allCount
-        : 0;
-      const lowScores = todayQueries.filter(q => (q.donde_match || 0) < 60).length;
-      updateLiveKPIs(allCount, avgDm, lowScores, 0);
+      state.liveFeed = [...newQueries, ...state.liveFeed];
+      applyLiveFilter();
     }
   } catch (e) {
     console.warn('Live feed poll failed:', e);
@@ -248,6 +290,9 @@ async function checkApiHealth() {
 
     if (versionEl) versionEl.textContent = `Engine: V${data.version || '??'}`;
     if (latencyEl) latencyEl.textContent = `Latency: ${latency}ms`;
+    // Update the live KPI response time
+    const rtEl = document.getElementById('live-response-time');
+    if (rtEl) rtEl.textContent = `${latency}ms`;
     if (statusEl) {
       statusEl.textContent = `Status: ${data.status || 'unknown'}`;
       statusEl.className = data.status === 'ok' ? 'cc-api-ok' : 'cc-api-warn';
@@ -285,20 +330,32 @@ function updateSmartSuggestion() {
 
   if (run.gap_count > 5) {
     text.textContent = `${run.gap_count} low-score queries detected in last run.`;
-    btn.textContent = 'Run Broad Scan';
-    btn.onclick = () => startTest('broad');
+    btn.textContent = 'Run Regression Guard';
+    btn.onclick = () => startTest('regression');
+    btn.style.display = '';
     strip.style.display = 'flex';
   } else if (hoursSinceRun > 24) {
     text.textContent = `No tests run in ${Math.floor(hoursSinceRun)}h.`;
     btn.textContent = 'Run Broad Scan';
     btn.onclick = () => startTest('broad');
+    btn.style.display = '';
     strip.style.display = 'flex';
-  } else if (run.gap_count === 0) {
-    text.textContent = `System healthy. ${pct(run.passed_60, run.total)}% pass rate.`;
-    btn.style.display = 'none';
+  } else if (run.gap_count > 0) {
+    text.textContent = `${run.gap_count} issue${run.gap_count > 1 ? 's' : ''} found. ${pct(run.passed_60, run.total)}% pass rate.`;
+    btn.textContent = 'View Issues';
+    btn.onclick = () => {
+      switchTab('test');
+      const firstRow = document.querySelector('.cc-run-row[data-run-id]');
+      if (firstRow) firstRow.click();
+    };
+    btn.style.display = '';
     strip.style.display = 'flex';
   } else {
-    strip.style.display = 'none';
+    text.textContent = `All clear. ${pct(run.passed_60, run.total)}% pass rate, avg DM ${r1(run.avg_dm)}.`;
+    btn.textContent = 'Run Broad Scan';
+    btn.onclick = () => startTest('broad');
+    btn.style.display = '';
+    strip.style.display = 'flex';
   }
 }
 

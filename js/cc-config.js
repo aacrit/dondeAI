@@ -9,7 +9,7 @@
 
 const SUPABASE_URL = 'https://vwbzkgsxmgwcvmvuxnbe.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3YnprZ3N4bWd3Y3ZtdnV4bmJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk5NjUzNTYsImV4cCI6MjA4NTU0MTM1Nn0.YBhmusYxc28TD5FOZv4TBpFpDVHHk1V894wUkNtJtcc';
-const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3YnprZ3N4bWd3Y3ZtdnV4bmJlIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2OTk2NTM1NiwiZXhwIjoyMDg1NTQxMzU2fQ.LZCrx5IKqkbfO0j9tCeYz309q59lmVuqyfm0DS6JOxk';
+// Service key removed — never expose service_role keys in client-side code
 const ADMIN_EMAIL = 'aacrit@gmail.com';
 const API_BASE = 'https://vwbzkgsxmgwcvmvuxnbe.supabase.co/functions/v1/recommend';
 const LIVE_POLL_INTERVAL = 10000;
@@ -122,6 +122,7 @@ let state = {
   livePolling: false,
   liveFeed: [],
   liveLastId: null,
+  liveFilter: 'all',   // 'all' | 'today' | '7d'
   latestRun: null,
   pipelineStatuses: {},
   pipePollTimer: null,
