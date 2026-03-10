@@ -172,11 +172,18 @@
     <!-- ═══ Tab Panel: LIVE ═══ -->
     <div class="cc-tab-panel" id="panel-live" role="tabpanel">
 
+      <!-- Live Filter -->
+      <div class="cc-live-filter" id="live-filter">
+        <button class="cc-live-filter__btn cc-live-filter__btn--active" data-period="all" onclick="setLiveFilter('all')">All Time</button>
+        <button class="cc-live-filter__btn" data-period="today" onclick="setLiveFilter('today')">Today</button>
+        <button class="cc-live-filter__btn" data-period="7d" onclick="setLiveFilter('7d')">Last 7 Days</button>
+      </div>
+
       <!-- Live KPIs -->
       <div class="cc-live-kpis" id="live-kpis">
         <div class="cc-live-kpi">
           <div class="cc-live-kpi__val" id="live-searches">--</div>
-          <div class="cc-live-kpi__label">Searches Today</div>
+          <div class="cc-live-kpi__label">Searches</div>
         </div>
         <div class="cc-live-kpi">
           <div class="cc-live-kpi__val" id="live-avg-dm">--</div>

@@ -544,6 +544,32 @@ body {
   padding: 16px;
 }
 
+/* ─── Live Filter ─── */
+.cc-live-filter {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.cc-live-filter__btn {
+  background: var(--cc-surface);
+  border: 1px solid var(--cc-border);
+  border-radius: var(--cc-radius);
+  padding: 6px 14px;
+  font: var(--f-body);
+  color: var(--cc-muted);
+  cursor: pointer;
+  transition: all 200ms var(--ease-out, ease-out);
+}
+.cc-live-filter__btn:hover {
+  border-color: var(--cc-accent, #6366f1);
+  color: var(--cc-text);
+}
+.cc-live-filter__btn--active {
+  background: var(--cc-accent, #6366f1);
+  border-color: var(--cc-accent, #6366f1);
+  color: #fff;
+}
+
 /* ─── Live KPIs ─── */
 .cc-live-kpis {
   display: grid;

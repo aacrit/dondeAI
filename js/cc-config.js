@@ -122,6 +122,7 @@ let state = {
   livePolling: false,
   liveFeed: [],
   liveLastId: null,
+  liveFilter: 'all',   // 'all' | 'today' | '7d'
   latestRun: null,
   pipelineStatuses: {},
   pipePollTimer: null,
