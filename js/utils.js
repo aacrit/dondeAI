@@ -698,12 +698,11 @@ export function getVibeDetail(dimKey, score) {
   return entry.low;
 }
 
-/* ---- Humanize snake_case strings to Title Case ---- */
+/* ---- Humanize snake_case strings to sentence case ---- */
 export function humanizeSnake(str) {
   if (!str || typeof str !== 'string') return '';
-  return str
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, c => c.toUpperCase());
+  const s = str.replace(/_/g, ' ').toLowerCase();
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 /* ---- Humanize factor detail signal text for user display ---- */

@@ -1170,7 +1170,6 @@
   pointer-events: auto;
   padding-top: var(--space-md);
   margin-top: var(--space-sm);
-  border-top: 1px solid var(--border);
 }
 
 /* Spacing between Tier 2 sections — consistent rhythm */
@@ -2138,14 +2137,16 @@
   display: none;
 }
 
-/* ── Craving Echo — what you asked for ── */
+/* ── Craving Echo — what you asked for (bottom of card, low priority) ── */
 .craving-echo {
   font-family: var(--font-data);
   font-size: var(--text-2xs);
   color: var(--fg4, var(--fg3));
-  margin: 0 0 var(--space-3xs);
+  margin: 0;
+  padding: var(--space-2xs) var(--space-md);
   font-style: italic;
-  opacity: 0.7;
+  opacity: 0.5;
+  text-align: center;
 }
 .craving-echo:empty { display: none; }
 
@@ -2220,7 +2221,6 @@
   flex-direction: column;
   gap: var(--space-3xs);
   padding-top: var(--space-xs);
-  border-top: 1px solid var(--border);
 }
 
 /* ── Primary row: interactive context pills ── */
@@ -3709,7 +3709,6 @@
   width: 100%;
   margin-top: var(--space-md);
   padding-top: var(--space-md);
-  border-top: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   gap: var(--space-xs);
@@ -3811,7 +3810,6 @@
   gap: var(--space-xs);
   width: 100%;
   padding-top: var(--space-sm);
-  border-top: 1px solid var(--border);
 }
 
 /* Secondary row: feedback + start over */
@@ -3821,8 +3819,6 @@
   justify-content: center;
   gap: var(--space-sm);
   width: 100%;
-  padding-top: var(--space-xs);
-  border-top: 1px solid var(--border);
 }
 
 /* Text-link style for Start Over — minimal, matches Show More/Less size */
@@ -5277,63 +5273,47 @@
   pointer-events: none;
 }
 
-/* ---- Card Footer Action Row: [Dislike] [Like] [Going] [Bookmark] ---- */
-.card-footer__action-row {
+/* ---- Card Footer Primary Row: Going + Try Another side by side ---- */
+.card-footer__primary-row {
   display: flex;
-  align-items: center;
-  gap: var(--space-xs);
+  gap: var(--space-sm);
   width: 100%;
   max-width: 400px;
 }
-.card-footer__action-row .going-btn {
+.card-footer__primary-row .going-btn {
   flex: 1;
   min-width: 0;
   font-size: var(--text-sm);
 }
 
-/* ---- Card Footer Nav Row: Try Another | Start Over (split button) ---- */
-.card-footer__nav-row {
-  display: flex;
-  align-items: stretch;
-  width: 100%;
-  max-width: 400px;
-  border: 1.5px solid var(--border);
-  border-radius: var(--radius-pill);
-  overflow: hidden;
-  background: var(--bg2);
-}
-
-.nav-row__divider {
-  width: 1.5px;
-  background: var(--border);
-  flex-shrink: 0;
-}
-
-/* Try Another — primary half */
+/* Try Another — accent outline pill */
 .try-again-btn {
-  flex: 2;
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: var(--space-xs);
+  min-width: 0;
   padding: var(--space-sm) var(--space-md);
   background: transparent;
   color: var(--ac);
-  border: none;
+  border: 2px solid var(--ac);
+  border-radius: var(--radius-pill);
   font-family: var(--font-structural);
-  font-weight: 700;
+  font-weight: 600;
   font-size: var(--text-sm);
   cursor: pointer;
   transition: all var(--dur-fast) var(--ease-out);
 }
-.try-again-btn:hover {
+.try-again-btn:not(:disabled):hover {
   background: var(--ac);
   color: var(--bg);
+  border-color: var(--ac);
 }
 .try-again-btn:active { transform: scale(0.97); }
 .try-again-btn:focus-visible {
   outline: 2px solid var(--ac);
-  outline-offset: -2px;
+  outline-offset: 2px;
 }
 .try-again-btn--loading {
   opacity: 0.5;
@@ -5349,34 +5329,51 @@
   align-items: center;
   flex-shrink: 0;
 }
+.try-again-btn__text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
 
-/* Start Over — secondary half */
-.start-over-btn {
-  flex: 1;
+/* ---- Card Footer Secondary Row: Feedback icons + Start Over ---- */
+.card-footer__secondary-row {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 400px;
+}
+
+.feedback-row {
+  display: flex;
+  align-items: center;
   gap: var(--space-2xs);
-  padding: var(--space-sm) var(--space-sm);
-  background: transparent;
-  color: var(--fg3);
+}
+
+/* Start Over — tertiary text link */
+.start-over-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  padding: var(--space-2xs) var(--space-xs);
+  background: none;
   border: none;
+  color: var(--fg3);
   font-family: var(--font-structural);
   font-weight: 500;
   font-size: var(--text-xs);
   cursor: pointer;
+  opacity: 0.7;
   transition: all var(--dur-fast) var(--ease-out);
 }
-.start-over-btn:hover {
-  color: var(--fg2);
-  background: var(--bg3);
-}
-.start-over-btn:active { transform: scale(0.97); }
-.start-over-btn:focus-visible {
+.start-over-link:hover { opacity: 1; color: var(--fg2); }
+.start-over-link:active { transform: scale(0.97); }
+.start-over-link:focus-visible {
   outline: 2px solid var(--fg3);
-  outline-offset: -2px;
+  outline-offset: 2px;
 }
-.start-over-btn__icon {
+.start-over-link__icon {
   display: flex;
   align-items: center;
   flex-shrink: 0;
