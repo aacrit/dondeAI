@@ -92,6 +92,22 @@
       </div>
     </section>
 
+    <!-- ═══ Grade KPI Strip ═══ -->
+    <section class="cc-grade-kpi-strip" id="grade-kpi-strip" style="display:none">
+      <div class="cc-grade-kpi">
+        <div class="cc-grade-kpi__label">Score Fit</div>
+        <div class="cc-grade-kpi__val" id="kpi-score-fit">--</div>
+      </div>
+      <div class="cc-grade-kpi">
+        <div class="cc-grade-kpi__label">Blurb Quality</div>
+        <div class="cc-grade-kpi__val" id="kpi-blurb-quality">--</div>
+      </div>
+      <div class="cc-grade-kpi">
+        <div class="cc-grade-kpi__label">Grade Pass Rate</div>
+        <div class="cc-grade-kpi__val" id="kpi-grade-pass">--</div>
+      </div>
+    </section>
+
     <!-- ═══ Smart Suggestion ═══ -->
     <div class="cc-suggest" id="suggest-strip" style="display:none">
       <span class="cc-suggest__icon">&#9889;</span>
@@ -242,8 +258,9 @@
             <button class="cc-btn cc-btn--xs" onclick="if(state.runHistory.length>=2)openCompareView(state.runHistory[1].run_id,state.runHistory[0].run_id)" title="Compare last 2 runs">Compare</button>
           </div>
         </div>
+        <div class="cc-run-filter-bar" id="run-filter-bar" style="display:none"></div>
         <table class="cc-run-history__table" id="run-history-table">
-          <thead><tr><th>Date</th><th>Type</th><th>Queries</th><th>Avg DM</th><th>Pass%</th><th>&Delta;</th></tr></thead>
+          <thead><tr><th>Date</th><th>Type</th><th>Queries</th><th>Avg DM</th><th>Pass%</th><th>Fit</th><th>Blurb</th><th>&Delta;</th></tr></thead>
           <tbody id="run-history-body"></tbody>
         </table>
       </div>
@@ -611,6 +628,7 @@
 
   <script src="js/cc-queries.js"></script>
   <script src="js/cc-config.js"></script>
+  <script src="js/cc-grading.js"></script>
   <script src="js/cc-generated-queries.js"></script>
   <script src="js/cc-tests.js"></script>
   <script src="js/cc-compare.js"></script>
