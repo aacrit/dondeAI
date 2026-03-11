@@ -1566,7 +1566,10 @@ function setCatPreset(preset) {
 }
 
 function updateCatCount() {
-  const pool = typeof CHICAGO_QUERIES !== 'undefined' ? CHICAGO_QUERIES : [];
+  let pool = typeof CHICAGO_QUERIES !== 'undefined' ? [...CHICAGO_QUERIES] : [];
+  if (typeof generatedQueries !== 'undefined' && generatedQueries.length) {
+    pool = pool.concat(generatedQueries.map(gq => ({ cat: gq.category || 'Food', query: gq.query || gq.special_request || '' })).filter(q => q.query));
+  }
   const count = pool.filter(q => state.selectedCategories.includes(q.cat)).length;
   const el = document.getElementById('cat-count');
   if (el) el.textContent = state.selectedCategories.length > 0 ? `${count} available` : '';
