@@ -1025,6 +1025,7 @@ function wireEvents() {
           const $resultCard = document.querySelector('.result-card');
           animationTimers.forEach(clearTimeout);
           animationTimers = [];
+          _swapInFlight = false; // Clear stale flag before starting new swap
 
           if ($resultCard && !REDUCED_MOTION.matches) {
             _swapInFlight = true;
@@ -1064,6 +1065,8 @@ function wireEvents() {
             announce(`Now showing: ${nextResult.restaurant?.name || 'new recommendation'}`);
           }
           haptic(HAPTICS.reveal);
+          // Safety: ensure _swapInFlight resets even if animation callbacks fail
+          setTimeout(() => { _swapInFlight = false; }, 1000);
 
           // V8.8: Fire background API call for fresh Claude blurb
           const blurbRestaurant = nextResult.restaurant || {};
