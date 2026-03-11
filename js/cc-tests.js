@@ -37,6 +37,11 @@ function openTerminal() {
   const bd = document.getElementById('terminal-backdrop');
   if (el) el.classList.add('cc-terminal--open');
   if (bd) bd.classList.add('cc-terminal__backdrop--visible');
+  // FAB: switch to close icon, reset unread
+  const fab = document.getElementById('terminal-fab');
+  if (fab) fab.classList.add('cc-terminal-fab--active');
+  state.unreadLogs = 0;
+  updateTerminalBadge();
 }
 
 function closeTerminal() {
@@ -45,6 +50,28 @@ function closeTerminal() {
   const bd = document.getElementById('terminal-backdrop');
   if (el) el.classList.remove('cc-terminal--open');
   if (bd) bd.classList.remove('cc-terminal__backdrop--visible');
+  // FAB: switch back to terminal icon
+  const fab = document.getElementById('terminal-fab');
+  if (fab) fab.classList.remove('cc-terminal-fab--active');
+}
+
+function toggleTerminal() {
+  state.terminalOpen ? closeTerminal() : openTerminal();
+}
+
+function updateTerminalBadge() {
+  const badge = document.getElementById('terminal-badge');
+  if (!badge) return;
+  const count = state.unreadLogs || 0;
+  if (count > 0) {
+    badge.textContent = count > 99 ? '99+' : count;
+    badge.classList.add('cc-terminal-fab__badge--visible');
+    badge.classList.remove('cc-terminal-fab__badge--pop');
+    void badge.offsetWidth;
+    badge.classList.add('cc-terminal-fab__badge--pop');
+  } else {
+    badge.classList.remove('cc-terminal-fab__badge--visible');
+  }
 }
 
 function clearTerminal() {
@@ -73,6 +100,12 @@ function termLog(type, msg) {
 
   body.appendChild(line);
   body.scrollTop = body.scrollHeight;
+
+  // Track unread logs when terminal is closed
+  if (!state.terminalOpen) {
+    state.unreadLogs = (state.unreadLogs || 0) + 1;
+    updateTerminalBadge();
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════

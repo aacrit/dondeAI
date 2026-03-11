@@ -163,6 +163,7 @@ let state = {
   customQueries: [],          // CEO's custom test queries [{query,cat,id}]
   pinnedQueries: [],          // pinned/favorited query strings
   terminalOpen: false,
+  unreadLogs: 0,              // unread terminal log count (for FAB badge)
   lastTestType: null,         // for quick rerun
   lastTestConfig: null,       // for quick rerun
 };
