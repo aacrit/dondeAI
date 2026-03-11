@@ -3023,15 +3023,41 @@ function renderGlanceContext(data) {
   if (oh?.open_now != null) {
     const pill = document.createElement('span');
     pill.className = `glance-context__pill ${oh.open_now ? 'glance-context__pill--open' : 'glance-context__pill--closed'} type-data--sm`;
-    pill.setAttribute('role', 'button');
-    pill.setAttribute('tabindex', '0');
-    pill.setAttribute('aria-expanded', 'false');
-    pill.setAttribute('aria-haspopup', 'true');
-    pill.setAttribute('data-action', 'toggle-badge-popout');
-    pill.innerHTML = `${svgIcon('clock', 11)} ${oh.open_now ? 'Open Now' : 'Closed'}`;
+
+    // Extract today's hours for inline display
+    let todayHours = '';
+    const hasHours = oh.weekday_text?.length > 0;
+    if (hasHours) {
+      const todayName = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+      const todayLine = oh.weekday_text.find(l => l.toLowerCase().startsWith(todayName));
+      if (todayLine) {
+        const ci = todayLine.indexOf(':');
+        if (ci >= 0) {
+          todayHours = todayLine.slice(ci + 1).trim()
+            .replace(/(\d{1,2}):00\s*(AM|PM)/gi, (_, h, ap) => `${h}${ap[0].toLowerCase()}`)
+            .replace(/(\d{1,2}:\d{2})\s*(AM|PM)/gi, (_, t, ap) => `${t}${ap[0].toLowerCase()}`)
+            .replace(/\s*[–—-]\s*/g, '–');
+        }
+      }
+    }
+
+    const statusText = oh.open_now ? 'Open' : 'Closed';
+    const hoursInline = todayHours ? ` · ${todayHours}` : '';
+    pill.innerHTML = `${svgIcon('clock', 11)} ${statusText}${hoursInline}`;
+
+    if (hasHours) {
+      pill.setAttribute('role', 'button');
+      pill.setAttribute('tabindex', '0');
+      pill.setAttribute('aria-expanded', 'false');
+      pill.setAttribute('aria-haspopup', 'true');
+      pill.setAttribute('data-action', 'toggle-badge-popout');
+    } else {
+      // No detailed hours — just show status, not interactive
+      pill.style.cursor = 'default';
+    }
 
     // Hours popout child
-    if (oh.weekday_text?.length) {
+    if (hasHours) {
       const popout = document.createElement('div');
       popout.className = 'badge-popout badge-popout--hours';
       popout.setAttribute('role', 'tooltip');
@@ -3071,12 +3097,13 @@ function renderGlanceContext(data) {
   }
 }
 
-/* ---- Normalize tag text to 2-3 words max ---- */
+/* ---- Normalize tag text: 3 words max, sentence case ---- */
 function normalizeTagText(text) {
   if (!text) return text;
   const words = text.trim().split(/\s+/);
-  if (words.length <= 3) return text;
-  return words.slice(0, 3).join(' ');
+  const capped = words.length <= 3 ? words.join(' ') : words.slice(0, 3).join(' ');
+  // Sentence case: capitalize first letter, lowercase rest (unless acronym)
+  return capped.charAt(0).toUpperCase() + capped.slice(1).toLowerCase();
 }
 
 /* ---- Render Quick Actions (Reserve, Share, Website, Phone — subtle row in tier 1) ---- */
@@ -3234,9 +3261,9 @@ function renderResultMeta(data) {
 function formatSpiceLevel(raw) {
   if (!raw) return '';
   const map = {
-    none: 'Not Spicy', mild: 'Mild', low: 'Mild',
+    none: 'Not spicy', mild: 'Mild', low: 'Mild',
     medium: 'Medium', moderate: 'Medium',
-    hot: 'Spicy', high: 'Spicy', very_hot: 'Very Spicy', extra_hot: 'Very Spicy',
+    hot: 'Spicy', high: 'Spicy', very_hot: 'Very spicy', extra_hot: 'Very spicy',
   };
   return map[raw.toLowerCase()] || humanizeSnake(raw);
 }
@@ -4040,7 +4067,7 @@ function collectInfoStreamItems(data) {
 
   // ── Practical items ──
   if (dc.review_value_score != null && dc.review_value_score >= 7) {
-    items.push({ id: 'value', icon: 'heart', text: 'Great Value', priority: dw.food * 0.5, category: 'practical' });
+    items.push({ id: 'value', icon: 'heart', text: 'Great value', priority: dw.food * 0.5, category: 'practical' });
   }
 
   if (dc.check_average_per_person) {
@@ -4049,7 +4076,7 @@ function collectInfoStreamItems(data) {
   }
 
   if (dc.reservation_difficulty && dc.reservation_difficulty !== 'none') {
-    const resMap = { easy: 'Walk-ins OK', moderate: 'Reservations rec.', hard: 'Hard to book' };
+    const resMap = { easy: 'Walk-ins OK', moderate: 'Reservations rec.', hard: 'Hard to get' };
     const notable = dc.reservation_difficulty === 'hard' ? 1.5 : 1.0;
     items.push({ id: 'reserv', icon: 'calendar', text: resMap[dc.reservation_difficulty] || humanizeSnake(dc.reservation_difficulty), priority: pw * 0.85 * notable, category: 'practical' });
   }
@@ -4072,19 +4099,19 @@ function collectInfoStreamItems(data) {
   if (dc.energy_level != null) {
     const e = dc.energy_level;
     const notable = (e >= 8 || e <= 2) ? 1.3 : 1.0;
-    items.push({ id: 'energy', icon: 'bolt', text: e >= 8 ? 'High energy' : e >= 5 ? 'Moderate energy' : 'Chill vibe', priority: dw.vibe * 0.65 * notable, category: 'vibe' });
+    items.push({ id: 'energy', icon: 'bolt', text: e >= 8 ? 'High energy' : e >= 5 ? 'Moderate energy' : 'Chill', priority: dw.vibe * 0.65 * notable, category: 'vibe' });
   }
 
   if (dc.cultural_authenticity != null) {
     const a = dc.cultural_authenticity;
     const notable = a >= 8 ? 1.2 : 1.0;
-    items.push({ id: 'auth', icon: 'globe', text: a >= 8 ? 'Very authentic' : a >= 5 ? 'Authentic' : 'Fusion', priority: dw.vibe * 0.55 * notable, category: 'vibe' });
+    items.push({ id: 'auth', icon: 'globe', text: a >= 8 ? 'Very authentic' : a >= 5 ? 'Authentic' : 'Fusion style', priority: dw.vibe * 0.55 * notable, category: 'vibe' });
   }
 
   if (dc.conversation_friendliness != null) {
     const c = dc.conversation_friendliness;
     const notable = c <= 3 ? 1.4 : 1.0;
-    items.push({ id: 'noise', icon: 'chat', text: c >= 7 ? 'Great for convo' : c >= 4 ? 'Moderate noise' : 'Loud', priority: ow * 0.70 * notable, category: 'vibe' });
+    items.push({ id: 'noise', icon: 'chat', text: c >= 7 ? 'Good for convo' : c >= 4 ? 'Moderate noise' : 'Loud', priority: ow * 0.70 * notable, category: 'vibe' });
   }
 
   if (dc.spice_level && dc.spice_level !== 'none') {
@@ -4093,13 +4120,13 @@ function collectInfoStreamItems(data) {
 
   // ── Discovery items ──
   const WOW_LABELS = {
-    open_kitchen: 'Open Kitchen', rooftop_skyline_view: 'Rooftop Views',
-    tableside_preparation: 'Tableside Prep', secret_entrance: 'Secret Entrance',
-    live_cooking_show: 'Live Cooking Show', river_view: 'River View',
-    lake_view: 'Lake View', historic_building: 'Historic Building',
-    celebrity_chef: 'Celebrity Chef', speakeasy_vibe: 'Speakeasy Vibe',
-    garden_dining: 'Garden Dining', fireplace: 'Fireplace',
-    chef_interaction: 'Chef Interaction',
+    open_kitchen: 'Open kitchen', rooftop_skyline_view: 'Rooftop views',
+    tableside_preparation: 'Tableside prep', secret_entrance: 'Secret entrance',
+    live_cooking_show: 'Live cooking', river_view: 'River view',
+    lake_view: 'Lake view', historic_building: 'Historic building',
+    celebrity_chef: 'Celebrity chef', speakeasy_vibe: 'Speakeasy',
+    garden_dining: 'Garden dining', fireplace: 'Fireplace',
+    chef_interaction: 'Chef interaction',
   };
   const WOW_ICONS = {
     open_kitchen: 'forkKnife', rooftop_skyline_view: 'sun',
@@ -4347,6 +4374,22 @@ function renderCuisineDrawer(data) {
     $flavorSection.style.display = '';
   } else if ($flavorSection) {
     $flavorSection.style.display = 'none';
+  }
+
+  // Fallback: if no sections have data, show a simple message
+  const hasDishes = dp.signature_dishes?.length > 0;
+  const hasHighlights = dp.menu_highlights?.length > 0;
+  const hasFlavors = dp.flavor_profiles?.length > 0;
+  if (!hasDishes && !hasHighlights && !hasFlavors) {
+    // Show at least the cuisine label with a minimal note
+    if ($dishesSection) {
+      const $dishesInner = $dishesSection.querySelector('.cuisine-drawer__dishes');
+      if ($dishesInner) {
+        $dishesInner.innerHTML = `<p class="type-data--sm" style="color:var(--fg3);font-style:italic;">Details coming soon</p>`;
+        $dishesSection.style.display = '';
+        $dishesSection.querySelector('.cuisine-drawer__section-label').textContent = '';
+      }
+    }
   }
 }
 
