@@ -1369,34 +1369,48 @@ function copyBulkFixPrompt() {
   if (!state.selectedIssues?.size || !state.issues) return;
 
   const selected = [...state.selectedIssues].map(idx => state.issues[idx]).filter(Boolean);
-  const p0 = selected.filter(i => i.severity === 'P0');
-  const p1 = selected.filter(i => i.severity === 'P1');
 
-  // Find common patterns
-  const typeCounts = {};
+  // Group by gap type for targeted instructions
+  const byType = {};
   const catCounts = {};
   selected.forEach(i => {
-    typeCounts[i.gapType] = (typeCounts[i.gapType] || 0) + 1;
+    const t = i.gapType || 'unknown';
+    (byType[t] = byType[t] || []).push(i);
     catCounts[i.category] = (catCounts[i.category] || 0) + 1;
   });
-  const topType = Object.entries(typeCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'mixed';
   const topCat = Object.entries(catCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'mixed';
 
-  let prompt = `Fix ${selected.length} DondeMatch issues (${p0.length} P0, ${p1.length} P1):\n\n`;
+  // Severity summary — only mention severities that exist
+  const sevCounts = {};
+  selected.forEach(i => { sevCounts[i.severity] = (sevCounts[i.severity] || 0) + 1; });
+  const sevSummary = ['P0', 'P1', 'P2'].filter(s => sevCounts[s]).map(s => `${sevCounts[s]} ${s}`).join(', ');
 
-  selected.forEach(i => {
-    prompt += `- "${i.query}" DM:${i.dm} [${i.gapType}] → ${i.restaurant} (${i.category})\n`;
-  });
+  let prompt = `Fix ${selected.length} DondeMatch issues (${sevSummary}):\n`;
 
-  prompt += `\nCommon pattern: ${topType} gaps. Most affected category: ${topCat}.\n`;
-  prompt += `\nStart with the P0 issues. For each:\n`;
+  // List issues grouped by type
+  for (const [type, items] of Object.entries(byType)) {
+    prompt += `\n### ${type} (${items.length})\n`;
+    items.forEach(i => {
+      prompt += `- "${i.query}" DM:${i.dm} → ${i.restaurant} (${i.category})\n`;
+    });
+  }
+
+  prompt += `\nMost affected: ${topCat}.\n`;
+
+  // Targeted file hints based on actual gap types present
+  prompt += `\nFor each issue:\n`;
   prompt += `1. Run ./tests/compare-scores.sh "<query>" to see current scoring\n`;
-  prompt += `2. Apply the fix in the relevant file\n`;
-  prompt += `3. Re-run to verify improvement\n`;
-  prompt += `\nFiles to check:\n`;
-  prompt += `- supabase/functions/recommend/_shared/intent-classifier-v5.ts (for intent gaps)\n`;
-  prompt += `- supabase/functions/recommend/_shared/scoring-v9.ts (for scoring/ceiling gaps)\n`;
-  prompt += `- supabase/functions/recommend/_shared/prompts-v5.ts (for blurb issues)\n`;
+  prompt += `2. Apply fix in the relevant file\n`;
+  prompt += `3. Re-run to verify\n`;
+
+  const files = new Set();
+  if (byType.intent) files.add('- intent-classifier-v5.ts (intent dictionaries)');
+  if (byType.scoring || byType.relevance_ceiling) files.add('- scoring-v9.ts (weights/floors)');
+  if (byType['cliché'] || byType.blurb) files.add('- prompts-v5.ts (blurb templates)');
+  if (byType.low_score) files.add('- scoring-v9.ts (investigate low score)');
+  if (files.size === 0) files.add('- scoring-v9.ts / intent-classifier-v5.ts');
+  prompt += `\nFiles: (all in supabase/functions/recommend/_shared/)\n`;
+  files.forEach(f => { prompt += f + '\n'; });
 
   navigator.clipboard?.writeText(prompt).then(() => {
     if (typeof showToast === 'function') showToast(`Bulk fix prompt copied (${selected.length} issues)!`);

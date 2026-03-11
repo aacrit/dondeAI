@@ -3977,7 +3977,7 @@ function collectInfoStreamItems(data) {
 
   // ── Practical items ──
   if (dc.review_value_score != null && dc.review_value_score >= 7) {
-    items.push({ id: 'value', icon: 'heart', text: 'Great Value', priority: dw.food * 0.5, category: 'practical' });
+    items.push({ id: 'value', icon: 'heart', text: 'Great value', priority: dw.food * 0.5, category: 'practical' });
   }
 
   if (dc.check_average_per_person) {
@@ -3986,7 +3986,7 @@ function collectInfoStreamItems(data) {
   }
 
   if (dc.reservation_difficulty && dc.reservation_difficulty !== 'none') {
-    const resMap = { easy: 'Walk-ins OK', moderate: 'Reservations rec.', hard: 'Hard to book' };
+    const resMap = { easy: 'Walk-ins OK', moderate: 'Reserve ahead', hard: 'Hard to book' };
     const notable = dc.reservation_difficulty === 'hard' ? 1.5 : 1.0;
     items.push({ id: 'reserv', icon: 'calendar', text: resMap[dc.reservation_difficulty] || humanizeSnake(dc.reservation_difficulty), priority: pw * 0.85 * notable, category: 'practical' });
   }
@@ -4009,19 +4009,19 @@ function collectInfoStreamItems(data) {
   if (dc.energy_level != null) {
     const e = dc.energy_level;
     const notable = (e >= 8 || e <= 2) ? 1.3 : 1.0;
-    items.push({ id: 'energy', icon: 'bolt', text: e >= 8 ? 'High energy' : e >= 5 ? 'Moderate energy' : 'Chill vibe', priority: dw.vibe * 0.65 * notable, category: 'vibe' });
+    items.push({ id: 'energy', icon: 'bolt', text: e >= 8 ? 'High energy' : e >= 5 ? 'Moderate' : 'Chill', priority: dw.vibe * 0.65 * notable, category: 'vibe' });
   }
 
   if (dc.cultural_authenticity != null) {
     const a = dc.cultural_authenticity;
     const notable = a >= 8 ? 1.2 : 1.0;
-    items.push({ id: 'auth', icon: 'globe', text: a >= 8 ? 'Very authentic' : a >= 5 ? 'Authentic' : 'Fusion', priority: dw.vibe * 0.55 * notable, category: 'vibe' });
+    items.push({ id: 'auth', icon: 'globe', text: a >= 8 ? 'Very Authentic' : a >= 5 ? 'Authentic' : 'Fusion', priority: dw.vibe * 0.55 * notable, category: 'vibe' });
   }
 
   if (dc.conversation_friendliness != null) {
     const c = dc.conversation_friendliness;
     const notable = c <= 3 ? 1.4 : 1.0;
-    items.push({ id: 'noise', icon: 'chat', text: c >= 7 ? 'Great for convo' : c >= 4 ? 'Moderate noise' : 'Loud', priority: ow * 0.70 * notable, category: 'vibe' });
+    items.push({ id: 'noise', icon: 'chat', text: c >= 7 ? 'Great for convo' : c >= 4 ? 'Moderate' : 'Loud', priority: ow * 0.70 * notable, category: 'vibe' });
   }
 
   if (dc.spice_level && dc.spice_level !== 'none') {
@@ -4030,13 +4030,13 @@ function collectInfoStreamItems(data) {
 
   // ── Discovery items ──
   const WOW_LABELS = {
-    open_kitchen: 'Open Kitchen', rooftop_skyline_view: 'Rooftop Views',
-    tableside_preparation: 'Tableside Prep', secret_entrance: 'Secret Entrance',
-    live_cooking_show: 'Live Cooking Show', river_view: 'River View',
-    lake_view: 'Lake View', historic_building: 'Historic Building',
-    celebrity_chef: 'Celebrity Chef', speakeasy_vibe: 'Speakeasy Vibe',
-    garden_dining: 'Garden Dining', fireplace: 'Fireplace',
-    chef_interaction: 'Chef Interaction',
+    open_kitchen: 'Open kitchen', rooftop_skyline_view: 'Rooftop views',
+    tableside_preparation: 'Tableside prep', secret_entrance: 'Secret entrance',
+    live_cooking_show: 'Live cooking', river_view: 'River view',
+    lake_view: 'Lake view', historic_building: 'Historic building',
+    celebrity_chef: 'Celebrity chef', speakeasy_vibe: 'Speakeasy',
+    garden_dining: 'Garden dining', fireplace: 'Fireplace',
+    chef_interaction: 'Chef interaction',
   };
   const WOW_ICONS = {
     open_kitchen: 'forkKnife', rooftop_skyline_view: 'sun',
