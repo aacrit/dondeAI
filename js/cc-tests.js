@@ -15,7 +15,6 @@ async function callAPI(specialRequest, params = {}, signal) {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
       'apikey': SUPABASE_ANON_KEY,
-      'x-donde-source': 'command-center',
     },
     body: JSON.stringify(body),
     signal,
