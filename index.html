@@ -604,28 +604,7 @@
             </a>
           </div>
 
-          <!-- V8: Cuisine Drawer — bottom sheet (mobile) / anchored panel (desktop) -->
-          <div class="cuisine-drawer" id="cuisine-drawer" role="dialog" aria-label="What they're known for" aria-hidden="true">
-            <div class="cuisine-drawer__header">
-              <span class="cuisine-drawer__cuisine-label type-structural" id="cuisine-drawer-label"></span>
-              <button class="cuisine-drawer__close" data-action="close-cuisine-drawer" aria-label="Close">
-                <svg viewBox="0 0 24 24" width="20" height="20"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-              </button>
-            </div>
-            <div class="cuisine-drawer__section" id="cuisine-drawer-dishes" style="display: none;">
-              <span class="cuisine-drawer__section-label type-data--sm">What to Order</span>
-              <div class="cuisine-drawer__dishes"></div>
-            </div>
-            <div class="cuisine-drawer__section" id="cuisine-drawer-highlights" style="display: none;">
-              <span class="cuisine-drawer__section-label type-data--sm">Popular Items</span>
-              <div class="cuisine-drawer__pills"></div>
-            </div>
-            <div class="cuisine-drawer__section" id="cuisine-drawer-flavor" style="display: none;">
-              <span class="cuisine-drawer__section-label type-data--sm">Flavor Profile</span>
-              <div class="cuisine-drawer__flavors"></div>
-            </div>
-          </div>
-          <div class="cuisine-drawer__backdrop" id="cuisine-drawer-backdrop" style="display: none;"></div>
+          <!-- Cuisine popout is built dynamically by JS as a badge-popout child of the cuisine pill -->
         </section>
 
       </div><!-- /step-track -->

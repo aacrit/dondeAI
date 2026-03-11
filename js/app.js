@@ -1170,30 +1170,6 @@ function wireEvents() {
         break;
       }
 
-      // V8: Cuisine drawer open/close
-      case 'open-cuisine-drawer': {
-        const $drawer = document.getElementById('cuisine-drawer');
-        const $backdrop = document.getElementById('cuisine-drawer-backdrop');
-        console.log('[Cuisine Drawer] open-cuisine-drawer fired', { drawer: !!$drawer, data: !!_pendingResultData, deepContext: !!_pendingResultData?.deep_context });
-        if ($drawer && _pendingResultData) {
-          haptic(HAPTICS.drawerOpen);
-          renderCuisineDrawer(_pendingResultData);
-          $drawer.classList.add('cuisine-drawer--open');
-          $drawer.setAttribute('aria-hidden', 'false');
-          if ($backdrop) {
-            $backdrop.style.display = '';
-            requestAnimationFrame(() => $backdrop.classList.add('cuisine-drawer__backdrop--visible'));
-          }
-        } else {
-          console.warn('[Cuisine Drawer] Cannot open — missing:', { drawer: !!$drawer, pendingData: !!_pendingResultData });
-        }
-        break;
-      }
-      case 'close-cuisine-drawer': {
-        closeCuisineDrawer();
-        break;
-      }
-
       case 'share':
         haptic(HAPTICS.tick);
         shareResult();
@@ -3024,21 +3000,76 @@ function renderGlanceContext(data) {
 
   const r = data.restaurant || {};
 
-  // Cuisine pill → opens cuisine drawer (only interactive if menu data exists)
+  // Cuisine pill → popout dropdown with known-for dishes (same pattern as hours)
   if (r.cuisine_type) {
     const dp = data.deep_context || {};
-    const hasMenuData = dp.signature_dishes?.length || dp.menu_highlights?.length || dp.flavor_profiles?.length;
+    const dishes = dp.signature_dishes || [];
+    const flavors = dp.flavor_profiles || [];
+    const hasMenuData = dishes.length || flavors.length;
     const pill = document.createElement('span');
     pill.className = 'glance-context__pill type-data--sm';
+
+    // Text node first
+    const icon = document.createElement('span');
+    icon.innerHTML = svgIcon('plate', 11);
+    pill.appendChild(icon);
+    pill.appendChild(document.createTextNode(` ${r.cuisine_type}`));
+
     if (hasMenuData) {
       pill.setAttribute('role', 'button');
       pill.setAttribute('tabindex', '0');
-      pill.setAttribute('aria-haspopup', 'dialog');
-      pill.setAttribute('data-action', 'open-cuisine-drawer');
+      pill.setAttribute('aria-expanded', 'false');
+      pill.setAttribute('aria-haspopup', 'true');
+      pill.setAttribute('data-action', 'toggle-badge-popout');
+
+      // Build cuisine popout child (compact dropdown)
+      const popout = document.createElement('div');
+      popout.className = 'badge-popout badge-popout--known-for';
+      popout.setAttribute('role', 'tooltip');
+      const title = document.createElement('span');
+      title.className = 'badge-popout__title';
+      title.textContent = 'Known For';
+      popout.appendChild(title);
+
+      // Signature dishes (top 4)
+      if (dishes.length) {
+        const list = document.createElement('div');
+        list.className = 'known-for__dishes';
+        dishes.slice(0, 4).forEach(d => {
+          const row = document.createElement('div');
+          row.className = 'known-for__dish';
+          const name = document.createElement('strong');
+          name.className = 'known-for__dish-name';
+          name.textContent = d.dish || String(d);
+          row.appendChild(name);
+          if (d.why) {
+            const why = document.createElement('span');
+            why.className = 'known-for__dish-why';
+            why.textContent = d.why;
+            row.appendChild(why);
+          }
+          list.appendChild(row);
+        });
+        popout.appendChild(list);
+      }
+
+      // Flavor profiles as small tags
+      if (flavors.length) {
+        const tagWrap = document.createElement('div');
+        tagWrap.className = 'known-for__flavors';
+        flavors.forEach(f => {
+          const tag = document.createElement('span');
+          tag.className = 'known-for__flavor-tag';
+          tag.textContent = f.replace(/-/g, ' ');
+          tagWrap.appendChild(tag);
+        });
+        popout.appendChild(tagWrap);
+      }
+
+      pill.appendChild(popout);
     } else {
       pill.classList.add('glance-context__pill--static');
     }
-    pill.innerHTML = `${svgIcon('plate', 11)} ${r.cuisine_type}`;
     $ctx.appendChild(pill);
   }
 
@@ -4359,77 +4390,6 @@ function renderDeepContextExtras(data) {
     $origin.style.display = 'none';
   }
 }
-
-/* ---- V8: Cuisine Drawer — populates bottom-sheet / anchored panel ---- */
-function renderCuisineDrawer(data) {
-  const dp = data.deep_context || {};
-  const $drawer = document.getElementById('cuisine-drawer');
-  if (!$drawer) return;
-  console.log('[Cuisine Drawer] Rendering with:', { dishes: dp.signature_dishes?.length || 0, highlights: dp.menu_highlights?.length || 0, flavors: dp.flavor_profiles?.length || 0 });
-
-  // Set cuisine label
-  const $label = document.getElementById('cuisine-drawer-label');
-  if ($label) $label.textContent = data.restaurant?.cuisine_type || 'Cuisine';
-
-  // Signature dishes
-  const $dishesSection = document.getElementById('cuisine-drawer-dishes');
-  const $dishes = $dishesSection?.querySelector('.cuisine-drawer__dishes');
-  if ($dishes && dp.signature_dishes?.length) {
-    $dishes.innerHTML = dp.signature_dishes.slice(0, 4).map(d =>
-      `<div class="cuisine-drawer__dish">
-        <span class="cuisine-drawer__dish-name type-structural">${d.dish}</span>
-        <span class="cuisine-drawer__dish-why type-data--sm">${d.why || ''}</span>
-      </div>`
-    ).join('');
-    $dishesSection.style.display = '';
-  } else if ($dishesSection) {
-    $dishesSection.style.display = 'none';
-  }
-
-  // Menu highlights
-  const $highlightsSection = document.getElementById('cuisine-drawer-highlights');
-  const $pills = $highlightsSection?.querySelector('.cuisine-drawer__pills');
-  if ($pills && dp.menu_highlights?.length) {
-    $pills.innerHTML = dp.menu_highlights.map(item =>
-      `<span class="cuisine-drawer__pill type-data--sm">${item}</span>`
-    ).join('');
-    $highlightsSection.style.display = '';
-  } else if ($highlightsSection) {
-    $highlightsSection.style.display = 'none';
-  }
-
-  // Flavor profiles
-  const $flavorSection = document.getElementById('cuisine-drawer-flavor');
-  const $flavors = $flavorSection?.querySelector('.cuisine-drawer__flavors');
-  if ($flavors && dp.flavor_profiles?.length) {
-    $flavors.innerHTML = dp.flavor_profiles.map(f =>
-      `<span class="cuisine-drawer__flavor-tag type-data--sm">${f}</span>`
-    ).join('');
-    $flavorSection.style.display = '';
-  } else if ($flavorSection) {
-    $flavorSection.style.display = 'none';
-  }
-
-}
-
-/* ---- V8: Close Cuisine Drawer ---- */
-function closeCuisineDrawer() {
-  const $drawer = document.getElementById('cuisine-drawer');
-  const $backdrop = document.getElementById('cuisine-drawer-backdrop');
-  if ($drawer) {
-    $drawer.classList.remove('cuisine-drawer--open');
-    $drawer.setAttribute('aria-hidden', 'true');
-  }
-  if ($backdrop) {
-    $backdrop.classList.remove('cuisine-drawer__backdrop--visible');
-    setTimeout(() => { $backdrop.style.display = 'none'; }, 300);
-  }
-}
-
-// V8: Cuisine drawer backdrop click-to-close
-document.addEventListener('click', (e) => {
-  if (e.target?.id === 'cuisine-drawer-backdrop') closeCuisineDrawer();
-});
 
 /* ---- Culture-Aware Toast Strings ---- */
 function toasts() {
