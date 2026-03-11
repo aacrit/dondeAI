@@ -609,6 +609,9 @@ async function loadIssues() {
       }
     }
 
+    // Load trend data: compare with previous run's issues
+    await loadIssueTrends(issues, latestRunId);
+
     state.issues = issues;
     state.issueFilters = { severity: 'all', type: 'all', source: 'all', status: 'open' };
     state.selectedIssues = new Set();
@@ -620,5 +623,71 @@ async function loadIssues() {
     console.error('Failed to load issues:', e);
     const list = document.getElementById('issues-list');
     if (list) list.innerHTML = '<div class="cc-empty-state"><div class="cc-empty-state__icon">&#9888;</div><div class="cc-empty-state__text">Failed to load issues</div></div>';
+  }
+}
+
+/**
+ * Load trend data: compare current issues with previous run to compute deltas.
+ * Also populates state.issueTrends for executive summary trend arrows.
+ */
+async function loadIssueTrends(issues, currentRunId) {
+  if (!sbClient || !currentRunId) return;
+
+  try {
+    // Find the previous run
+    const { data: prevRuns } = await sbClient.from('gauntlet_runs')
+      .select('run_id')
+      .order('created_at', { ascending: false })
+      .limit(2);
+
+    if (!prevRuns || prevRuns.length < 2) {
+      // Mark all issues as new (no previous run to compare)
+      for (const issue of issues) issue.isNew = true;
+      state.issueTrends = {};
+      return;
+    }
+
+    const prevRunId = prevRuns[1].run_id;
+
+    // Fetch previous run's gap results
+    const { data: prevGaps } = await sbClient.from('gauntlet_results')
+      .select('query, donde_match, gap_type, gap_severity')
+      .eq('run_id', prevRunId)
+      .not('gap_type', 'is', null);
+
+    // Build lookup by query
+    const prevMap = new Map();
+    if (prevGaps) {
+      for (const g of prevGaps) {
+        prevMap.set(g.query.toLowerCase().trim(), g);
+      }
+    }
+
+    // Compute per-issue trend deltas
+    let prevP0 = 0, prevP1 = 0;
+    if (prevGaps) {
+      for (const g of prevGaps) {
+        const sev = g.gap_severity || classifySeverity(g.donde_match, g.gap_type);
+        if (sev === 'P0') prevP0++;
+        else if (sev === 'P1') prevP1++;
+      }
+    }
+
+    for (const issue of issues) {
+      const key = issue.query.toLowerCase().trim();
+      const prev = prevMap.get(key);
+      if (prev) {
+        issue.trendDelta = issue.dm - prev.donde_match;
+        issue.isNew = false;
+      } else {
+        issue.isNew = true;
+        issue.trendDelta = null;
+      }
+    }
+
+    state.issueTrends = { prevP0, prevP1 };
+  } catch (e) {
+    console.warn('Failed to load issue trends:', e);
+    state.issueTrends = {};
   }
 }

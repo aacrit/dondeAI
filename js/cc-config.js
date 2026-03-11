@@ -235,6 +235,15 @@ function ragColor(dm) {
 function pct(n, d) { return d === 0 ? '0' : (n / d * 100).toFixed(1); }
 function r1(n) { return Math.round(n * 10) / 10; }
 
+/** Compute average letter grade from an array of grade strings */
+function computeAvgGrade(grades) {
+  const gradeValues = { 'A+': 97, 'A': 93, 'A-': 90, 'B+': 87, 'B': 83, 'B-': 80, 'C+': 77, 'C': 73, 'C-': 70, 'D': 60, 'F': 40 };
+  if (!grades || grades.length === 0) return '--';
+  const total = grades.reduce((s, g) => s + (gradeValues[g] || 50), 0);
+  const avg = total / grades.length;
+  return scoreToGrade(avg);
+}
+
 function escapeHtml(s) {
   const d = document.createElement('div');
   d.textContent = s;

@@ -31,8 +31,12 @@ async function callAPI(specialRequest, params = {}, signal) {
 // Terminal Logging
 // ═══════════════════════════════════════════════════════════════════
 
+let _unreadLogs = 0;
+
 function openTerminal() {
   state.terminalOpen = true;
+  _unreadLogs = 0;
+  updateTerminalBadge();
   const el = document.getElementById('cc-terminal');
   const bd = document.getElementById('terminal-backdrop');
   if (el) el.classList.add('cc-terminal--open');
@@ -47,6 +51,21 @@ function closeTerminal() {
   if (bd) bd.classList.remove('cc-terminal__backdrop--visible');
 }
 
+function toggleTerminal() {
+  state.terminalOpen ? closeTerminal() : openTerminal();
+}
+
+function updateTerminalBadge() {
+  const badge = document.getElementById('terminal-badge');
+  if (!badge) return;
+  if (_unreadLogs > 0 && !state.terminalOpen) {
+    badge.textContent = _unreadLogs > 99 ? '99+' : _unreadLogs;
+    badge.style.display = '';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
 function clearTerminal() {
   const body = document.getElementById('terminal-output');
   if (body) body.innerHTML = '';
@@ -55,6 +74,12 @@ function clearTerminal() {
 function termLog(type, msg) {
   const body = document.getElementById('terminal-output');
   if (!body) return;
+
+  // Track unread logs when terminal is closed
+  if (!state.terminalOpen) {
+    _unreadLogs++;
+    updateTerminalBadge();
+  }
 
   // Remove cursor from previous line
   const prev = body.querySelector('.cc-term-cursor');
@@ -101,6 +126,128 @@ function updateTicker(progress, total, avgDm, gaps) {
   setVal('ticker-progress', `${progress}/${total}`);
   setVal('ticker-dm', avgDm > 0 ? Math.round(avgDm) : '--');
   setVal('ticker-gaps', gaps);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Quality Grading System
+// Grades DM score accuracy and blurb quality independently
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * Grade a recommendation's score accuracy (is the DM score justified?).
+ * Returns { grade: 'A+'...'F', score: 0-100, flags: string[] }
+ */
+function gradeScoreAccuracy(resp) {
+  const dm = resp.donde_match || 0;
+  const s = resp.scoring_v9 || {};
+  const factors = [s.food, s.vibe, s.service, s.reputation, s.convenience].filter(v => v != null);
+  const flags = [];
+  let score = 100;
+
+  // Relevance type vs DM consistency
+  const relScore = s.relevance_score || 0;
+  if (dm >= 80 && relScore < 0.6) { score -= 25; flags.push('High DM but low relevance'); }
+  if (dm >= 70 && relScore < 0.4) { score -= 30; flags.push('DM inflated vs relevance gate'); }
+
+  // Factor spread — weak factor masked by high DM
+  if (factors.length >= 3) {
+    const min = Math.min(...factors);
+    const max = Math.max(...factors);
+    if (dm >= 75 && min < 4) { score -= 15; flags.push(`Weak factor (${min.toFixed(1)}) masked`); }
+    if (max - min > 5) { score -= 10; flags.push('High factor variance'); }
+  }
+
+  // Open-ended query with high score is suspect
+  if (s.relevance_type === 'open_ended' && dm >= 80) { score -= 10; flags.push('High DM for open-ended'); }
+
+  // Restaurant data check
+  if (resp.restaurant) {
+    if (!resp.restaurant.google_rating && dm >= 70) { score -= 5; flags.push('No Google rating'); }
+    if (resp.restaurant.google_review_count < 20 && dm >= 80) { score -= 10; flags.push('Few reviews'); }
+  }
+
+  // Heavy intent boost
+  if (resp.intent_boost?.active && resp.intent_boost.boost_points >= 20) {
+    score -= 10; flags.push(`Heavy boost (+${resp.intent_boost.boost_points})`);
+  }
+
+  score = Math.max(0, Math.min(100, score));
+  return { grade: scoreToGrade(score), score, flags };
+}
+
+/**
+ * Grade recommendation blurb quality.
+ * Returns { grade: 'A+'...'F', score: 0-100, flags: string[] }
+ */
+function gradeBlurbQuality(resp) {
+  const blurb = (resp.recommendation || '').trim();
+  const restaurantName = resp.restaurant?.name || '';
+  const flags = [];
+  let score = 100;
+
+  if (!blurb) return { grade: 'F', score: 0, flags: ['No blurb'] };
+
+  const words = blurb.split(/\s+/).length;
+  if (words < 30) { score -= 15; flags.push(`Short (${words}w)`); }
+  if (words > 180) { score -= 10; flags.push(`Long (${words}w)`); }
+
+  // AI slop patterns
+  const slopPatterns = [
+    'elevates the dining', 'culinary journey', 'gastronomic', 'delectable',
+    'flavor explosion', 'taste buds', 'hidden gem', 'foodie paradise',
+    'mouth-watering', 'tantalizing', 'scrumptious', 'lip-smacking',
+    'food coma', 'die for', 'to die for', 'melts in your mouth',
+    'perfectly crafted', 'expertly prepared', 'not your average',
+    'puts a spin', 'raises the bar', 'next level', 'game changer',
+    'doesn\'t disappoint', 'won\'t be disappointed', 'trust me',
+    'look no further', 'you won\'t regret', 'feast for the senses',
+  ];
+  const lower = blurb.toLowerCase();
+  const foundSlop = slopPatterns.filter(p => lower.includes(p));
+  if (foundSlop.length > 0) {
+    score -= foundSlop.length * 8;
+    flags.push(`Slop: ${foundSlop.slice(0, 3).join(', ')}`);
+  }
+
+  // Restaurant name mention
+  if (restaurantName && !blurb.includes(restaurantName)) {
+    score -= 5; flags.push('No restaurant name');
+  }
+
+  // Specificity
+  const hasSpecifics = /\b(dish|menu|plate|signature|special|chef|neighborhood|corner|block|street)\b/i.test(blurb);
+  if (!hasSpecifics) { score -= 10; flags.push('Lacks specificity'); }
+
+  // Generic opener
+  const genericOpeners = ['if you\'re looking for', 'when it comes to', 'for those who', 'whether you\'re'];
+  if (genericOpeners.some(o => lower.startsWith(o))) { score -= 5; flags.push('Generic opener'); }
+
+  // Exclamation overuse
+  const exclCount = (blurb.match(/!/g) || []).length;
+  if (exclCount > 2) { score -= 5; flags.push(`${exclCount} excl. marks`); }
+
+  score = Math.max(0, Math.min(100, score));
+  return { grade: scoreToGrade(score), score, flags };
+}
+
+function scoreToGrade(score) {
+  if (score >= 97) return 'A+';
+  if (score >= 93) return 'A';
+  if (score >= 90) return 'A-';
+  if (score >= 87) return 'B+';
+  if (score >= 83) return 'B';
+  if (score >= 80) return 'B-';
+  if (score >= 77) return 'C+';
+  if (score >= 73) return 'C';
+  if (score >= 70) return 'C-';
+  if (score >= 60) return 'D';
+  return 'F';
+}
+
+function gradeClass(grade) {
+  if (grade.startsWith('A') || grade.startsWith('B')) return 'rag-green';
+  if (grade.startsWith('C')) return 'rag-amber';
+  return 'rag-red';
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -292,10 +439,13 @@ async function runBroadScan() {
       const dm = resp.donde_match || 0;
       const pass = dm >= cfg.threshold;
       const gap = pass ? null : determineGapType(resp, dm);
-      const result = { query: q.query, cat: q.cat, diff: q.diff, dm, pass, gap, restaurant: resp.restaurant?.name };
+      const scoreGrade = gradeScoreAccuracy(resp);
+      const blurbGrade = gradeBlurbQuality(resp);
+      const result = { query: q.query, cat: q.cat, diff: q.diff, dm, pass, gap, restaurant: resp.restaurant?.name,
+        scoreGrade: scoreGrade.grade, blurbGrade: blurbGrade.grade, scoreFlags: scoreGrade.flags, blurbFlags: blurbGrade.flags };
       recordResult(result);
       appendResultRow(result);
-      termLog(pass ? 'success' : 'warn', `${resp.restaurant?.name || '??'} (DM: ${dm})${gap ? ' — gap: ' + gap : ''}`);
+      termLog(pass ? 'success' : 'warn', `${resp.restaurant?.name || '??'} (DM: ${dm}) [S:${scoreGrade.grade} B:${blurbGrade.grade}]${gap ? ' — gap: ' + gap : ''}`);
       // Update ticker
       const t = state.activeTest;
       if (t) {
@@ -342,10 +492,13 @@ async function runCategoryFocus(categories) {
       const dm = resp.donde_match || 0;
       const pass = dm >= cfg.threshold;
       const gap = pass ? null : determineGapType(resp, dm);
-      const result = { query: q.query, cat: q.cat, diff: q.diff, dm, pass, gap, restaurant: resp.restaurant?.name };
+      const scoreGrade = gradeScoreAccuracy(resp);
+      const blurbGrade = gradeBlurbQuality(resp);
+      const result = { query: q.query, cat: q.cat, diff: q.diff, dm, pass, gap, restaurant: resp.restaurant?.name,
+        scoreGrade: scoreGrade.grade, blurbGrade: blurbGrade.grade, scoreFlags: scoreGrade.flags, blurbFlags: blurbGrade.flags };
       recordResult(result);
       appendResultRow(result);
-      termLog(pass ? 'success' : 'warn', `${resp.restaurant?.name || '??'} (DM: ${dm})${gap ? ' — gap: ' + gap : ''}`);
+      termLog(pass ? 'success' : 'warn', `${resp.restaurant?.name || '??'} (DM: ${dm}) [S:${scoreGrade.grade} B:${blurbGrade.grade}]${gap ? ' — gap: ' + gap : ''}`);
       if (state.activeTest) {
         const t = state.activeTest;
         const avg = t.results.reduce((s, r) => s + (r.dm || 0), 0) / t.results.length;
