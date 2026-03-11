@@ -28,6 +28,96 @@ async function callAPI(specialRequest, params = {}, signal) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
+// Terminal Logging
+// ═══════════════════════════════════════════════════════════════════
+
+function openTerminal() {
+  state.terminalOpen = true;
+  const el = document.getElementById('cc-terminal');
+  const bd = document.getElementById('terminal-backdrop');
+  if (el) el.classList.add('cc-terminal--open');
+  if (bd) bd.classList.add('cc-terminal__backdrop--visible');
+}
+
+function closeTerminal() {
+  state.terminalOpen = false;
+  const el = document.getElementById('cc-terminal');
+  const bd = document.getElementById('terminal-backdrop');
+  if (el) el.classList.remove('cc-terminal--open');
+  if (bd) bd.classList.remove('cc-terminal__backdrop--visible');
+}
+
+function clearTerminal() {
+  const body = document.getElementById('terminal-output');
+  if (body) body.innerHTML = '';
+}
+
+function termLog(type, msg) {
+  const body = document.getElementById('terminal-output');
+  if (!body) return;
+
+  // Remove cursor from previous line
+  const prev = body.querySelector('.cc-term-cursor');
+  if (prev) prev.remove();
+
+  const prefix = { action: '→', success: '✓', warn: '⚠', error: '✗', info: '◆', system: '·' };
+  const time = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const line = document.createElement('div');
+  line.className = `cc-term-line cc-term-line--${type}`;
+  line.textContent = `${time}  ${prefix[type] || '·'}  ${msg}`;
+
+  // Add blinking cursor to latest line
+  const cursor = document.createElement('span');
+  cursor.className = 'cc-term-cursor';
+  line.appendChild(cursor);
+
+  body.appendChild(line);
+  body.scrollTop = body.scrollHeight;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Ticker
+// ═══════════════════════════════════════════════════════════════════
+
+function showTicker() {
+  const el = document.getElementById('cc-ticker');
+  if (el) el.classList.add('cc-ticker--visible');
+}
+function hideTicker() {
+  const el = document.getElementById('cc-ticker');
+  if (el) el.classList.remove('cc-ticker--visible');
+}
+function updateTicker(progress, total, avgDm, gaps) {
+  const setVal = (id, val) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (el.textContent !== String(val)) {
+      el.textContent = val;
+      el.classList.remove('cc-ticker__val--pop');
+      void el.offsetWidth; // force reflow
+      el.classList.add('cc-ticker__val--pop');
+    }
+  };
+  setVal('ticker-progress', `${progress}/${total}`);
+  setVal('ticker-dm', avgDm > 0 ? Math.round(avgDm) : '--');
+  setVal('ticker-gaps', gaps);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Dark Pulse
+// ═══════════════════════════════════════════════════════════════════
+
+function triggerDarkPulse() {
+  const el = document.getElementById('dark-pulse');
+  if (!el) return;
+  el.style.display = 'block';
+  el.style.animation = 'none';
+  void el.offsetWidth;
+  el.style.animation = '';
+  setTimeout(() => { el.style.display = 'none'; }, 700);
+}
+
+// ═══════════════════════════════════════════════════════════════════
 // Test Orchestrator
 // ═══════════════════════════════════════════════════════════════════
 
@@ -38,11 +128,24 @@ function startTest(type) {
   }
 
   if (type === 'category') {
-    // Show category picker, don't start yet
     const picker = document.getElementById('cat-picker');
-    if (picker) picker.style.display = 'flex';
+    if (picker) picker.style.display = picker.style.display === 'none' ? 'flex' : 'none';
     return;
   }
+
+  // Save for rerun
+  state.lastTestType = type;
+  state.lastTestConfig = state.testConfig[type] ? { ...state.testConfig[type] } : null;
+
+  // Open terminal + ticker + dark pulse
+  openTerminal();
+  showTicker();
+  triggerDarkPulse();
+  termLog('system', `Starting ${TEST_TYPES[type]?.name || type}...`);
+
+  // Show result search
+  const searchEl = document.getElementById('result-search');
+  if (searchEl) searchEl.style.display = 'flex';
 
   const runners = {
     broad: runBroadScan,
@@ -55,10 +158,21 @@ function startTest(type) {
   if (runners[type]) runners[type]();
 }
 
-function runCategoryTest(category) {
+function runMultiCategoryTest() {
+  const cats = state.selectedCategories;
+  if (!cats.length) { showToast('Select at least one category'); return; }
   const picker = document.getElementById('cat-picker');
   if (picker) picker.style.display = 'none';
-  runCategoryFocus(category);
+
+  state.lastTestType = 'category';
+  state.lastTestConfig = { categories: [...cats] };
+  openTerminal();
+  showTicker();
+  triggerDarkPulse();
+  termLog('system', `Starting Category Focus: ${cats.join(', ')}...`);
+  const searchEl = document.getElementById('result-search');
+  if (searchEl) searchEl.style.display = 'flex';
+  runCategoryFocus(cats);
 }
 
 function stopTest() {
@@ -80,12 +194,25 @@ function finishTest() {
   // Re-enable test cards
   document.querySelectorAll('.cc-test-card').forEach(c => c.classList.remove('cc-test-card--disabled'));
 
+  // Hide ticker
+  hideTicker();
+
   // Show summary in stream
   if (test.results.length > 0) {
     const passed = test.results.filter(r => r.pass).length;
     const avg = test.results.reduce((s, r) => s + (r.dm || 0), 0) / test.results.length;
+    const gaps = test.results.filter(r => r.gap).length;
     const elapsed = ((Date.now() - test.startTime) / 1000).toFixed(0);
-    appendSummaryRow(TEST_TYPES[test.type]?.name || test.type, test.results.length, passed, avg, elapsed);
+    const celebrate = avg >= 85;
+    appendSummaryRow(TEST_TYPES[test.type]?.name || test.type, test.results.length, passed, avg, elapsed, celebrate, test.type);
+
+    // Terminal summary
+    termLog('info', `Complete. ${passed}/${test.results.length} passed · avg DM: ${Math.round(avg)} · ${gaps} gaps · ${elapsed}s`);
+    if (celebrate) termLog('success', 'Excellent run! Average DM above 85.');
+
+    // Remove cursor from terminal
+    const cursor = document.getElementById('terminal-output')?.querySelector('.cc-term-cursor');
+    if (cursor) cursor.remove();
   }
 
   // Persist to Supabase
@@ -140,25 +267,48 @@ function recordResult(result) {
 // ═══════════════════════════════════════════════════════════════════
 
 async function runBroadScan() {
-  const pool = typeof CHICAGO_QUERIES !== 'undefined' ? CHICAGO_QUERIES : [];
-  const queries = shuffle(pool).slice(0, 20);
+  const cfg = state.testConfig?.broad || { count: 20, difficulty: 'all', threshold: 60 };
+  let pool = typeof CHICAGO_QUERIES !== 'undefined' ? [...CHICAGO_QUERIES] : [];
+  // Mix in custom queries
+  if (state.customQueries?.length) {
+    pool = pool.concat(state.customQueries.map(cq => ({ cat: cq.cat, diff: 'custom', query: cq.query })));
+  }
+  if (cfg.difficulty !== 'all') pool = pool.filter(q => q.diff === cfg.difficulty);
+  // Pin pinned queries to front
+  const pinSet = new Set(state.pinnedQueries || []);
+  const pinned = pool.filter(q => pinSet.has(q.query));
+  const rest = shuffle(pool.filter(q => !pinSet.has(q.query)));
+  const queries = [...pinned, ...rest].slice(0, cfg.count);
   const ac = initTest('broad', queries.length);
 
-  for (const q of queries) {
+  termLog('action', `Pool: ${pool.length} queries · running ${queries.length} · threshold: ${cfg.threshold}`);
+
+  for (let i = 0; i < queries.length; i++) {
+    const q = queries[i];
     if (ac.signal.aborted) break;
+    termLog('action', `Testing: "${q.query}"...`);
     try {
       const resp = await callAPI(q.query, {}, ac.signal);
       const dm = resp.donde_match || 0;
-      const pass = dm >= 60;
-      const gap = determineGapType(resp, dm);
+      const pass = dm >= cfg.threshold;
+      const gap = pass ? null : determineGapType(resp, dm);
       const result = { query: q.query, cat: q.cat, diff: q.diff, dm, pass, gap, restaurant: resp.restaurant?.name };
       recordResult(result);
       appendResultRow(result);
+      termLog(pass ? 'success' : 'warn', `${resp.restaurant?.name || '??'} (DM: ${dm})${gap ? ' — gap: ' + gap : ''}`);
+      // Update ticker
+      const t = state.activeTest;
+      if (t) {
+        const avg = t.results.reduce((s, r) => s + (r.dm || 0), 0) / t.results.length;
+        const gaps = t.results.filter(r => r.gap).length;
+        updateTicker(i + 1, queries.length, avg, gaps);
+      }
     } catch (e) {
       if (e.name === 'AbortError') break;
       const errMsg = e.message || String(e);
       recordResult({ query: q.query, cat: q.cat, diff: q.diff, dm: 0, pass: false, gap: 'error: ' + errMsg, error: errMsg });
       appendResultRow({ query: q.query, cat: q.cat, diff: q.diff, dm: 0, pass: false, gap: 'error: ' + errMsg });
+      termLog('error', `Error: ${errMsg.slice(0, 80)}`);
     }
   }
   finishTest();
@@ -168,24 +318,42 @@ async function runBroadScan() {
 // 2. Category Focus
 // ═══════════════════════════════════════════════════════════════════
 
-async function runCategoryFocus(category) {
-  const pool = typeof CHICAGO_QUERIES !== 'undefined' ? CHICAGO_QUERIES : [];
-  const catQueries = pool.filter(q => q.cat === category);
-  const queries = shuffle(catQueries).slice(0, 15);
+async function runCategoryFocus(categories) {
+  const cats = Array.isArray(categories) ? categories : [categories];
+  const cfg = state.testConfig?.category || { count: 15, difficulty: 'all', threshold: 60 };
+  let pool = typeof CHICAGO_QUERIES !== 'undefined' ? [...CHICAGO_QUERIES] : [];
+  // Mix in custom queries matching categories
+  if (state.customQueries?.length) {
+    pool = pool.concat(state.customQueries.filter(cq => cats.includes(cq.cat)).map(cq => ({ cat: cq.cat, diff: 'custom', query: cq.query })));
+  }
+  const catQueries = pool.filter(q => cats.includes(q.cat));
+  if (cfg.difficulty !== 'all') catQueries.filter(q => q.diff === cfg.difficulty || q.diff === 'custom');
+  const queries = shuffle(catQueries).slice(0, cfg.count);
   const ac = initTest('category', queries.length);
 
-  for (const q of queries) {
+  termLog('action', `Categories: ${cats.join(', ')} · ${queries.length} queries · threshold: ${cfg.threshold}`);
+
+  for (let i = 0; i < queries.length; i++) {
+    const q = queries[i];
     if (ac.signal.aborted) break;
+    termLog('action', `Testing: "${q.query}" [${q.cat}]...`);
     try {
       const resp = await callAPI(q.query, {}, ac.signal);
       const dm = resp.donde_match || 0;
-      const pass = dm >= 60;
-      const gap = determineGapType(resp, dm);
+      const pass = dm >= cfg.threshold;
+      const gap = pass ? null : determineGapType(resp, dm);
       const result = { query: q.query, cat: q.cat, diff: q.diff, dm, pass, gap, restaurant: resp.restaurant?.name };
       recordResult(result);
       appendResultRow(result);
+      termLog(pass ? 'success' : 'warn', `${resp.restaurant?.name || '??'} (DM: ${dm})${gap ? ' — gap: ' + gap : ''}`);
+      if (state.activeTest) {
+        const t = state.activeTest;
+        const avg = t.results.reduce((s, r) => s + (r.dm || 0), 0) / t.results.length;
+        updateTicker(i + 1, queries.length, avg, t.results.filter(r => r.gap).length);
+      }
     } catch (e) {
       if (e.name === 'AbortError') break;
+      termLog('error', `Error: ${(e.message || '').slice(0, 80)}`);
       recordResult({ query: q.query, cat: q.cat, dm: 0, pass: false, gap: 'error' });
       appendResultRow({ query: q.query, cat: q.cat, dm: 0, pass: false, gap: 'error' });
     }
@@ -199,9 +367,12 @@ async function runCategoryFocus(category) {
 
 async function runRegressionGuard() {
   const ac = initTest('regression', GOLDEN_QUERIES.length);
+  termLog('action', `Running ${GOLDEN_QUERIES.length} golden queries against baselines...`);
 
-  for (const gq of GOLDEN_QUERIES) {
+  for (let i = 0; i < GOLDEN_QUERIES.length; i++) {
+    const gq = GOLDEN_QUERIES[i];
     if (ac.signal.aborted) break;
+    termLog('action', `Baseline test: "${gq.query}" (min: ${gq.minScore})...`);
     try {
       const resp = await callAPI(gq.query, {}, ac.signal);
       const dm = resp.donde_match || 0;
@@ -215,8 +386,16 @@ async function runRegressionGuard() {
       };
       recordResult(result);
       appendResultRow(result);
+      const deltaStr = delta >= 0 ? `+${delta}` : `${delta}`;
+      termLog(pass ? 'success' : 'warn', `DM: ${dm} (${deltaStr} vs baseline)${pass ? '' : ' — REGRESSION'}`);
+      if (state.activeTest) {
+        const t = state.activeTest;
+        const avg = t.results.reduce((s, r) => s + (r.dm || 0), 0) / t.results.length;
+        updateTicker(i + 1, GOLDEN_QUERIES.length, avg, t.results.filter(r => r.gap).length);
+      }
     } catch (e) {
       if (e.name === 'AbortError') break;
+      termLog('error', `Error: ${(e.message || '').slice(0, 80)}`);
       recordResult({ query: gq.query, cat: gq.cat, dm: 0, pass: false, gap: 'error' });
       appendResultRow({ query: gq.query, cat: gq.cat, dm: 0, pass: false, gap: 'error' });
     }
@@ -230,12 +409,14 @@ async function runRegressionGuard() {
 
 async function runEdgeCases() {
   const ac = initTest('edge', EDGE_PROBES.length);
+  termLog('action', `Probing ${EDGE_PROBES.length} edge cases...`);
 
-  for (const probe of EDGE_PROBES) {
+  for (let i = 0; i < EDGE_PROBES.length; i++) {
+    const probe = EDGE_PROBES[i];
     if (ac.signal.aborted) break;
+    termLog('action', `Probe: ${probe.name}...`);
     try {
       const resp = await callAPI(probe.input, probe.params || {}, ac.signal);
-      // Edge case passes if API returns valid response without crashing
       const valid = resp && (resp.success !== undefined || resp.restaurant || resp.recommendation);
       const hasValidDm = typeof resp.donde_match === 'number';
       const contractOk = valid && (resp.success === false || (hasValidDm && resp.restaurant?.name));
@@ -247,10 +428,12 @@ async function runEdgeCases() {
       };
       recordResult(result);
       appendResultRow(result);
+      termLog(result.pass ? 'success' : 'warn', `${result.pass ? 'Handled gracefully' : 'Contract violation'}${resp.restaurant?.name ? ' → ' + resp.restaurant.name : ''}`);
+      if (state.activeTest) updateTicker(i + 1, EDGE_PROBES.length, 0, state.activeTest.results.filter(r => r.gap).length);
     } catch (e) {
       if (e.name === 'AbortError') break;
-      // Network/timeout errors are also valid edge case responses
       const isExpected = e.message?.includes('timeout') || e.message?.includes('429');
+      termLog(isExpected ? 'success' : 'error', isExpected ? 'Expected error (handled)' : `Unexpected: ${(e.message || '').slice(0, 60)}`);
       recordResult({ query: probe.name, cat: 'Edge', dm: 0, pass: isExpected, gap: isExpected ? null : 'error' });
       appendResultRow({ query: probe.name, cat: 'Edge', dm: 0, pass: isExpected, gap: isExpected ? null : 'error' });
     }

@@ -115,23 +115,28 @@
       <!-- Test Type Cards -->
       <div class="cc-test-grid" id="test-grid">
         <button class="cc-test-card" data-test="broad" onclick="startTest('broad')">
+          <span class="cc-test-card__gear" onclick="event.stopPropagation();toggleConfig('broad')" title="Configure">&#9881;</span>
           <div class="cc-test-card__icon">&#9654;</div>
           <div class="cc-test-card__name">Broad Scan</div>
-          <div class="cc-test-card__desc">20 random queries across all categories</div>
-          <div class="cc-test-card__meta">~$0.20 &middot; ~2 min</div>
+          <div class="cc-test-card__desc" id="broad-desc">20 random queries across all categories</div>
+          <div class="cc-test-card__meta" id="broad-meta">~$0.20 &middot; ~2 min</div>
         </button>
         <button class="cc-test-card" data-test="category" onclick="startTest('category')">
+          <span class="cc-test-card__gear" onclick="event.stopPropagation();toggleConfig('category')" title="Configure">&#9881;</span>
           <div class="cc-test-card__icon">&#9632;</div>
           <div class="cc-test-card__name">Category Focus</div>
-          <div class="cc-test-card__desc">15 queries from one category</div>
-          <div class="cc-test-card__meta">~$0.15 &middot; ~1 min</div>
+          <div class="cc-test-card__desc" id="category-desc">15 queries from selected categories</div>
+          <div class="cc-test-card__meta" id="category-meta">~$0.15 &middot; ~1 min</div>
         </button>
         <button class="cc-test-card" data-test="regression" onclick="startTest('regression')">
+          <span class="cc-test-card__gear" onclick="event.stopPropagation();toggleConfig('regression')" title="Configure">&#9881;</span>
           <div class="cc-test-card__icon">&#9888;</div>
           <div class="cc-test-card__name">Regression Guard</div>
           <div class="cc-test-card__desc">23 golden queries with baseline scores</div>
-          <div class="cc-test-card__meta">~$0.25 &middot; ~3 min</div>
+          <div class="cc-test-card__meta" id="regression-meta">~$0.25 &middot; ~3 min</div>
         </button>
+        <!-- Inline config panel (moves below active card) -->
+        <div class="cc-config-panel" id="config-panel"></div>
       </div>
 
       <!-- More Tests (engineering-focused, collapsed by default) -->
@@ -163,15 +168,41 @@
         </div>
       </details>
 
-      <!-- Category Picker (shown when Category Focus is selected) -->
+      <!-- Category Picker (multi-select with presets) -->
       <div class="cc-cat-picker" id="cat-picker" style="display:none">
-        <span class="cc-cat-picker__label">Pick category:</span>
-        <button class="cc-cat-pill" onclick="runCategoryTest('Food')">Food</button>
-        <button class="cc-cat-pill" onclick="runCategoryTest('Vibe')">Vibe</button>
-        <button class="cc-cat-pill" onclick="runCategoryTest('Service')">Service</button>
-        <button class="cc-cat-pill" onclick="runCategoryTest('Rep')">Rep</button>
-        <button class="cc-cat-pill" onclick="runCategoryTest('Conv')">Conv</button>
+        <div class="cc-cat-picker__presets">
+          <button class="cc-cat-preset" onclick="setCatPreset('food-vibe')">Cuisine + Vibe</button>
+          <button class="cc-cat-preset" onclick="setCatPreset('full')">Full Spectrum</button>
+          <button class="cc-cat-preset" onclick="setCatPreset('weakest')">Weakest</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          <span class="cc-cat-picker__label">Categories:</span>
+          <button class="cc-cat-pill" data-cat="Food" onclick="toggleCatPill(this)">Food</button>
+          <button class="cc-cat-pill" data-cat="Vibe" onclick="toggleCatPill(this)">Vibe</button>
+          <button class="cc-cat-pill" data-cat="Service" onclick="toggleCatPill(this)">Service</button>
+          <button class="cc-cat-pill" data-cat="Rep" onclick="toggleCatPill(this)">Rep</button>
+          <button class="cc-cat-pill" data-cat="Conv" onclick="toggleCatPill(this)">Conv</button>
+          <span class="cc-cat-picker__count" id="cat-count"></span>
+          <button class="cc-cat-picker__run" id="cat-run-btn" onclick="runMultiCategoryTest()">Run</button>
+        </div>
       </div>
+
+      <!-- Custom Queries -->
+      <details class="cc-custom-queries" id="custom-queries-section">
+        <summary>Your Test Queries <span id="custom-query-count"></span></summary>
+        <div class="cc-custom-queries__form">
+          <input class="cc-custom-queries__input" id="custom-query-input" placeholder="e.g. best tacos near Wicker Park" maxlength="200">
+          <select class="cc-custom-queries__select" id="custom-query-cat">
+            <option value="Food">Food</option>
+            <option value="Vibe">Vibe</option>
+            <option value="Service">Service</option>
+            <option value="Rep">Rep</option>
+            <option value="Conv">Conv</option>
+          </select>
+          <button class="cc-custom-queries__add" onclick="addCustomQuery()">Add</button>
+        </div>
+        <div class="cc-custom-queries__list" id="custom-query-list"></div>
+      </details>
 
       <!-- Active Test Progress -->
       <div class="cc-test-progress" id="test-progress" style="display:none">
@@ -183,6 +214,12 @@
         <div class="cc-test-progress__bar">
           <div class="cc-test-progress__fill" id="test-progress-fill"></div>
         </div>
+      </div>
+
+      <!-- Result Search -->
+      <div class="cc-result-search" id="result-search" style="display:none">
+        <input class="cc-result-search__input" id="result-search-input" placeholder="Filter results..." oninput="filterResults(this.value)">
+        <span class="cc-result-search__count" id="result-search-count"></span>
       </div>
 
       <!-- Live Result Stream -->
@@ -471,6 +508,29 @@
 
   </main>
 
+  <!-- ═══ Terminal Panel ═══ -->
+  <div class="cc-terminal__backdrop" id="terminal-backdrop" onclick="closeTerminal()"></div>
+  <div class="cc-terminal" id="cc-terminal">
+    <div class="cc-terminal__header">
+      <span class="cc-terminal__dot"></span>
+      <span class="cc-terminal__title">Engine Activity</span>
+      <button class="cc-terminal__clear" onclick="clearTerminal()">Clear</button>
+      <button class="cc-terminal__close" onclick="closeTerminal()">&times;</button>
+    </div>
+    <div class="cc-terminal__body" id="terminal-output"></div>
+  </div>
+
+  <!-- ═══ Live Score Ticker ═══ -->
+  <div class="cc-ticker" id="cc-ticker">
+    <span class="cc-ticker__dot"></span>
+    <span class="cc-ticker__stat"><span class="cc-ticker__val" id="ticker-progress">0/0</span></span>
+    <span class="cc-ticker__stat">DM: <span class="cc-ticker__val" id="ticker-dm">--</span></span>
+    <span class="cc-ticker__stat">Gaps: <span class="cc-ticker__val" id="ticker-gaps">0</span></span>
+  </div>
+
+  <!-- ═══ Dark Pulse Flash ═══ -->
+  <div class="cc-pulse-flash" id="dark-pulse" style="display:none"></div>
+
   <!-- ═══ Deep Dive Overlay (Tier 3 Progressive Disclosure) ═══ -->
   <div class="cc-overlay" id="deep-dive-overlay" style="display:none">
     <div class="cc-overlay__backdrop" onclick="closeDeepDive()"></div>
@@ -501,6 +561,7 @@
         <div class="cc-shortcut"><kbd>c</kbd><span>Compare runs</span></div>
         <div class="cc-shortcut"><kbd>j / k</kbd><span>Navigate runs</span></div>
         <div class="cc-shortcut"><kbd>Enter</kbd><span>Select run</span></div>
+        <div class="cc-shortcut"><kbd>s</kbd><span>Start / Stop broad</span></div>
         <div class="cc-shortcut"><kbd>Esc</kbd><span>Close overlay</span></div>
         <div class="cc-shortcut"><kbd>?</kbd><span>This help</span></div>
       </div>

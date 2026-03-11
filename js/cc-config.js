@@ -152,10 +152,23 @@ let state = {
   perfBaseline: { p50: 0, p90: 0, p99: 0 },
   // Keyboard nav
   focusedRunIdx: -1,        // j/k navigation index in run history
+  // v3: Configurable tests
+  testConfig: {
+    broad:      { count: 20, difficulty: 'all', threshold: 60 },
+    category:   { count: 15, difficulty: 'all', threshold: 60 },
+    regression: { count: 23, difficulty: 'all', threshold: 60 },
+  },
+  configOpen: null,           // which test type has config open
+  selectedCategories: [],     // multi-select for category focus
+  customQueries: [],          // CEO's custom test queries [{query,cat,id}]
+  pinnedQueries: [],          // pinned/favorited query strings
+  terminalOpen: false,
+  lastTestType: null,         // for quick rerun
+  lastTestConfig: null,       // for quick rerun
 };
 
 // Session persistence keys
-const SESSION_KEYS = ['activeTab', 'liveFilter', 'liveFilters', 'pulseMode', 'blurbMode', 'autoRefresh', 'autoRefreshSecs'];
+const SESSION_KEYS = ['activeTab', 'liveFilter', 'liveFilters', 'pulseMode', 'blurbMode', 'autoRefresh', 'autoRefreshSecs', 'testConfig'];
 
 function saveSession() {
   try {
@@ -188,6 +201,20 @@ function setLiveAdvFilter(key, value) {
 
 // Supabase client (set by cc-analytics.js after auth)
 let sbClient = null;
+
+// v3: Custom query persistence
+function loadCustomQueries() {
+  try { state.customQueries = JSON.parse(localStorage.getItem('cc-custom-queries') || '[]'); } catch (_) { state.customQueries = []; }
+}
+function saveCustomQueries() {
+  try { localStorage.setItem('cc-custom-queries', JSON.stringify(state.customQueries)); } catch (_) {}
+}
+function loadPinnedQueries() {
+  try { state.pinnedQueries = JSON.parse(localStorage.getItem('cc-pinned-queries') || '[]'); } catch (_) { state.pinnedQueries = []; }
+}
+function savePinnedQueries() {
+  try { localStorage.setItem('cc-pinned-queries', JSON.stringify(state.pinnedQueries)); } catch (_) {}
+}
 
 // ═══════════════════════════════════════════════════════════════════
 // Helpers
