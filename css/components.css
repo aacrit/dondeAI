@@ -5140,32 +5140,26 @@
 }
 
 /* ---- F11: Feedback Buttons ---- */
-.feedback-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  justify-content: center;
-  padding: var(--space-xs) 0;
-}
-
 .feedback-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   min-width: 44px;
   min-height: 44px;
   border-radius: 50%;
   border: 1px solid var(--border);
   background: var(--bg2);
-  color: var(--fg2);
+  color: var(--fg3);
   cursor: pointer;
+  flex-shrink: 0;
   transition: all var(--dur-fast) var(--ease-out);
 }
 
 .feedback-btn:hover {
   background: var(--bg3);
+  color: var(--fg2);
   transform: scale(1.1);
 }
 
@@ -5283,60 +5277,110 @@
   pointer-events: none;
 }
 
-/* ---- V10: Card Footer Primary Row (Going + Try Another side by side) ---- */
-.card-footer__primary-row {
-  display: flex;
-  gap: var(--space-sm);
-  width: 100%;
-  max-width: 400px;
-}
-.card-footer__primary-row .going-btn {
-  flex: 1;
-  min-width: 0;
-  font-size: var(--text-sm);
-}
-.card-footer__primary-row .cta-btn {
-  flex: 1;
-  min-width: 0;
-  font-size: var(--text-sm);
-  padding: var(--space-sm) var(--space-md);
-}
-
-/* ---- V10: Card Footer Secondary Row (Feedback + Start Over) ---- */
-.card-footer__secondary-row {
+/* ---- Card Footer Action Row: [Dislike] [Like] [Going] [Bookmark] ---- */
+.card-footer__action-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: var(--space-xs);
   width: 100%;
   max-width: 400px;
-  padding-top: var(--space-xs);
-  border-top: 1px solid color-mix(in srgb, var(--border) 40%, transparent);
 }
-.card-footer__secondary-row .cta-btn {
-  font-size: var(--text-xs);
-  padding: var(--space-2xs) var(--space-sm);
+.card-footer__action-row .going-btn {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-sm);
 }
 
-/* ---- Neutral outline pill (Start Over) ---- */
-.cta-btn--neutral {
-  background: transparent;
-  color: var(--fg3);
-  border: 2px solid color-mix(in srgb, var(--border) 80%, transparent);
+/* ---- Card Footer Nav Row: Try Another | Start Over (split button) ---- */
+.card-footer__nav-row {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  max-width: 400px;
+  border: 1.5px solid var(--border);
   border-radius: var(--radius-pill);
-  font-family: var(--font-structural);
-  font-weight: 600;
+  overflow: hidden;
+  background: var(--bg2);
+}
+
+.nav-row__divider {
+  width: 1.5px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
+/* Try Another — primary half */
+.try-again-btn {
+  flex: 2;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  background: transparent;
+  color: var(--ac);
+  border: none;
+  font-family: var(--font-structural);
+  font-weight: 700;
+  font-size: var(--text-sm);
   cursor: pointer;
   transition: all var(--dur-fast) var(--ease-out);
 }
-.cta-btn--neutral:hover { color: var(--fg2); border-color: var(--fg3); }
-.cta-btn--neutral:active { transform: scale(0.97); }
-.cta-btn--neutral:focus-visible { outline: 2px solid var(--fg3); outline-offset: 2px; }
+.try-again-btn:hover {
+  background: var(--ac);
+  color: var(--bg);
+}
+.try-again-btn:active { transform: scale(0.97); }
+.try-again-btn:focus-visible {
+  outline: 2px solid var(--ac);
+  outline-offset: -2px;
+}
+.try-again-btn--loading {
+  opacity: 0.5;
+  cursor: wait;
+  pointer-events: none;
+}
+.try-again-btn--exhausted {
+  opacity: 0.4;
+  pointer-events: none;
+}
+.try-again-btn__icon {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
 
-/* V10: card-footer__feedback removed — feedback icons now in secondary row */
+/* Start Over — secondary half */
+.start-over-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2xs);
+  padding: var(--space-sm) var(--space-sm);
+  background: transparent;
+  color: var(--fg3);
+  border: none;
+  font-family: var(--font-structural);
+  font-weight: 500;
+  font-size: var(--text-xs);
+  cursor: pointer;
+  transition: all var(--dur-fast) var(--ease-out);
+}
+.start-over-btn:hover {
+  color: var(--fg2);
+  background: var(--bg3);
+}
+.start-over-btn:active { transform: scale(0.97); }
+.start-over-btn:focus-visible {
+  outline: 2px solid var(--fg3);
+  outline-offset: -2px;
+}
+.start-over-btn__icon {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
 
 /* ---- Visited Spots (landing page) ---- */
 .visited-spots {

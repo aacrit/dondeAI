@@ -1001,7 +1001,7 @@ function wireEvents() {
         if (_swapInFlight) break;
         // Visual loading state on button during swap
         const $tryBtn = btn.closest('[data-action="try-again"]') || btn;
-        $tryBtn.classList.add('cta-btn--loading');
+        $tryBtn.classList.add('try-again-btn--loading');
 
         // Track current restaurant ID so backend can exclude it
         const prevId = getState().result?.restaurant?.id;
@@ -1039,7 +1039,7 @@ function wireEvents() {
                 if ($matchScore) animateScoreCountUp($matchScore, dondeScore);
                 $resultCard.classList.remove('result-card--swapping-in');
                 _swapInFlight = false;
-                document.querySelector('.cta-btn--loading')?.classList.remove('cta-btn--loading');
+                document.querySelector('.try-again-btn--loading')?.classList.remove('try-again-btn--loading');
                 // Tiered celebration (70+)
                 if (dondeScore >= 70) {
                   animationTimers.push(setTimeout(() => {
@@ -1058,7 +1058,7 @@ function wireEvents() {
             if (dondeScore >= 70) {
               setTimeout(() => { _fireTieredCelebration(dondeScore); }, 1400);
             }
-            document.querySelector('.cta-btn--loading')?.classList.remove('cta-btn--loading');
+            document.querySelector('.try-again-btn--loading')?.classList.remove('try-again-btn--loading');
             announce(`Now showing: ${nextResult.restaurant?.name || 'new recommendation'}`);
           }
           haptic(HAPTICS.reveal);
@@ -2717,13 +2717,13 @@ function renderResult(data) {
   // V9: Floating Action Bar — populate and wire
   renderFloatingBar(data);
 
-  // Inject icons into glance action buttons
+  // Inject icons into footer action buttons
   const $tryAgainIcon = document.getElementById('try-again-icon');
-  if ($tryAgainIcon) $tryAgainIcon.innerHTML = svgIcon('refresh', 18);
+  if ($tryAgainIcon) $tryAgainIcon.innerHTML = svgIcon('refresh', 16);
   const $glanceStartOverIcon = document.getElementById('glance-start-over-icon');
-  if ($glanceStartOverIcon) $glanceStartOverIcon.innerHTML = svgIcon('home', 18);
+  if ($glanceStartOverIcon) $glanceStartOverIcon.innerHTML = svgIcon('home', 16);
   const $startOverIcon = document.getElementById('start-over-icon');
-  if ($startOverIcon) $startOverIcon.innerHTML = svgIcon('home', 20);
+  if ($startOverIcon) $startOverIcon.innerHTML = svgIcon('home', 14);
 
   // Update Try Another button with exhaustion indicator
   updateTryAgainState();
@@ -4374,25 +4374,27 @@ function toasts() {
   return getLabels(getState().theme.culture).toasts;
 }
 
-/* ---- Try Another Exhaustion Indicator ---- */
+/* ---- Try Another Countdown (5 total picks: initial + 4 tries) ---- */
 function updateTryAgainState() {
   const $btn = document.querySelector('[data-action="try-again"]');
   if (!$btn) return;
-  const MAX_EXCLUDES = 15;
-  const count = getState().excludeIds.length;
-  const remaining = MAX_EXCLUDES - count;
-  const $text = $btn.querySelector('.cta-btn__text');
+  const TOTAL_PICKS = 5; // initial result + 4 try-agains
+  const triesUsed = getState().excludeIds.length; // each try-again adds one exclude
+  const triesLeft = Math.max(0, TOTAL_PICKS - 1 - triesUsed); // -1 for the initial result
+  const $text = $btn.querySelector('.try-again-btn__text');
   if (!$text) return;
   const labels = getLabels(getState().theme.culture);
-  if (remaining <= 0) {
-    $text.textContent = 'Start Over';
-    $btn.classList.add('cta-btn--exhausted');
-  } else if (remaining <= 5) {
-    $text.textContent = `${labels.again} (${remaining} left)`;
-    $btn.classList.remove('cta-btn--exhausted');
-  } else {
+  if (triesLeft <= 0) {
     $text.textContent = labels.again;
-    $btn.classList.remove('cta-btn--exhausted');
+    $btn.classList.add('try-again-btn--exhausted');
+  } else if (triesUsed > 0) {
+    // After first try, show remaining count
+    $text.textContent = `${labels.again} (${triesLeft})`;
+    $btn.classList.remove('try-again-btn--exhausted');
+  } else {
+    // Initial state — no count shown yet
+    $text.textContent = labels.again;
+    $btn.classList.remove('try-again-btn--exhausted');
   }
 }
 
