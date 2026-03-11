@@ -271,10 +271,17 @@ function renderSparklineInverted(values) {
 
 function updatePulseFromRun(run) {
   if (!run) return;
-  const passRate = run.total > 0 ? (run.passed_60 / run.total * 100) : 0;
-  updatePulseHealth(passRate, `from ${run.mode || 'test'} run ${timeAgo(run.created_at)}`);
+  // Use grade-based pass rate if available, fallback to DM >= 60
+  const passRate = run.grade_pass_count != null && run.total > 0
+    ? (run.grade_pass_count / run.total * 100)
+    : (run.total > 0 ? (run.passed_60 / run.total * 100) : 0);
+  const passLabel = run.grade_pass_count != null ? 'grade pass' : 'DM≥60';
+  updatePulseHealth(passRate, `${passLabel} · ${run.mode || 'test'} run ${timeAgo(run.created_at)}`);
   updatePulseQuality(run.avg_dm, `${run.total} queries tested`, run.delta_avg_dm);
   updatePulseAttention(run.gap_count, run.gap_count > 5 ? 'action needed' : 'manageable');
+
+  // Update grade KPI strip
+  updateGradeKpis(run);
 
   // Update freshness to this run's time
   const ago = timeAgo(run.created_at);
@@ -311,10 +318,13 @@ function selectRun(runId) {
   const run = (state.runHistory || []).find(r => r.run_id === runId);
   if (!run) return;
 
+  const filterBar = document.getElementById('run-filter-bar');
+
   // Toggle selection
   if (state.selectedRunId === runId) {
     state.selectedRunId = null;
     document.querySelectorAll('.cc-run-row--selected').forEach(r => r.classList.remove('cc-run-row--selected'));
+    if (filterBar) filterBar.style.display = 'none';
     // Restore to latest run
     if (state.latestRun) updatePulseFromRun(state.latestRun);
     return;
@@ -326,6 +336,13 @@ function selectRun(runId) {
   document.querySelectorAll('.cc-run-row--selected').forEach(r => r.classList.remove('cc-run-row--selected'));
   const row = document.querySelector(`.cc-run-row[data-run-id="${runId}"]`);
   if (row) row.classList.add('cc-run-row--selected');
+
+  // Show filter bar
+  if (filterBar) {
+    const date = new Date(run.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    filterBar.innerHTML = `<span>Viewing: <strong>${run.mode || 'test'}</strong> run from ${date}</span><button class="cc-btn cc-btn--sm" onclick="selectRun('${escapeHtml(runId)}')">Clear</button>`;
+    filterBar.style.display = 'flex';
+  }
 
   // Update pulse cards from this run
   updatePulseFromRun(run);
@@ -381,6 +398,45 @@ function updatePulseAttention(count, sub) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
+// Grade KPI Strip
+// ═══════════════════════════════════════════════════════════════════
+
+function updateGradeKpis(run) {
+  const strip = document.getElementById('grade-kpi-strip');
+  if (!strip) return;
+
+  const fitEl = document.getElementById('kpi-score-fit');
+  const blurbEl = document.getElementById('kpi-blurb-quality');
+  const gradePassEl = document.getElementById('kpi-grade-pass');
+
+  if (run.avg_score_fit != null) {
+    const fitGrade = typeof letterGrade === 'function' ? letterGrade(run.avg_score_fit) : '--';
+    const fitColor = typeof gradeColor === 'function' ? gradeColor(fitGrade) : '';
+    if (fitEl) fitEl.innerHTML = `<span class="cc-grade cc-grade--${fitColor}">${fitGrade}</span> <span class="cc-kpi__num">${Math.round(run.avg_score_fit)}</span>`;
+  } else if (fitEl) {
+    fitEl.textContent = '--';
+  }
+
+  if (run.avg_blurb_quality != null) {
+    const blurbGrade = typeof letterGrade === 'function' ? letterGrade(run.avg_blurb_quality) : '--';
+    const blurbColor = typeof gradeColor === 'function' ? gradeColor(blurbGrade) : '';
+    if (blurbEl) blurbEl.innerHTML = `<span class="cc-grade cc-grade--${blurbColor}">${blurbGrade}</span> <span class="cc-kpi__num">${Math.round(run.avg_blurb_quality)}</span>`;
+  } else if (blurbEl) {
+    blurbEl.textContent = '--';
+  }
+
+  if (run.grade_pass_count != null && run.total > 0) {
+    const rate = Math.round(run.grade_pass_count / run.total * 100);
+    const rateClass = rate >= 80 ? 'rag-green' : rate >= 60 ? 'rag-amber' : 'rag-red';
+    if (gradePassEl) gradePassEl.innerHTML = `<span class="${rateClass}">${rate}%</span> <span class="cc-kpi__sub">(${run.grade_pass_count}/${run.total})</span>`;
+  } else if (gradePassEl) {
+    gradePassEl.textContent = '--';
+  }
+
+  strip.style.display = '';
+}
+
+// ═══════════════════════════════════════════════════════════════════
 // Test Progress Bar
 // ═══════════════════════════════════════════════════════════════════
 
@@ -414,9 +470,12 @@ function appendResultRow(result) {
   const diff = result.diff ? `<span class="cc-result-row__diff">${escapeHtml(result.diff)}</span>` : '';
 
   const isPinned = (state.pinnedQueries || []).includes(result.query);
+  const fitBadge = result.scoreFitGrade ? `<span class="cc-grade cc-grade--${(typeof gradeColor === 'function' ? gradeColor(result.scoreFitGrade) : 'blue')}" title="Score Fit: ${result.scoreFitScore}">F:${result.scoreFitGrade}</span>` : '';
+  const blurbBadge = result.blurbGrade ? `<span class="cc-grade cc-grade--${(typeof gradeColor === 'function' ? gradeColor(result.blurbGrade) : 'blue')}" title="Blurb Quality: ${result.blurbScore}">B:${result.blurbGrade}</span>` : '';
   row.innerHTML = `
     <span class="cc-result-row__icon">${icon}</span>
     <span class="cc-result-row__dm ${dmClass}">${result.dm || 0}</span>
+    ${fitBadge}${blurbBadge}
     <span class="cc-result-row__query">${query}</span>
     <span class="cc-result-row__meta">${cat}${diff}</span>
     <button class="cc-result-row__pin ${isPinned ? 'cc-result-row__pin--active' : ''}" onclick="event.stopPropagation();togglePin('${escapeHtml(result.query).replace(/'/g, "\\'")}')" title="Pin to favorites">${isPinned ? '&#9733;' : '&#9734;'}</button>
@@ -617,7 +676,7 @@ function renderRunHistory(runs) {
   if (!body) return;
 
   if (!runs || runs.length === 0) {
-    body.innerHTML = '<tr><td colspan="6" class="cc-empty">No test runs yet</td></tr>';
+    body.innerHTML = '<tr><td colspan="8" class="cc-empty">No test runs yet</td></tr>';
     return;
   }
 
@@ -634,10 +693,12 @@ function renderRunHistory(runs) {
         <td>${r.total || r.dataset_size || '--'}</td>
         <td class="${ragClass(r.avg_dm)}">${r1(r.avg_dm)}</td>
         <td>${passRate}%</td>
+        <td>${r.avg_score_fit != null ? `<span class="cc-grade cc-grade--${typeof gradeColor === 'function' ? gradeColor(typeof letterGrade === 'function' ? letterGrade(r.avg_score_fit) : '--') : ''}">${typeof letterGrade === 'function' ? letterGrade(r.avg_score_fit) : r1(r.avg_score_fit)}</span>` : '--'}</td>
+        <td>${r.avg_blurb_quality != null ? `<span class="cc-grade cc-grade--${typeof gradeColor === 'function' ? gradeColor(typeof letterGrade === 'function' ? letterGrade(r.avg_blurb_quality) : '--') : ''}">${typeof letterGrade === 'function' ? letterGrade(r.avg_blurb_quality) : r1(r.avg_blurb_quality)}</span>` : '--'}</td>
         <td class="${deltaClass}">${delta} ${hasGaps ? '<span class="cc-run-row__expand">&#9660;</span>' : ''}</td>
       </tr>
       <tr class="cc-run-detail" id="detail-${escapeHtml(r.run_id)}" style="display:none">
-        <td colspan="6"><div class="cc-run-detail__content">Loading...</div></td>
+        <td colspan="8"><div class="cc-run-detail__content">Loading...</div></td>
       </tr>
     `;
   }).join('');
@@ -672,7 +733,7 @@ async function toggleRunDetail(row) {
   try {
     const { data: results } = await sbClient
       .from('gauntlet_results')
-      .select('query, category, donde_match, score_pass, gap_type, restaurant_name')
+      .select('query, category, donde_match, score_pass, gap_type, restaurant_name, score_fit_score, score_fit_grade, blurb_quality_score, blurb_quality_grade')
       .eq('run_id', runId)
       .order('donde_match', { ascending: true });
 
@@ -689,25 +750,33 @@ async function toggleRunDetail(row) {
     let html = '';
     if (gaps.length > 0) {
       html += `<div class="cc-run-detail__section"><strong>${gaps.length} issue${gaps.length > 1 ? 's' : ''}:</strong></div>`;
-      html += gaps.map(r => `
+      html += gaps.map(r => {
+        const fitB = r.score_fit_grade ? `<span class="cc-grade cc-grade--${typeof gradeColor === 'function' ? gradeColor(r.score_fit_grade) : 'blue'}" title="Fit: ${r.score_fit_score}">F:${r.score_fit_grade}</span>` : '';
+        const blrbB = r.blurb_quality_grade ? `<span class="cc-grade cc-grade--${typeof gradeColor === 'function' ? gradeColor(r.blurb_quality_grade) : 'blue'}" title="Blurb: ${r.blurb_quality_score}">B:${r.blurb_quality_grade}</span>` : '';
+        return `
         <div class="cc-run-detail__row cc-run-detail__row--gap">
           <span class="cc-run-detail__dm ${ragClass(r.donde_match)}">DM ${r.donde_match}</span>
+          ${fitB}${blrbB}
           <span class="cc-run-detail__query">"${escapeHtml(r.query)}"</span>
           <span class="cc-run-detail__gap">${escapeHtml(r.gap_type)}</span>
           ${r.restaurant_name ? `<span class="cc-run-detail__rest">&rarr; ${escapeHtml(r.restaurant_name)}</span>` : ''}
         </div>
-      `).join('');
+      `}).join('');
     }
 
     if (passes.length > 0) {
       html += `<div class="cc-run-detail__section"><strong>${passes.length} passed:</strong></div>`;
-      html += passes.slice(0, 5).map(r => `
+      html += passes.slice(0, 5).map(r => {
+        const fitB = r.score_fit_grade ? `<span class="cc-grade cc-grade--${typeof gradeColor === 'function' ? gradeColor(r.score_fit_grade) : 'blue'}" title="Fit: ${r.score_fit_score}">F:${r.score_fit_grade}</span>` : '';
+        const blrbB = r.blurb_quality_grade ? `<span class="cc-grade cc-grade--${typeof gradeColor === 'function' ? gradeColor(r.blurb_quality_grade) : 'blue'}" title="Blurb: ${r.blurb_quality_score}">B:${r.blurb_quality_grade}</span>` : '';
+        return `
         <div class="cc-run-detail__row">
           <span class="cc-run-detail__dm ${ragClass(r.donde_match)}">DM ${r.donde_match}</span>
+          ${fitB}${blrbB}
           <span class="cc-run-detail__query">"${escapeHtml(r.query)}"</span>
           ${r.restaurant_name ? `<span class="cc-run-detail__rest">&rarr; ${escapeHtml(r.restaurant_name)}</span>` : ''}
         </div>
-      `).join('');
+      `}).join('');
       if (passes.length > 5) html += `<div class="cc-run-detail__more">+ ${passes.length - 5} more passing</div>`;
     }
 

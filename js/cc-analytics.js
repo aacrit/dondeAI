@@ -101,7 +101,7 @@ async function loadTrendData() {
   try {
     const { data: runs } = await sbClient
       .from('gauntlet_runs')
-      .select('run_id, avg_dm, passed_60, gap_count, total, created_at, avg_response_ms, mode')
+      .select('run_id, avg_dm, passed_60, gap_count, total, created_at, avg_response_ms, mode, avg_score_fit, avg_blurb_quality, grade_pass_count')
       .order('created_at', { ascending: false })
       .limit(20);
 
@@ -122,7 +122,7 @@ async function loadInitData() {
     const [runsRes, totalRes, enrichedRes, tagsRes, queriesRes, occasionRes] = await Promise.all([
       // Latest gauntlet run
       sbClient.from('gauntlet_runs')
-        .select('run_id, avg_dm, passed_60, gap_count, total, created_at, mode, delta_avg_dm')
+        .select('run_id, avg_dm, passed_60, gap_count, total, created_at, mode, delta_avg_dm, avg_score_fit, avg_blurb_quality, grade_pass_count, grade_distribution')
         .order('created_at', { ascending: false })
         .limit(1),
       // Total active restaurants
@@ -184,7 +184,7 @@ async function loadRunHistory() {
   try {
     const { data: runs } = await sbClient
       .from('gauntlet_runs')
-      .select('run_id, total, gap_count, avg_dm, passed_60, created_at, mode, dataset_size, delta_avg_dm')
+      .select('run_id, total, gap_count, avg_dm, passed_60, created_at, mode, dataset_size, delta_avg_dm, avg_score_fit, avg_blurb_quality, grade_pass_count, grade_distribution')
       .order('created_at', { ascending: false })
       .limit(10);
 

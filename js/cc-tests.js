@@ -327,12 +327,19 @@ async function runBroadScan() {
     try {
       const resp = await callAPI(q.query, {}, ac.signal);
       const dm = resp.donde_match || 0;
-      const pass = dm >= cfg.threshold;
+      const fitGrade = computeScoreFitGrade(q.query, resp);
+      const blurbGrade = computeBlurbQualityGrade(q.query, resp);
+      const pass = gradePass(dm, fitGrade.score, blurbGrade.score);
       const gap = pass ? null : determineGapType(resp, dm);
-      const result = { query: q.query, cat: q.cat, diff: q.diff, dm, pass, gap, restaurant: resp.restaurant?.name };
+      const result = {
+        query: q.query, cat: q.cat, diff: q.diff, dm, pass, gap,
+        restaurant: resp.restaurant?.name,
+        scoreFitScore: fitGrade.score, scoreFitGrade: fitGrade.grade,
+        blurbScore: blurbGrade.score, blurbGrade: blurbGrade.grade,
+      };
       recordResult(result);
       appendResultRow(result);
-      termLog(pass ? 'success' : 'warn', `${resp.restaurant?.name || '??'} (DM: ${dm})${gap ? ' — gap: ' + gap : ''}`);
+      termLog(pass ? 'success' : 'warn', `${resp.restaurant?.name || '??'} (DM: ${dm} | Fit: ${fitGrade.grade} | Blurb: ${blurbGrade.grade})${gap ? ' — gap: ' + gap : ''}`);
       // Update ticker
       const t = state.activeTest;
       if (t) {
@@ -343,7 +350,7 @@ async function runBroadScan() {
     } catch (e) {
       if (e.name === 'AbortError') break;
       const errMsg = e.message || String(e);
-      recordResult({ query: q.query, cat: q.cat, diff: q.diff, dm: 0, pass: false, gap: 'error: ' + errMsg, error: errMsg });
+      recordResult({ query: q.query, cat: q.cat, diff: q.diff, dm: 0, pass: false, gap: 'error: ' + errMsg, error: errMsg, scoreFitScore: 0, scoreFitGrade: 'F', blurbScore: 0, blurbGrade: 'F' });
       appendResultRow({ query: q.query, cat: q.cat, diff: q.diff, dm: 0, pass: false, gap: 'error: ' + errMsg });
       termLog('error', `Error: ${errMsg.slice(0, 80)}`);
     }
@@ -381,12 +388,19 @@ async function runCategoryFocus(categories) {
     try {
       const resp = await callAPI(q.query, {}, ac.signal);
       const dm = resp.donde_match || 0;
-      const pass = dm >= cfg.threshold;
+      const fitGrade = computeScoreFitGrade(q.query, resp);
+      const blurbGrade = computeBlurbQualityGrade(q.query, resp);
+      const pass = gradePass(dm, fitGrade.score, blurbGrade.score);
       const gap = pass ? null : determineGapType(resp, dm);
-      const result = { query: q.query, cat: q.cat, diff: q.diff, dm, pass, gap, restaurant: resp.restaurant?.name };
+      const result = {
+        query: q.query, cat: q.cat, diff: q.diff, dm, pass, gap,
+        restaurant: resp.restaurant?.name,
+        scoreFitScore: fitGrade.score, scoreFitGrade: fitGrade.grade,
+        blurbScore: blurbGrade.score, blurbGrade: blurbGrade.grade,
+      };
       recordResult(result);
       appendResultRow(result);
-      termLog(pass ? 'success' : 'warn', `${resp.restaurant?.name || '??'} (DM: ${dm})${gap ? ' — gap: ' + gap : ''}`);
+      termLog(pass ? 'success' : 'warn', `${resp.restaurant?.name || '??'} (DM: ${dm} | Fit: ${fitGrade.grade} | Blurb: ${blurbGrade.grade})${gap ? ' — gap: ' + gap : ''}`);
       if (state.activeTest) {
         const t = state.activeTest;
         const avg = t.results.reduce((s, r) => s + (r.dm || 0), 0) / t.results.length;
@@ -395,7 +409,7 @@ async function runCategoryFocus(categories) {
     } catch (e) {
       if (e.name === 'AbortError') break;
       termLog('error', `Error: ${(e.message || '').slice(0, 80)}`);
-      recordResult({ query: q.query, cat: q.cat, dm: 0, pass: false, gap: 'error' });
+      recordResult({ query: q.query, cat: q.cat, dm: 0, pass: false, gap: 'error', scoreFitScore: 0, scoreFitGrade: 'F', blurbScore: 0, blurbGrade: 'F' });
       appendResultRow({ query: q.query, cat: q.cat, dm: 0, pass: false, gap: 'error' });
     }
   }
@@ -417,18 +431,22 @@ async function runRegressionGuard() {
     try {
       const resp = await callAPI(gq.query, {}, ac.signal);
       const dm = resp.donde_match || 0;
-      const pass = dm >= gq.minScore;
+      const fitGrade = computeScoreFitGrade(gq.query, resp);
+      const blurbGrade = computeBlurbQualityGrade(gq.query, resp);
+      const pass = dm >= gq.minScore && gradePass(dm, fitGrade.score, blurbGrade.score);
       const delta = dm - gq.minScore;
       const result = {
         query: gq.query, cat: gq.cat, dm, pass,
         gap: pass ? null : 'regression',
         baseline: gq.minScore, delta,
         restaurant: resp.restaurant?.name,
+        scoreFitScore: fitGrade.score, scoreFitGrade: fitGrade.grade,
+        blurbScore: blurbGrade.score, blurbGrade: blurbGrade.grade,
       };
       recordResult(result);
       appendResultRow(result);
       const deltaStr = delta >= 0 ? `+${delta}` : `${delta}`;
-      termLog(pass ? 'success' : 'warn', `DM: ${dm} (${deltaStr} vs baseline)${pass ? '' : ' — REGRESSION'}`);
+      termLog(pass ? 'success' : 'warn', `DM: ${dm} (${deltaStr} vs baseline) | Fit: ${fitGrade.grade} | Blurb: ${blurbGrade.grade}${pass ? '' : ' — REGRESSION'}`);
       if (state.activeTest) {
         const t = state.activeTest;
         const avg = t.results.reduce((s, r) => s + (r.dm || 0), 0) / t.results.length;
@@ -437,7 +455,7 @@ async function runRegressionGuard() {
     } catch (e) {
       if (e.name === 'AbortError') break;
       termLog('error', `Error: ${(e.message || '').slice(0, 80)}`);
-      recordResult({ query: gq.query, cat: gq.cat, dm: 0, pass: false, gap: 'error' });
+      recordResult({ query: gq.query, cat: gq.cat, dm: 0, pass: false, gap: 'error', scoreFitScore: 0, scoreFitGrade: 'F', blurbScore: 0, blurbGrade: 'F' });
       appendResultRow({ query: gq.query, cat: gq.cat, dm: 0, pass: false, gap: 'error' });
     }
   }
@@ -649,6 +667,13 @@ async function persistResults(test) {
     const avgDm = test.results.reduce((s, r) => s + (r.dm || 0), 0) / test.results.length;
     const gapCount = test.results.filter(r => r.gap).length;
     const runId = `cc-${test.type}-${Date.now()}`;
+
+    // Grade aggregates
+    const gradedResults = test.results.filter(r => r.scoreFitScore != null);
+    const avgScoreFit = gradedResults.length > 0 ? Math.round(gradedResults.reduce((s, r) => s + r.scoreFitScore, 0) / gradedResults.length * 10) / 10 : null;
+    const avgBlurbQuality = gradedResults.length > 0 ? Math.round(gradedResults.reduce((s, r) => s + (r.blurbScore || 0), 0) / gradedResults.length * 10) / 10 : null;
+    const gradePassCount = test.results.filter(r => gradePass(r.dm, r.scoreFitScore || 0, r.blurbScore || 0)).length;
+    const gradeDist = typeof computeGradeDistribution === 'function' ? computeGradeDistribution(test.results) : null;
     // Generate a dataset hash from queries for dedup/comparison
     const queryStr = test.results.map(r => r.query).sort().join('|');
     const datasetHash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(queryStr))
@@ -685,6 +710,10 @@ async function persistResults(test) {
       delta_avg_dm: deltaAvgDm,
       delta_passed_60: null,
       delta_gap_count: null,
+      avg_score_fit: avgScoreFit,
+      avg_blurb_quality: avgBlurbQuality,
+      grade_pass_count: gradePassCount,
+      grade_distribution: gradeDist,
     });
 
     if (runError) {
@@ -704,6 +733,10 @@ async function persistResults(test) {
       restaurant_name: r.restaurant || null,
       prev_dm: r.prevDm || null,
       delta_dm: r.prevDm != null ? (r.dm || 0) - r.prevDm : null,
+      score_fit_score: r.scoreFitScore ?? null,
+      score_fit_grade: r.scoreFitGrade || null,
+      blurb_quality_score: r.blurbScore ?? null,
+      blurb_quality_grade: r.blurbGrade || null,
     }));
 
     // Insert in batches of 50
