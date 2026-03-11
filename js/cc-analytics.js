@@ -497,14 +497,24 @@ async function loadIssues() {
   if (!sbClient) return;
 
   try {
-    // Parallel fetch: test gaps + prod low scores + historical data
+    // Get latest run_id first so we only show gaps from the most recent test
+    const { data: latestRunRow } = await sbClient.from('gauntlet_runs')
+      .select('run_id')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+    const latestRunId = latestRunRow?.run_id;
+
+    // Parallel fetch: test gaps (latest run only) + prod low scores + historical data
+    const gapsQuery = sbClient.from('gauntlet_results')
+      .select('query, donde_match, gap_type, gap_severity, category, restaurant_name, food, vibe, service, reputation, convenience, relevance_type, run_id')
+      .not('gap_type', 'is', null)
+      .order('donde_match', { ascending: true })
+      .limit(100);
+    if (latestRunId) gapsQuery.eq('run_id', latestRunId);
+
     const [gapsRes, prodRes, histRes] = await Promise.all([
-      // Test gaps from latest runs
-      sbClient.from('gauntlet_results')
-        .select('query, donde_match, gap_type, gap_severity, category, restaurant_name, food, vibe, service, reputation, convenience, relevance_type, run_id')
-        .not('gap_type', 'is', null)
-        .order('donde_match', { ascending: true })
-        .limit(100),
+      gapsQuery,
 
       // Production low-score queries
       sbClient.from('user_queries')

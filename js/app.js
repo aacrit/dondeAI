@@ -4076,7 +4076,7 @@ function collectInfoStreamItems(data) {
   }
 
   if (dc.reservation_difficulty && dc.reservation_difficulty !== 'none') {
-    const resMap = { easy: 'Walk-ins OK', moderate: 'Reservations rec.', hard: 'Hard to get' };
+    const resMap = { easy: 'Walk-ins OK', moderate: 'Reserve ahead', hard: 'Hard to book' };
     const notable = dc.reservation_difficulty === 'hard' ? 1.5 : 1.0;
     items.push({ id: 'reserv', icon: 'calendar', text: resMap[dc.reservation_difficulty] || humanizeSnake(dc.reservation_difficulty), priority: pw * 0.85 * notable, category: 'practical' });
   }
@@ -4099,19 +4099,19 @@ function collectInfoStreamItems(data) {
   if (dc.energy_level != null) {
     const e = dc.energy_level;
     const notable = (e >= 8 || e <= 2) ? 1.3 : 1.0;
-    items.push({ id: 'energy', icon: 'bolt', text: e >= 8 ? 'High energy' : e >= 5 ? 'Moderate energy' : 'Chill', priority: dw.vibe * 0.65 * notable, category: 'vibe' });
+    items.push({ id: 'energy', icon: 'bolt', text: e >= 8 ? 'High energy' : e >= 5 ? 'Moderate' : 'Chill', priority: dw.vibe * 0.65 * notable, category: 'vibe' });
   }
 
   if (dc.cultural_authenticity != null) {
     const a = dc.cultural_authenticity;
     const notable = a >= 8 ? 1.2 : 1.0;
-    items.push({ id: 'auth', icon: 'globe', text: a >= 8 ? 'Very authentic' : a >= 5 ? 'Authentic' : 'Fusion style', priority: dw.vibe * 0.55 * notable, category: 'vibe' });
+    items.push({ id: 'auth', icon: 'globe', text: a >= 8 ? 'Very Authentic' : a >= 5 ? 'Authentic' : 'Fusion', priority: dw.vibe * 0.55 * notable, category: 'vibe' });
   }
 
   if (dc.conversation_friendliness != null) {
     const c = dc.conversation_friendliness;
     const notable = c <= 3 ? 1.4 : 1.0;
-    items.push({ id: 'noise', icon: 'chat', text: c >= 7 ? 'Good for convo' : c >= 4 ? 'Moderate noise' : 'Loud', priority: ow * 0.70 * notable, category: 'vibe' });
+    items.push({ id: 'noise', icon: 'chat', text: c >= 7 ? 'Great for convo' : c >= 4 ? 'Moderate' : 'Loud', priority: ow * 0.70 * notable, category: 'vibe' });
   }
 
   if (dc.spice_level && dc.spice_level !== 'none') {
