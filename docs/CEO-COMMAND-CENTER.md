@@ -174,6 +174,40 @@ CEO clicks "Check Data" → selects operation (e.g. enrichment)
 
 ---
 
+## Score Validation Grading
+
+Two independent quality grades computed per test result:
+
+### Score Fit Grade
+Evaluates whether the DondeScore accurately reflects restaurant-query fit.
+- Relevance type alignment (30pts)
+- Cuisine match accuracy (25pts)
+- Dominant factor alignment (25pts)
+- Score compression penalty (10pts)
+- Weak spots coherence (10pts)
+
+### Blurb Quality Grade
+Evaluates recommendation text quality and applicability.
+- Slop-free (25pts) — 67 banned cliche patterns
+- Query relevance (25pts) — key terms present in blurb
+- Restaurant specificity (20pts) — specific details, not generic
+- Voice compliance (15pts) — "we"/"our" mandate
+- Word count (15pts) — 100-120 word target
+
+### Pass Criteria
+All three must be true:
+1. DondeMatch >= 70
+2. Score Fit >= B- (80/100)
+3. Blurb Quality >= B- (80/100)
+
+### KPIs
+- Avg Score Fit Grade (letter + numeric)
+- Avg Blurb Quality Grade (letter + numeric)
+- Grade Pass Rate (%)
+- Grade distribution per run
+
+---
+
 ## File Reference
 
 ### Frontend (`dondeAI/`)
