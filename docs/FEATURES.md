@@ -70,6 +70,13 @@ Last updated: 2026-03-02
 - [x] Google SSO, server-side history + favorites, anon-to-auth migration
 - [ ] Apple SSO (awaiting enrollment)
 
+## CEO Command Center
+
+- [x] Score Validation Grading system (Score Fit + Blurb Quality grades)
+- [x] Grade KPI strip (avg fit, avg blurb, grade pass rate)
+- [x] Grade badges in test results and run detail views
+- [x] Run filter bar for selected runs
+
 ## Persistence (localStorage)
 
 `dondeai-theme`, `dondeai-sound`, `dondeai-colormode`, `dondeai-history` (3), `dondeai-bookmarks` (20), `dondeai-user-id`, `dondeai-feedback` (100)
