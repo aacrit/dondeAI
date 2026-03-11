@@ -12,6 +12,9 @@ document.addEventListener('DOMContentLoaded', () => {
   initKeyboardShortcuts();
   initPulseClicks();
   positionTabIndicator();
+  loadCustomQueries();
+  loadPinnedQueries();
+  renderCustomQueryList();
 });
 
 // ═══════════════════════════════════════════════════════════════════
@@ -54,6 +57,9 @@ function switchTab(name) {
     const run = (state.selectedRunId && state.runHistory.find(r => r.run_id === state.selectedRunId)) || state.latestRun;
     if (run) updatePulseFromRun(run);
   }
+
+  // Smart suggestion when switching to issues
+  if (name === 'issues') setTimeout(checkSmartSuggestion, 500);
 }
 
 function positionTabIndicator() {
@@ -407,11 +413,13 @@ function appendResultRow(result) {
   const cat = result.cat ? `<span class="cc-result-row__cat">${escapeHtml(result.cat)}</span>` : '';
   const diff = result.diff ? `<span class="cc-result-row__diff">${escapeHtml(result.diff)}</span>` : '';
 
+  const isPinned = (state.pinnedQueries || []).includes(result.query);
   row.innerHTML = `
     <span class="cc-result-row__icon">${icon}</span>
     <span class="cc-result-row__dm ${dmClass}">${result.dm || 0}</span>
     <span class="cc-result-row__query">${query}</span>
     <span class="cc-result-row__meta">${cat}${diff}</span>
+    <button class="cc-result-row__pin ${isPinned ? 'cc-result-row__pin--active' : ''}" onclick="event.stopPropagation();togglePin('${escapeHtml(result.query).replace(/'/g, "\\'")}')" title="Pin to favorites">${isPinned ? '&#9733;' : '&#9734;'}</button>
   `;
 
   // Gap detail for failures
@@ -438,20 +446,29 @@ function appendResultRow(result) {
   requestAnimationFrame(() => row.classList.remove('cc-result-row--enter'));
 }
 
-function appendSummaryRow(name, total, passed, avgDm, elapsed) {
+function appendSummaryRow(name, total, passed, avgDm, elapsed, celebrate, testType) {
   const stream = document.getElementById('result-stream');
   if (!stream) return;
 
   const row = document.createElement('div');
-  row.className = 'cc-result-summary';
+  row.className = 'cc-result-summary' + (celebrate ? ' cc-result-summary--celebrate' : '');
   const passRate = pct(passed, total);
+  const gaps = state.activeTest ? state.activeTest.results.filter(r => r.gap) : [];
+  const gapSummary = gaps.length > 0
+    ? `<div style="font-size:0.68rem;color:var(--cc-text-3);margin-top:4px">Gaps: ${gaps.slice(0, 3).map(g => `"${escapeHtml(g.query)}" (${g.dm})`).join(', ')}${gaps.length > 3 ? ` +${gaps.length - 3} more` : ''}</div>`
+    : '';
   row.innerHTML = `
-    <div class="cc-result-summary__title">${escapeHtml(name)} Complete</div>
+    <div class="cc-result-summary__title">${escapeHtml(name)} Complete${celebrate ? ' &#127881;' : ''}</div>
     <div class="cc-result-summary__stats">
       <span>${total} queries</span>
       <span class="${ragClass(Number(passRate))}">${passRate}% pass</span>
-      <span class="${ragClass(avgDm)}">avg DM ${Math.round(avgDm)}</span>
+      <span class="${ragClass(avgDm)} cc-result-summary__dm">${Math.round(avgDm)}</span>
       <span>${elapsed}s</span>
+    </div>
+    ${gapSummary}
+    <div class="cc-result-summary__actions">
+      <button class="cc-result-summary__btn" onclick="rerunLastTest()">&#8635; Run Again</button>
+      <button class="cc-result-summary__btn" onclick="exportTestResults()">&#128203; Copy Report</button>
     </div>
   `;
   stream.appendChild(row);
@@ -726,6 +743,7 @@ function initKeyboardShortcuts() {
       case '3': switchTab('data'); break;
       case '4': switchTab('issues'); break;
       case 't':
+      case 's':
         if (state.activeTest) stopTest();
         else startTest('broad');
         break;
@@ -767,6 +785,7 @@ function initKeyboardShortcuts() {
       case 'Escape':
         closeQueryPanel();
         closeShortcuts();
+        if (state.terminalOpen) closeTerminal();
         if (typeof closeCompareView === 'function') closeCompareView();
         if (typeof closeDeepDive === 'function') closeDeepDive();
         break;
@@ -1417,4 +1436,288 @@ function copyBulkFixPrompt() {
   }).catch(() => {
     if (typeof showToast === 'function') showToast('Could not copy to clipboard');
   });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// v3: Config Panel
+// ═══════════════════════════════════════════════════════════════════
+
+function toggleConfig(type) {
+  const panel = document.getElementById('config-panel');
+  if (!panel) return;
+
+  // If same type is open, close it
+  if (state.configOpen === type) {
+    panel.classList.remove('cc-config-panel--open');
+    state.configOpen = null;
+    document.querySelectorAll('.cc-test-card__gear').forEach(g => g.classList.remove('cc-test-card__gear--active'));
+    return;
+  }
+
+  state.configOpen = type;
+  document.querySelectorAll('.cc-test-card__gear').forEach(g => g.classList.remove('cc-test-card__gear--active'));
+
+  // Position panel after the clicked card's row
+  const card = document.querySelector(`[data-test="${type}"]`);
+  if (card) {
+    card.querySelector('.cc-test-card__gear')?.classList.add('cc-test-card__gear--active');
+    // Move config panel after the card in DOM
+    card.parentNode.insertBefore(panel, card.nextSibling);
+  }
+
+  const cfg = state.testConfig[type] || { count: 20, difficulty: 'all', threshold: 60 };
+  const counts = type === 'regression' ? [10, 23] : [5, 10, 20, 50];
+  const costPer = 0.01; // ~$0.01 per query
+
+  panel.innerHTML = `
+    <div class="cc-config-panel__row">
+      <span class="cc-config-panel__label">Queries</span>
+      ${counts.map(n => `<button class="cc-config-pill ${cfg.count === n ? 'cc-config-pill--active' : ''}" onclick="setTestConfig('${type}','count',${n})">${n}</button>`).join('')}
+    </div>
+    ${type !== 'regression' ? `
+    <div class="cc-config-panel__row">
+      <span class="cc-config-panel__label">Difficulty</span>
+      ${['all', 'easy', 'medium', 'hard'].map(d => `<button class="cc-config-pill ${cfg.difficulty === d ? 'cc-config-pill--active' : ''}" onclick="setTestConfig('${type}','difficulty','${d}')">${d === 'all' ? 'All' : d[0].toUpperCase() + d.slice(1)}</button>`).join('')}
+    </div>` : ''}
+    <div class="cc-config-panel__row">
+      <span class="cc-config-panel__label">Threshold</span>
+      ${[50, 60, 70, 80].map(t => `<button class="cc-config-pill ${cfg.threshold === t ? 'cc-config-pill--active' : ''}" onclick="setTestConfig('${type}','threshold',${t})">${t}</button>`).join('')}
+    </div>
+    <div class="cc-config-panel__footer">
+      <span class="cc-config-panel__estimate" id="config-estimate">~$${(cfg.count * costPer).toFixed(2)} · ~${Math.ceil(cfg.count * 6 / 60)} min</span>
+      <button class="cc-config-panel__run" onclick="runConfiguredTest('${type}')">Run ${TEST_TYPES[type]?.name || type}</button>
+    </div>
+  `;
+  panel.classList.add('cc-config-panel--open');
+}
+
+function setTestConfig(type, key, value) {
+  if (!state.testConfig[type]) state.testConfig[type] = { count: 20, difficulty: 'all', threshold: 60 };
+  state.testConfig[type][key] = value;
+  saveSession();
+  // Re-render config panel
+  toggleConfig('_close'); // close
+  toggleConfig(type);     // reopen with new values
+  // Update card description
+  updateCardMeta(type);
+}
+
+function updateCardMeta(type) {
+  const cfg = state.testConfig[type];
+  if (!cfg) return;
+  const costPer = 0.01;
+  const metaEl = document.getElementById(`${type}-meta`);
+  if (metaEl) metaEl.textContent = `~$${(cfg.count * costPer).toFixed(2)} · ~${Math.ceil(cfg.count * 6 / 60)} min`;
+  const descEl = document.getElementById(`${type}-desc`);
+  if (descEl && type === 'broad') descEl.textContent = `${cfg.count} random queries across all categories`;
+  if (descEl && type === 'category') descEl.textContent = `${cfg.count} queries from selected categories`;
+}
+
+function runConfiguredTest(type) {
+  const panel = document.getElementById('config-panel');
+  if (panel) panel.classList.remove('cc-config-panel--open');
+  state.configOpen = null;
+  startTest(type);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// v3: Multi-Category Picker
+// ═══════════════════════════════════════════════════════════════════
+
+function toggleCatPill(btn) {
+  const cat = btn.dataset.cat;
+  const idx = state.selectedCategories.indexOf(cat);
+  if (idx >= 0) {
+    state.selectedCategories.splice(idx, 1);
+    btn.classList.remove('cc-cat-pill--selected');
+  } else {
+    state.selectedCategories.push(cat);
+    btn.classList.add('cc-cat-pill--selected');
+  }
+  updateCatCount();
+}
+
+function setCatPreset(preset) {
+  // Clear all
+  state.selectedCategories = [];
+  document.querySelectorAll('.cc-cat-pill[data-cat]').forEach(p => p.classList.remove('cc-cat-pill--selected'));
+
+  let cats = [];
+  if (preset === 'food-vibe') cats = ['Food', 'Vibe'];
+  else if (preset === 'full') cats = ['Food', 'Vibe', 'Service', 'Rep', 'Conv'];
+  else if (preset === 'weakest') {
+    // Pick bottom 2 categories from latest run
+    const latest = state.latestRun;
+    if (latest?.category_stats) {
+      const sorted = Object.entries(latest.category_stats).sort((a, b) => (a[1].avg || 99) - (b[1].avg || 99));
+      cats = sorted.slice(0, 2).map(([c]) => c);
+    } else {
+      cats = ['Food', 'Vibe']; // fallback
+      showToast('No run data — defaulting to Food + Vibe');
+    }
+  }
+
+  state.selectedCategories = cats;
+  cats.forEach(c => {
+    const btn = document.querySelector(`.cc-cat-pill[data-cat="${c}"]`);
+    if (btn) btn.classList.add('cc-cat-pill--selected');
+  });
+  updateCatCount();
+}
+
+function updateCatCount() {
+  const pool = typeof CHICAGO_QUERIES !== 'undefined' ? CHICAGO_QUERIES : [];
+  const count = pool.filter(q => state.selectedCategories.includes(q.cat)).length;
+  const el = document.getElementById('cat-count');
+  if (el) el.textContent = state.selectedCategories.length > 0 ? `${count} available` : '';
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// v3: Custom Queries
+// ═══════════════════════════════════════════════════════════════════
+
+function addCustomQuery() {
+  const input = document.getElementById('custom-query-input');
+  const catSel = document.getElementById('custom-query-cat');
+  if (!input || !catSel) return;
+
+  const query = input.value.trim();
+  if (!query) return;
+  if (state.customQueries.some(q => q.query.toLowerCase() === query.toLowerCase())) {
+    showToast('Query already exists');
+    return;
+  }
+
+  state.customQueries.push({ query, cat: catSel.value, id: Date.now().toString(36) });
+  saveCustomQueries();
+  input.value = '';
+  renderCustomQueryList();
+  showToast('Query added');
+}
+
+function removeCustomQuery(id) {
+  state.customQueries = state.customQueries.filter(q => q.id !== id);
+  saveCustomQueries();
+  renderCustomQueryList();
+}
+
+function renderCustomQueryList() {
+  const list = document.getElementById('custom-query-list');
+  const countEl = document.getElementById('custom-query-count');
+  if (!list) return;
+  if (countEl) countEl.textContent = state.customQueries.length > 0 ? `(${state.customQueries.length})` : '';
+
+  list.innerHTML = state.customQueries.map(q => `
+    <span class="cc-custom-query-pill">
+      ${escapeHtml(q.query)}
+      <span class="cc-custom-query-pill__cat">${q.cat}</span>
+      <button class="cc-custom-query-pill__del" onclick="removeCustomQuery('${q.id}')">&times;</button>
+    </span>
+  `).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// v3: Pin / Favorite
+// ═══════════════════════════════════════════════════════════════════
+
+function togglePin(query) {
+  const idx = state.pinnedQueries.indexOf(query);
+  if (idx >= 0) {
+    state.pinnedQueries.splice(idx, 1);
+  } else {
+    state.pinnedQueries.push(query);
+  }
+  savePinnedQueries();
+  // Update pin icons in result stream
+  document.querySelectorAll('.cc-result-row__pin').forEach(btn => {
+    const q = btn.getAttribute('onclick')?.match(/'([^']+)'/)?.[1];
+    if (q === query) {
+      btn.classList.toggle('cc-result-row__pin--active');
+      btn.innerHTML = state.pinnedQueries.includes(query) ? '&#9733;' : '&#9734;';
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// v3: Result Stream Search
+// ═══════════════════════════════════════════════════════════════════
+
+function filterResults(text) {
+  const term = text.toLowerCase().trim();
+  const rows = document.querySelectorAll('.cc-result-row');
+  let visible = 0;
+  rows.forEach(row => {
+    const query = row.querySelector('.cc-result-row__query')?.textContent?.toLowerCase() || '';
+    const show = !term || query.includes(term);
+    row.style.display = show ? '' : 'none';
+    if (show) visible++;
+  });
+  const countEl = document.getElementById('result-search-count');
+  if (countEl) countEl.textContent = term ? `${visible}/${rows.length}` : '';
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// v3: Quick Rerun & Export
+// ═══════════════════════════════════════════════════════════════════
+
+function rerunLastTest() {
+  if (!state.lastTestType) return;
+  if (state.lastTestConfig?.categories) {
+    state.selectedCategories = state.lastTestConfig.categories;
+    runMultiCategoryTest();
+  } else {
+    startTest(state.lastTestType);
+  }
+}
+
+function exportTestResults() {
+  const stream = document.getElementById('result-stream');
+  if (!stream) return;
+
+  const rows = stream.querySelectorAll('.cc-result-row');
+  const summary = stream.querySelector('.cc-result-summary');
+  let report = '';
+
+  if (summary) {
+    const title = summary.querySelector('.cc-result-summary__title')?.textContent || '';
+    const stats = summary.querySelector('.cc-result-summary__stats')?.textContent?.trim() || '';
+    report += `${title}\n${stats}\n\n`;
+  }
+
+  const gaps = [];
+  rows.forEach(row => {
+    const dm = row.querySelector('.cc-result-row__dm')?.textContent || '0';
+    const query = row.querySelector('.cc-result-row__query')?.textContent || '';
+    const gap = row.querySelector('.cc-result-row__gap')?.textContent || '';
+    if (gap) gaps.push(`"${query}" (DM:${dm})`);
+  });
+
+  if (gaps.length > 0) {
+    report += `Gaps:\n${gaps.join('\n')}\n`;
+  }
+
+  navigator.clipboard?.writeText(report.trim()).then(() => {
+    showToast('Report copied to clipboard');
+  }).catch(() => {
+    showToast('Could not copy');
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// v3: Smart Test Suggestion
+// ═══════════════════════════════════════════════════════════════════
+
+function checkSmartSuggestion() {
+  const issues = state.issues || [];
+  const openIssues = issues.filter(i => (!i.status || i.status === 'open'));
+  if (openIssues.length === 0) return;
+
+  // Count by category
+  const catCounts = {};
+  openIssues.forEach(i => { catCounts[i.category] = (catCounts[i.category] || 0) + 1; });
+  const topCat = Object.entries(catCounts).sort((a, b) => b[1] - a[1])[0];
+
+  if (topCat && topCat[1] >= 2) {
+    showToast(`${topCat[1]} ${topCat[0]} gaps — Run Category Focus?`);
+  }
 }
