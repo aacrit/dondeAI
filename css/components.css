@@ -2143,8 +2143,7 @@
   font-size: var(--text-2xs);
   color: var(--fg4, var(--fg3));
   margin: 0;
-  padding: var(--space-2xs) var(--space-md);
-  font-style: italic;
+  padding: var(--space-2xs) 0;
   opacity: 0.5;
   text-align: center;
 }
@@ -2200,6 +2199,12 @@
 .glance-context__pill--closed {
   color: var(--rag-red);
   border-color: var(--rag-red);
+}
+.glance-context__pill--static {
+  cursor: default;
+}
+.glance-context__pill--static::after {
+  display: none;
 }
 
 /* ---- Unique Selling Point ---- */
@@ -2304,11 +2309,12 @@
 
 .info-stream__dot {
   display: inline;
-  margin: 0 0.5em;
-  opacity: 0.6;
-  font-size: 0.85em;
+  margin: 0 0.35em;
+  opacity: 1;
+  font-size: 1.15em;
+  font-weight: 700;
   vertical-align: middle;
-  color: var(--ac);
+  color: var(--fg3);
 }
 
 /* Cap secondary at 2 lines (both mobile + desktop) */
@@ -5340,21 +5346,25 @@
 .card-footer__secondary-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   width: 100%;
   max-width: 400px;
+  gap: var(--space-sm);
 }
 
 .feedback-row {
+  flex: 1;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: var(--space-2xs);
 }
 
-/* Start Over — tertiary text link */
+/* Start Over — tertiary text link, centered under Try Another */
 .start-over-link {
+  flex: 1;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: var(--space-2xs);
   padding: var(--space-2xs) var(--space-xs);
   background: none;
