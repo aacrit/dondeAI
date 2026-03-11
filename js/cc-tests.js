@@ -273,6 +273,10 @@ async function runBroadScan() {
   if (state.customQueries?.length) {
     pool = pool.concat(state.customQueries.map(cq => ({ cat: cq.cat, diff: 'custom', query: cq.query })));
   }
+  // Mix in generated queries
+  if (typeof generatedQueries !== 'undefined' && generatedQueries.length) {
+    pool = pool.concat(generatedQueries.map(gq => ({ cat: gq.category || 'Food', diff: 'generated', query: gq.query || gq.special_request || '' })).filter(q => q.query));
+  }
   if (cfg.difficulty !== 'all') pool = pool.filter(q => q.diff === cfg.difficulty);
   // Pin pinned queries to front
   const pinSet = new Set(state.pinnedQueries || []);
@@ -325,6 +329,10 @@ async function runCategoryFocus(categories) {
   // Mix in custom queries matching categories
   if (state.customQueries?.length) {
     pool = pool.concat(state.customQueries.filter(cq => cats.includes(cq.cat)).map(cq => ({ cat: cq.cat, diff: 'custom', query: cq.query })));
+  }
+  // Mix in generated queries matching categories
+  if (typeof generatedQueries !== 'undefined' && generatedQueries.length) {
+    pool = pool.concat(generatedQueries.filter(gq => cats.includes(gq.category)).map(gq => ({ cat: gq.category || 'Food', diff: 'generated', query: gq.query || gq.special_request || '' })).filter(q => q.query));
   }
   const catQueries = pool.filter(q => cats.includes(q.cat));
   if (cfg.difficulty !== 'all') catQueries.filter(q => q.diff === cfg.difficulty || q.diff === 'custom');
