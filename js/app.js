@@ -1001,7 +1001,7 @@ function wireEvents() {
         if (_swapInFlight) break;
         // Visual loading state on button during swap
         const $tryBtn = btn.closest('[data-action="try-again"]') || btn;
-        $tryBtn.classList.add('cta-btn--loading');
+        $tryBtn.classList.add('try-again-btn--loading');
 
         // Track current restaurant ID so backend can exclude it
         const prevId = getState().result?.restaurant?.id;
@@ -1039,7 +1039,7 @@ function wireEvents() {
                 if ($matchScore) animateScoreCountUp($matchScore, dondeScore);
                 $resultCard.classList.remove('result-card--swapping-in');
                 _swapInFlight = false;
-                document.querySelector('.cta-btn--loading')?.classList.remove('cta-btn--loading');
+                document.querySelector('.try-again-btn--loading')?.classList.remove('try-again-btn--loading');
                 // Tiered celebration (70+)
                 if (dondeScore >= 70) {
                   animationTimers.push(setTimeout(() => {
@@ -1058,7 +1058,7 @@ function wireEvents() {
             if (dondeScore >= 70) {
               setTimeout(() => { _fireTieredCelebration(dondeScore); }, 1400);
             }
-            document.querySelector('.cta-btn--loading')?.classList.remove('cta-btn--loading');
+            document.querySelector('.try-again-btn--loading')?.classList.remove('try-again-btn--loading');
             announce(`Now showing: ${nextResult.restaurant?.name || 'new recommendation'}`);
           }
           haptic(HAPTICS.reveal);
@@ -1572,7 +1572,7 @@ function renderSuggestions(matches, query) {
         const before = text.slice(0, matchStart);
         const match = text.slice(matchStart, matchStart + query.length);
         const after = text.slice(matchStart + query.length);
-        textSpan.innerHTML = `${before}<mark>${match}</mark>${after}`;
+        textSpan.innerHTML = `${_escHtml(before)}<mark>${_escHtml(match)}</mark>${_escHtml(after)}`;
       } else {
         textSpan.textContent = text;
       }
@@ -2635,11 +2635,8 @@ function renderResult(data) {
   const $name = document.getElementById('result-name');
   if ($name) $name.textContent = r.name || '';
 
-  // Neighborhood now shown in Tier 2 context pills — hide from header
-  const $headerHood = document.getElementById('header-hood');
-  if ($headerHood) $headerHood.style.display = 'none';
-
-  // Context pills now rendered by Info Stream in Tier 2 (renderInfoStream)
+  // Cuisine + Open/Closed context row — directly below name in Tier 1
+  renderGlanceContext(data);
 
   // Quick actions row: Reserve, Share, Website, Phone (subtle utility pills)
   renderQuickActions(data);
@@ -2677,6 +2674,13 @@ function renderResult(data) {
   const $matchSignal = document.getElementById('match-signal');
   if ($matchSignal) $matchSignal.style.display = 'none';
 
+  // Craving echo — show what the user asked for
+  const $cravingEcho = document.getElementById('craving-echo');
+  if ($cravingEcho) {
+    const craving = getState().craving;
+    $cravingEcho.textContent = craving ? `You asked for "${craving}"` : '';
+  }
+
   // DondeAI Recommendation blurb — the editorial voice in Tier 1
   const $rec = document.getElementById('result-recommendation');
   const $blurb = document.getElementById('donde-blurb');
@@ -2713,13 +2717,13 @@ function renderResult(data) {
   // V9: Floating Action Bar — populate and wire
   renderFloatingBar(data);
 
-  // Inject icons into glance action buttons
+  // Inject icons into footer action buttons
   const $tryAgainIcon = document.getElementById('try-again-icon');
-  if ($tryAgainIcon) $tryAgainIcon.innerHTML = svgIcon('refresh', 18);
+  if ($tryAgainIcon) $tryAgainIcon.innerHTML = svgIcon('refresh', 16);
   const $glanceStartOverIcon = document.getElementById('glance-start-over-icon');
-  if ($glanceStartOverIcon) $glanceStartOverIcon.innerHTML = svgIcon('home', 18);
+  if ($glanceStartOverIcon) $glanceStartOverIcon.innerHTML = svgIcon('home', 16);
   const $startOverIcon = document.getElementById('start-over-icon');
-  if ($startOverIcon) $startOverIcon.innerHTML = svgIcon('home', 20);
+  if ($startOverIcon) $startOverIcon.innerHTML = svgIcon('home', 14);
 
   // Update Try Another button with exhaustion indicator
   updateTryAgainState();
@@ -2994,6 +2998,114 @@ function computeSentiment(r) {
   return pos != null ? { pos, neu, neg } : null;
 }
 
+/* ---- Render Glance Context (Cuisine + Open/Closed — below name in Tier 1) ---- */
+function renderGlanceContext(data) {
+  const $ctx = document.getElementById('glance-context');
+  if (!$ctx) return;
+  $ctx.innerHTML = '';
+
+  const r = data.restaurant || {};
+
+  // Cuisine pill → opens cuisine drawer
+  if (r.cuisine_type) {
+    const pill = document.createElement('span');
+    pill.className = 'glance-context__pill type-data--sm';
+    pill.setAttribute('role', 'button');
+    pill.setAttribute('tabindex', '0');
+    pill.setAttribute('aria-haspopup', 'dialog');
+    pill.setAttribute('data-action', 'open-cuisine-drawer');
+    pill.innerHTML = `${svgIcon('plate', 11)} ${r.cuisine_type}`;
+    $ctx.appendChild(pill);
+  }
+
+  // Open/Closed status → hours popout
+  const oh = r.opening_hours;
+  if (oh?.open_now != null) {
+    const pill = document.createElement('span');
+    pill.className = `glance-context__pill ${oh.open_now ? 'glance-context__pill--open' : 'glance-context__pill--closed'} type-data--sm`;
+
+    // Extract today's hours for inline display
+    let todayHours = '';
+    const hasHours = oh.weekday_text?.length > 0;
+    if (hasHours) {
+      const todayName = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+      const todayLine = oh.weekday_text.find(l => l.toLowerCase().startsWith(todayName));
+      if (todayLine) {
+        const ci = todayLine.indexOf(':');
+        if (ci >= 0) {
+          todayHours = todayLine.slice(ci + 1).trim()
+            .replace(/(\d{1,2}):00\s*(AM|PM)/gi, (_, h, ap) => `${h}${ap[0].toLowerCase()}`)
+            .replace(/(\d{1,2}:\d{2})\s*(AM|PM)/gi, (_, t, ap) => `${t}${ap[0].toLowerCase()}`)
+            .replace(/\s*[–—-]\s*/g, '–');
+        }
+      }
+    }
+
+    const statusText = oh.open_now ? 'Open' : 'Closed';
+    const hoursInline = todayHours ? ` · ${todayHours}` : '';
+    pill.innerHTML = `${svgIcon('clock', 11)} ${statusText}${hoursInline}`;
+
+    if (hasHours) {
+      pill.setAttribute('role', 'button');
+      pill.setAttribute('tabindex', '0');
+      pill.setAttribute('aria-expanded', 'false');
+      pill.setAttribute('aria-haspopup', 'true');
+      pill.setAttribute('data-action', 'toggle-badge-popout');
+    } else {
+      // No detailed hours — just show status, not interactive
+      pill.style.cursor = 'default';
+    }
+
+    // Hours popout child
+    if (hasHours) {
+      const popout = document.createElement('div');
+      popout.className = 'badge-popout badge-popout--hours';
+      popout.setAttribute('role', 'tooltip');
+      const title = document.createElement('span');
+      title.className = 'badge-popout__title';
+      title.textContent = 'Hours';
+      popout.appendChild(title);
+      const today = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+      const table = document.createElement('div');
+      table.className = 'hours-table';
+      oh.weekday_text.forEach(line => {
+        const colonIdx = line.indexOf(':');
+        if (colonIdx < 0) return;
+        const dayPart = line.slice(0, colonIdx).trim();
+        const timePart = line.slice(colonIdx + 1).trim();
+        const isToday = dayPart.toLowerCase() === today;
+        const row = document.createElement('div');
+        row.className = `hours-table__row${isToday ? ' hours-table__row--today' : ''}`;
+        const dayEl = document.createElement('span');
+        dayEl.className = 'hours-table__day';
+        dayEl.textContent = dayPart.slice(0, 3);
+        const timeEl = document.createElement('span');
+        timeEl.className = 'hours-table__time';
+        timeEl.textContent = timePart
+          .replace(/(\d{1,2}):00\s*(AM|PM)/gi, (_, h, ap) => `${h}${ap[0].toLowerCase()}`)
+          .replace(/(\d{1,2}:\d{2})\s*(AM|PM)/gi, (_, t, ap) => `${t}${ap[0].toLowerCase()}`)
+          .replace(/\s*[–—-]\s*/g, ' – ');
+        row.appendChild(dayEl);
+        row.appendChild(timeEl);
+        table.appendChild(row);
+      });
+      popout.appendChild(table);
+      pill.appendChild(popout);
+    }
+
+    $ctx.appendChild(pill);
+  }
+}
+
+/* ---- Normalize tag text: 3 words max, sentence case ---- */
+function normalizeTagText(text) {
+  if (!text) return text;
+  const words = text.trim().split(/\s+/);
+  const capped = words.length <= 3 ? words.join(' ') : words.slice(0, 3).join(' ');
+  // Sentence case: capitalize first letter, lowercase rest (unless acronym)
+  return capped.charAt(0).toUpperCase() + capped.slice(1).toLowerCase();
+}
+
 /* ---- Render Quick Actions (Reserve, Share, Website, Phone — subtle row in tier 1) ---- */
 function renderQuickActions(data) {
   const r = data.restaurant;
@@ -3149,9 +3261,9 @@ function renderResultMeta(data) {
 function formatSpiceLevel(raw) {
   if (!raw) return '';
   const map = {
-    none: 'Not Spicy', mild: 'Mild', low: 'Mild',
+    none: 'Not spicy', mild: 'Mild', low: 'Mild',
     medium: 'Medium', moderate: 'Medium',
-    hot: 'Spicy', high: 'Spicy', very_hot: 'Very Spicy', extra_hot: 'Very Spicy',
+    hot: 'Spicy', high: 'Spicy', very_hot: 'Very spicy', extra_hot: 'Very spicy',
   };
   return map[raw.toLowerCase()] || humanizeSnake(raw);
 }
@@ -3949,31 +4061,9 @@ function collectInfoStreamItems(data) {
   const ow = dw.occasion ?? dw.service ?? 0.15;
   const cw = dw.craving ?? dw.food ?? 0.25;
 
-  // ── Context items (always in initial visible set) ──
-  const rawHood = r.neighborhood_name || '';
-  const neighborhood = /^chicago$/i.test(rawHood.trim()) ? '' : rawHood;
-  if (neighborhood) {
-    items.push({ id: 'hood', icon: 'pin', text: neighborhood, priority: 1.0, category: 'context' });
-  }
-
-  if (r.cuisine_type) {
-    items.push({
-      id: 'cuisine', icon: 'plate', text: r.cuisine_type, priority: 1.0,
-      category: 'context',
-      interactive: { action: 'open-cuisine-drawer', role: 'button', ariaHaspopup: 'dialog' }
-    });
-  }
-
-  const oh = r.opening_hours;
-  if (oh?.open_now != null) {
-    items.push({
-      id: 'hours', icon: 'clock', text: oh.open_now ? 'Open Now' : 'Closed',
-      priority: 1.0, category: 'context',
-      modifier: oh.open_now ? 'open' : 'closed',
-      interactive: { action: 'toggle-badge-popout', role: 'button', ariaExpanded: 'false', ariaHaspopup: 'true' },
-      hoursData: oh
-    });
-  }
+  // ── Context items removed from info-stream ──
+  // Neighborhood: shown in address nav pill (quick-actions)
+  // Cuisine + Open/Closed: promoted to Tier 1 glance-context row
 
   // ── Practical items ──
   if (dc.review_value_score != null && dc.review_value_score >= 7) {
@@ -4065,12 +4155,11 @@ function collectInfoStreamItems(data) {
     items.push({ id: `scenario-${i}`, icon: 'heart', text: s, priority: 0.4, category: 'discovery' });
   });
 
-  // Sort: context first (always), then by priority descending
-  items.sort((a, b) => {
-    if (a.category === 'context' && b.category !== 'context') return -1;
-    if (b.category === 'context' && a.category !== 'context') return 1;
-    return b.priority - a.priority;
-  });
+  // Normalize all item text to 2-3 words max
+  items.forEach(item => { item.text = normalizeTagText(item.text); });
+
+  // Sort by priority descending (no more context category in info-stream)
+  items.sort((a, b) => b.priority - a.priority);
 
   return items;
 }
@@ -4097,37 +4186,23 @@ class InfoStream {
   start() {
     this.$container.innerHTML = '';
 
-    // ── Row 1: Primary pills ──
-    if (this.primaryItems.length > 0) {
-      const $row1 = document.createElement('div');
-      $row1.className = 'info-stream__primary';
-      this.primaryItems.forEach(item => $row1.appendChild(this._createPill(item)));
-      this.$container.appendChild($row1);
-    }
-
-    // ── Row 2: Secondary dot-separated metadata ──
+    // ── Single row: dot-separated metadata with 2-line cap + auto-rotation ──
     if (this.secondaryItems.length > 0) {
       this.$secondary = document.createElement('div');
-      this.$secondary.className = 'info-stream__secondary';
+      this.$secondary.className = 'info-stream__secondary info-stream__secondary--capped';
 
       if (REDUCED_MOTION.matches) {
         // Show all items statically
         this._renderSecondaryItems(this.secondaryItems);
       } else {
-        // Determine visible count based on viewport (mobile: ~6, desktop: all)
-        const isMobile = window.innerWidth < 768;
-        const maxVisible = isMobile ? 6 : this.secondaryItems.length;
+        // Show ~6 items visible, rest rotate in (both mobile + desktop)
+        const maxVisible = Math.min(6, this.secondaryItems.length);
 
         this.visibleMeta = this.secondaryItems.slice(0, maxVisible);
         this.metaQueue = this.secondaryItems.slice(maxVisible);
         this._renderSecondaryItems(this.visibleMeta);
 
-        // Add line clamp for mobile
-        if (isMobile) {
-          this.$secondary.classList.add('info-stream__secondary--capped');
-        }
-
-        // Rotation timer (only if overflow items exist)
+        // Auto-rotation timer (always, if overflow items exist)
         if (this.metaQueue.length > 0) {
           this.$secondary.addEventListener('pointerenter', this._onPointerEnter);
           this.$secondary.addEventListener('pointerleave', this._onPointerLeave);
@@ -4140,65 +4215,7 @@ class InfoStream {
       this.$container.appendChild(this.$secondary);
     }
 
-    this.$container.style.display =
-      (this.primaryItems.length > 0 || this.secondaryItems.length > 0) ? '' : 'none';
-  }
-
-  _createPill(item) {
-    const el = document.createElement('span');
-    let cls = 'info-stream__pill';
-    if (item.modifier) cls += ` info-stream__pill--${item.modifier}`;
-    if (item.interactive) cls += ' info-stream__pill--interactive';
-    el.className = cls;
-
-    if (item.interactive) {
-      el.setAttribute('role', item.interactive.role || 'button');
-      el.setAttribute('tabindex', '0');
-      el.setAttribute('data-action', item.interactive.action);
-      if (item.interactive.ariaHaspopup) el.setAttribute('aria-haspopup', item.interactive.ariaHaspopup);
-      if (item.interactive.ariaExpanded) el.setAttribute('aria-expanded', item.interactive.ariaExpanded);
-    }
-
-    el.innerHTML = `${svgIcon(item.icon, 10)}<span>${item.text}</span>`;
-
-    // Hours popout child
-    if (item.hoursData?.weekday_text?.length) {
-      const popout = document.createElement('div');
-      popout.className = 'badge-popout badge-popout--hours';
-      popout.setAttribute('role', 'tooltip');
-      const title = document.createElement('span');
-      title.className = 'badge-popout__title';
-      title.textContent = 'Hours';
-      popout.appendChild(title);
-      const today = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
-      const table = document.createElement('div');
-      table.className = 'hours-table';
-      item.hoursData.weekday_text.forEach(line => {
-        const colonIdx = line.indexOf(':');
-        if (colonIdx < 0) return;
-        const dayPart = line.slice(0, colonIdx).trim();
-        const timePart = line.slice(colonIdx + 1).trim();
-        const isToday = dayPart.toLowerCase() === today;
-        const row = document.createElement('div');
-        row.className = `hours-table__row${isToday ? ' hours-table__row--today' : ''}`;
-        const dayEl = document.createElement('span');
-        dayEl.className = 'hours-table__day';
-        dayEl.textContent = dayPart.slice(0, 3);
-        const timeEl = document.createElement('span');
-        timeEl.className = 'hours-table__time';
-        timeEl.textContent = timePart
-          .replace(/(\d{1,2}):00\s*(AM|PM)/gi, (_, h, ap) => `${h}${ap[0].toLowerCase()}`)
-          .replace(/(\d{1,2}:\d{2})\s*(AM|PM)/gi, (_, t, ap) => `${t}${ap[0].toLowerCase()}`)
-          .replace(/\s*[–—-]\s*/g, ' – ');
-        row.appendChild(dayEl);
-        row.appendChild(timeEl);
-        table.appendChild(row);
-      });
-      popout.appendChild(table);
-      el.appendChild(popout);
-    }
-
-    return el;
+    this.$container.style.display = this.secondaryItems.length > 0 ? '' : 'none';
   }
 
   _renderSecondaryItems(items) {
@@ -4267,7 +4284,7 @@ class InfoStream {
 }
 
 
-/* ---- Render Info Stream: two-tier metadata surface ---- */
+/* ---- Render Info Stream: single-tier metadata surface (dot-separated, auto-rotating) ---- */
 function renderInfoStream(data) {
   const $container = document.getElementById('info-stream');
   if (!$container) return;
@@ -4275,15 +4292,14 @@ function renderInfoStream(data) {
   if (_activeInfoStream) { _activeInfoStream.destroy(); _activeInfoStream = null; }
 
   const items = collectInfoStreamItems(data);
-  const primary = items.filter(it => it.category === 'context');
-  const secondary = items.filter(it => it.category !== 'context');
 
-  if (primary.length === 0 && secondary.length === 0) {
+  if (items.length === 0) {
     $container.style.display = 'none';
     return;
   }
 
-  const stream = new InfoStream($container, primary, secondary);
+  // No primary row — all items are secondary (dot-separated, auto-rotating)
+  const stream = new InfoStream($container, [], items);
   stream.start();
   _activeInfoStream = stream;
 }
@@ -4359,6 +4375,22 @@ function renderCuisineDrawer(data) {
   } else if ($flavorSection) {
     $flavorSection.style.display = 'none';
   }
+
+  // Fallback: if no sections have data, show a simple message
+  const hasDishes = dp.signature_dishes?.length > 0;
+  const hasHighlights = dp.menu_highlights?.length > 0;
+  const hasFlavors = dp.flavor_profiles?.length > 0;
+  if (!hasDishes && !hasHighlights && !hasFlavors) {
+    // Show at least the cuisine label with a minimal note
+    if ($dishesSection) {
+      const $dishesInner = $dishesSection.querySelector('.cuisine-drawer__dishes');
+      if ($dishesInner) {
+        $dishesInner.innerHTML = `<p class="type-data--sm" style="color:var(--fg3);font-style:italic;">Details coming soon</p>`;
+        $dishesSection.style.display = '';
+        $dishesSection.querySelector('.cuisine-drawer__section-label').textContent = '';
+      }
+    }
+  }
 }
 
 /* ---- V8: Close Cuisine Drawer ---- */
@@ -4385,25 +4417,27 @@ function toasts() {
   return getLabels(getState().theme.culture).toasts;
 }
 
-/* ---- Try Another Exhaustion Indicator ---- */
+/* ---- Try Another Countdown (5 total picks: initial + 4 tries) ---- */
 function updateTryAgainState() {
   const $btn = document.querySelector('[data-action="try-again"]');
   if (!$btn) return;
-  const MAX_EXCLUDES = 15;
-  const count = getState().excludeIds.length;
-  const remaining = MAX_EXCLUDES - count;
-  const $text = $btn.querySelector('.cta-btn__text');
+  const TOTAL_PICKS = 5; // initial result + 4 try-agains
+  const triesUsed = getState().excludeIds.length; // each try-again adds one exclude
+  const triesLeft = Math.max(0, TOTAL_PICKS - 1 - triesUsed); // -1 for the initial result
+  const $text = $btn.querySelector('.try-again-btn__text');
   if (!$text) return;
   const labels = getLabels(getState().theme.culture);
-  if (remaining <= 0) {
-    $text.textContent = 'Start Over';
-    $btn.classList.add('cta-btn--exhausted');
-  } else if (remaining <= 5) {
-    $text.textContent = `${labels.again} (${remaining} left)`;
-    $btn.classList.remove('cta-btn--exhausted');
-  } else {
+  if (triesLeft <= 0) {
     $text.textContent = labels.again;
-    $btn.classList.remove('cta-btn--exhausted');
+    $btn.classList.add('try-again-btn--exhausted');
+  } else if (triesUsed > 0) {
+    // After first try, show remaining count
+    $text.textContent = `${labels.again} (${triesLeft})`;
+    $btn.classList.remove('try-again-btn--exhausted');
+  } else {
+    // Initial state — no count shown yet
+    $text.textContent = labels.again;
+    $btn.classList.remove('try-again-btn--exhausted');
   }
 }
 
