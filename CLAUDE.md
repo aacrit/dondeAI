@@ -1,6 +1,6 @@
 # DondeAI Frontend
 
-Last updated: 2026-03-10
+Last updated: 2026-03-11
 
 > **Read this file first. Only read `docs/*.md` when task-relevant. Only open source files when modifying code.**
 
@@ -104,12 +104,7 @@ Open `index.html` in browser. No build step, no dependencies, no env vars.
 
 ## Git Workflow
 
-After committing to the feature branch, also **merge and push to `main`** so changes are immediately testable:
-1. Commit and push to the feature branch.
-2. `git checkout main && git pull origin main`
-3. `git merge <feature-branch> --no-edit`
-4. `git push origin main`
-5. `git checkout <feature-branch>`
+Commit and push to the feature branch. **CI auto-merges `claude/**` branches to `main`** via `.github/workflows/auto-merge-claude.yml` — no manual merge needed.
 
 ## Coding Standards
 
