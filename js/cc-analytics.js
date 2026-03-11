@@ -206,16 +206,16 @@ async function loadLiveFeed() {
     // Load ALL user queries with restaurant name via FK join, excluding test data
     let { data: queries, error } = await sbClient
       .from('user_queries')
-      .select('id, special_request, donde_match, created_at, recommended_restaurant_id, source, was_fallback, response_time_ms, exclude_count, unmatched_keywords, claude_relevance_score, occasion, price_level, recommendation_text, restaurants!recommended_restaurant_id(name)')
+      .select('id, special_request, donde_match, created_at, recommended_restaurant_id, source, was_fallback, response_time_ms, exclude_count, unmatched_keywords, claude_relevance_score, occasion, price_level, restaurants!recommended_restaurant_id(name)')
       .neq('source', 'command-center')
       .order('created_at', { ascending: false });
 
-    // Fallback: if FK join fails (or source column doesn't exist yet), load without filters
+    // Fallback: if FK join fails (or columns don't exist yet), load minimal
     if (error) {
       console.warn('Live feed FK join failed, falling back:', error.message);
       const fallback = await sbClient
         .from('user_queries')
-        .select('id, special_request, donde_match, created_at, was_fallback, response_time_ms, exclude_count, unmatched_keywords, claude_relevance_score, occasion, price_level')
+        .select('id, special_request, donde_match, created_at, was_fallback, response_time_ms')
         .order('created_at', { ascending: false });
       queries = fallback.data;
       if (fallback.error) console.error('Live feed fallback also failed:', fallback.error.message, fallback.error.hint);
@@ -344,7 +344,7 @@ async function pollLiveFeed() {
   try {
     let query = sbClient
       .from('user_queries')
-      .select('id, special_request, donde_match, created_at, recommended_restaurant_id, source, was_fallback, response_time_ms, exclude_count, unmatched_keywords, claude_relevance_score, occasion, price_level, recommendation_text, restaurants!recommended_restaurant_id(name)')
+      .select('id, special_request, donde_match, created_at, recommended_restaurant_id, source, was_fallback, response_time_ms, exclude_count, unmatched_keywords, claude_relevance_score, occasion, price_level, restaurants!recommended_restaurant_id(name)')
       .neq('source', 'command-center')
       .order('created_at', { ascending: false })
       .limit(20);

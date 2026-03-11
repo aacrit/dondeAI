@@ -20,6 +20,11 @@ async function callAPI(specialRequest, params = {}, signal) {
     body: JSON.stringify(body),
     signal,
   });
+  if (!resp.ok) {
+    const text = await resp.text().catch(() => '');
+    try { return JSON.parse(text); } catch (_) {}
+    throw new Error(`API ${resp.status}: ${text.slice(0, 200)}`);
+  }
   return resp.json();
 }
 
@@ -152,8 +157,9 @@ async function runBroadScan() {
       appendResultRow(result);
     } catch (e) {
       if (e.name === 'AbortError') break;
-      recordResult({ query: q.query, cat: q.cat, diff: q.diff, dm: 0, pass: false, gap: 'error', error: e.message });
-      appendResultRow({ query: q.query, cat: q.cat, diff: q.diff, dm: 0, pass: false, gap: 'error' });
+      const errMsg = e.message || String(e);
+      recordResult({ query: q.query, cat: q.cat, diff: q.diff, dm: 0, pass: false, gap: 'error: ' + errMsg, error: errMsg });
+      appendResultRow({ query: q.query, cat: q.cat, diff: q.diff, dm: 0, pass: false, gap: 'error: ' + errMsg });
     }
   }
   finishTest();

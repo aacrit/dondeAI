@@ -857,8 +857,7 @@ async function openQueryDetail(queryId) {
       .select(`
         id, special_request, occasion, price_level, neighborhood_id,
         donde_match, created_at, recommended_restaurant_id, response_time_ms,
-        was_fallback, claude_relevance_score, exclude_count, unmatched_keywords,
-        recommendation_text, source,
+        was_fallback, claude_relevance_score, exclude_count, unmatched_keywords, source,
         restaurants!recommended_restaurant_id (
           name, address, cuisine_type, google_rating, google_review_count,
           price_level, noise_level, best_for_oneliner,
@@ -872,7 +871,7 @@ async function openQueryDetail(queryId) {
     if (error || !query) {
       const fallback = await sbClient
         .from('user_queries')
-        .select('id, special_request, occasion, price_level, neighborhood_id, donde_match, created_at, recommended_restaurant_id, response_time_ms, was_fallback, claude_relevance_score, exclude_count, unmatched_keywords, recommendation_text, source')
+        .select('id, special_request, occasion, price_level, neighborhood_id, donde_match, created_at, recommended_restaurant_id, response_time_ms, was_fallback, claude_relevance_score, exclude_count, unmatched_keywords, source')
         .eq('id', queryId)
         .single();
       query = fallback.data;
@@ -952,11 +951,6 @@ async function openQueryDetail(queryId) {
       ${query.unmatched_keywords && query.unmatched_keywords.length > 0 ? `<div class="cc-query-panel__section">
         <div class="cc-query-panel__label">Unmatched Keywords</div>
         <div class="cc-query-panel__val">${query.unmatched_keywords.map(k => '<span class="cc-keyword-pill cc-keyword-pill--unmatched">' + escapeHtml(k) + '</span>').join(' ')}</div>
-      </div>` : ''}
-
-      ${query.recommendation_text ? `<div class="cc-query-panel__section">
-        <div class="cc-query-panel__label">Recommendation Blurb</div>
-        <div class="cc-query-panel__val cc-query-panel__blurb">${escapeHtml(query.recommendation_text)}</div>
       </div>` : ''}
     `;
   } catch (e) {
