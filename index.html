@@ -456,6 +456,8 @@
                     <div class="result-header">
                       <h2 class="result-name type-emotional--md" id="result-name" tabindex="-1"></h2>
                     </div>
+                    <!-- Cuisine + Open/Closed context row (Tier 1) -->
+                    <div class="glance-context" id="glance-context"></div>
                     <div class="quick-actions" id="quick-actions"></div>
                     <!-- Compact navigation pill (address → maps) — directly below action buttons -->
                     <div class="glance-nav" id="glance-nav" style="display: none;"></div>
@@ -471,6 +473,9 @@
 
                 <!-- Match Signal — strongest factor callout (trust layer) -->
                 <p class="match-signal type-data--sm" id="match-signal" style="display: none;" aria-label="Match signal"></p>
+
+                <!-- User query echo — what you asked for -->
+                <p class="craving-echo type-data--sm" id="craving-echo"></p>
 
                 <!-- DondeAI Recommendation — THE editorial voice -->
                 <div class="donde-blurb" id="donde-blurb">
@@ -544,39 +549,38 @@
                 <span class="tell-more-btn__arrow">&#8595;</span>
               </button>
 
-              <!-- ══════ V10 CARD FOOTER — Compact 2-Row: Going + Try Another | Feedback + Start Over ══════ -->
+              <!-- ══════ CARD FOOTER — Row 1: Feedback + Going | Row 2: Try Another + Start Over ══════ -->
               <div class="card-footer" id="card-footer">
-                <!-- ROW 1: PRIMARY — Going + Try Another side by side -->
-                <div class="card-footer__primary-row">
+                <!-- ROW 1: Feedback icons flanking "I'm Going Here" -->
+                <div class="card-footer__action-row">
+                  <button class="feedback-btn feedback-btn--dislike" data-action="feedback" data-feedback="dislike" aria-label="Not for me">
+                    <svg viewBox="0 0 256 256" width="16" height="16" style="transform:rotate(180deg)"><path fill="currentColor" d="M231.82,89.71A8,8,0,0,0,224,84H168V32a8,8,0,0,0-13.66-5.66l-96,96A8,8,0,0,0,56,128v80a8,8,0,0,0,8,8h96a8,8,0,0,0,7.16-4.42l40-80A8,8,0,0,0,231.82,89.71Z"/></svg>
+                  </button>
+                  <button class="feedback-btn feedback-btn--like" data-action="feedback" data-feedback="like" aria-label="I like this recommendation">
+                    <svg viewBox="0 0 256 256" width="16" height="16"><path fill="currentColor" d="M231.82,89.71A8,8,0,0,0,224,84H168V32a8,8,0,0,0-13.66-5.66l-96,96A8,8,0,0,0,56,128v80a8,8,0,0,0,8,8h96a8,8,0,0,0,7.16-4.42l40-80A8,8,0,0,0,231.82,89.71Z"/></svg>
+                  </button>
                   <button class="going-btn type-structural" id="going-btn" data-action="going" aria-label="I'm going here">
                     <svg class="going-btn__icon" viewBox="0 0 256 256" width="20" height="20" aria-hidden="true">
                       <path fill="currentColor" d="M128,16a88.1,88.1,0,0,0-88,88c0,75.3,80,132.17,83.41,134.55a8,8,0,0,0,9.18,0C136,236.17,216,179.3,216,104A88.1,88.1,0,0,0,128,16Zm0,56a32,32,0,1,1-32,32A32,32,0,0,1,128,72Z"/>
                     </svg>
                     <span class="going-btn__text" data-label="goingHere">I'm Going Here!</span>
                   </button>
-                  <button class="cta-btn cta-btn--secondary cta-btn--icon type-structural" data-action="try-again" data-label="again">
-                    <span class="cta-btn__icon" id="try-again-icon"></span>
-                    <span class="cta-btn__text">Try Another</span>
+                  <button class="feedback-btn feedback-btn--bookmark" data-action="bookmark" aria-label="Save this spot" id="bookmark-btn">
+                    <svg class="bookmark-icon bookmark-icon--outline" viewBox="0 0 256 256" width="16" height="16"><path fill="currentColor" d="M178,44c-21.44,0-39.92,10.19-50,27.07C117.92,54.19,99.44,44,78,44a58.07,58.07,0,0,0-58,58c0,28.59,18,58.47,53.4,88.79a333.81,333.81,0,0,0,52.7,36.73,4,4,0,0,0,3.8,0,333.81,333.81,0,0,0,52.7-36.73C218,160.47,236,130.59,236,102A58.07,58.07,0,0,0,178,44ZM128,219.42c-14-8-100-59.35-100-117.42A50.06,50.06,0,0,1,78,52c21.11,0,38.85,11.31,46.3,29.51a4,4,0,0,0,7.4,0C139.15,63.31,156.89,52,178,52a50.06,50.06,0,0,1,50,50C228,160,142,211.46,128,219.42Z"/></svg>
+                    <svg class="bookmark-icon bookmark-icon--filled" viewBox="0 0 256 256" width="16" height="16" style="display:none"><path fill="currentColor" d="M178,44c-21.44,0-39.92,10.19-50,27.07C117.92,54.19,99.44,44,78,44a58.07,58.07,0,0,0-58,58c0,28.59,18,58.47,53.4,88.79a333.81,333.81,0,0,0,52.7,36.73,4,4,0,0,0,3.8,0,333.81,333.81,0,0,0,52.7-36.73C218,160.47,236,130.59,236,102A58.07,58.07,0,0,0,178,44Z"/></svg>
                   </button>
                 </div>
 
-                <!-- ROW 2: SECONDARY — Feedback icons + Start Over -->
-                <div class="card-footer__secondary-row">
-                  <div class="feedback-row" id="feedback-row">
-                    <button class="feedback-btn feedback-btn--like" data-action="feedback" data-feedback="like" aria-label="I like this recommendation">
-                      <svg viewBox="0 0 256 256" width="16" height="16"><path fill="currentColor" d="M231.82,89.71A8,8,0,0,0,224,84H168V32a8,8,0,0,0-13.66-5.66l-96,96A8,8,0,0,0,56,128v80a8,8,0,0,0,8,8h96a8,8,0,0,0,7.16-4.42l40-80A8,8,0,0,0,231.82,89.71Z"/></svg>
-                    </button>
-                    <button class="feedback-btn feedback-btn--dislike" data-action="feedback" data-feedback="dislike" aria-label="Not for me">
-                      <svg viewBox="0 0 256 256" width="16" height="16" style="transform:rotate(180deg)"><path fill="currentColor" d="M231.82,89.71A8,8,0,0,0,224,84H168V32a8,8,0,0,0-13.66-5.66l-96,96A8,8,0,0,0,56,128v80a8,8,0,0,0,8,8h96a8,8,0,0,0,7.16-4.42l40-80A8,8,0,0,0,231.82,89.71Z"/></svg>
-                    </button>
-                    <button class="feedback-btn feedback-btn--bookmark" data-action="bookmark" aria-label="Save this spot" id="bookmark-btn">
-                      <svg class="bookmark-icon bookmark-icon--outline" viewBox="0 0 256 256" width="16" height="16"><path fill="currentColor" d="M178,44c-21.44,0-39.92,10.19-50,27.07C117.92,54.19,99.44,44,78,44a58.07,58.07,0,0,0-58,58c0,28.59,18,58.47,53.4,88.79a333.81,333.81,0,0,0,52.7,36.73,4,4,0,0,0,3.8,0,333.81,333.81,0,0,0,52.7-36.73C218,160.47,236,130.59,236,102A58.07,58.07,0,0,0,178,44ZM128,219.42c-14-8-100-59.35-100-117.42A50.06,50.06,0,0,1,78,52c21.11,0,38.85,11.31,46.3,29.51a4,4,0,0,0,7.4,0C139.15,63.31,156.89,52,178,52a50.06,50.06,0,0,1,50,50C228,160,142,211.46,128,219.42Z"/></svg>
-                      <svg class="bookmark-icon bookmark-icon--filled" viewBox="0 0 256 256" width="16" height="16" style="display:none"><path fill="currentColor" d="M178,44c-21.44,0-39.92,10.19-50,27.07C117.92,54.19,99.44,44,78,44a58.07,58.07,0,0,0-58,58c0,28.59,18,58.47,53.4,88.79a333.81,333.81,0,0,0,52.7,36.73,4,4,0,0,0,3.8,0,333.81,333.81,0,0,0,52.7-36.73C218,160.47,236,130.59,236,102A58.07,58.07,0,0,0,178,44Z"/></svg>
-                    </button>
-                  </div>
-                  <button class="cta-btn cta-btn--neutral cta-btn--icon type-structural" data-action="reset" id="start-over-btn">
-                    <span class="cta-btn__icon" id="start-over-icon"></span>
-                    <span class="cta-btn__text">Start Over</span>
+                <!-- ROW 2: Try Another + Start Over as split button -->
+                <div class="card-footer__nav-row">
+                  <button class="try-again-btn type-structural" data-action="try-again" data-label="again">
+                    <span class="try-again-btn__icon" id="try-again-icon"></span>
+                    <span class="try-again-btn__text">Try Another</span>
+                  </button>
+                  <span class="nav-row__divider" aria-hidden="true"></span>
+                  <button class="start-over-btn type-structural" data-action="reset" id="start-over-btn">
+                    <span class="start-over-btn__icon" id="start-over-icon"></span>
+                    <span class="start-over-btn__text">Start Over</span>
                   </button>
                 </div>
               </div>
