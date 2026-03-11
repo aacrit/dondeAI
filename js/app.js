@@ -1169,6 +1169,7 @@ function wireEvents() {
       case 'open-cuisine-drawer': {
         const $drawer = document.getElementById('cuisine-drawer');
         const $backdrop = document.getElementById('cuisine-drawer-backdrop');
+        console.log('[Cuisine Drawer] open-cuisine-drawer fired', { drawer: !!$drawer, data: !!_pendingResultData, deepContext: !!_pendingResultData?.deep_context });
         if ($drawer && _pendingResultData) {
           haptic(HAPTICS.drawerOpen);
           renderCuisineDrawer(_pendingResultData);
@@ -1178,6 +1179,8 @@ function wireEvents() {
             $backdrop.style.display = '';
             requestAnimationFrame(() => $backdrop.classList.add('cuisine-drawer__backdrop--visible'));
           }
+        } else {
+          console.warn('[Cuisine Drawer] Cannot open — missing:', { drawer: !!$drawer, pendingData: !!_pendingResultData });
         }
         break;
       }
@@ -3110,6 +3113,15 @@ function renderGlanceContext(data) {
     }
 
     $ctx.appendChild(pill);
+  } else if (r.best_times?.length) {
+    // Fallback: show meal periods when Google hours unavailable
+    const pill = document.createElement('span');
+    pill.className = 'glance-context__pill glance-context__pill--static type-data--sm';
+    const times = r.best_times.slice(0, 2).map(t =>
+      t.charAt(0).toUpperCase() + t.slice(1).toLowerCase()
+    ).join(' · ');
+    pill.innerHTML = `${svgIcon('clock', 11)} ${times}`;
+    $ctx.appendChild(pill);
   }
 }
 
@@ -4348,6 +4360,7 @@ function renderCuisineDrawer(data) {
   const dp = data.deep_context || {};
   const $drawer = document.getElementById('cuisine-drawer');
   if (!$drawer) return;
+  console.log('[Cuisine Drawer] Rendering with:', { dishes: dp.signature_dishes?.length || 0, highlights: dp.menu_highlights?.length || 0, flavors: dp.flavor_profiles?.length || 0 });
 
   // Set cuisine label
   const $label = document.getElementById('cuisine-drawer-label');
