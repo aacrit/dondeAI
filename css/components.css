@@ -5389,6 +5389,25 @@
   flex-shrink: 0;
 }
 
+/* Prominent Start Over — replaces exhausted Try Again */
+.start-over-link--prominent {
+  flex: none;
+  width: 100%;
+  justify-content: center;
+  opacity: 1;
+  color: var(--fg1);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  padding: var(--space-xs) var(--space-md);
+  border: 2px solid var(--ac);
+  border-radius: var(--radius-pill);
+  background: var(--bg2);
+}
+.start-over-link--prominent:hover {
+  background: var(--ac);
+  color: var(--bg1);
+}
+
 /* ---- Visited Spots (landing page) ---- */
 .visited-spots {
   padding-top: var(--space-sm);
