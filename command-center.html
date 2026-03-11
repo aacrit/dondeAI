@@ -448,13 +448,31 @@
     <!-- ═══ Tab Panel: ISSUES ═══ -->
     <div class="cc-tab-panel" id="panel-issues" role="tabpanel">
 
-      <!-- Summary Strip -->
-      <div class="cc-issues-summary" id="issues-summary">
-        <span class="cc-issues-badge cc-issues-badge--p0" id="issues-p0-count">P0: 0</span>
-        <span class="cc-issues-badge cc-issues-badge--p1" id="issues-p1-count">P1: 0</span>
-        <span class="cc-issues-badge cc-issues-badge--p2" id="issues-p2-count">P2: 0</span>
-        <span class="cc-issues-badge cc-issues-badge--fixed" id="issues-fixed-count" style="display:none">Fixed: 0</span>
-        <button class="cc-btn cc-btn--xs cc-issues-export" onclick="exportIssues()" title="Export CSV">Export</button>
+      <!-- Smart Insight Banner -->
+      <div class="cc-issues-insight" id="issues-insight" style="display:none">
+        <span class="cc-issues-insight__icon">&#128161;</span>
+        <span class="cc-issues-insight__text" id="issues-insight-text"></span>
+        <button class="cc-btn cc-btn--xs cc-issues-insight__action" id="issues-insight-action" style="display:none"></button>
+        <button class="cc-issues-insight__dismiss" onclick="dismissInsight()">&times;</button>
+      </div>
+
+      <!-- Executive Summary Cards -->
+      <div class="cc-issues-executive" id="issues-executive">
+        <div class="cc-issues-card cc-issues-card--critical" onclick="setIssueFilter('severity','P0')" role="button" tabindex="0">
+          <div class="cc-issues-card__count" id="exec-critical-count">0</div>
+          <div class="cc-issues-card__label">Critical</div>
+          <div class="cc-issues-card__trend" id="exec-critical-trend"></div>
+        </div>
+        <div class="cc-issues-card cc-issues-card--warning" onclick="setIssueFilter('severity','P1')" role="button" tabindex="0">
+          <div class="cc-issues-card__count" id="exec-warning-count">0</div>
+          <div class="cc-issues-card__label">Warning</div>
+          <div class="cc-issues-card__trend" id="exec-warning-trend"></div>
+        </div>
+        <div class="cc-issues-card cc-issues-card--resolved" onclick="setIssueFilter('status','fixed')" role="button" tabindex="0">
+          <div class="cc-issues-card__count" id="exec-resolved-count">0</div>
+          <div class="cc-issues-card__label">Resolved</div>
+          <div class="cc-issues-card__trend" id="exec-resolved-trend"></div>
+        </div>
       </div>
 
       <!-- Retest Progress (hidden by default) -->
@@ -491,18 +509,22 @@
         </div>
       </div>
 
-      <!-- Bulk Actions -->
-      <div class="cc-issues-bulk" id="issues-bulk">
-        <label class="cc-issues-select-all">
-          <input type="checkbox" id="issues-select-all" onchange="toggleSelectAllIssues(this.checked)">
-          <span id="issues-selected-count">0 selected</span>
-        </label>
-        <button class="cc-btn cc-btn--primary" id="issues-bulk-copy" onclick="copyBulkFixPrompt()" style="display:none">
-          Copy Bulk Fix Prompt
-        </button>
-        <button class="cc-btn cc-btn--accent" id="issues-bulk-retest" onclick="retestSelectedIssues()" style="display:none">
-          Retest Selected
-        </button>
+      <!-- Quick Action Bar -->
+      <div class="cc-issues-action-bar" id="issues-action-bar">
+        <div class="cc-issues-action-bar__left">
+          <label class="cc-issues-select-all">
+            <input type="checkbox" id="issues-select-all" onchange="toggleSelectAllIssues(this.checked)">
+            <span id="issues-selected-count">0 selected</span>
+          </label>
+          <span class="cc-issues-action-bar__count" id="issues-visible-count"></span>
+        </div>
+        <div class="cc-issues-action-bar__right">
+          <button class="cc-btn cc-btn--sm cc-btn--danger" onclick="retestAllCritical()" id="retest-all-critical" title="Retest all P0 issues">Retest Critical</button>
+          <button class="cc-btn cc-btn--sm" onclick="copyAllFixPrompts()" title="Copy fix prompts for all open issues">Copy All Fixes</button>
+          <button class="cc-btn cc-btn--sm" onclick="exportIssues()" title="Export as CSV">Export</button>
+          <button class="cc-btn cc-btn--primary cc-btn--sm" id="issues-bulk-copy" onclick="copyBulkFixPrompt()" style="display:none">Copy Selected</button>
+          <button class="cc-btn cc-btn--accent cc-btn--sm" id="issues-bulk-retest" onclick="retestSelectedIssues()" style="display:none">Retest Selected</button>
+        </div>
       </div>
 
       <!-- Issue List -->
@@ -535,6 +557,17 @@
     <span class="cc-ticker__stat">DM: <span class="cc-ticker__val" id="ticker-dm">--</span></span>
     <span class="cc-ticker__stat">Gaps: <span class="cc-ticker__val" id="ticker-gaps">0</span></span>
   </div>
+
+  <!-- ═══ Terminal FAB Toggle ═══ -->
+  <button class="cc-terminal-fab" id="terminal-fab" onclick="toggleTerminal()" title="Toggle Terminal (T)">
+    <svg class="cc-terminal-fab__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>
+    </svg>
+    <svg class="cc-terminal-fab__close" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+    </svg>
+    <span class="cc-terminal-fab__badge" id="terminal-badge"></span>
+  </button>
 
   <!-- ═══ Dark Pulse Flash ═══ -->
   <div class="cc-pulse-flash" id="dark-pulse" style="display:none"></div>

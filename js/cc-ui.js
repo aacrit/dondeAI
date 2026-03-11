@@ -782,6 +782,9 @@ function initKeyboardShortcuts() {
         if (e.key === 'h' && !e.shiftKey) break; // only ? and H
         toggleShortcuts();
         break;
+      case 't':
+        if (typeof toggleTerminal === 'function') toggleTerminal();
+        break;
       case 'Escape':
         closeQueryPanel();
         closeShortcuts();
@@ -995,101 +998,399 @@ function closeQueryPanel() {
 // Issues Triage Tab
 // ═══════════════════════════════════════════════════════════════════
 
+// ─── Root-Cause Grouping ───
+
+const ROOT_CAUSE_GROUPS = [
+  { key: 'intent',            label: 'Intent Gaps',    icon: '\uD83C\uDFAF', desc: 'Engine misunderstood user intent' },
+  { key: 'scoring',           label: 'Scoring Gaps',   icon: '\uD83D\uDCCA', desc: 'Right restaurant, wrong score' },
+  { key: 'relevance_ceiling', label: 'Data Gaps',      icon: '\uD83D\uDCC1', desc: 'Missing data limited the match' },
+  { key: '_other',            label: 'Low Performers',  icon: '\uD83D\uDCC9', desc: 'Generally weak matches' },
+];
+
+function groupIssuesByRootCause(issues) {
+  const groups = new Map();
+  for (const g of ROOT_CAUSE_GROUPS) {
+    groups.set(g.key, { ...g, issues: [], totalDm: 0 });
+  }
+  for (const issue of issues) {
+    const key = groups.has(issue.gapType) ? issue.gapType : '_other';
+    const group = groups.get(key);
+    group.issues.push(issue);
+    group.totalDm += (issue.dm || 0);
+  }
+  // Sort issues within each group: severity then DM
+  const sevOrder = { P0: 0, P1: 1, P2: 2 };
+  for (const group of groups.values()) {
+    group.issues.sort((a, b) => (sevOrder[a.severity] || 9) - (sevOrder[b.severity] || 9) || a.dm - b.dm);
+    group.avgDm = group.issues.length ? Math.round(group.totalDm / group.issues.length) : 0;
+  }
+  return groups;
+}
+
+// ─── Factor Mini-Bar Helper ───
+
+function factorBarColor(val) {
+  if (val == null) return 'red';
+  if (val >= 7) return 'green';
+  if (val >= 5) return 'amber';
+  return 'red';
+}
+
+function renderFactorBars(factors) {
+  if (!factors) return '';
+  const bars = [
+    { label: 'F', val: factors.food },
+    { label: 'V', val: factors.vibe },
+    { label: 'S', val: factors.service },
+    { label: 'R', val: factors.reputation },
+    { label: 'C', val: factors.convenience },
+  ];
+  return `<div class="cc-issue__factors-bars">${bars.map(b => {
+    const v = b.val != null ? b.val : 0;
+    const pct = Math.min(100, Math.round(v * 10));
+    const color = factorBarColor(b.val);
+    return `<div class="cc-factor-bar" title="${b.label}: ${b.val != null ? r1(b.val) : '--'}">
+      <span class="cc-factor-bar__label">${b.label}</span>
+      <div class="cc-factor-bar__track"><div class="cc-factor-bar__fill cc-factor-bar--${color}" style="width:${pct}%"></div></div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+// ─── Trend Badge Helper ───
+
+function renderTrendBadge(issue) {
+  if (issue.deltaDm != null && issue.deltaDm !== 0) {
+    if (issue.deltaDm > 0) return `<span class="cc-issue__trend cc-issue__trend--up">\u25B2 +${issue.deltaDm}</span>`;
+    return `<span class="cc-issue__trend cc-issue__trend--down">\u25BC ${issue.deltaDm}</span>`;
+  }
+  if (issue.isNew) return `<span class="cc-issue__trend cc-issue__trend--new">NEW</span>`;
+  return `<span class="cc-issue__trend cc-issue__trend--none">\u2014</span>`;
+}
+
+// ─── Issue Notes (localStorage) ───
+
+function loadIssueNotes() {
+  try {
+    const raw = localStorage.getItem('cc-issue-notes');
+    return raw ? JSON.parse(raw) : {};
+  } catch (_) { return {}; }
+}
+
+function saveIssueNote(idx, text) {
+  const issue = state.issues?.[idx];
+  if (!issue) return;
+  const notes = loadIssueNotes();
+  const key = issue.query.toLowerCase().trim();
+  if (text.trim()) {
+    notes[key] = text.trim();
+  } else {
+    delete notes[key];
+  }
+  try { localStorage.setItem('cc-issue-notes', JSON.stringify(notes)); } catch (_) {}
+}
+
+// ─── Status Toggle ───
+
+function toggleIssueStatus(idx) {
+  const issue = state.issues?.[idx];
+  if (!issue) return;
+  const cycle = { open: 'in_progress', in_progress: 'fixed', fixed: 'open' };
+  issue.status = cycle[issue.status || 'open'] || 'open';
+  saveIssueStatuses();
+  applyIssueFilters();
+}
+
+// ─── Expand/Collapse ───
+
+function toggleIssueExpand(idx, event) {
+  // Don't toggle if clicking buttons, checkboxes, inputs, or links
+  if (event && event.target.closest('button, input, a, textarea, label')) return;
+  const card = document.querySelector(`.cc-issue[data-idx="${idx}"]`);
+  if (card) card.classList.toggle('cc-issue--expanded');
+}
+
+// ─── Executive Summary ───
+
+function updateExecutiveSummary(allIssues) {
+  const p0 = allIssues.filter(i => i.severity === 'P0' && i.status !== 'fixed').length;
+  const p1 = allIssues.filter(i => i.severity === 'P1' && i.status !== 'fixed').length;
+  const resolved = allIssues.filter(i => i.status === 'fixed' || i.status === 'improved').length;
+
+  // Load previous counts for trend
+  let prev = { p0: 0, p1: 0, resolved: 0 };
+  try {
+    const raw = localStorage.getItem('cc-issue-prev-counts');
+    if (raw) prev = JSON.parse(raw);
+  } catch (_) {}
+
+  const setCount = (id, val) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (el.textContent !== String(val)) {
+      el.textContent = val;
+      el.classList.remove('cc-issues-card__count--pop');
+      void el.offsetWidth;
+      el.classList.add('cc-issues-card__count--pop');
+    }
+  };
+
+  setCount('exec-critical-count', p0);
+  setCount('exec-warning-count', p1);
+  setCount('exec-resolved-count', resolved);
+
+  // Trend text
+  const setTrend = (id, current, previous, invert) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const delta = current - previous;
+    if (delta === 0 || !previous) {
+      el.textContent = '';
+      el.className = 'cc-issues-card__trend';
+      return;
+    }
+    // For critical/warning: decrease is good (invert=true). For resolved: increase is good.
+    const isGood = invert ? delta < 0 : delta > 0;
+    const arrow = delta > 0 ? '\u25B2' : '\u25BC';
+    el.textContent = `${arrow} ${Math.abs(delta)} from last`;
+    el.className = `cc-issues-card__trend cc-issues-card__trend--${isGood ? 'up' : 'down'}`;
+  };
+
+  setTrend('exec-critical-trend', p0, prev.p0, true);
+  setTrend('exec-warning-trend', p1, prev.p1, true);
+  setTrend('exec-resolved-trend', resolved, prev.resolved, false);
+}
+
+function snapshotIssueCounts() {
+  if (!state.issues) return;
+  const p0 = state.issues.filter(i => i.severity === 'P0' && i.status !== 'fixed').length;
+  const p1 = state.issues.filter(i => i.severity === 'P1' && i.status !== 'fixed').length;
+  const resolved = state.issues.filter(i => i.status === 'fixed' || i.status === 'improved').length;
+  try {
+    localStorage.setItem('cc-issue-prev-counts', JSON.stringify({ p0, p1, resolved, ts: Date.now() }));
+  } catch (_) {}
+}
+
+// ─── Action Bar Count ───
+
+function updateActionBarCount(issues) {
+  const el = document.getElementById('issues-visible-count');
+  if (!el) return;
+  const critical = issues.filter(i => i.severity === 'P0' && i.status !== 'fixed').length;
+  el.textContent = `${issues.length} issue${issues.length !== 1 ? 's' : ''}${critical ? ' \xB7 ' + critical + ' critical' : ''}`;
+}
+
+// ─── Smart Insight ───
+
+function generateIssueInsight(issues) {
+  const el = document.getElementById('issues-insight');
+  const textEl = document.getElementById('issues-insight-text');
+  const actionEl = document.getElementById('issues-insight-action');
+  if (!el || !textEl) return;
+
+  // Dismissed this session?
+  if (state.insightDismissed) { el.style.display = 'none'; return; }
+
+  const open = issues.filter(i => !i.status || i.status === 'open');
+  const critical = open.filter(i => i.severity === 'P0');
+  if (open.length === 0) {
+    textEl.textContent = 'All clear! No open issues detected.';
+    el.style.display = '';
+    if (actionEl) actionEl.style.display = 'none';
+    return;
+  }
+
+  // Count by gapType
+  const typeCounts = {};
+  for (const i of critical.length ? critical : open) {
+    typeCounts[i.gapType] = (typeCounts[i.gapType] || 0) + 1;
+  }
+  const sorted = Object.entries(typeCounts).sort((a, b) => b[1] - a[1]);
+  const top = sorted[0];
+
+  // Check for improvements from previous snapshot
+  let prev = null;
+  try { prev = JSON.parse(localStorage.getItem('cc-issue-prev-counts')); } catch (_) {}
+
+  if (prev && prev.resolved != null) {
+    const currentResolved = issues.filter(i => i.status === 'fixed' || i.status === 'improved').length;
+    const delta = currentResolved - (prev.resolved || 0);
+    if (delta > 0) {
+      textEl.textContent = `Great progress! ${delta} issue${delta !== 1 ? 's' : ''} resolved since last run.`;
+      el.style.display = '';
+      if (actionEl) actionEl.style.display = 'none';
+      return;
+    }
+  }
+
+  // Dominant gap type insight
+  if (top && top[1] > 1) {
+    const label = ROOT_CAUSE_GROUPS.find(g => g.key === top[0])?.label || top[0];
+    const total = critical.length || open.length;
+    const pct = Math.round((top[1] / total) * 100);
+    if (pct >= 40) {
+      textEl.textContent = `${label} are your weakest area \u2014 ${top[1]} of ${total} ${critical.length ? 'critical' : 'open'} issues.`;
+      el.style.display = '';
+      if (actionEl) actionEl.style.display = 'none';
+      return;
+    }
+  }
+
+  // Fallback
+  textEl.textContent = `${open.length} open issue${open.length !== 1 ? 's' : ''}, ${critical.length} critical. Focus on ${ROOT_CAUSE_GROUPS.find(g => g.key === (top?.[0]))?.label || 'top issues'} for most impact.`;
+  el.style.display = '';
+  if (actionEl) actionEl.style.display = 'none';
+}
+
+function dismissInsight() {
+  state.insightDismissed = true;
+  const el = document.getElementById('issues-insight');
+  if (el) el.style.display = 'none';
+}
+
+// ─── Retest All Critical ───
+
+async function retestAllCritical() {
+  if (!state.issues || state.retesting) return;
+  const criticalIndices = [];
+  state.issues.forEach((issue, idx) => {
+    if (issue.severity === 'P0' && (!issue.status || issue.status === 'open')) {
+      criticalIndices.push(idx);
+    }
+  });
+  if (!criticalIndices.length) {
+    if (typeof showToast === 'function') showToast('No open critical issues to retest');
+    return;
+  }
+  state.selectedIssues = new Set(criticalIndices);
+  await retestSelectedIssues();
+}
+
+// ─── Copy All Fix Prompts ───
+
+function copyAllFixPrompts() {
+  if (!state.issues) return;
+  const open = state.issues.filter(i => !i.status || i.status === 'open');
+  if (!open.length) {
+    if (typeof showToast === 'function') showToast('No open issues');
+    return;
+  }
+  const groups = groupIssuesByRootCause(open);
+  let prompt = `Fix ${open.length} DondeMatch issues:\n`;
+  for (const [, group] of groups) {
+    if (!group.issues.length) continue;
+    prompt += `\n### ${group.icon} ${group.label} (${group.issues.length}, avg DM: ${group.avgDm})\n`;
+    for (const i of group.issues) {
+      prompt += `- [${i.severity}] "${i.query}" DM:${i.dm} \u2192 ${i.restaurant} (${i.category})\n`;
+    }
+  }
+  prompt += `\nFor each issue run: ./tests/compare-scores.sh "<query>" then apply fix.\n`;
+  navigator.clipboard?.writeText(prompt).then(() => {
+    if (typeof showToast === 'function') showToast(`All fix prompts copied (${open.length} issues)`);
+  }).catch(() => {
+    if (typeof showToast === 'function') showToast('Could not copy to clipboard');
+  });
+}
+
+// ─── Main Render ───
+
 function renderIssues(issues) {
   const list = document.getElementById('issues-list');
   if (!list) return;
 
+  const allIssues = state.issues || issues;
+
+  // Update executive summary + action bar + insight
+  updateExecutiveSummary(allIssues);
+  updateActionBarCount(issues);
+  generateIssueInsight(allIssues);
+
   if (!issues || issues.length === 0) {
     list.innerHTML = '<div class="cc-empty-state"><div class="cc-empty-state__icon">&#9989;</div><div class="cc-empty-state__text">No issues found. System is healthy!</div></div>';
-    const allIssues = state.issues || [];
-    const fixedAll = allIssues.filter(i => i.status === 'fixed').length;
-    updateIssueSummary(0, 0, 0, fixedAll);
     return;
   }
 
-  // Count by severity (from all issues, not just filtered)
-  const allIssues = state.issues || issues;
-  const p0 = allIssues.filter(i => i.severity === 'P0' && i.status !== 'fixed').length;
-  const p1 = allIssues.filter(i => i.severity === 'P1' && i.status !== 'fixed').length;
-  const p2 = allIssues.filter(i => i.severity === 'P2' && i.status !== 'fixed').length;
-  const fixed = allIssues.filter(i => i.status === 'fixed').length;
-  updateIssueSummary(p0, p1, p2, fixed);
+  // Load notes
+  const notes = loadIssueNotes();
 
-  let currentSev = null;
+  // Group by root cause
+  const groups = groupIssuesByRootCause(issues);
   let html = '';
 
-  for (let idx = 0; idx < issues.length; idx++) {
-    const i = issues[idx];
-    // Severity group header
-    if (i.severity !== currentSev) {
-      currentSev = i.severity;
-      html += `<div class="cc-issues-group-header cc-issues-group-header--${i.severity.toLowerCase()}">${i.severity} Issues</div>`;
+  for (const [, group] of groups) {
+    if (!group.issues.length) continue;
+
+    html += `<div class="cc-issues-group" data-group="${group.key}">`;
+    html += `<div class="cc-issues-group__header" onclick="toggleIssueGroup(this)">
+      <span class="cc-issues-group__chevron">\u25BC</span>
+      <span class="cc-issues-group__icon">${group.icon}</span>
+      <span class="cc-issues-group__label">${group.label}</span>
+      <span class="cc-issues-group__count">${group.issues.length}</span>
+      <span class="cc-issues-group__avg-dm">avg DM: ${group.avgDm}</span>
+    </div>`;
+    html += `<div class="cc-issues-group__body">`;
+
+    for (const i of group.issues) {
+      const idx = allIssues.indexOf(i);
+      const sourceLabel = i.source === 'test' ? `Test ${i.sourceDetail || ''}` : `Prod ${i.sourceDetail || ''}`;
+      const statusClass = i.status === 'fixed' ? 'cc-issue--fixed' : i.status === 'improved' ? 'cc-issue--improved' : '';
+      const statusBadge = i.status === 'fixed'
+        ? `<span class="cc-issue__status cc-issue__status--fixed">Fixed (DM ${i.retestDm})</span>`
+        : i.status === 'improved'
+        ? `<span class="cc-issue__status cc-issue__status--improved">Improved (${i.dm} \u2192 ${i.retestDm})</span>`
+        : i.status === 'regressed'
+        ? `<span class="cc-issue__status cc-issue__status--regressed">Regressed (${i.dm} \u2192 ${i.retestDm})</span>`
+        : '';
+
+      const trendBadge = renderTrendBadge(i);
+      const noteKey = i.query.toLowerCase().trim();
+      const noteVal = notes[noteKey] || '';
+
+      // Status badge class for cycling
+      const statusCycleClass = i.status === 'in_progress' ? 'cc-issue__severity--in-progress' : '';
+
+      html += `
+        <div class="cc-issue ${statusClass}" data-idx="${idx}" data-severity="${i.severity}" data-type="${i.gapType}" data-source="${i.source}" data-status="${i.status || 'open'}" onclick="toggleIssueExpand(${idx}, event)">
+          <div class="cc-issue__top">
+            <label class="cc-issue__check">
+              <input type="checkbox" data-issue-idx="${idx}" onchange="toggleIssueSelect(${idx}, this.checked)">
+            </label>
+            <span class="cc-issue__dm ${ragClass(i.dm)}">${i.dm}</span>
+            <span class="cc-issue__query">"${escapeHtml(i.query)}"</span>
+            <span class="cc-issue__severity cc-issues-badge--${i.severity.toLowerCase()} cc-issue__severity--clickable ${statusCycleClass}" onclick="event.stopPropagation(); toggleIssueStatus(${idx})" title="Click to cycle status">${i.status === 'in_progress' ? 'WIP' : i.severity}</span>
+            ${trendBadge}
+            ${statusBadge}
+          </div>
+          <div class="cc-issue__details">
+            <div class="cc-issue__meta">
+              <span>${escapeHtml(i.restaurant)}</span>
+              <span class="cc-issue__sep">&middot;</span>
+              <span>${escapeHtml(i.category)}</span>
+              <span class="cc-issue__sep">&middot;</span>
+              <span>${sourceLabel}</span>
+            </div>
+            <span class="cc-issue__gap-type">${escapeHtml(i.gapType)}</span>
+            ${renderFactorBars(i.factors)}
+            <div class="cc-issue__fix">
+              <span class="cc-issue__fix-text">${escapeHtml(i.fixAction)}</span>
+              <button class="cc-btn cc-btn--sm" onclick="copyFixPrompt(${idx})">Copy Fix</button>
+              <button class="cc-btn cc-btn--sm cc-btn--retest" onclick="retestIssue(${idx})" ${i.status === 'fixed' ? 'disabled' : ''}>Retest</button>
+              <button class="cc-btn cc-btn--xs" onclick="openDeepDive('issue', state.issues[${idx}])">History</button>
+            </div>
+            <textarea class="cc-issue__note" rows="1" placeholder="Add a note..." onchange="saveIssueNote(${idx}, this.value)" onclick="event.stopPropagation()">${escapeHtml(noteVal)}</textarea>
+          </div>
+        </div>
+      `;
     }
 
-    const factors = i.factors
-      ? `<div class="cc-issue__factors">F:${r1(i.factors.food)} V:${r1(i.factors.vibe)} S:${r1(i.factors.service)} R:${r1(i.factors.reputation)} C:${r1(i.factors.convenience)}</div>`
-      : '';
-
-    const sourceLabel = i.source === 'test'
-      ? `Test ${i.sourceDetail || ''}`
-      : `Prod ${i.sourceDetail || ''}`;
-
-    const statusClass = i.status === 'fixed' ? 'cc-issue--fixed' : i.status === 'improved' ? 'cc-issue--improved' : '';
-    const statusBadge = i.status === 'fixed'
-      ? `<span class="cc-issue__status cc-issue__status--fixed">Fixed (DM ${i.retestDm})</span>`
-      : i.status === 'improved'
-      ? `<span class="cc-issue__status cc-issue__status--improved">Improved (${i.dm} → ${i.retestDm})</span>`
-      : i.status === 'regressed'
-      ? `<span class="cc-issue__status cc-issue__status--regressed">Regressed (${i.dm} → ${i.retestDm})</span>`
-      : '';
-
-    html += `
-      <div class="cc-issue ${statusClass}" data-idx="${idx}" data-severity="${i.severity}" data-type="${i.gapType}" data-source="${i.source}" data-status="${i.status || 'open'}">
-        <div class="cc-issue__top">
-          <label class="cc-issue__check">
-            <input type="checkbox" data-issue-idx="${idx}" onchange="toggleIssueSelect(${idx}, this.checked)">
-          </label>
-          <span class="cc-issue__dm ${ragClass(i.dm)}">${i.dm}</span>
-          <span class="cc-issue__query">"${escapeHtml(i.query)}"</span>
-          <span class="cc-issue__gap-type">${escapeHtml(i.gapType)}</span>
-          <span class="cc-issue__severity cc-issues-badge--${i.severity.toLowerCase()}">${i.severity}</span>
-          ${statusBadge}
-        </div>
-        <div class="cc-issue__meta">
-          <span>${escapeHtml(i.restaurant)}</span>
-          <span class="cc-issue__sep">&middot;</span>
-          <span>${escapeHtml(i.category)}</span>
-          <span class="cc-issue__sep">&middot;</span>
-          <span>${sourceLabel}</span>
-        </div>
-        ${factors}
-        <div class="cc-issue__fix">
-          <span class="cc-issue__fix-text">${escapeHtml(i.fixAction)}</span>
-          <button class="cc-btn cc-btn--sm" onclick="copyFixPrompt(${idx})">Copy Fix</button>
-          <button class="cc-btn cc-btn--sm cc-btn--retest" onclick="retestIssue(${idx})" ${i.status === 'fixed' ? 'disabled' : ''}>Retest</button>
-          <button class="cc-btn cc-btn--xs" onclick="openDeepDive('issue', state.issues[${idx}])">History</button>
-        </div>
-      </div>
-    `;
+    html += `</div></div>`; // close body + group
   }
 
   list.innerHTML = html;
 }
 
-function updateIssueSummary(p0, p1, p2, fixed) {
-  const el = (id, text) => { const e = document.getElementById(id); if (e) e.textContent = text; };
-  el('issues-p0-count', `P0: ${p0}`);
-  el('issues-p1-count', `P1: ${p1}`);
-  el('issues-p2-count', `P2: ${p2}`);
-  const fixedEl = document.getElementById('issues-fixed-count');
-  if (fixedEl) {
-    if (fixed > 0) {
-      fixedEl.textContent = `Fixed: ${fixed}`;
-      fixedEl.style.display = '';
-    } else {
-      fixedEl.style.display = 'none';
-    }
-  }
+function toggleIssueGroup(header) {
+  const group = header.closest('.cc-issues-group');
+  if (group) group.classList.toggle('cc-issues-group--collapsed');
 }
 
 function updateIssuesBadge(issues) {

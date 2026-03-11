@@ -497,15 +497,15 @@ async function loadIssues() {
   if (!sbClient) return;
 
   try {
-    // Get latest run_id first so we only show gaps from the most recent test
-    const { data: latestRunRow } = await sbClient.from('gauntlet_runs')
+    // Get latest 2 run_ids for trend comparison
+    const { data: recentRuns } = await sbClient.from('gauntlet_runs')
       .select('run_id')
       .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
-    const latestRunId = latestRunRow?.run_id;
+      .limit(2);
+    const latestRunId = recentRuns?.[0]?.run_id;
+    const prevRunId = recentRuns?.[1]?.run_id;
 
-    // Parallel fetch: test gaps (latest run only) + prod low scores + historical data
+    // Parallel fetch: test gaps (latest run only) + prod low scores + historical data + previous run results
     const gapsQuery = sbClient.from('gauntlet_results')
       .select('query, donde_match, gap_type, gap_severity, category, restaurant_name, food, vibe, service, reputation, convenience, relevance_type, run_id')
       .not('gap_type', 'is', null)
@@ -513,7 +513,15 @@ async function loadIssues() {
       .limit(100);
     if (latestRunId) gapsQuery.eq('run_id', latestRunId);
 
-    const [gapsRes, prodRes, histRes] = await Promise.all([
+    // Previous run query for trend deltas
+    const prevQuery = prevRunId
+      ? sbClient.from('gauntlet_results')
+          .select('query, donde_match')
+          .eq('run_id', prevRunId)
+          .limit(200)
+      : Promise.resolve({ data: null });
+
+    const [gapsRes, prodRes, histRes, prevRes] = await Promise.all([
       gapsQuery,
 
       // Production low-score queries
@@ -526,7 +534,17 @@ async function loadIssues() {
 
       // Historical gap analysis
       fetch('data/gap-details.json').then(r => r.ok ? r.json() : null).catch(() => null),
+
+      prevQuery,
     ]);
+
+    // Build previous run lookup for trend computation
+    const prevDmMap = new Map();
+    if (prevRes.data) {
+      for (const r of prevRes.data) {
+        prevDmMap.set(r.query.toLowerCase().trim(), r.donde_match);
+      }
+    }
 
     const issues = [];
     const seen = new Set();
@@ -538,6 +556,7 @@ async function loadIssues() {
         if (seen.has(key)) continue;
         seen.add(key);
         const severity = g.gap_severity || classifySeverity(g.donde_match, g.gap_type);
+        const prevDm = prevDmMap.get(key);
         issues.push({
           query: g.query,
           dm: g.donde_match,
@@ -550,6 +569,9 @@ async function loadIssues() {
           factors: { food: g.food, vibe: g.vibe, service: g.service, reputation: g.reputation, convenience: g.convenience },
           relevanceType: g.relevance_type,
           fixAction: gapTypeFixAction(g.gap_type),
+          prevDm: prevDm != null ? prevDm : null,
+          deltaDm: prevDm != null ? g.donde_match - prevDm : null,
+          isNew: prevDm == null && prevRunId != null,
         });
       }
     }
@@ -575,6 +597,9 @@ async function loadIssues() {
           fixAction: 'Investigate low production score',
           responseTime: q.response_time_ms,
           wasFallback: q.was_fallback,
+          prevDm: null,
+          deltaDm: null,
+          isNew: false,
         });
       }
     }
@@ -607,6 +632,11 @@ async function loadIssues() {
       } else {
         issue.status = 'open';
       }
+    }
+
+    // Snapshot previous counts before overwriting (for executive summary trends)
+    if (state.issues && typeof snapshotIssueCounts === 'function') {
+      snapshotIssueCounts();
     }
 
     state.issues = issues;
