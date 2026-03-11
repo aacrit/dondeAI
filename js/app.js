@@ -1344,6 +1344,18 @@ function wireEvents() {
           });
           haptic(HAPTICS.tierExpand);
           renderTier2Animations();
+          // Staggered story entrance — story arrives, then tip follows
+          if (!REDUCED_MOTION.matches) {
+            const $storyBlock = document.getElementById('restaurant-story');
+            if ($storyBlock && $storyBlock.style.display !== 'none') {
+              $storyBlock.classList.add('restaurant-story--entering');
+              requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                  $storyBlock.classList.remove('restaurant-story--entering');
+                });
+              });
+            }
+          }
           setTimeout(() => {
             const $scoreHero = document.getElementById('score-hero');
             $scoreHero?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -2853,13 +2865,18 @@ function prepareTier2(data, cuisine) {
     }
 
     if ($storyTip && hasTip) {
-      // Typewriter reveal for insider tips — "friend whispering a secret" feel
+      // Fade-in reveal for insider tips — ink settling on paper
       if (!$storyTip._hasRevealed) {
         $storyTip._hasRevealed = true;
-        $storyTip.textContent = '';
-        animationTimers.push(setTimeout(() => {
-          typewriterReveal($storyTip, tipContent, 45);
-        }, 500));
+        $storyTip.textContent = tipContent;
+        if (!REDUCED_MOTION.matches) {
+          $storyTip.classList.add('story-tip--revealing');
+          animationTimers.push(setTimeout(() => {
+            requestAnimationFrame(() => {
+              $storyTip.classList.remove('story-tip--revealing');
+            });
+          }, 300));
+        }
       } else {
         $storyTip.textContent = tipContent;
       }
