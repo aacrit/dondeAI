@@ -1094,7 +1094,9 @@ function wireEvents() {
               match_narrative: nextResult.match_narrative || null,
             },
           };
+          console.log('[Try Again] Fetching fresh blurb for:', blurbRestaurant.name);
           fetchBlurb(blurbPayload).then((blurbData) => {
+            console.log('[Try Again] Blurb received:', { hasRec: !!blurbData.recommendation, len: blurbData.recommendation?.length });
             // Swap in the fresh Claude blurb with a subtle fade
             const $rec = document.getElementById('result-recommendation');
             if ($rec && blurbData.recommendation) {
@@ -4441,17 +4443,55 @@ function updateTryAgainState() {
   const $text = $btn.querySelector('.try-again-btn__text');
   if (!$text) return;
   const labels = getLabels(getState().theme.culture);
+
   if (triesLeft <= 0) {
-    $text.textContent = labels.again;
+    // Exhausted — gray out, animate down, then reveal prominent Start Over
     $btn.classList.add('try-again-btn--exhausted');
-  } else if (triesUsed > 0) {
-    // After first try, show remaining count
-    $text.textContent = `${labels.again} (${triesLeft})`;
-    $btn.classList.remove('try-again-btn--exhausted');
-  } else {
-    // Initial state — no count shown yet
+    $btn.setAttribute('aria-disabled', 'true');
     $text.textContent = labels.again;
+    // Animate try-again button out and show prominent Start Over
+    setTimeout(() => {
+      $btn.style.transition = 'opacity 400ms var(--ease-out), transform 400ms var(--ease-out)';
+      $btn.style.opacity = '0';
+      $btn.style.transform = 'translateY(8px) scale(0.95)';
+      setTimeout(() => {
+        $btn.style.display = 'none';
+        // Make Start Over prominent
+        const $startOver = document.getElementById('start-over-btn');
+        if ($startOver) {
+          $startOver.classList.add('start-over-link--prominent');
+          $startOver.style.transition = 'none';
+          $startOver.style.opacity = '0';
+          $startOver.style.transform = 'translateY(-8px)';
+          requestAnimationFrame(() => {
+            $startOver.style.transition = 'opacity 400ms var(--ease-out), transform 400ms var(--ease-out)';
+            $startOver.style.opacity = '1';
+            $startOver.style.transform = 'translateY(0)';
+          });
+        }
+      }, 400);
+    }, 100);
+  } else {
+    // Active state — show count after first use, or clean initial state
+    if (triesUsed > 0) {
+      $text.textContent = `${labels.again} (${triesLeft})`;
+    } else {
+      $text.textContent = labels.again;
+    }
     $btn.classList.remove('try-again-btn--exhausted');
+    $btn.removeAttribute('aria-disabled');
+    $btn.style.display = '';
+    $btn.style.opacity = '';
+    $btn.style.transform = '';
+    $btn.style.transition = '';
+    // Reset Start Over to default tertiary style
+    const $startOver = document.getElementById('start-over-btn');
+    if ($startOver) {
+      $startOver.classList.remove('start-over-link--prominent');
+      $startOver.style.opacity = '';
+      $startOver.style.transform = '';
+      $startOver.style.transition = '';
+    }
   }
 }
 
