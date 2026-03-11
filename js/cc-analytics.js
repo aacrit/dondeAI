@@ -210,12 +210,12 @@ async function loadLiveFeed() {
       .neq('source', 'command-center')
       .order('created_at', { ascending: false });
 
-    // Fallback: if FK join fails (or source column doesn't exist yet), load without filters
+    // Fallback: if FK join fails (or columns don't exist yet), load minimal
     if (error) {
       console.warn('Live feed FK join failed, falling back:', error.message);
       const fallback = await sbClient
         .from('user_queries')
-        .select('id, special_request, donde_match, created_at, was_fallback, response_time_ms, exclude_count, unmatched_keywords, claude_relevance_score, occasion, price_level')
+        .select('id, special_request, donde_match, created_at, was_fallback, response_time_ms')
         .order('created_at', { ascending: false });
       queries = fallback.data;
       if (fallback.error) console.error('Live feed fallback also failed:', fallback.error.message, fallback.error.hint);
