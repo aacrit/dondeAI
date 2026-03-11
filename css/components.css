@@ -3567,12 +3567,7 @@
 /* ---- Restaurant Story (merged Insider Tip + Origin) ---- */
 /* ---- Story & Insider Tip (facelift) ---- */
 .restaurant-story {
-  padding: var(--space-md) var(--space-lg);
-  background: var(--glass-tip);
-  border: 1px solid var(--border);
-  border-left: 2px solid var(--ac);
-  border-radius: var(--radius-xs, 2px) var(--radius-sm) var(--radius-sm) var(--radius-xs, 2px);
-  box-shadow: 0 1px 4px -1px hsl(0 0% 0% / 0.06);
+  padding: var(--space-xs) 0;
 }
 
 .restaurant-story__label {
@@ -3693,7 +3688,7 @@
 
 @media (max-width: 767px) {
   .restaurant-story {
-    padding: var(--space-sm) var(--space-md);
+    padding: var(--space-xs) 0;
   }
   .restaurant-story__origin {
     padding-left: var(--space-sm);
@@ -4925,7 +4920,6 @@
 /* ---- Result Block Hover Lift (desktop only) ---- */
 @media (hover: hover) {
   .result-identity,
-  .result-story,
   .score-section,
   .result-profile {
     transition: transform 200ms var(--ease-out),
@@ -4933,7 +4927,6 @@
   }
 
   .result-identity:hover,
-  .result-story:hover,
   .score-section:hover,
   .result-profile:hover {
     transform: translateY(-2px);
@@ -5007,7 +5000,6 @@
 /* ---- Reduced Motion: hover lift ---- */
 @media (prefers-reduced-motion: reduce) {
   .result-identity:hover,
-  .result-story:hover,
   .score-section:hover,
   .result-profile:hover,
   .score-tile--expandable:hover {
