@@ -999,6 +999,8 @@ function wireEvents() {
       case 'try-again': {
         // Debounce: block rapid taps while swap is in-flight
         if (_swapInFlight) break;
+        // Hard cap: 4 try-agains max (5 total picks including initial)
+        if (getState().excludeIds.length >= 4) break;
         // Visual loading state on button during swap
         const $tryBtn = btn.closest('[data-action="try-again"]') || btn;
         $tryBtn.classList.add('try-again-btn--loading');
@@ -1102,7 +1104,15 @@ function wireEvents() {
                   .replace(/\u2014/g, ', ')
                   .replace(/ , /g, ', ')
                   .replace(/,\s*,/g, ',');
-                $rec.textContent = recText;
+                // Preserve first-sentence bold (lede structure)
+                const fse = recText.search(/[.!?]\s/);
+                if (fse > 10 && fse < recText.length - 5) {
+                  const first = recText.slice(0, fse + 1);
+                  const rest = recText.slice(fse + 1);
+                  $rec.innerHTML = `<strong>${_escHtml(first)}</strong>${_escHtml(rest)}`;
+                } else {
+                  $rec.textContent = recText;
+                }
                 $rec.style.opacity = '1';
 
                 // Also update insider tip if available
@@ -3006,14 +3016,20 @@ function renderGlanceContext(data) {
 
   const r = data.restaurant || {};
 
-  // Cuisine pill → opens cuisine drawer
+  // Cuisine pill → opens cuisine drawer (only interactive if menu data exists)
   if (r.cuisine_type) {
+    const dp = data.deep_context || {};
+    const hasMenuData = dp.signature_dishes?.length || dp.menu_highlights?.length || dp.flavor_profiles?.length;
     const pill = document.createElement('span');
     pill.className = 'glance-context__pill type-data--sm';
-    pill.setAttribute('role', 'button');
-    pill.setAttribute('tabindex', '0');
-    pill.setAttribute('aria-haspopup', 'dialog');
-    pill.setAttribute('data-action', 'open-cuisine-drawer');
+    if (hasMenuData) {
+      pill.setAttribute('role', 'button');
+      pill.setAttribute('tabindex', '0');
+      pill.setAttribute('aria-haspopup', 'dialog');
+      pill.setAttribute('data-action', 'open-cuisine-drawer');
+    } else {
+      pill.classList.add('glance-context__pill--static');
+    }
     pill.innerHTML = `${svgIcon('plate', 11)} ${r.cuisine_type}`;
     $ctx.appendChild(pill);
   }
@@ -3097,12 +3113,12 @@ function renderGlanceContext(data) {
   }
 }
 
-/* ---- Normalize tag text: 3 words max, sentence case ---- */
+/* ---- Normalize tag text: underscores→spaces, 3 words max, sentence case ---- */
 function normalizeTagText(text) {
   if (!text) return text;
-  const words = text.trim().split(/\s+/);
+  const normalized = text.replace(/_/g, ' ').replace(/-/g, ' ').trim();
+  const words = normalized.split(/\s+/);
   const capped = words.length <= 3 ? words.join(' ') : words.slice(0, 3).join(' ');
-  // Sentence case: capitalize first letter, lowercase rest (unless acronym)
   return capped.charAt(0).toUpperCase() + capped.slice(1).toLowerCase();
 }
 
@@ -4376,21 +4392,6 @@ function renderCuisineDrawer(data) {
     $flavorSection.style.display = 'none';
   }
 
-  // Fallback: if no sections have data, show a simple message
-  const hasDishes = dp.signature_dishes?.length > 0;
-  const hasHighlights = dp.menu_highlights?.length > 0;
-  const hasFlavors = dp.flavor_profiles?.length > 0;
-  if (!hasDishes && !hasHighlights && !hasFlavors) {
-    // Show at least the cuisine label with a minimal note
-    if ($dishesSection) {
-      const $dishesInner = $dishesSection.querySelector('.cuisine-drawer__dishes');
-      if ($dishesInner) {
-        $dishesInner.innerHTML = `<p class="type-data--sm" style="color:var(--fg3);font-style:italic;">Details coming soon</p>`;
-        $dishesSection.style.display = '';
-        $dishesSection.querySelector('.cuisine-drawer__section-label').textContent = '';
-      }
-    }
-  }
 }
 
 /* ---- V8: Close Cuisine Drawer ---- */
