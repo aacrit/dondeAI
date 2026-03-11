@@ -2635,11 +2635,8 @@ function renderResult(data) {
   const $name = document.getElementById('result-name');
   if ($name) $name.textContent = r.name || '';
 
-  // Neighborhood now shown in Tier 2 context pills — hide from header
-  const $headerHood = document.getElementById('header-hood');
-  if ($headerHood) $headerHood.style.display = 'none';
-
-  // Context pills now rendered by Info Stream in Tier 2 (renderInfoStream)
+  // Cuisine + Open/Closed context row — directly below name in Tier 1
+  renderGlanceContext(data);
 
   // Quick actions row: Reserve, Share, Website, Phone (subtle utility pills)
   renderQuickActions(data);
@@ -2676,6 +2673,13 @@ function renderResult(data) {
   // Match signal — removed (redundant with blurb + formula row)
   const $matchSignal = document.getElementById('match-signal');
   if ($matchSignal) $matchSignal.style.display = 'none';
+
+  // Craving echo — show what the user asked for
+  const $cravingEcho = document.getElementById('craving-echo');
+  if ($cravingEcho) {
+    const craving = getState().craving;
+    $cravingEcho.textContent = craving ? `You asked for "${craving}"` : '';
+  }
 
   // DondeAI Recommendation blurb — the editorial voice in Tier 1
   const $rec = document.getElementById('result-recommendation');
@@ -2992,6 +2996,87 @@ function computeSentiment(r) {
     }
   }
   return pos != null ? { pos, neu, neg } : null;
+}
+
+/* ---- Render Glance Context (Cuisine + Open/Closed — below name in Tier 1) ---- */
+function renderGlanceContext(data) {
+  const $ctx = document.getElementById('glance-context');
+  if (!$ctx) return;
+  $ctx.innerHTML = '';
+
+  const r = data.restaurant || {};
+
+  // Cuisine pill → opens cuisine drawer
+  if (r.cuisine_type) {
+    const pill = document.createElement('span');
+    pill.className = 'glance-context__pill type-data--sm';
+    pill.setAttribute('role', 'button');
+    pill.setAttribute('tabindex', '0');
+    pill.setAttribute('aria-haspopup', 'dialog');
+    pill.setAttribute('data-action', 'open-cuisine-drawer');
+    pill.innerHTML = `${svgIcon('plate', 11)} ${r.cuisine_type}`;
+    $ctx.appendChild(pill);
+  }
+
+  // Open/Closed status → hours popout
+  const oh = r.opening_hours;
+  if (oh?.open_now != null) {
+    const pill = document.createElement('span');
+    pill.className = `glance-context__pill ${oh.open_now ? 'glance-context__pill--open' : 'glance-context__pill--closed'} type-data--sm`;
+    pill.setAttribute('role', 'button');
+    pill.setAttribute('tabindex', '0');
+    pill.setAttribute('aria-expanded', 'false');
+    pill.setAttribute('aria-haspopup', 'true');
+    pill.setAttribute('data-action', 'toggle-badge-popout');
+    pill.innerHTML = `${svgIcon('clock', 11)} ${oh.open_now ? 'Open Now' : 'Closed'}`;
+
+    // Hours popout child
+    if (oh.weekday_text?.length) {
+      const popout = document.createElement('div');
+      popout.className = 'badge-popout badge-popout--hours';
+      popout.setAttribute('role', 'tooltip');
+      const title = document.createElement('span');
+      title.className = 'badge-popout__title';
+      title.textContent = 'Hours';
+      popout.appendChild(title);
+      const today = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+      const table = document.createElement('div');
+      table.className = 'hours-table';
+      oh.weekday_text.forEach(line => {
+        const colonIdx = line.indexOf(':');
+        if (colonIdx < 0) return;
+        const dayPart = line.slice(0, colonIdx).trim();
+        const timePart = line.slice(colonIdx + 1).trim();
+        const isToday = dayPart.toLowerCase() === today;
+        const row = document.createElement('div');
+        row.className = `hours-table__row${isToday ? ' hours-table__row--today' : ''}`;
+        const dayEl = document.createElement('span');
+        dayEl.className = 'hours-table__day';
+        dayEl.textContent = dayPart.slice(0, 3);
+        const timeEl = document.createElement('span');
+        timeEl.className = 'hours-table__time';
+        timeEl.textContent = timePart
+          .replace(/(\d{1,2}):00\s*(AM|PM)/gi, (_, h, ap) => `${h}${ap[0].toLowerCase()}`)
+          .replace(/(\d{1,2}:\d{2})\s*(AM|PM)/gi, (_, t, ap) => `${t}${ap[0].toLowerCase()}`)
+          .replace(/\s*[–—-]\s*/g, ' – ');
+        row.appendChild(dayEl);
+        row.appendChild(timeEl);
+        table.appendChild(row);
+      });
+      popout.appendChild(table);
+      pill.appendChild(popout);
+    }
+
+    $ctx.appendChild(pill);
+  }
+}
+
+/* ---- Normalize tag text to 2-3 words max ---- */
+function normalizeTagText(text) {
+  if (!text) return text;
+  const words = text.trim().split(/\s+/);
+  if (words.length <= 3) return text;
+  return words.slice(0, 3).join(' ');
 }
 
 /* ---- Render Quick Actions (Reserve, Share, Website, Phone — subtle row in tier 1) ---- */
@@ -3949,31 +4034,9 @@ function collectInfoStreamItems(data) {
   const ow = dw.occasion ?? dw.service ?? 0.15;
   const cw = dw.craving ?? dw.food ?? 0.25;
 
-  // ── Context items (always in initial visible set) ──
-  const rawHood = r.neighborhood_name || '';
-  const neighborhood = /^chicago$/i.test(rawHood.trim()) ? '' : rawHood;
-  if (neighborhood) {
-    items.push({ id: 'hood', icon: 'pin', text: neighborhood, priority: 1.0, category: 'context' });
-  }
-
-  if (r.cuisine_type) {
-    items.push({
-      id: 'cuisine', icon: 'plate', text: r.cuisine_type, priority: 1.0,
-      category: 'context',
-      interactive: { action: 'open-cuisine-drawer', role: 'button', ariaHaspopup: 'dialog' }
-    });
-  }
-
-  const oh = r.opening_hours;
-  if (oh?.open_now != null) {
-    items.push({
-      id: 'hours', icon: 'clock', text: oh.open_now ? 'Open Now' : 'Closed',
-      priority: 1.0, category: 'context',
-      modifier: oh.open_now ? 'open' : 'closed',
-      interactive: { action: 'toggle-badge-popout', role: 'button', ariaExpanded: 'false', ariaHaspopup: 'true' },
-      hoursData: oh
-    });
-  }
+  // ── Context items removed from info-stream ──
+  // Neighborhood: shown in address nav pill (quick-actions)
+  // Cuisine + Open/Closed: promoted to Tier 1 glance-context row
 
   // ── Practical items ──
   if (dc.review_value_score != null && dc.review_value_score >= 7) {
@@ -4065,12 +4128,11 @@ function collectInfoStreamItems(data) {
     items.push({ id: `scenario-${i}`, icon: 'heart', text: s, priority: 0.4, category: 'discovery' });
   });
 
-  // Sort: context first (always), then by priority descending
-  items.sort((a, b) => {
-    if (a.category === 'context' && b.category !== 'context') return -1;
-    if (b.category === 'context' && a.category !== 'context') return 1;
-    return b.priority - a.priority;
-  });
+  // Normalize all item text to 2-3 words max
+  items.forEach(item => { item.text = normalizeTagText(item.text); });
+
+  // Sort by priority descending (no more context category in info-stream)
+  items.sort((a, b) => b.priority - a.priority);
 
   return items;
 }
@@ -4097,37 +4159,23 @@ class InfoStream {
   start() {
     this.$container.innerHTML = '';
 
-    // ── Row 1: Primary pills ──
-    if (this.primaryItems.length > 0) {
-      const $row1 = document.createElement('div');
-      $row1.className = 'info-stream__primary';
-      this.primaryItems.forEach(item => $row1.appendChild(this._createPill(item)));
-      this.$container.appendChild($row1);
-    }
-
-    // ── Row 2: Secondary dot-separated metadata ──
+    // ── Single row: dot-separated metadata with 2-line cap + auto-rotation ──
     if (this.secondaryItems.length > 0) {
       this.$secondary = document.createElement('div');
-      this.$secondary.className = 'info-stream__secondary';
+      this.$secondary.className = 'info-stream__secondary info-stream__secondary--capped';
 
       if (REDUCED_MOTION.matches) {
         // Show all items statically
         this._renderSecondaryItems(this.secondaryItems);
       } else {
-        // Determine visible count based on viewport (mobile: ~6, desktop: all)
-        const isMobile = window.innerWidth < 768;
-        const maxVisible = isMobile ? 6 : this.secondaryItems.length;
+        // Show ~6 items visible, rest rotate in (both mobile + desktop)
+        const maxVisible = Math.min(6, this.secondaryItems.length);
 
         this.visibleMeta = this.secondaryItems.slice(0, maxVisible);
         this.metaQueue = this.secondaryItems.slice(maxVisible);
         this._renderSecondaryItems(this.visibleMeta);
 
-        // Add line clamp for mobile
-        if (isMobile) {
-          this.$secondary.classList.add('info-stream__secondary--capped');
-        }
-
-        // Rotation timer (only if overflow items exist)
+        // Auto-rotation timer (always, if overflow items exist)
         if (this.metaQueue.length > 0) {
           this.$secondary.addEventListener('pointerenter', this._onPointerEnter);
           this.$secondary.addEventListener('pointerleave', this._onPointerLeave);
@@ -4140,65 +4188,7 @@ class InfoStream {
       this.$container.appendChild(this.$secondary);
     }
 
-    this.$container.style.display =
-      (this.primaryItems.length > 0 || this.secondaryItems.length > 0) ? '' : 'none';
-  }
-
-  _createPill(item) {
-    const el = document.createElement('span');
-    let cls = 'info-stream__pill';
-    if (item.modifier) cls += ` info-stream__pill--${item.modifier}`;
-    if (item.interactive) cls += ' info-stream__pill--interactive';
-    el.className = cls;
-
-    if (item.interactive) {
-      el.setAttribute('role', item.interactive.role || 'button');
-      el.setAttribute('tabindex', '0');
-      el.setAttribute('data-action', item.interactive.action);
-      if (item.interactive.ariaHaspopup) el.setAttribute('aria-haspopup', item.interactive.ariaHaspopup);
-      if (item.interactive.ariaExpanded) el.setAttribute('aria-expanded', item.interactive.ariaExpanded);
-    }
-
-    el.innerHTML = `${svgIcon(item.icon, 10)}<span>${item.text}</span>`;
-
-    // Hours popout child
-    if (item.hoursData?.weekday_text?.length) {
-      const popout = document.createElement('div');
-      popout.className = 'badge-popout badge-popout--hours';
-      popout.setAttribute('role', 'tooltip');
-      const title = document.createElement('span');
-      title.className = 'badge-popout__title';
-      title.textContent = 'Hours';
-      popout.appendChild(title);
-      const today = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
-      const table = document.createElement('div');
-      table.className = 'hours-table';
-      item.hoursData.weekday_text.forEach(line => {
-        const colonIdx = line.indexOf(':');
-        if (colonIdx < 0) return;
-        const dayPart = line.slice(0, colonIdx).trim();
-        const timePart = line.slice(colonIdx + 1).trim();
-        const isToday = dayPart.toLowerCase() === today;
-        const row = document.createElement('div');
-        row.className = `hours-table__row${isToday ? ' hours-table__row--today' : ''}`;
-        const dayEl = document.createElement('span');
-        dayEl.className = 'hours-table__day';
-        dayEl.textContent = dayPart.slice(0, 3);
-        const timeEl = document.createElement('span');
-        timeEl.className = 'hours-table__time';
-        timeEl.textContent = timePart
-          .replace(/(\d{1,2}):00\s*(AM|PM)/gi, (_, h, ap) => `${h}${ap[0].toLowerCase()}`)
-          .replace(/(\d{1,2}:\d{2})\s*(AM|PM)/gi, (_, t, ap) => `${t}${ap[0].toLowerCase()}`)
-          .replace(/\s*[–—-]\s*/g, ' – ');
-        row.appendChild(dayEl);
-        row.appendChild(timeEl);
-        table.appendChild(row);
-      });
-      popout.appendChild(table);
-      el.appendChild(popout);
-    }
-
-    return el;
+    this.$container.style.display = this.secondaryItems.length > 0 ? '' : 'none';
   }
 
   _renderSecondaryItems(items) {
@@ -4267,7 +4257,7 @@ class InfoStream {
 }
 
 
-/* ---- Render Info Stream: two-tier metadata surface ---- */
+/* ---- Render Info Stream: single-tier metadata surface (dot-separated, auto-rotating) ---- */
 function renderInfoStream(data) {
   const $container = document.getElementById('info-stream');
   if (!$container) return;
@@ -4275,15 +4265,14 @@ function renderInfoStream(data) {
   if (_activeInfoStream) { _activeInfoStream.destroy(); _activeInfoStream = null; }
 
   const items = collectInfoStreamItems(data);
-  const primary = items.filter(it => it.category === 'context');
-  const secondary = items.filter(it => it.category !== 'context');
 
-  if (primary.length === 0 && secondary.length === 0) {
+  if (items.length === 0) {
     $container.style.display = 'none';
     return;
   }
 
-  const stream = new InfoStream($container, primary, secondary);
+  // No primary row — all items are secondary (dot-separated, auto-rotating)
+  const stream = new InfoStream($container, [], items);
   stream.start();
   _activeInfoStream = stream;
 }
