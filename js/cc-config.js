@@ -25,13 +25,23 @@ const CHICAGO_TZ = 'America/Chicago';
 // ═══════════════════════════════════════════════════════════════════
 
 const TEST_TYPES = {
-  broad:      { name: 'Broad Scan',       count: 20, cost: '~$0.20', time: '~2 min' },
-  category:   { name: 'Category Focus',   count: 15, cost: '~$0.15', time: '~1 min' },
-  regression: { name: 'Regression Guard',  count: 23, cost: '~$0.25', time: '~3 min' },
-  edge:       { name: 'Edge Cases',        count: 20, cost: '~$0.20', time: '~1 min' },
-  blurb:      { name: 'Blurb Quality',     count: 10, cost: '~$0.05', time: '~30s' },
-  coverage:   { name: 'Data Coverage',     count: 10, cost: '~$0.05', time: '~30s' },
+  broad:       { name: 'Broad Scan',       count: 20, costLive: '~$5.60', costScoring: '$0.00', time: '~2 min' },
+  category:    { name: 'Category Focus',   count: 15, costLive: '~$4.20', costScoring: '$0.00', time: '~1 min' },
+  regression:  { name: 'Regression Guard', count: 23, costLive: '~$6.44', costScoring: '$0.00', time: '~3 min' },
+  edge:        { name: 'Edge Cases',       count: 20, costLive: '~$5.60', costScoring: '$0.00', time: '~1 min' },
+  blurb:       { name: 'Blurb Quality',    count: 10, costLive: '~$2.80', costScoring: '$0.00', time: '~30s' },
+  coverage:    { name: 'Data Coverage',    count: 10, costLive: '~$2.80', costScoring: '$0.00', time: '~30s' },
+  'blurb-live':  { name: 'Blurb Quality Check',  count: 1, costLive: '~$0.30', costScoring: '~$0.30', time: '~5s', live: true },
+  'intent-live': { name: 'Intent Classification', count: 1, costLive: '~$0.05', costScoring: '~$0.05', time: '~3s', live: true },
 };
+
+/** Get display cost for a test type based on current liveAPI state */
+function getTestCost(type) {
+  const t = TEST_TYPES[type];
+  if (!t) return '$0.00';
+  if (t.live) return t.costLive; // Live tests always cost $
+  return state.liveAPI ? t.costLive : t.costScoring;
+}
 
 const QUERY_CATEGORIES = {
   Food:    { label: 'Food',    color: '#f97316', desc: 'Dish & cuisine queries' },
@@ -178,10 +188,11 @@ let state = {
   cmdPaletteIdx: 0,           // focused command index
   lastScrollY: 0,             // for quick actions show/hide
   quickActionsVisible: true,  // quick actions bar visibility
+  liveAPI: false,             // Live API toggle — default OFF (scoring only, $0)
 };
 
 // Session persistence keys
-const SESSION_KEYS = ['activeTab', 'liveFilter', 'liveFilters', 'pulseMode', 'blurbMode', 'autoRefresh', 'autoRefreshSecs', 'testConfig', 'expandedPulse', 'selectedRunId'];
+const SESSION_KEYS = ['activeTab', 'liveFilter', 'liveFilters', 'pulseMode', 'blurbMode', 'autoRefresh', 'autoRefreshSecs', 'testConfig', 'expandedPulse', 'selectedRunId', 'liveAPI'];
 
 function saveSession() {
   try {

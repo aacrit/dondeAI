@@ -11,6 +11,9 @@ async function callAPI(specialRequest, params = {}) {
   if (state.budgetUsed >= DAILY_BUDGET) {
     return { error: 'BUDGET_EXCEEDED', success: false };
   }
+  // skip_claude: when Live API is OFF, skip Claude calls ($0 cost)
+  // Live test types (blurb-live, intent-live) always call Claude
+  const forceLive = params._forceLive === true;
   const body = {
     special_request: specialRequest,
     occasion: params.occasion || 'Any',
@@ -18,6 +21,7 @@ async function callAPI(specialRequest, params = {}) {
     price_level: params.price_level || 'Any',
     exclude: params.exclude || [],
     dietary_restrictions: params.dietary_restrictions || [],
+    skip_claude: forceLive ? false : !state.liveAPI,
   };
   try {
     const controller = new AbortController();
@@ -37,6 +41,46 @@ async function callAPI(specialRequest, params = {}) {
   } catch (err) {
     return { error: err.message, success: false, httpCode: 0 };
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Live API Toggle
+// ═══════════════════════════════════════════════════════════════════
+
+function toggleLiveAPI() {
+  state.liveAPI = !state.liveAPI;
+  saveSession();
+  updateLiveAPIUI();
+  updateTestCosts();
+}
+
+function updateLiveAPIUI() {
+  const btn = document.getElementById('live-api-toggle');
+  const label = document.getElementById('live-api-label');
+  if (!btn || !label) return;
+  if (state.liveAPI) {
+    btn.classList.remove('cc-live-toggle__btn--off');
+    btn.classList.add('cc-live-toggle__btn--on');
+    label.textContent = 'LIVE API';
+  } else {
+    btn.classList.remove('cc-live-toggle__btn--on');
+    btn.classList.add('cc-live-toggle__btn--off');
+    label.textContent = 'Scoring Only';
+  }
+}
+
+function updateTestCosts() {
+  // Update cost displays on test cards
+  const cards = document.querySelectorAll('.cc-test-card[data-test]');
+  cards.forEach(card => {
+    const type = card.dataset.test;
+    const meta = card.querySelector('.cc-test-card__meta');
+    if (meta && TEST_TYPES[type]) {
+      const cost = getTestCost(type);
+      const time = TEST_TYPES[type].time;
+      meta.textContent = `${cost} \u00B7 ${time}`;
+    }
+  });
 }
 
 // ═══════════════════════════════════════════════════════════════════

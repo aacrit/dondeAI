@@ -15,6 +15,9 @@ document.addEventListener('DOMContentLoaded', () => {
   loadCustomQueries();
   loadPinnedQueries();
   renderCustomQueryList();
+  // Initialize live API toggle UI from saved state
+  if (typeof updateLiveAPIUI === 'function') updateLiveAPIUI();
+  if (typeof updateTestCosts === 'function') updateTestCosts();
 });
 
 // ═══════════════════════════════════════════════════════════════════
