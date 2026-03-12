@@ -244,7 +244,7 @@
         </div>
       </details>
 
-      <!-- Live API Tests (always call Claude — highlighted in red) -->
+      <!-- Live API Tests (always call Claude — highlighted in red) — collapsed on mobile -->
       <div class="cc-live-tests" id="live-tests-section">
         <div class="cc-live-tests__header">
           <span class="cc-live-tests__icon">&#9888;</span>
@@ -441,6 +441,9 @@
           <div class="cc-live-kpi__label">Unmatched Rate</div>
         </div>
       </div>
+
+      <!-- Mobile: More Metrics toggle -->
+      <button class="cc-m-more-metrics" id="mobile-more-metrics" onclick="toggleMobileMetrics()">More metrics</button>
 
       <!-- Grade KPIs (Row 3: Quality Grades) -->
       <div class="cc-live-kpis" id="live-grade-kpis" style="margin-top:6px">

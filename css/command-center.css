@@ -4456,6 +4456,7 @@ body {
 .cc-mobile-nav { display: none; }
 .cc-run-cards { display: none; }
 .cc-query-panel__drag-handle { display: none; }
+.cc-m-more-metrics { display: none; }
 
 @media (max-width: 767px) {
 
@@ -5242,8 +5243,158 @@ body {
   /* Retest progress */
   .cc-retest-progress { font-size: 0.75rem; }
 
-  /* Daily digest */
-  .cc-daily-digest { padding: 10px 12px; font-size: 0.8rem; }
+  /* ═══════════════════════════════════════
+     CLEAN DEFAULT — Less is more
+     Hide/collapse non-essential elements.
+     Data appears on interaction.
+     ═══════════════════════════════════════ */
+
+  /* Quick actions bar — redundant with bottom nav */
+  .cc-quick-actions { display: none; }
+
+  /* Terminal FAB — only show when test active */
+  .cc-terminal-fab { display: none; }
+  .cc-terminal-fab--active { display: flex; }
+
+  /* Suggest strip — noise on mobile */
+  .cc-suggest { display: none; }
+
+  /* Daily digest — collapse to single-line teaser */
+  .cc-daily-digest { display: none; }
+
+  /* Executive briefing — hidden until tapped */
+  .cc-briefing { display: none; }
+
+  /* Decision prompts — hidden */
+  .cc-decision-prompts { display: none; }
+
+  /* Grade KPI strip — hidden by default, visible via JS toggle */
+  .cc-grade-kpi-strip { display: none; }
+
+  /* Action center — hidden by default, tappable from pulse attention card */
+  .cc-action-center { display: none; }
+
+  /* Test vs prod comparison — hidden */
+  .cc-comparison-strip { display: none; }
+
+  /* Live tests (red) — collapsed, header tappable to expand */
+  .cc-live-tests {
+    border-radius: var(--cc-radius);
+    overflow: hidden;
+  }
+  .cc-live-tests .cc-test-grid--live { display: none; }
+  .cc-live-tests.cc-m-expanded .cc-test-grid--live { display: grid; }
+  .cc-live-tests__header {
+    cursor: pointer;
+    padding: 12px;
+    touch-action: manipulation;
+  }
+  .cc-live-tests__header::after {
+    content: '▸';
+    margin-left: 8px;
+    font-size: 0.7rem;
+    color: var(--cc-text-3);
+    transition: transform 0.2s ease;
+  }
+  .cc-live-tests.cc-m-expanded .cc-live-tests__header::after {
+    transform: rotate(90deg);
+  }
+
+  /* Run history — collapsed by default, show on tap */
+  .cc-run-history {
+    border: 1px solid var(--cc-border);
+    border-radius: var(--cc-radius);
+    overflow: hidden;
+  }
+  .cc-run-history__title-row {
+    padding: 12px 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .cc-run-history__title-row::after {
+    content: '▸';
+    margin-left: auto;
+    color: var(--cc-text-3);
+    font-size: 0.8rem;
+    transition: transform 0.2s ease;
+  }
+  .cc-run-history.cc-m-expanded .cc-run-history__title-row::after {
+    transform: rotate(90deg);
+  }
+  .cc-run-cards { display: none; }
+  .cc-run-history.cc-m-expanded .cc-run-cards { display: flex; }
+  .cc-run-history__actions { display: none; }
+  .cc-run-history.cc-m-expanded .cc-run-history__actions { display: flex; }
+
+  /* Result search — only show when streaming */
+  .cc-result-search { display: none; }
+
+  /* Trend insights, heatmap, gen queries, custom queries — already <details>, force closed appearance */
+  .cc-trend-insights,
+  .cc-heatmap-section,
+  .cc-gen-queries,
+  .cc-custom-queries {
+    font-size: 0.75rem;
+  }
+
+  /* Live tab: hide second and third KPI rows by default */
+  #live-grade-kpis {
+    display: none;
+  }
+  .cc-live-kpis + .cc-live-kpis {
+    display: none;
+  }
+  /* "More metrics" toggle to reveal hidden KPI rows */
+  .cc-m-more-metrics {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px;
+    margin: 4px 0;
+    background: var(--cc-surface);
+    border: 1px solid var(--cc-border);
+    border-radius: var(--cc-radius);
+    color: var(--cc-text-2);
+    font: 500 0.72rem/1 var(--cc-font);
+    cursor: pointer;
+    width: 100%;
+    touch-action: manipulation;
+  }
+  .cc-m-more-metrics::after {
+    content: '▾';
+    font-size: 0.8rem;
+  }
+  .cc-m-more-metrics.cc-m-expanded::after {
+    content: '▴';
+  }
+
+  /* Score distribution — collapse by default */
+  .cc-score-dist { display: none; }
+
+  /* API health — collapse by default */
+  .cc-api-health { display: none; }
+
+  /* User engagement stats — collapse */
+  .cc-user-stats { display: none; }
+
+  /* Live issues section — show only if non-empty (handled by JS) */
+
+  /* Keyboard shortcuts overlay — hide trigger on mobile */
+  .cc-modal-overlay#shortcuts-overlay { display: none !important; }
+
+  /* Issues: hide bulk action bar by default, show when items selected */
+  .cc-issues-action-bar__right { display: none; }
+  .cc-issues-action-bar:has(#issues-select-all:checked) .cc-issues-action-bar__right {
+    display: flex;
+  }
+
+  /* Cat picker — hide until category test selected */
+
+  /* Run filter bar — hide */
+  .cc-run-filter-bar { display: none !important; }
 
 }
 
