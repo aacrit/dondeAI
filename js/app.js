@@ -2053,6 +2053,100 @@ function updateFilterSummary() {
   }
 }
 
+/* ---- Progressive Blurb: upgrade fallback blurb with fresh Claude blurb in background ---- */
+let _blurbUpgradeAbort = null;
+function _upgradeBlurb(data) {
+  // Cancel any prior in-flight upgrade
+  if (_blurbUpgradeAbort) _blurbUpgradeAbort.abort();
+  _blurbUpgradeAbort = new AbortController();
+
+  const restaurant = data.restaurant || {};
+  const blurbPayload = {
+    restaurant_data: {
+      name: restaurant.name,
+      cuisine_type: restaurant.cuisine_type,
+      price_level: restaurant.price_level,
+      neighborhood_name: restaurant.neighborhood_name,
+      noise_level: restaurant.noise_level,
+      lighting_ambiance: restaurant.lighting_ambiance,
+      outdoor_seating: restaurant.outdoor_seating,
+      tags: data.tags || [],
+      deep_context: data.deep_context || {},
+    },
+    context: {
+      special_request: getState().craving,
+      occasion: getState().occasion,
+      neighborhood: getState().neighborhood,
+      score_tier: (() => {
+        const s = data.donde_match || 0;
+        if (s >= 90) return 'exceptional';
+        if (s >= 80) return 'great';
+        if (s >= 65) return 'good';
+        if (s >= 50) return 'decent';
+        return 'weak';
+      })(),
+      match_narrative: data.match_narrative || null,
+    },
+  };
+
+  const $rec = document.getElementById('result-recommendation');
+  const $blurb = document.getElementById('donde-blurb');
+
+  // Add shimmer class while Claude writes
+  if ($blurb) $blurb.classList.add('donde-blurb--upgrading');
+
+  fetchBlurb(blurbPayload).then((blurbData) => {
+    if (!$rec || !blurbData.recommendation) return;
+
+    // Remove shimmer
+    if ($blurb) $blurb.classList.remove('donde-blurb--upgrading');
+
+    // Fade out old text
+    $rec.style.opacity = '0';
+    setTimeout(() => {
+      // Write new text with lede structure
+      let recText = blurbData.recommendation
+        .replace(/\u2014/g, ', ')
+        .replace(/ , /g, ', ')
+        .replace(/,\s*,/g, ',');
+      const fse = recText.search(/[.!?]\s/);
+      if (fse > 10 && fse < recText.length - 5) {
+        const first = recText.slice(0, fse + 1);
+        const rest = recText.slice(fse + 1);
+        $rec.innerHTML = `<strong>${_escHtml(first)}</strong>${_escHtml(rest)}`;
+      } else {
+        $rec.textContent = recText;
+      }
+
+      // Ink-reveal the upgraded blurb
+      $rec.style.opacity = '';
+      if (!REDUCED_MOTION.matches) {
+        $rec.classList.add('donde-blurb__text--upgrading-in');
+        $rec.addEventListener('animationend', () => {
+          $rec.classList.remove('donde-blurb__text--upgrading-in');
+        }, { once: true });
+      }
+
+      // Update insider tip if available
+      const $tip = document.getElementById('story-tip-text');
+      if ($tip && blurbData.insider_tip) {
+        $tip.textContent = blurbData.insider_tip.replace(/\u2014/g, ', ').replace(/ , /g, ', ');
+      }
+
+      // Update intent boost display if returned
+      if (blurbData.intent_boost?.active && $blurb) {
+        $blurb.classList.add('donde-blurb--boosted');
+      }
+    }, 250); // Match fade-out duration
+  }).catch((err) => {
+    // Silent failure — fallback blurb stays, just remove shimmer
+    if (err.name !== 'AbortError') {
+      console.warn('[Blurb Upgrade] Fresh blurb fetch failed:', err.message);
+    }
+    if ($blurb) $blurb.classList.remove('donde-blurb--upgrading');
+  });
+}
+
 /* ---- Submit ---- */
 async function handleSubmit() {
   const s = getState();
@@ -2287,11 +2381,11 @@ async function manifestResult(data) {
         const $rName = $resultCard.querySelector('.result-name');
         if ($rName) $rName.classList.add('result-name--animated');
 
-        // Clean up revealing class after all animations complete
+        // Clean up revealing class after all animations complete (stretched stagger: 640ms + 350ms + buffer)
         _scaffoldTimers.push(setTimeout(() => {
           $resultCard.classList.remove('result-card--revealing');
           if ($rName) $rName.classList.remove('result-name--animated');
-        }, 700));
+        }, 1100));
       }
     }, 750));
   }
@@ -2318,10 +2412,26 @@ async function manifestResult(data) {
     }, 1400));
   }
 
+  // Photo strip auto-peek — subtle scroll hint (only if multiple photos)
+  if (!REDUCED_MOTION.matches) {
+    _scaffoldTimers.push(setTimeout(() => {
+      const $photos = document.querySelector('.result-photos__scroll');
+      if ($photos && $photos.scrollWidth > $photos.clientWidth) {
+        $photos.scrollTo({ left: 60, behavior: 'smooth' });
+        setTimeout(() => $photos.scrollTo({ left: 0, behavior: 'smooth' }), 600);
+      }
+    }, 1400));
+  }
+
+  // Progressive blurb: fire background Claude blurb upgrade (after card is visible)
+  _scaffoldTimers.push(setTimeout(() => {
+    _upgradeBlurb(data);
+  }, 1000));
+
   // Settle — clean up after animations complete
   _scaffoldTimers.push(setTimeout(() => {
     settleResult();
-  }, 1000));
+  }, 1200));
 
   // Schedule edge-hint replays
   scheduleEdgeHintReplay();

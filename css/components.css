@@ -1854,7 +1854,7 @@
   min-width: 0;
   position: relative;
   /* V10: Full text flows naturally — no height cap */
-  transition: opacity 200ms var(--ease-out);
+  transition: opacity 250ms var(--ease-out);
 }
 
 /* Editorial quotation marks — frames recommendation as a personal note */
@@ -1894,6 +1894,42 @@
 .donde-blurb--boosted {
   border-left: 3px solid var(--ac);
   padding-left: var(--space-sm);
+}
+
+/* Progressive blurb: subtle shimmer while Claude writes in background */
+.donde-blurb--upgrading .donde-blurb__text {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--fg3) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: blurbShimmer 2s var(--ease-out) infinite;
+}
+
+@keyframes blurbShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Ink-reveal animation for upgraded blurb text */
+.donde-blurb__text--upgrading-in {
+  animation: inkReveal 600ms cubic-bezier(0.2, 1, 0.4, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .donde-blurb--upgrading .donde-blurb__text {
+    animation: none;
+    background: none;
+    -webkit-background-clip: unset;
+    background-clip: unset;
+  }
+  .donde-blurb__text--upgrading-in {
+    animation: none;
+  }
 }
 
 /* ── Glance Actions (inside card-footer) ── */
@@ -6521,13 +6557,14 @@
 }
 
 /* Progressive reveal: elements paper-land in sequence when card enters */
+/* Stretched stagger: 700ms cascade for richer "content materializing" effect */
 .result-card--revealing .result-photos    { opacity: 0; animation: paperLand 400ms var(--ease-out) 0ms forwards; }
-.result-card--revealing .glance-hero      { opacity: 0; animation: paperLand 400ms var(--ease-out) 80ms forwards; }
-.result-card--revealing .donde-blurb      { opacity: 0; animation: revealUp 350ms var(--ease-out) 160ms forwards; }
-.result-card--revealing .donde-blurb__text { clip-path: inset(0 100% 0 0); animation: inkReveal 600ms cubic-bezier(0.2, 1, 0.4, 1) 360ms forwards; }
-.result-card--revealing .glance-nav       { opacity: 0; animation: paperLand 350ms var(--ease-out) 240ms forwards; }
-.result-card--revealing .tell-more-btn    { opacity: 0; animation: revealUp 300ms var(--ease-out) 320ms forwards; }
-.result-card--revealing .card-footer      { opacity: 0; animation: paperLand 350ms var(--ease-out) 380ms forwards; }
+.result-card--revealing .glance-hero      { opacity: 0; animation: paperLand 400ms var(--ease-out) 120ms forwards; }
+.result-card--revealing .donde-blurb      { opacity: 0; animation: revealUp 350ms var(--ease-out) 280ms forwards; }
+.result-card--revealing .donde-blurb__text { clip-path: inset(0 100% 0 0); animation: inkReveal 600ms cubic-bezier(0.2, 1, 0.4, 1) 480ms forwards; }
+.result-card--revealing .glance-nav       { opacity: 0; animation: paperLand 350ms var(--ease-out) 400ms forwards; }
+.result-card--revealing .tell-more-btn    { opacity: 0; animation: revealUp 300ms var(--ease-out) 520ms forwards; }
+.result-card--revealing .card-footer      { opacity: 0; animation: paperLand 350ms var(--ease-out) 640ms forwards; }
 
 /* (V10: Scaffold, progress ink, ghost headline, oscillation removed — instant loading) */
 

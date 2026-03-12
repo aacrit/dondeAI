@@ -105,7 +105,7 @@ export async function sendAppFeedback(category, message, userId) {
 }
 
 export async function fetchRecommendation({ special_request, occasion, neighborhood, price_level, exclude, dietary_restrictions, user_id, feedback, open_now }) {
-  const body = { special_request, occasion, neighborhood, price_level };
+  const body = { special_request, occasion, neighborhood, price_level, skip_claude: true };
   if (exclude?.length) body.exclude = exclude;
   if (dietary_restrictions?.length) body.dietary_restrictions = dietary_restrictions;
   if (user_id) body.user_id = user_id;
