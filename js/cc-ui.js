@@ -1712,8 +1712,15 @@ async function retestIssue(idx) {
   const btn = card?.querySelector('.cc-btn--retest');
   if (btn) { btn.textContent = 'Testing...'; btn.disabled = true; }
 
+  // Open terminal + ticker like other tests
+  if (typeof openTerminal === 'function') openTerminal();
+  if (typeof showTicker === 'function') showTicker();
+  if (typeof triggerDarkPulse === 'function') triggerDarkPulse();
+  if (typeof termLog === 'function') termLog('system', `Retesting issue: "${issue.query}"`);
+
   try {
     const prevDm = issue.dm;
+    if (typeof termLog === 'function') termLog('action', `Calling API for "${issue.query}"...`);
     const resp = await callAPI(issue.query);
     const newDm = resp.donde_match || 0;
     issue.retestDm = newDm;
@@ -1731,15 +1738,19 @@ async function retestIssue(idx) {
 
     if (passesGrade) {
       issue.status = 'fixed';
-      showToast(`Fixed! "${issue.query}" now scores DM ${newDm} (Fit: ${fitGrade?.grade || '--'}, Blurb: ${blurbGrade?.grade || '--'})`);
+      if (typeof termLog === 'function') termLog('success', `FIXED! DM ${prevDm} → ${newDm} (Fit: ${fitGrade?.grade || '--'}, Blurb: ${blurbGrade?.grade || '--'})`);
+      showToast(`Fixed! "${issue.query}" now scores DM ${newDm}`);
     } else if (newDm > issue.dm) {
       issue.status = 'improved';
+      if (typeof termLog === 'function') termLog('info', `Improved: DM ${prevDm} → ${newDm}`);
       showToast(`Improved: "${issue.query}" DM ${issue.dm} → ${newDm}`);
     } else if (newDm < issue.dm) {
       issue.status = 'regressed';
+      if (typeof termLog === 'function') termLog('warn', `Regressed: DM ${prevDm} → ${newDm}`);
       showToast(`Regressed: "${issue.query}" DM ${issue.dm} → ${newDm}`);
     } else {
       issue.status = 'open';
+      if (typeof termLog === 'function') termLog('warn', `No change: still DM ${newDm}`);
       showToast(`No change: "${issue.query}" still DM ${newDm}`);
     }
 
@@ -1759,11 +1770,16 @@ async function retestIssue(idx) {
       }] });
     }
 
+    if (typeof termLog === 'function') termLog('system', 'Retest complete.');
+    if (typeof hideTicker === 'function') hideTicker();
+
     // Re-render with filters
     applyIssueFilters();
     updateIssuesBadge(state.issues);
     saveIssueStatuses();
   } catch (e) {
+    if (typeof termLog === 'function') termLog('error', `Retest failed: ${e.message}`);
+    if (typeof hideTicker === 'function') hideTicker();
     showToast(`Retest failed: ${e.message}`);
     if (btn) { btn.textContent = 'Retest'; btn.disabled = false; }
   } finally {
@@ -1777,6 +1793,12 @@ async function retestSelectedIssues() {
   const indices = [...state.selectedIssues].sort((a, b) => a - b);
   const total = indices.length;
   state.retesting = true;
+
+  // Open terminal + ticker like other tests
+  if (typeof openTerminal === 'function') openTerminal();
+  if (typeof showTicker === 'function') showTicker();
+  if (typeof triggerDarkPulse === 'function') triggerDarkPulse();
+  if (typeof termLog === 'function') termLog('system', `Retesting ${total} issue${total > 1 ? 's' : ''}...`);
 
   // Show progress
   const progressEl = document.getElementById('retest-progress');
@@ -1795,6 +1817,7 @@ async function retestSelectedIssues() {
 
       if (textEl) textEl.textContent = `Retesting ${i + 1}/${total}: "${issue.query}"`;
       if (fillEl) fillEl.style.width = `${((i + 1) / total) * 100}%`;
+      if (typeof termLog === 'function') termLog('action', `[${i + 1}/${total}] "${issue.query}"...`);
 
       try {
         const prevDm = issue.dm;
@@ -1816,15 +1839,19 @@ async function retestSelectedIssues() {
         if (passesGrade) {
           issue.status = 'fixed';
           fixed++;
+          if (typeof termLog === 'function') termLog('success', `FIXED! DM ${prevDm} → ${newDm}`);
         } else if (newDm > issue.dm) {
           issue.status = 'improved';
           improved++;
+          if (typeof termLog === 'function') termLog('info', `Improved: DM ${prevDm} → ${newDm}`);
         } else if (newDm < issue.dm) {
           issue.status = 'regressed';
           unchanged++;
+          if (typeof termLog === 'function') termLog('warn', `Regressed: DM ${prevDm} → ${newDm}`);
         } else {
           issue.status = 'open';
           unchanged++;
+          if (typeof termLog === 'function') termLog('warn', `No change: DM ${newDm}`);
         }
 
         if (resp.restaurant?.name) issue.restaurant = resp.restaurant.name;
@@ -1839,6 +1866,7 @@ async function retestSelectedIssues() {
           blurbScore: blurbGrade?.score ?? null, blurbGrade: blurbGrade?.grade || null,
         });
       } catch (e) {
+        if (typeof termLog === 'function') termLog('error', `Failed: "${issue.query}" — ${e.message}`);
         console.warn(`Retest failed for "${issue.query}":`, e.message);
         unchanged++;
       }
@@ -1853,6 +1881,8 @@ async function retestSelectedIssues() {
     if (progressEl) progressEl.style.display = 'none';
   }
 
+  if (typeof termLog === 'function') termLog('system', `Retest complete: ${fixed} fixed, ${improved} improved, ${unchanged} unchanged`);
+  if (typeof hideTicker === 'function') hideTicker();
   showToast(`Retest complete: ${fixed} fixed, ${improved} improved, ${unchanged} unchanged`);
 
   // Clear selection
