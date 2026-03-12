@@ -4,7 +4,7 @@ Last updated: 2026-03-12
 
 > **Read this file first. Only read `docs/*.md` when task-relevant. Only open source files when modifying code.**
 
-AI restaurant recommendations for Chicago. One craving in, one perfect spot out. Vanilla HTML/CSS/JS (no frameworks, no build). Backend: Supabase Edge Function V11 + PostgreSQL. AI: Claude Haiku 4.5. Data: 913 active restaurants across 14 Chicago neighborhoods.
+AI restaurant recommendations for Chicago. One craving in, one perfect spot out. Vanilla HTML/CSS/JS (no frameworks, no build). Backend: Supabase Edge Function V11 + PostgreSQL. AI: Claude Haiku 4.5. Data: 2,719 restaurants (all active) across 33 Chicago neighborhoods.
 
 ## Session Protocol (Token Minimization)
 
