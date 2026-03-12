@@ -556,23 +556,29 @@ function renderLiveFeed(queries) {
   list.innerHTML = queries.map(q => {
     const dm = q.donde_match || 0;
     const restName = q.restaurants?.name || null;
-    const icon = dm >= 60 ? '&#10003;' : dm >= 40 ? '&#9888;' : '&#10007;';
-    const iconClass = dm >= 60 ? 'cc-live-icon--pass' : dm >= 40 ? 'cc-live-icon--warn' : 'cc-live-icon--fail';
-    const badges = [];
-    if (q.score_fit_grade) badges.push(`<span class="cc-live-entry__badge cc-live-entry__grade-badge cc-live-entry__grade-badge--${gradeColorClass(q.score_fit_grade)}" title="Score Fit: ${q.score_fit_score}">F:${q.score_fit_grade}</span>`);
-    if (q.blurb_quality_grade) badges.push(`<span class="cc-live-entry__badge cc-live-entry__grade-badge cc-live-entry__grade-badge--${gradeColorClass(q.blurb_quality_grade)}" title="Blurb Quality: ${q.blurb_quality_score}">B:${q.blurb_quality_grade}</span>`);
-    if (q.was_fallback) badges.push('<span class="cc-live-entry__badge cc-live-entry__badge--fallback">FB</span>');
-    if (q.response_time_ms) badges.push(`<span class="cc-live-entry__response">${q.response_time_ms}ms</span>`);
-    if (q.exclude_count > 0) badges.push(`<span class="cc-live-entry__badge cc-live-entry__badge--retry">x${q.exclude_count}</span>`);
-    if (q.claude_relevance_score != null) badges.push(`<span class="cc-live-entry__badge ${q.claude_relevance_score >= 1 ? 'cc-live-entry__badge--liked' : 'cc-live-entry__badge--disliked'}">${q.claude_relevance_score >= 1 ? '&#128077;' : '&#128078;'}</span>`);
+    const hasGradeIssue = (q.score_fit_score != null && q.score_fit_score < 83) || (q.blurb_quality_score != null && q.blurb_quality_score < 83);
+    const hasCriticalGrade = (q.score_fit_score != null && q.score_fit_score < 73) || (q.blurb_quality_score != null && q.blurb_quality_score < 73);
+    const entryClass = hasCriticalGrade ? 'cc-live-entry--grade-critical' : hasGradeIssue ? 'cc-live-entry--grade-issue' : '';
+    const gradeBadges = [];
+    if (q.score_fit_grade) gradeBadges.push(`<span class="cc-live-entry__badge cc-live-entry__grade-badge cc-live-entry__grade-badge--${gradeColorClass(q.score_fit_grade)}" title="Score Fit: ${q.score_fit_score}">F:${q.score_fit_grade}</span>`);
+    if (q.blurb_quality_grade) gradeBadges.push(`<span class="cc-live-entry__badge cc-live-entry__grade-badge cc-live-entry__grade-badge--${gradeColorClass(q.blurb_quality_grade)}" title="Blurb Quality: ${q.blurb_quality_score}">B:${q.blurb_quality_grade}</span>`);
+    const line2Parts = [];
+    if (restName) line2Parts.push(`<span class="cc-live-entry__rest-line2">${escapeHtml(restName)}</span>`);
+    line2Parts.push(`<span>${fmtTime(q.created_at)}</span>`);
+    if (q.response_time_ms) line2Parts.push(`<span>${q.response_time_ms}ms</span>`);
+    if (q.was_fallback) line2Parts.push('<span style="color:var(--cc-amber)">fallback</span>');
+    if (q.exclude_count > 0) line2Parts.push(`<span>x${q.exclude_count}</span>`);
+    if (q.claude_relevance_score != null) line2Parts.push(`<span>${q.claude_relevance_score >= 1 ? '&#128077;' : '&#128078;'}</span>`);
     return `
-      <div class="cc-live-entry" data-query-id="${q.id}" onclick="openQueryDetail('${q.id}')" style="cursor:pointer" title="Click for details">
-        <span class="cc-live-entry__time">${fmtTime(q.created_at)}</span>
-        <span class="cc-live-entry__query">${escapeHtml(q.special_request || '(empty)')}</span>
-        <span class="cc-live-entry__dm ${ragClass(dm)}">DM: ${dm}</span>
-        <span class="cc-live-entry__icon ${iconClass}">${icon}</span>
-        ${restName ? `<span class="cc-live-entry__rest">${escapeHtml(restName)}</span>` : ''}
-        ${badges.length > 0 ? `<span class="cc-live-entry__badges">${badges.join('')}</span>` : ''}
+      <div class="cc-live-entry ${entryClass}" data-query-id="${q.id}" onclick="openQueryDetail('${q.id}')" style="cursor:pointer" title="Click for details">
+        <div class="cc-live-entry__line1">
+          <span class="cc-live-entry__query">${escapeHtml(q.special_request || '(empty)')}</span>
+        </div>
+        <div class="cc-live-entry__line1-right">
+          <span class="cc-live-entry__dm ${ragClass(dm)}">${dm}</span>
+          ${gradeBadges.join('')}
+        </div>
+        <div class="cc-live-entry__line2">${line2Parts.join(' <span style="color:var(--cc-text-3)">&middot;</span> ')}</div>
       </div>
     `;
   }).join('');
@@ -710,14 +716,28 @@ function renderRunHistory(runs) {
     return;
   }
 
-  body.innerHTML = runs.map(r => {
+  body.innerHTML = runs.map((r, idx) => {
     const date = new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
     const passRate = r.total > 0 ? pct(r.passed_60, r.total) : '--';
-    const delta = r.delta_avg_dm != null ? (r.delta_avg_dm >= 0 ? `+${r1(r.delta_avg_dm)}` : r1(r.delta_avg_dm)) : '--';
-    const deltaClass = r.delta_avg_dm > 0 ? 'rag-green' : r.delta_avg_dm < 0 ? 'rag-red' : '';
     const hasGaps = r.gap_count > 0;
+
+    // Visual enhancement: color-coded left border
+    const gradePassRate = r.grade_pass_count != null && r.total > 0 ? (r.grade_pass_count / r.total * 100) : Number(passRate);
+    const rowHealthClass = (r.avg_dm >= 75 && gradePassRate >= 80) ? 'cc-run-row--healthy' : (r.avg_dm >= 60 && gradePassRate >= 50) ? 'cc-run-row--warning' : 'cc-run-row--critical';
+
+    // Delta arrow
+    let deltaHtml;
+    if (r.delta_avg_dm != null && r.delta_avg_dm !== 0) {
+      const deltaClass = r.delta_avg_dm > 0 ? 'cc-run-delta--up' : 'cc-run-delta--down';
+      deltaHtml = `<span class="cc-run-delta ${deltaClass}">${r.delta_avg_dm > 0 ? '+' : ''}${r1(r.delta_avg_dm)}</span>`;
+    } else if (r.delta_avg_dm === 0) {
+      deltaHtml = `<span class="cc-run-delta cc-run-delta--flat">0</span>`;
+    } else {
+      deltaHtml = '--';
+    }
+
     return `
-      <tr class="cc-run-row ${hasGaps ? 'cc-run-row--has-gaps' : ''}" data-run-id="${escapeHtml(r.run_id)}" onclick="selectRun('${escapeHtml(r.run_id)}'); toggleRunDetail(this)" style="cursor:pointer" title="${hasGaps ? 'Click to see issues' : 'Click to see details'}">
+      <tr class="cc-run-row ${hasGaps ? 'cc-run-row--has-gaps' : ''} ${rowHealthClass}" data-run-id="${escapeHtml(r.run_id)}" onclick="selectRun('${escapeHtml(r.run_id)}'); toggleRunDetail(this)" style="cursor:pointer" title="${hasGaps ? 'Click to see issues' : 'Click to see details'}">
         <td>${date}</td>
         <td>${escapeHtml(r.mode || 'test')}</td>
         <td>${r.total || r.dataset_size || '--'}</td>
@@ -725,7 +745,7 @@ function renderRunHistory(runs) {
         <td>${passRate}%</td>
         <td>${r.avg_score_fit != null ? `<span class="cc-grade cc-grade--${typeof gradeColor === 'function' ? gradeColor(typeof letterGrade === 'function' ? letterGrade(r.avg_score_fit) : '--') : ''}">${typeof letterGrade === 'function' ? letterGrade(r.avg_score_fit) : r1(r.avg_score_fit)}</span>` : '--'}</td>
         <td>${r.avg_blurb_quality != null ? `<span class="cc-grade cc-grade--${typeof gradeColor === 'function' ? gradeColor(typeof letterGrade === 'function' ? letterGrade(r.avg_blurb_quality) : '--') : ''}">${typeof letterGrade === 'function' ? letterGrade(r.avg_blurb_quality) : r1(r.avg_blurb_quality)}</span>` : '--'}</td>
-        <td class="${deltaClass}">${delta} ${hasGaps ? '<span class="cc-run-row__expand">&#9660;</span>' : ''}</td>
+        <td>${deltaHtml} ${hasGaps ? '<span class="cc-run-row__expand">&#9660;</span>' : ''}</td>
       </tr>
       <tr class="cc-run-detail" id="detail-${escapeHtml(r.run_id)}" style="display:none">
         <td colspan="8"><div class="cc-run-detail__content">Loading...</div></td>
@@ -777,7 +797,9 @@ async function toggleRunDetail(row) {
     const gaps = results.filter(r => r.gap_type);
     const passes = results.filter(r => !r.gap_type);
 
-    let html = '';
+    // Grade heatmap at top
+    let html = typeof renderGradeHeatmap === 'function' ? renderGradeHeatmap(results) : '';
+
     if (gaps.length > 0) {
       html += `<div class="cc-run-detail__section"><strong>${gaps.length} issue${gaps.length > 1 ? 's' : ''}:</strong></div>`;
       html += gaps.map(r => {
@@ -979,7 +1001,8 @@ async function openQueryDetail(queryId) {
         id, special_request, occasion, price_level, neighborhood_id,
         donde_match, created_at, recommended_restaurant_id, response_time_ms,
         was_fallback, claude_relevance_score, exclude_count, unmatched_keywords,
-        recommendation_text, source,
+        recommendation_text, source, score_fit_score, score_fit_grade,
+        blurb_quality_score, blurb_quality_grade,
         restaurants!recommended_restaurant_id (
           name, address, cuisine_type, google_rating, google_review_count,
           price_level, noise_level, best_for_oneliner,
@@ -1010,6 +1033,32 @@ async function openQueryDetail(queryId) {
         <span class="cc-query-panel__dm ${ragClass(dm)}">${dm}</span>
         <span class="cc-query-panel__dm-label">DondeMatch</span>
       </div>
+
+      ${(query.score_fit_grade || query.blurb_quality_grade) ? `
+      <div class="cc-query-panel__grades">
+        ${query.score_fit_grade ? `
+        <div class="cc-query-panel__grade-card cc-query-panel__grade-card--${gradeColorClass(query.score_fit_grade)}">
+          <div class="cc-query-panel__grade-letter">${escapeHtml(query.score_fit_grade)}</div>
+          <div class="cc-query-panel__grade-num">${query.score_fit_score ?? '--'}</div>
+          <div class="cc-query-panel__grade-label">Score Fit</div>
+        </div>` : ''}
+        ${query.blurb_quality_grade ? `
+        <div class="cc-query-panel__grade-card cc-query-panel__grade-card--${gradeColorClass(query.blurb_quality_grade)}">
+          <div class="cc-query-panel__grade-letter">${escapeHtml(query.blurb_quality_grade)}</div>
+          <div class="cc-query-panel__grade-num">${query.blurb_quality_score ?? '--'}</div>
+          <div class="cc-query-panel__grade-label">Blurb Quality</div>
+        </div>` : ''}
+      </div>
+      ${((query.score_fit_score != null && query.score_fit_score < 83) || (query.blurb_quality_score != null && query.blurb_quality_score < 83)) ? `
+      <div class="cc-query-panel__grade-issue">
+        <div class="cc-query-panel__grade-issue-icon">&#9888;</div>
+        <div class="cc-query-panel__grade-issue-text">
+          ${query.score_fit_score != null && query.score_fit_score < 83 ? `<div>Score Fit ${query.score_fit_grade} (${query.score_fit_score}): Review relevance/factor alignment in scoring-v9.ts</div>` : ''}
+          ${query.blurb_quality_score != null && query.blurb_quality_score < 83 ? `<div>Blurb Quality ${query.blurb_quality_grade} (${query.blurb_quality_score}): Fix blurb generation in prompts-v5.ts</div>` : ''}
+        </div>
+        <button class="cc-query-panel__copy-fix" onclick="event.stopPropagation(); navigator.clipboard.writeText(this.closest('.cc-query-panel__grade-issue').querySelector('.cc-query-panel__grade-issue-text').textContent.trim()); showToast('Fix prompt copied')">Copy</button>
+      </div>` : ''}
+      ` : ''}
 
       <div class="cc-query-panel__section">
         <div class="cc-query-panel__label">Query</div>
@@ -2132,4 +2181,385 @@ function checkSmartSuggestion() {
   if (topCat && topCat[1] >= 2) {
     showToast(`${topCat[1]} ${topCat[0]} gaps — Run Category Focus?`);
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Action Center (#1) — Top 3 actionable issues across test + prod
+// ═══════════════════════════════════════════════════════════════════
+
+function renderActionCenter() {
+  const el = document.getElementById('action-center');
+  if (!el) return;
+
+  const items = computeActionItems();
+
+  if (items.length === 0) {
+    el.innerHTML = `
+      <div class="cc-action-card cc-action-card--clear cc-action-card--all-clear">
+        <div class="cc-action-card__icon">&#10003;</div>
+        <div class="cc-action-card__body">
+          <div class="cc-action-card__title">All Clear</div>
+          <div class="cc-action-card__metric">No urgent issues across test or production</div>
+        </div>
+      </div>`;
+    el.style.display = '';
+    return;
+  }
+
+  el.innerHTML = items.slice(0, 3).map(item => {
+    const sevClass = item.severity === 'P0' ? 'cc-action-card--p0' : item.severity === 'P1' ? 'cc-action-card--p1' : 'cc-action-card--p2';
+    return `
+      <div class="cc-action-card ${sevClass}" onclick="${escapeHtml(item.onclick)}">
+        <div class="cc-action-card__icon">${item.icon}</div>
+        <div class="cc-action-card__body">
+          <div class="cc-action-card__title">${escapeHtml(item.title)}</div>
+          <div class="cc-action-card__metric">${escapeHtml(item.metric)}</div>
+          <div class="cc-action-card__action">${item.action} &rarr;</div>
+        </div>
+      </div>`;
+  }).join('');
+  el.style.display = '';
+}
+
+function computeActionItems() {
+  const items = [];
+  const issues = (state.issues || []).filter(i => !i.status || i.status === 'open');
+
+  // 1. Grade failures from test
+  const testGradeIssues = issues.filter(i => i.source === 'test' && (i.gapType === 'grade_fit' || i.gapType === 'grade_blurb' || i.gapType === 'grade_both'));
+  if (testGradeIssues.length > 0) {
+    items.push({
+      severity: testGradeIssues.some(i => i.severity === 'P0') ? 'P0' : 'P1',
+      icon: '&#128200;',
+      title: `${testGradeIssues.length} Grade Failure${testGradeIssues.length > 1 ? 's' : ''} (Test)`,
+      metric: `Fit/Blurb below B in last test run`,
+      action: 'View Issues',
+      onclick: "switchTab('issues')",
+    });
+  }
+
+  // 2. Production grade issues (last 24h)
+  const dayAgo = new Date(Date.now() - 86400000).toISOString();
+  const prodGradeIssues = (state.liveFeed || []).filter(q =>
+    q.created_at >= dayAgo &&
+    ((q.score_fit_score != null && q.score_fit_score < 83) ||
+     (q.blurb_quality_score != null && q.blurb_quality_score < 83))
+  );
+  if (prodGradeIssues.length > 0) {
+    items.push({
+      severity: prodGradeIssues.some(q => (q.score_fit_score || 100) < 73 || (q.blurb_quality_score || 100) < 73) ? 'P0' : 'P1',
+      icon: '&#9888;',
+      title: `${prodGradeIssues.length} Prod Grade Issue${prodGradeIssues.length > 1 ? 's' : ''} (24h)`,
+      metric: `Below B in live production`,
+      action: 'View Live',
+      onclick: "switchTab('live')",
+    });
+  }
+
+  // 3. Low-score test failures (DM < 60)
+  const testLowScore = issues.filter(i => i.source === 'test' && i.dm < 60 && i.gapType !== 'grade_fit' && i.gapType !== 'grade_blurb' && i.gapType !== 'grade_both');
+  if (testLowScore.length > 0) {
+    items.push({
+      severity: testLowScore.some(i => i.dm < 40) ? 'P0' : 'P1',
+      icon: '&#128269;',
+      title: `${testLowScore.length} Low Score${testLowScore.length > 1 ? 's' : ''} (Test)`,
+      metric: `DM < 60 in last test run`,
+      action: 'View Issues',
+      onclick: "switchTab('issues')",
+    });
+  }
+
+  // 4. High fallback rate
+  const recentQueries = (state.liveFeed || []).filter(q => q.created_at >= dayAgo);
+  if (recentQueries.length >= 5) {
+    const fbRate = recentQueries.filter(q => q.was_fallback).length / recentQueries.length * 100;
+    if (fbRate > 15) {
+      items.push({
+        severity: fbRate > 30 ? 'P0' : 'P1',
+        icon: '&#128260;',
+        title: `Fallback Rate ${Math.round(fbRate)}%`,
+        metric: `${recentQueries.filter(q => q.was_fallback).length} of ${recentQueries.length} queries (24h)`,
+        action: 'View Fallbacks',
+        onclick: "switchTab('live'); setLiveAdvFilter('fallback', 'yes')",
+      });
+    }
+  }
+
+  // Sort by severity
+  const sevOrder = { P0: 0, P1: 1, P2: 2 };
+  items.sort((a, b) => (sevOrder[a.severity] || 9) - (sevOrder[b.severity] || 9));
+  return items;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Live Issues Section (#5) — Inline issue cards on Live tab
+// ═══════════════════════════════════════════════════════════════════
+
+function renderLiveIssues(queries) {
+  const section = document.getElementById('live-issues-section');
+  if (!section) return;
+
+  const gradeIssues = (queries || state.liveFeed || []).filter(q =>
+    (q.score_fit_score != null && q.score_fit_score < 83) ||
+    (q.blurb_quality_score != null && q.blurb_quality_score < 83)
+  ).slice(0, 5);
+
+  if (gradeIssues.length === 0) {
+    section.innerHTML = '';
+    return;
+  }
+
+  const isCollapsed = section.dataset.collapsed === '1';
+
+  section.innerHTML = `
+    <div class="cc-live-issues ${isCollapsed ? 'cc-live-issues--collapsed' : ''}">
+      <div class="cc-live-issues__header" onclick="toggleLiveIssues()">
+        <span>${gradeIssues.length} Grade Issue${gradeIssues.length > 1 ? 's' : ''} in Recent Queries</span>
+        <span class="cc-live-issues__header-arrow">&#9660;</span>
+      </div>
+      <div class="cc-live-issues__body">
+        ${gradeIssues.map(q => {
+          const fitBadge = q.score_fit_grade ? `<span class="cc-live-entry__badge cc-live-entry__grade-badge cc-live-entry__grade-badge--${gradeColorClass(q.score_fit_grade)}">F:${q.score_fit_grade}</span>` : '';
+          const blurbBadge = q.blurb_quality_grade ? `<span class="cc-live-entry__badge cc-live-entry__grade-badge cc-live-entry__grade-badge--${gradeColorClass(q.blurb_quality_grade)}">B:${q.blurb_quality_grade}</span>` : '';
+          const restName = q.restaurants?.name || '';
+          let fixText = '';
+          if (q.score_fit_score != null && q.score_fit_score < 83) fixText += `Score Fit ${q.score_fit_grade}: Review scoring-v9.ts. `;
+          if (q.blurb_quality_score != null && q.blurb_quality_score < 83) fixText += `Blurb ${q.blurb_quality_grade}: Fix prompts-v5.ts.`;
+          return `
+            <div class="cc-live-issue-card" onclick="openQueryDetail('${q.id}')">
+              ${fitBadge}${blurbBadge}
+              <span class="cc-live-issue-card__query">${escapeHtml(q.special_request || '(empty)')}</span>
+              ${restName ? `<span class="cc-live-issue-card__rest">${escapeHtml(restName)}</span>` : ''}
+              <button class="cc-live-issue-card__copy-fix" onclick="event.stopPropagation(); navigator.clipboard.writeText('${fixText.replace(/'/g, "\\'")}'); showToast('Fix copied')" title="Copy fix prompt">Copy Fix</button>
+            </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+}
+
+function toggleLiveIssues() {
+  const section = document.getElementById('live-issues-section');
+  if (!section) return;
+  const issuesEl = section.querySelector('.cc-live-issues');
+  if (!issuesEl) return;
+  const isCollapsed = issuesEl.classList.toggle('cc-live-issues--collapsed');
+  section.dataset.collapsed = isCollapsed ? '1' : '0';
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// KPI Sparklines (#3) — Inline SVG trend charts
+// ═══════════════════════════════════════════════════════════════════
+
+function renderKpiSparkline(containerId, dataPoints) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  if (!dataPoints || dataPoints.length < 2) { el.innerHTML = ''; return; }
+
+  const vals = dataPoints.slice(0, 7).reverse(); // chronological order
+  const min = Math.min(...vals);
+  const max = Math.max(...vals);
+  const range = max - min || 1;
+
+  // Compute polyline points
+  const w = 54, h = 16, pad = 1;
+  const points = vals.map((v, i) => {
+    const x = pad + (i / (vals.length - 1)) * (w - 2 * pad);
+    const y = pad + (1 - (v - min) / range) * (h - 2 * pad);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+
+  // Determine trend
+  const first = vals[0], last = vals[vals.length - 1];
+  const trend = last > first + 1 ? 'up' : last < first - 1 ? 'down' : 'flat';
+
+  el.innerHTML = `<span class="cc-kpi-sparkline cc-kpi-sparkline--${trend}"><svg viewBox="0 0 ${w} ${h}"><polyline class="cc-kpi-sparkline__line" points="${points}"/></svg></span>`;
+}
+
+function updateKpiSparklines() {
+  // Compute daily aggregates from liveFeed
+  const queries = state.liveFeed || [];
+  if (queries.length === 0) return;
+
+  const dayBuckets = {};
+  for (const q of queries) {
+    const day = q.created_at.substring(0, 10);
+    if (!dayBuckets[day]) dayBuckets[day] = { dm: [], fit: [], blurb: [], count: 0 };
+    dayBuckets[day].dm.push(q.donde_match || 0);
+    dayBuckets[day].count++;
+    if (q.score_fit_score != null) dayBuckets[day].fit.push(q.score_fit_score);
+    if (q.blurb_quality_score != null) dayBuckets[day].blurb.push(q.blurb_quality_score);
+  }
+
+  const days = Object.keys(dayBuckets).sort().slice(-7);
+  const avgDms = days.map(d => dayBuckets[d].dm.reduce((a, b) => a + b, 0) / dayBuckets[d].dm.length);
+  const passRates = days.map(d => {
+    const passed = dayBuckets[d].dm.filter(v => v >= 60).length;
+    return (passed / dayBuckets[d].dm.length) * 100;
+  });
+  const avgFits = days.map(d => dayBuckets[d].fit.length > 0 ? dayBuckets[d].fit.reduce((a, b) => a + b, 0) / dayBuckets[d].fit.length : null).filter(v => v !== null);
+  const avgBlurbs = days.map(d => dayBuckets[d].blurb.length > 0 ? dayBuckets[d].blurb.reduce((a, b) => a + b, 0) / dayBuckets[d].blurb.length : null).filter(v => v !== null);
+
+  renderKpiSparkline('spark-avg-dm', avgDms);
+  renderKpiSparkline('spark-pass-rate', passRates);
+  renderKpiSparkline('spark-avg-fit', avgFits);
+  renderKpiSparkline('spark-avg-blurb', avgBlurbs);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Data Freshness Indicator (#7)
+// ═══════════════════════════════════════════════════════════════════
+
+function updateFreshnessIndicator() {
+  const el = document.getElementById('data-freshness');
+  if (!el) return;
+  const lastRefresh = state.lastDataRefresh;
+  if (!lastRefresh) { el.innerHTML = ''; return; }
+
+  const elapsed = Math.floor((Date.now() - lastRefresh) / 1000);
+  let text, cls;
+  if (elapsed < 60) { text = 'Updated just now'; cls = ''; }
+  else if (elapsed < 300) { text = `Updated ${Math.floor(elapsed / 60)}m ago`; cls = ''; }
+  else if (elapsed < 900) { text = `Updated ${Math.floor(elapsed / 60)}m ago`; cls = 'cc-freshness--stale'; }
+  else { text = `Stale (${Math.floor(elapsed / 60)}m)`; cls = 'cc-freshness--very-stale'; }
+
+  el.className = `cc-freshness ${cls}`;
+  el.innerHTML = `<span class="cc-freshness__dot"></span>${text}`;
+}
+
+function startFreshnessTicker() {
+  state.lastDataRefresh = Date.now();
+  updateFreshnessIndicator();
+  setInterval(updateFreshnessIndicator, 30000);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Grade Heatmap on Test Results (#6)
+// ═══════════════════════════════════════════════════════════════════
+
+function renderGradeHeatmap(results) {
+  if (!results || results.length === 0) return '';
+
+  function countGrades(grades) {
+    const counts = { a: 0, b: 0, c: 0, df: 0 };
+    for (const g of grades) {
+      if (!g) continue;
+      if (g.startsWith('A')) counts.a++;
+      else if (g.startsWith('B')) counts.b++;
+      else if (g.startsWith('C')) counts.c++;
+      else counts.df++;
+    }
+    return counts;
+  }
+
+  const fitGrades = results.map(r => r.score_fit_grade).filter(Boolean);
+  const blurbGrades = results.map(r => r.blurb_quality_grade).filter(Boolean);
+
+  if (fitGrades.length === 0 && blurbGrades.length === 0) return '';
+
+  function renderBar(label, counts) {
+    const total = counts.a + counts.b + counts.c + counts.df;
+    if (total === 0) return '';
+    return `
+      <div class="cc-grade-heatmap__row">
+        <span class="cc-grade-heatmap__label">${label}</span>
+        <div class="cc-grade-heatmap__bar">
+          ${counts.a > 0 ? `<div class="cc-grade-heatmap__seg cc-grade-heatmap__seg--a" style="flex-grow:${counts.a}" title="A: ${counts.a}"></div>` : ''}
+          ${counts.b > 0 ? `<div class="cc-grade-heatmap__seg cc-grade-heatmap__seg--b" style="flex-grow:${counts.b}" title="B: ${counts.b}"></div>` : ''}
+          ${counts.c > 0 ? `<div class="cc-grade-heatmap__seg cc-grade-heatmap__seg--c" style="flex-grow:${counts.c}" title="C: ${counts.c}"></div>` : ''}
+          ${counts.df > 0 ? `<div class="cc-grade-heatmap__seg cc-grade-heatmap__seg--df" style="flex-grow:${counts.df}" title="D/F: ${counts.df}"></div>` : ''}
+        </div>
+      </div>`;
+  }
+
+  return `
+    <div class="cc-grade-heatmap">
+      ${renderBar('Fit', countGrades(fitGrades))}
+      ${renderBar('Blurb', countGrades(blurbGrades))}
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Cross-Tab Smart Navigation (#9)
+// ═══════════════════════════════════════════════════════════════════
+
+function initKpiClickHandlers() {
+  const kpiActions = {
+    'live-grade-issues': () => { switchTab('issues'); },
+    'live-fallback-rate': () => { switchTab('live'); setLiveAdvFilter('fallback', 'yes'); },
+    'live-avg-fit': () => { switchTab('issues'); },
+    'live-avg-blurb': () => { switchTab('issues'); },
+    'live-grade-pass': () => { switchTab('issues'); },
+  };
+
+  for (const [id, handler] of Object.entries(kpiActions)) {
+    const el = document.getElementById(id);
+    if (el) {
+      const kpiDiv = el.closest('.cc-live-kpi');
+      if (kpiDiv) {
+        kpiDiv.classList.add('cc-live-kpi--clickable');
+        kpiDiv.addEventListener('click', handler);
+      }
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Production vs Test Summary Strip (#10)
+// ═══════════════════════════════════════════════════════════════════
+
+function renderTestVsProdStrip() {
+  const el = document.getElementById('test-vs-prod-strip');
+  if (!el) return;
+
+  const run = state.latestRun;
+  const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+  const prodQueries = (state.liveFeed || []).filter(q => q.created_at >= sevenDaysAgo && q.source !== 'command-center');
+
+  if (!run && prodQueries.length === 0) { el.style.display = 'none'; return; }
+
+  // Test stats
+  const testDm = run ? r1(run.avg_dm) : '--';
+  const testFit = run?.avg_score_fit != null ? (typeof letterGrade === 'function' ? letterGrade(run.avg_score_fit) : r1(run.avg_score_fit)) : '--';
+  const testBlurb = run?.avg_blurb_quality != null ? (typeof letterGrade === 'function' ? letterGrade(run.avg_blurb_quality) : r1(run.avg_blurb_quality)) : '--';
+
+  // Prod stats
+  let prodDm = '--', prodFit = '--', prodBlurb = '--';
+  if (prodQueries.length > 0) {
+    prodDm = r1(prodQueries.reduce((s, q) => s + (q.donde_match || 0), 0) / prodQueries.length);
+    const withFit = prodQueries.filter(q => q.score_fit_score != null);
+    const withBlurb = prodQueries.filter(q => q.blurb_quality_score != null);
+    if (withFit.length > 0) {
+      const avgF = withFit.reduce((s, q) => s + q.score_fit_score, 0) / withFit.length;
+      prodFit = typeof letterGrade === 'function' ? letterGrade(avgF) : r1(avgF);
+    }
+    if (withBlurb.length > 0) {
+      const avgB = withBlurb.reduce((s, q) => s + q.blurb_quality_score, 0) / withBlurb.length;
+      prodBlurb = typeof letterGrade === 'function' ? letterGrade(avgB) : r1(avgB);
+    }
+  }
+
+  // Check divergence
+  const testDmNum = run ? Number(run.avg_dm) : 0;
+  const prodDmNum = prodQueries.length > 0 ? prodQueries.reduce((s, q) => s + (q.donde_match || 0), 0) / prodQueries.length : 0;
+  const divergence = testDmNum > 0 && prodDmNum > 0 ? ((testDmNum - prodDmNum) / testDmNum * 100) : 0;
+  const prodWarnClass = divergence > 10 ? 'cc-comparison-half--warn' : '';
+
+  el.innerHTML = `
+    <div class="cc-comparison-half">
+      <span class="cc-comparison-half__label">Test</span>
+      <div class="cc-comparison-half__metrics">
+        <div class="cc-comparison-half__item"><span class="cc-comparison-half__key">DM</span> <span class="cc-comparison-half__val">${testDm}</span></div>
+        <div class="cc-comparison-half__item"><span class="cc-comparison-half__key">Fit</span> <span class="cc-comparison-half__val">${testFit}</span></div>
+        <div class="cc-comparison-half__item"><span class="cc-comparison-half__key">Blurb</span> <span class="cc-comparison-half__val">${testBlurb}</span></div>
+      </div>
+    </div>
+    <div class="cc-comparison-half ${prodWarnClass}">
+      <span class="cc-comparison-half__label">Prod (7d)</span>
+      <div class="cc-comparison-half__metrics">
+        <div class="cc-comparison-half__item"><span class="cc-comparison-half__key">DM</span> <span class="cc-comparison-half__val">${prodDm}</span></div>
+        <div class="cc-comparison-half__item"><span class="cc-comparison-half__key">Fit</span> <span class="cc-comparison-half__val">${prodFit}</span></div>
+        <div class="cc-comparison-half__item"><span class="cc-comparison-half__key">Blurb</span> <span class="cc-comparison-half__val">${prodBlurb}</span></div>
+      </div>
+    </div>`;
+  el.style.display = '';
 }

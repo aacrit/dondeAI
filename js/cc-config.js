@@ -166,6 +166,7 @@ let state = {
   unreadLogs: 0,              // unread terminal log count (for FAB badge)
   lastTestType: null,         // for quick rerun
   lastTestConfig: null,       // for quick rerun
+  lastDataRefresh: null,      // timestamp of last successful data load (for freshness indicator)
 };
 
 // Session persistence keys
