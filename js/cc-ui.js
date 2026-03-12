@@ -1704,9 +1704,20 @@ async function retestIssue(idx) {
     const newDm = resp.donde_match || 0;
     issue.retestDm = newDm;
 
-    if (newDm >= 60) {
+    // Compute grade data from retest response
+    const fitGrade = typeof computeScoreFitGrade === 'function' ? computeScoreFitGrade(issue.query, resp) : null;
+    const blurbGrade = typeof computeBlurbQualityGrade === 'function' ? computeBlurbQualityGrade(issue.query, resp) : null;
+    if (fitGrade) { issue.scoreFitScore = fitGrade.score; issue.scoreFitGrade = fitGrade.grade; }
+    if (blurbGrade) { issue.blurbQualityScore = blurbGrade.score; issue.blurbQualityGrade = blurbGrade.grade; }
+
+    // Determine pass using grade-aware check
+    const fitScore = fitGrade?.score || 0;
+    const blurbScore = blurbGrade?.score || 0;
+    const passesGrade = typeof gradePass === 'function' ? gradePass(newDm, fitScore, blurbScore) : newDm >= 60;
+
+    if (passesGrade) {
       issue.status = 'fixed';
-      showToast(`Fixed! "${issue.query}" now scores DM ${newDm}`);
+      showToast(`Fixed! "${issue.query}" now scores DM ${newDm} (Fit: ${fitGrade?.grade || '--'}, Blurb: ${blurbGrade?.grade || '--'})`);
     } else if (newDm > issue.dm) {
       issue.status = 'improved';
       showToast(`Improved: "${issue.query}" DM ${issue.dm} → ${newDm}`);
@@ -1721,14 +1732,16 @@ async function retestIssue(idx) {
     // Update restaurant name if it changed
     if (resp.restaurant?.name) issue.restaurant = resp.restaurant.name;
 
-    // Log retest as a gauntlet run
-    const pass = newDm >= 60;
+    // Log retest as a gauntlet run with grade data
+    const pass = passesGrade;
     const gap = pass ? null : (issue.gapType || determineGapType(resp, newDm));
     if (typeof persistResults === 'function') {
       await persistResults({ type: 'retest', results: [{
         query: issue.query, cat: issue.category || 'unknown', dm: newDm, pass,
         gap, restaurant: issue.restaurant, severity: issue.severity,
         prevDm, queryId: issue.queryId || `retest-${idx}`,
+        scoreFitScore: fitGrade?.score ?? null, scoreFitGrade: fitGrade?.grade || null,
+        blurbScore: blurbGrade?.score ?? null, blurbGrade: blurbGrade?.grade || null,
       }] });
     }
 
@@ -1775,7 +1788,18 @@ async function retestSelectedIssues() {
         const newDm = resp.donde_match || 0;
         issue.retestDm = newDm;
 
-        if (newDm >= 60) {
+        // Compute grade data from retest response
+        const fitGrade = typeof computeScoreFitGrade === 'function' ? computeScoreFitGrade(issue.query, resp) : null;
+        const blurbGrade = typeof computeBlurbQualityGrade === 'function' ? computeBlurbQualityGrade(issue.query, resp) : null;
+        if (fitGrade) { issue.scoreFitScore = fitGrade.score; issue.scoreFitGrade = fitGrade.grade; }
+        if (blurbGrade) { issue.blurbQualityScore = blurbGrade.score; issue.blurbQualityGrade = blurbGrade.grade; }
+
+        // Determine pass using grade-aware check
+        const fitScore = fitGrade?.score || 0;
+        const blurbScore = blurbGrade?.score || 0;
+        const passesGrade = typeof gradePass === 'function' ? gradePass(newDm, fitScore, blurbScore) : newDm >= 60;
+
+        if (passesGrade) {
           issue.status = 'fixed';
           fixed++;
         } else if (newDm > issue.dm) {
@@ -1791,12 +1815,14 @@ async function retestSelectedIssues() {
 
         if (resp.restaurant?.name) issue.restaurant = resp.restaurant.name;
 
-        const pass = newDm >= 60;
+        const pass = passesGrade;
         const gap = pass ? null : (issue.gapType || determineGapType(resp, newDm));
         retestResults.push({
           query: issue.query, cat: issue.category || 'unknown', dm: newDm, pass,
           gap, restaurant: issue.restaurant, severity: issue.severity,
           prevDm, queryId: issue.queryId || `retest-${idx}`,
+          scoreFitScore: fitGrade?.score ?? null, scoreFitGrade: fitGrade?.grade || null,
+          blurbScore: blurbGrade?.score ?? null, blurbGrade: blurbGrade?.grade || null,
         });
       } catch (e) {
         console.warn(`Retest failed for "${issue.query}":`, e.message);
@@ -1830,7 +1856,27 @@ function saveIssueStatuses() {
   for (const issue of state.issues) {
     if (issue.status && issue.status !== 'open') {
       const key = issue.query.toLowerCase().trim();
-      statuses[key] = { status: issue.status, retestDm: issue.retestDm, ts: Date.now() };
+      statuses[key] = {
+        status: issue.status,
+        retestDm: issue.retestDm,
+        ts: Date.now(),
+        // Persist full issue data so resolved issues survive refresh
+        query: issue.query,
+        dm: issue.dm,
+        gapType: issue.gapType,
+        severity: issue.severity,
+        category: issue.category,
+        restaurant: issue.restaurant,
+        source: issue.source,
+        sourceDetail: issue.sourceDetail,
+        fixAction: issue.fixAction,
+        scoreFitGrade: issue.scoreFitGrade,
+        scoreFitScore: issue.scoreFitScore,
+        blurbQualityGrade: issue.blurbQualityGrade,
+        blurbQualityScore: issue.blurbQualityScore,
+        factors: issue.factors,
+        relevanceType: issue.relevanceType,
+      };
     }
   }
   try { localStorage.setItem('cc-issue-statuses', JSON.stringify(statuses)); } catch (_) {}
