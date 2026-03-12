@@ -49,18 +49,22 @@
 | **cc-config.js** | Constants, agent definitions, edge probes, golden queries, pipeline defs, global state, helpers (`ragClass`, `ragColor`, `determineGapType`) |
 | **cc-agents.js** | Agent orchestration — calls `/recommend`, manages budgets, XP/level system, category/difficulty filtering |
 | **cc-analytics.js** | Auth check, loads gauntlet data from Supabase or local JSON, renders quality metrics & gap analysis |
-| **cc-ui.js** | Pulse cards, production strip, clock/uptime, system status dot, animated count-ups, section toggling |
+| **cc-ui.js** | Pulse cards, action center, live feed (2-line layout), query detail panel (with grades), sparklines, grade heatmap, run history, freshness indicator, KPI click handlers, test vs prod comparison |
 | **cc-queries.js** | 1,042 Chicago test queries across 5 categories (Food, Vibe, Service, Rep, Conv) with difficulty tiers |
 
 ### UI Zones
 
-1. **Pulse Cards** — System Health %, Avg DondeMatch, Needs Attention count. RAG-colored (green ≥ 80, amber ≥ 60, red < 60).
-2. **Production Strip** — Three live KPIs; clickable to expand detail.
-3. **Quick Actions** — Run Tests, Rerun & Compare, Check Data.
-4. **Test Results** — Collapsible; shows per-query pass/fail, gap types, score distributions.
-5. **Agents** — Table of 5 agents (Atlas, QAudit, Sentinel, Hunter, Guardian) with HP/XP/status + leaderboard.
-6. **Data Health & Pipelines** — Discovery, Enrichment, Scores & Tags, Audit status.
-7. **Activity Log** — Timestamped battle log with agent-color coding.
+1. **Pulse Cards** — System Health %, Avg DondeMatch, Needs Attention count. RAG-colored (green ≥ 80, amber ≥ 60, red < 60). Click to expand trend detail.
+2. **Action Center** — Top 3 actionable issues across test + production. One-click navigation to filtered views. Shows "All Clear" when no issues.
+3. **Test vs Production Strip** — Side-by-side comparison: DM, Score Fit, Blurb Quality for latest test run vs 7-day production average. Amber border if prod >10% worse than test.
+4. **Grade KPI Strip** — Score Fit grade, Blurb Quality grade, Grade Pass Rate (from latest test run).
+5. **Live Tab** — Filter bar + 12 KPIs (with sparkline trends on 4 key metrics) + inline grade issues section (top 5 below-B queries) + score distribution + API health + two-line live feed entries with grade badges.
+6. **Test Tab** — 6 test types + run history (color-coded rows with delta arrows) + grade heatmap in run details.
+7. **Issues Tab** — Root-cause grouped issues with severity, fix prompts, retest capability, executive summary.
+8. **Data Tab** — DB overview + pipeline status + data coverage.
+9. **Query Detail Panel** — Slide-out panel with DondeMatch, Score Fit grade card, Blurb Quality grade card, fix prompts for below-B grades, restaurant details, blurb.
+10. **Data Freshness Indicator** — Header shows time since last data refresh. Amber >5m, red >15m.
+11. **Cross-Tab Navigation** — Grade Issues, Fallback Rate, Avg Fit, Avg Blurb KPIs are clickable — navigate to filtered Issues/Live views.
 
 ### Agents
 
