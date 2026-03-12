@@ -953,6 +953,13 @@ function wireEvents() {
         // SSO: also write with auth_user_id for richer data
         if (isAuthAuthenticated()) addVisitToServer(restaurant);
         updateGoingBtn(restaurant.id);
+        // Micro-celebration: subtle scale pulse on confirm
+        const $goingBtn = document.getElementById('going-btn');
+        if ($goingBtn) {
+          $goingBtn.style.transition = 'transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1)';
+          $goingBtn.style.transform = 'scale(1.05)';
+          setTimeout(() => { $goingBtn.style.transform = 'scale(1)'; }, 200);
+        }
         renderYourSpots();
         showToast(toasts().goingHere, false);
         break;
@@ -2666,10 +2673,6 @@ function renderResult(data) {
   // V5: Relaxation notice — shown above result card when filters were expanded
   renderRelaxationNotice(data);
 
-  // Match signal — removed (redundant with blurb + formula row)
-  const $matchSignal = document.getElementById('match-signal');
-  if ($matchSignal) $matchSignal.style.display = 'none';
-
   // Craving echo — show what the user asked for
   const $cravingEcho = document.getElementById('craving-echo');
   if ($cravingEcho) {
@@ -2918,9 +2921,8 @@ function openBadgePopout(badgeEl) {
   document.body.appendChild(popout);
   popout.classList.add('badge-popout--open');
   _activePopout = { badge: badgeEl, popout };
-  // Longer auto-close for content-heavy popouts (known-for)
-  const timeout = popout.classList.contains('badge-popout--known-for') ? 8000 : 5000;
-  _popoutTimer = setTimeout(() => closeBadgePopout(), timeout);
+  // 8s auto-close for all popouts — content is always worth reading
+  _popoutTimer = setTimeout(() => closeBadgePopout(), 8000);
   requestAnimationFrame(() => positionPopout(badgeEl, popout));
 }
 

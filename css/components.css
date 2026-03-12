@@ -1737,15 +1737,6 @@
   margin: 0;
 }
 
-/* ── Match Signal — strongest factor callout (Ink Rule: neutral, no accent) ── */
-.match-signal {
-  color: var(--text-secondary);
-  font-size: 0.75rem;
-  letter-spacing: 0.02em;
-  padding: 0 var(--space-md);
-  margin: calc(-1 * var(--space-xs)) 0 var(--space-xs);
-  opacity: 0.7;
-}
 
 /* ── DondeAI Blurb — The editorial recommendation voice ── */
 .donde-blurb {
@@ -2014,15 +2005,15 @@
   display: none;
 }
 
-/* ── Craving Echo — what you asked for (bottom of card, low priority) ── */
+/* ── Craving Echo — contextual label above blurb ── */
 .craving-echo {
   font-family: var(--font-data);
   font-size: var(--text-2xs);
-  color: var(--fg4, var(--fg3));
+  color: var(--fg3);
   margin: 0;
-  padding: var(--space-2xs) 0;
-  opacity: 0.5;
-  text-align: center;
+  padding: 0 var(--space-md);
+  opacity: 0.6;
+  text-align: left;
 }
 .craving-echo:empty { display: none; }
 
