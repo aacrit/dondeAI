@@ -3148,7 +3148,7 @@ function renderQuickActions(data) {
 
   // Reserve
   const reserveUrl = r.google_place_id
-    ? `https://www.google.com/maps/place/?q=place_id:${r.google_place_id}`
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.name)}&query_place_id=${r.google_place_id}`
     : r.website;
   if (reserveUrl) {
     items.push({ icon: 'calendar', label: 'Reserve', href: reserveUrl });
@@ -3175,7 +3175,7 @@ function renderQuickActions(data) {
   const hood = /^chicago$/i.test(rawHood.trim()) ? '' : rawHood;
   const navLabel = hood ? `${hood} \u00b7 ${shortAddr}` : shortAddr;
   const navUrl = r.google_place_id
-    ? `https://www.google.com/maps/place/?q=place_id:${r.google_place_id}`
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.name)}&query_place_id=${r.google_place_id}`
     : r.address ? buildMapsUrl(r.address) : null;
   if (navUrl && navLabel) {
     items.unshift({ icon: 'pin', label: navLabel, href: navUrl });

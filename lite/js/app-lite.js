@@ -399,7 +399,7 @@ function renderResult(data) {
   // Action links
   const $directions = $id('action-directions');
   if (r.google_place_id) {
-    $directions.href = `https://www.google.com/maps/place/?q=place_id:${r.google_place_id}`;
+    $directions.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.name)}&query_place_id=${r.google_place_id}`;
     $directions.hidden = false;
   } else if (r.address || r.formatted_address) {
     $directions.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.address || r.formatted_address)}`;
@@ -521,7 +521,7 @@ async function handleShare() {
     title: `${r.name} — DondeLite`,
     text: `Check out ${r.name}! ${result.recommendation || ''}`.slice(0, 200),
     url: r.google_place_id
-      ? `https://www.google.com/maps/place/?q=place_id:${r.google_place_id}`
+      ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.name)}&query_place_id=${r.google_place_id}`
       : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.name + ' Chicago')}`,
   };
 
