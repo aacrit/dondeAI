@@ -39,8 +39,7 @@
  *   renderDeepContextExtras(data)  — USP, wow factors, cuisine drawer
  *   renderPerfectFor(data)         — Scenario pills
  *   renderQuickStats(data)         — Impact-ranked stat ribbon
- *   renderCuisineDrawer(data)      — Signature dishes, menu highlights
- *   closeCuisineDrawer()           — Close cuisine drawer
+ *   renderCuisineDetails(data)     — Cuisine details inline in Tier 2
  *
  * MODALS:
  *   openTileExpand(tileEl)   — Score tile modal

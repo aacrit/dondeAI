@@ -876,13 +876,6 @@
     transition: none !important;
   }
 
-  /* Cuisine Drawer — instant open/close */
-  .cuisine-drawer {
-    transition: none !important;
-  }
-  .cuisine-drawer__backdrop {
-    transition: none !important;
-  }
 
   .score-hero__dot {
     transition: none !important;

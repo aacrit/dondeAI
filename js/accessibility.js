@@ -99,12 +99,6 @@ function handleKeyboard(e) {
       return;
     }
 
-    // Cuisine drawer
-    const cuisineDrawer = document.getElementById('cuisine-drawer');
-    if (cuisineDrawer?.classList.contains('cuisine-drawer--open')) {
-      document.querySelector('[data-action="close-cuisine-drawer"]')?.click();
-      return;
-    }
 
     // Lightbox
     const lightbox = document.getElementById('lightbox');
