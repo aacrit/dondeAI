@@ -83,7 +83,11 @@ apikey: <supabase-anon-key>
 Timeout: 15s (AbortController)
 ```
 
-Request: `{ special_request, occasion, neighborhood, price_level, exclude[], dietary_restrictions[], user_id, feedback, time_of_day }`
+Request: `{ special_request, occasion, neighborhood, price_level, exclude[], dietary_restrictions[], user_id, feedback, time_of_day, skip_claude }`
+
+**`skip_claude` (internal):** When `true`, skips Claude API calls — engine returns deterministic scores + fallback blurbs at $0 cost. Default: `false`. The Command Center "Live API" toggle (default OFF) sets this automatically.
+
+**Command Center Live API Toggle:** Green "Scoring Only" (default, $0) / Red "LIVE API" ($$$). Two standalone live tests (red cards): "Blurb Quality Check" (1 query, ~$0.30) and "Intent Classification" (1 query, ~$0.05) always call Claude regardless of toggle.
 
 Key response fields: `{ success, restaurant{...}, recommendation, insider_tip, donde_match(0-99), scores{...}, scoring_v9{ relevance_score, relevance_type, quality_score, occasion_bonus, food, vibe, service, reputation, convenience, weights_used }, match_narrative{ strongest_factor, key_signals, summary, weak_spots }, ranked_queue[{ rank, restaurant, donde_match, scoring_v9, match_headline }], deep_context, tags[], intent_boost, timestamp }`
 

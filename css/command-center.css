@@ -4483,3 +4483,142 @@ body {
   .cc-action-card:hover { transform: none; }
   .cc-briefing-card { opacity: 1; }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   Live API Toggle
+   ═══════════════════════════════════════════════════════════════ */
+
+.cc-live-toggle {
+  display: flex;
+  align-items: center;
+}
+
+.cc-live-toggle__btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1.5px solid var(--cc-green, #22c55e);
+  background: rgba(34, 197, 94, 0.08);
+  color: var(--cc-green, #22c55e);
+  font: 500 11px/1 'Inter', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.2s ease-out;
+}
+
+.cc-live-toggle__btn--on {
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.3);
+}
+
+.cc-live-toggle__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--cc-green, #22c55e);
+  transition: background 0.2s;
+}
+
+.cc-live-toggle__btn--on .cc-live-toggle__dot {
+  background: #ef4444;
+  animation: cc-pulse-dot 1.5s ease-in-out infinite;
+}
+
+@keyframes cc-pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.cc-live-toggle__label {
+  white-space: nowrap;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Live API Test Cards (Red Highlighted)
+   ═══════════════════════════════════════════════════════════════ */
+
+.cc-live-tests {
+  margin-top: 16px;
+  padding: 12px;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 10px;
+  background: rgba(239, 68, 68, 0.04);
+}
+
+.cc-live-tests__header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font: 600 12px/1 'Inter', sans-serif;
+  color: #ef4444;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+}
+
+.cc-live-tests__icon {
+  font-size: 14px;
+}
+
+.cc-live-tests__cost {
+  font-weight: 400;
+  font-size: 10px;
+  opacity: 0.7;
+  margin-left: auto;
+}
+
+.cc-test-grid--live {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.cc-test-card--live {
+  border-color: rgba(239, 68, 68, 0.35) !important;
+  background: rgba(239, 68, 68, 0.06) !important;
+}
+
+.cc-test-card--live .cc-test-card__icon {
+  color: #ef4444;
+}
+
+.cc-test-card--live .cc-test-card__name {
+  color: #ef4444;
+}
+
+.cc-test-card--live:hover {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 16px rgba(239, 68, 68, 0.2);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Test Mode Badge
+   ═══════════════════════════════════════════════════════════════ */
+
+.cc-mode-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font: 600 9px/1 'JetBrains Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.cc-mode-badge--scoring {
+  background: rgba(34, 197, 94, 0.15);
+  color: var(--cc-green, #22c55e);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.cc-mode-badge--full {
+  background: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}

@@ -41,6 +41,12 @@
         </select>
         <span class="cc-auto-refresh__countdown" id="auto-refresh-countdown"></span>
       </div>
+      <div class="cc-live-toggle">
+        <button class="cc-live-toggle__btn cc-live-toggle__btn--off" id="live-api-toggle" onclick="toggleLiveAPI()" title="Toggle Live Claude API (costs $)">
+          <span class="cc-live-toggle__dot" id="live-api-dot"></span>
+          <span class="cc-live-toggle__label" id="live-api-label">Scoring Only</span>
+        </button>
+      </div>
       <div class="cc-header__status">
         <span class="cc-header__dot cc-header__dot--offline" id="status-dot"></span>
         <span class="cc-header__status-text" id="status-text">Offline</span>
@@ -203,6 +209,29 @@
           </button>
         </div>
       </details>
+
+      <!-- Live API Tests (always call Claude — highlighted in red) -->
+      <div class="cc-live-tests" id="live-tests-section">
+        <div class="cc-live-tests__header">
+          <span class="cc-live-tests__icon">&#9888;</span>
+          Live API Tests
+          <span class="cc-live-tests__cost">Calls Claude &mdash; costs $</span>
+        </div>
+        <div class="cc-test-grid cc-test-grid--live">
+          <button class="cc-test-card cc-test-card--live" data-test="blurb-live" onclick="startTest('blurb-live')">
+            <div class="cc-test-card__icon">&#9998;</div>
+            <div class="cc-test-card__name">Blurb Quality Check</div>
+            <div class="cc-test-card__desc">1 query with full Claude blurb generation</div>
+            <div class="cc-test-card__meta">~$0.30 &middot; ~5s</div>
+          </button>
+          <button class="cc-test-card cc-test-card--live" data-test="intent-live" onclick="startTest('intent-live')">
+            <div class="cc-test-card__icon">&#129504;</div>
+            <div class="cc-test-card__name">Intent Classification</div>
+            <div class="cc-test-card__desc">1 ambiguous query to test Claude intent fallback</div>
+            <div class="cc-test-card__meta">~$0.05 &middot; ~3s</div>
+          </button>
+        </div>
+      </div>
 
       <!-- Category Picker (multi-select with presets) -->
       <div class="cc-cat-picker" id="cat-picker" style="display:none">

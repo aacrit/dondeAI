@@ -186,6 +186,8 @@ function startTest(type) {
     edge: runEdgeCases,
     blurb: runBlurbQA,
     coverage: runDataCoverage,
+    'blurb-live': runBlurbLive,
+    'intent-live': runIntentLive,
   };
 
   if (runners[type]) runners[type]();
@@ -819,4 +821,73 @@ async function pollPipelines() {
   } catch (e) {
     console.warn('Pipeline poll failed:', e);
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Live API Tests (always call Claude regardless of toggle)
+// ═══════════════════════════════════════════════════════════════════
+
+async function runBlurbLive() {
+  const query = 'romantic Italian dinner in Lincoln Park';
+  const ac = initTest('blurb-live', 1);
+  termLog('action', `[LIVE API] Blurb Quality Check: "${query}"`);
+  termLog('warn', 'This test calls Claude API — ~$0.30');
+
+  try {
+    const resp = await callAPI(query, { _forceLive: true }, ac.signal);
+    const dm = resp.donde_match || 0;
+    const fitGrade = computeScoreFitGrade(query, resp);
+    const blurbGrade = computeBlurbQualityGrade(query, resp);
+    const pass = gradePass(dm, fitGrade.score, blurbGrade.score);
+    const result = {
+      query, cat: 'Food', diff: 'live', dm, pass,
+      gap: pass ? null : 'blurb_quality',
+      restaurant: resp.restaurant?.name,
+      scoreFitScore: fitGrade.score, scoreFitGrade: fitGrade.grade,
+      blurbScore: blurbGrade.score, blurbGrade: blurbGrade.grade,
+    };
+    recordResult(result);
+    appendResultRow(result);
+    termLog(pass ? 'success' : 'warn',
+      `[LIVE] ${resp.restaurant?.name || '??'} (DM: ${dm} | Fit: ${fitGrade.grade} | Blurb: ${blurbGrade.grade})`);
+    if (resp.recommendation) {
+      termLog('system', `Blurb: "${resp.recommendation.slice(0, 120)}..."`);
+    }
+  } catch (e) {
+    termLog('error', `[LIVE] Error: ${(e.message || String(e)).slice(0, 80)}`);
+    recordResult({ query, cat: 'Food', diff: 'live', dm: 0, pass: false, gap: 'error', error: e.message, scoreFitScore: 0, scoreFitGrade: 'F', blurbScore: 0, blurbGrade: 'F' });
+  }
+  finishTest();
+}
+
+async function runIntentLive() {
+  const query = 'somewhere fancy but not pretentious for my anniversary';
+  const ac = initTest('intent-live', 1);
+  termLog('action', `[LIVE API] Intent Classification Check: "${query}"`);
+  termLog('warn', 'This test calls Claude API — ~$0.05');
+
+  try {
+    const resp = await callAPI(query, { _forceLive: true }, ac.signal);
+    const dm = resp.donde_match || 0;
+    const scoring = resp.scoring_v9 || {};
+    const pass = dm >= 60 && scoring.relevance_type !== 'open_ended';
+    const result = {
+      query, cat: 'Service', diff: 'live', dm, pass,
+      gap: pass ? null : 'intent',
+      restaurant: resp.restaurant?.name,
+      scoreFitScore: 0, scoreFitGrade: '-',
+      blurbScore: 0, blurbGrade: '-',
+    };
+    recordResult(result);
+    appendResultRow(result);
+    termLog(pass ? 'success' : 'warn',
+      `[LIVE] Intent: ${scoring.relevance_type || 'unknown'} | DM: ${dm} | ${resp.restaurant?.name || '??'}`);
+    if (scoring.relevance_details) {
+      termLog('system', `Details: ${scoring.relevance_details}`);
+    }
+  } catch (e) {
+    termLog('error', `[LIVE] Error: ${(e.message || String(e)).slice(0, 80)}`);
+    recordResult({ query, cat: 'Service', diff: 'live', dm: 0, pass: false, gap: 'error', error: e.message, scoreFitScore: 0, scoreFitGrade: 'F', blurbScore: 0, blurbGrade: 'F' });
+  }
+  finishTest();
 }
