@@ -23,9 +23,13 @@
         </svg>
         <span>Donde</span>
       </div>
-      <div class="cc-header__title">Command Center</div>
+      <div class="cc-greeting" id="ceo-greeting">
+        <div class="cc-greeting__line1" id="greeting-line1">Command Center</div>
+        <div class="cc-greeting__line2" id="greeting-line2"></div>
+      </div>
     </div>
     <div class="cc-header__right">
+      <button class="cc-calendar-toggle" id="calendar-toggle" onclick="toggleCalendarPanel()" title="Today's Calendar">&#128197; Today</button>
       <div class="cc-auto-refresh">
         <button class="cc-auto-refresh__toggle" id="auto-refresh-toggle" onclick="toggleAutoRefresh()" title="Auto-refresh data">
           <svg viewBox="0 0 24 24" width="14" height="14"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="62.8" stroke-dashoffset="0" id="auto-refresh-ring"/></svg>
@@ -57,6 +61,9 @@
 
   <!-- ═══ Main Content ═══ -->
   <main class="cc-main" id="main-content">
+
+    <!-- ═══ Daily Digest ═══ -->
+    <div class="cc-daily-digest" id="daily-digest" style="display:none"></div>
 
     <!-- ═══ Pulse: 3 hero KPI cards ═══ -->
     <section class="cc-pulse" id="pulse-section">
@@ -93,6 +100,9 @@
       </div>
     </section>
 
+    <!-- ═══ Executive Briefing ═══ -->
+    <section class="cc-briefing" id="executive-briefing" style="display:none"></section>
+
     <!-- ═══ Grade KPI Strip ═══ -->
     <section class="cc-grade-kpi-strip" id="grade-kpi-strip" style="display:none">
       <div class="cc-grade-kpi">
@@ -115,7 +125,10 @@
     <!-- ═══ Test vs Production Comparison ═══ -->
     <div class="cc-comparison-strip" id="test-vs-prod-strip" style="display:none"></div>
 
-    <!-- ═══ Smart Suggestion ═══ -->
+    <!-- ═══ Decision Prompts ═══ -->
+    <div class="cc-decision-prompts" id="decision-prompts" style="display:none"></div>
+
+    <!-- ═══ Smart Suggestion (legacy fallback) ═══ -->
     <div class="cc-suggest" id="suggest-strip" style="display:none">
       <span class="cc-suggest__icon">&#9889;</span>
       <span class="cc-suggest__text" id="suggest-text"></span>
@@ -256,6 +269,12 @@
       <!-- Live Result Stream -->
       <div class="cc-result-stream" id="result-stream"></div>
 
+      <!-- Trend Insights (#7) -->
+      <details class="cc-trend-insights" id="trend-insights">
+        <summary class="cc-trend-insights__toggle">Trend Insights (7-day)</summary>
+        <div class="cc-trend-insights__grid" id="trend-insights-grid"></div>
+      </details>
+
       <!-- Run History -->
       <div class="cc-run-history" id="run-history">
         <div class="cc-run-history__title-row">
@@ -377,6 +396,9 @@
         </div>
       </div>
 
+      <!-- User Engagement (#8) -->
+      <div class="cc-user-stats" id="user-engagement" style="display:none"></div>
+
       <!-- Live Issues (#5) -->
       <div id="live-issues-section"></div>
 
@@ -430,6 +452,18 @@
       </div>
     </div>
     <div class="cc-query-panel__backdrop" id="query-panel-backdrop" onclick="closeQueryPanel()"></div>
+
+    <!-- ═══ Calendar Slide-Out Panel ═══ -->
+    <div class="cc-calendar-panel" id="calendar-panel">
+      <div class="cc-calendar-panel__header">
+        <span class="cc-calendar-panel__title">Today's Schedule</span>
+        <button class="cc-calendar-panel__close" onclick="toggleCalendarPanel()" title="Close">&times;</button>
+      </div>
+      <div class="cc-calendar-panel__body" id="calendar-panel-body">
+        <iframe id="calendar-iframe" class="cc-calendar-panel__iframe" style="border:0" width="100%" height="100%"></iframe>
+      </div>
+    </div>
+    <div class="cc-calendar-panel__backdrop" id="calendar-backdrop" onclick="toggleCalendarPanel()"></div>
 
     <!-- ═══ Tab Panel: DATA ═══ -->
     <div class="cc-tab-panel" id="panel-data" role="tabpanel">
@@ -633,6 +667,35 @@
     </div>
   </div>
 
+  <!-- ═══ Quick Action Toolbar (#6) ═══ -->
+  <div class="cc-quick-actions" id="quick-actions-bar">
+    <button class="cc-quick-actions__btn" onclick="startTest('broad')" title="Run Broad Scan">
+      <span class="cc-quick-actions__icon">&#9654;</span>
+      <span class="cc-quick-actions__label">Scan</span>
+    </button>
+    <button class="cc-quick-actions__btn" onclick="refreshAllData()" title="Refresh Data">
+      <span class="cc-quick-actions__icon">&#8635;</span>
+      <span class="cc-quick-actions__label">Refresh</span>
+    </button>
+    <button class="cc-quick-actions__btn" onclick="exportCurrentView()" title="Export Report">
+      <span class="cc-quick-actions__icon">&#128190;</span>
+      <span class="cc-quick-actions__label">Export</span>
+    </button>
+    <button class="cc-quick-actions__btn" onclick="switchTab('issues')" title="View Issues">
+      <span class="cc-quick-actions__icon">&#9888;</span>
+      <span class="cc-quick-actions__label">Issues</span>
+    </button>
+  </div>
+
+  <!-- ═══ Command Palette (#10) ═══ -->
+  <div class="cc-cmd-palette" id="command-palette" style="display:none">
+    <div class="cc-cmd-palette__backdrop" onclick="closeCommandPalette()"></div>
+    <div class="cc-cmd-palette__modal">
+      <input class="cc-cmd-palette__input" id="cmd-palette-input" placeholder="Type a command..." autocomplete="off" oninput="filterCommands(this.value)">
+      <div class="cc-cmd-palette__results" id="cmd-palette-results"></div>
+    </div>
+  </div>
+
   <!-- ═══ Keyboard Shortcuts Overlay ═══ -->
   <div class="cc-modal-overlay" id="shortcuts-overlay" style="display:none" onclick="closeShortcuts(event)">
     <div class="cc-modal cc-modal--shortcuts" onclick="event.stopPropagation()">
@@ -653,6 +716,7 @@
         <div class="cc-shortcut"><kbd>Enter</kbd><span>Select run</span></div>
         <div class="cc-shortcut"><kbd>s</kbd><span>Start / Stop broad</span></div>
         <div class="cc-shortcut"><kbd>Esc</kbd><span>Close overlay</span></div>
+        <div class="cc-shortcut"><kbd>/</kbd><span>Command palette</span></div>
         <div class="cc-shortcut"><kbd>?</kbd><span>This help</span></div>
       </div>
     </div>

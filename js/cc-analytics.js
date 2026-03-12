@@ -85,6 +85,11 @@ async function initDashboard() {
   if (typeof updateKpiSparklines === 'function') updateKpiSparklines();
   if (typeof initKpiClickHandlers === 'function') initKpiClickHandlers();
 
+  // Wave 2: render personalized components
+  if (typeof renderWave2Components === 'function') renderWave2Components();
+  if (typeof initQuickActionsScroll === 'function') initQuickActionsScroll();
+  if (typeof initWave2Keyboard === 'function') initWave2Keyboard();
+
   // Anomaly detection after trend data is loaded
   if (state.latestRun && typeof checkForAnomalies === 'function') {
     checkForAnomalies(state.latestRun);
@@ -806,5 +811,252 @@ async function loadIssues() {
     console.error('Failed to load issues:', e);
     const list = document.getElementById('issues-list');
     if (list) list.innerHTML = '<div class="cc-empty-state"><div class="cc-empty-state__icon">&#9888;</div><div class="cc-empty-state__text">Failed to load issues</div></div>';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Wave 2: Executive Briefing Computation (#2)
+// ═══════════════════════════════════════════════════════════════════
+
+function computeExecutiveBriefing() {
+  const feed = state.liveFeed || [];
+  const now = new Date();
+  const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const recent = feed.filter(q => new Date(q.created_at) >= oneDayAgo);
+
+  // User Satisfaction: % of positive feedback
+  const withFeedback = recent.filter(q => q.claude_relevance_score !== null && q.claude_relevance_score !== undefined);
+  const liked = withFeedback.filter(q => q.claude_relevance_score >= 4);
+  const satisfactionPct = withFeedback.length > 0 ? Math.round(liked.length / withFeedback.length * 100) : null;
+
+  // Yesterday comparison for satisfaction
+  const twoDaysAgo = new Date(now.getTime() - 48 * 60 * 60 * 1000);
+  const yesterday = feed.filter(q => new Date(q.created_at) >= twoDaysAgo && new Date(q.created_at) < oneDayAgo);
+  const yWithFb = yesterday.filter(q => q.claude_relevance_score !== null && q.claude_relevance_score !== undefined);
+  const yLiked = yWithFb.filter(q => q.claude_relevance_score >= 4);
+  const ySatisfaction = yWithFb.length > 0 ? Math.round(yLiked.length / yWithFb.length * 100) : null;
+
+  // Engine Quality: composite grade from latest test run
+  const run = state.latestRun;
+  let engineScore = null;
+  let engineGrade = null;
+  if (run) {
+    const avgDm = Number(run.avg_dm) || 0;
+    const avgFit = Number(run.avg_score_fit) || 0;
+    const avgBlurb = Number(run.avg_blurb_quality) || 0;
+    engineScore = Math.round(avgDm * 0.4 + avgFit * 0.3 + avgBlurb * 0.3);
+    if (engineScore >= 93) engineGrade = 'A';
+    else if (engineScore >= 85) engineGrade = 'B+';
+    else if (engineScore >= 78) engineGrade = 'B';
+    else if (engineScore >= 70) engineGrade = 'C+';
+    else if (engineScore >= 60) engineGrade = 'C';
+    else engineGrade = 'D';
+  }
+
+  // Previous run for engine trend
+  const prevRun = state.trendData && state.trendData.length > 1 ? state.trendData[1] : null;
+  let prevEngineScore = null;
+  if (prevRun) {
+    prevEngineScore = Math.round((Number(prevRun.avg_dm) || 0) * 0.4 + (Number(prevRun.avg_score_fit) || 0) * 0.3 + (Number(prevRun.avg_blurb_quality) || 0) * 0.3);
+  }
+
+  return {
+    satisfaction: { value: satisfactionPct, feedbackCount: withFeedback.length, prev: ySatisfaction },
+    engine: { score: engineScore, grade: engineGrade, prev: prevEngineScore }
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Wave 2: Daily Digest Computation (#4)
+// ═══════════════════════════════════════════════════════════════════
+
+function computeDailyDigest() {
+  const snapshot = getLastSessionSnapshot();
+  if (!snapshot) return { message: 'Welcome back! This is your first session — baseline metrics will be saved.', icon: '\uD83D\uDC4B' };
+
+  const elapsed = Date.now() - snapshot.timestamp;
+  const hoursAgo = Math.round(elapsed / 3600000);
+  const timeLabel = hoursAgo < 1 ? 'less than an hour ago' : hoursAgo < 24 ? `${hoursAgo}h ago` : `${Math.round(hoursAgo / 24)}d ago`;
+
+  const run = state.latestRun;
+  const feed = state.liveFeed || [];
+  const changes = [];
+
+  // Score Fit change
+  if (run && snapshot.avg_fit) {
+    const currentFit = Number(run.avg_score_fit) || 0;
+    const delta = currentFit - snapshot.avg_fit;
+    if (Math.abs(delta) >= 2) {
+      const dir = delta > 0 ? 'improved' : 'dropped';
+      changes.push({ impact: Math.abs(delta), message: `Score Fit <strong>${dir} ${Math.abs(delta).toFixed(1)} pts</strong> since your last visit (${timeLabel})`, icon: delta > 0 ? '\u2705' : '\u26A0\uFE0F' });
+    }
+  }
+
+  // New queries
+  const newQueries = feed.filter(q => new Date(q.created_at).getTime() > snapshot.timestamp);
+  if (newQueries.length > 0) {
+    const gradeIssues = newQueries.filter(q => {
+      const fitScore = q.score_fit_score || 0;
+      const blurbScore = q.blurb_quality_score || 0;
+      return fitScore < 83 || blurbScore < 83;
+    });
+    const msg = gradeIssues.length > 0
+      ? `<strong>${newQueries.length} new queries</strong>, ${gradeIssues.length} with grade issues`
+      : `<strong>${newQueries.length} new production queries</strong> — all looking good`;
+    changes.push({ impact: newQueries.length, message: msg, icon: '\uD83D\uDCCA' });
+  }
+
+  // Avg DM change
+  if (run && snapshot.avg_dm) {
+    const currentDm = Number(run.avg_dm) || 0;
+    const delta = currentDm - snapshot.avg_dm;
+    if (Math.abs(delta) >= 1) {
+      const dir = delta > 0 ? 'up' : 'down';
+      changes.push({ impact: Math.abs(delta) * 0.5, message: `Avg DondeMatch ${dir} to <strong>${currentDm.toFixed(1)}</strong> from ${snapshot.avg_dm.toFixed(1)}`, icon: delta > 0 ? '\uD83D\uDCC8' : '\uD83D\uDCC9' });
+    }
+  }
+
+  if (changes.length === 0) {
+    return { message: `No significant changes since your last session (${timeLabel})`, icon: '\u2714\uFE0F' };
+  }
+
+  // Return highest impact change
+  changes.sort((a, b) => b.impact - a.impact);
+  return { message: changes[0].message, icon: changes[0].icon };
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Wave 2: Decision Prompts Computation (#5)
+// ═══════════════════════════════════════════════════════════════════
+
+function computeDecisionPrompts() {
+  const prompts = [];
+  const run = state.latestRun;
+  const issues = state.issues || [];
+  const feed = state.liveFeed || [];
+
+  // 1. Grade issues detected
+  const openIssues = issues.filter(i => i.status === 'open');
+  const p0Issues = openIssues.filter(i => i.severity === 'P0');
+  if (p0Issues.length > 0) {
+    prompts.push({
+      action: `Review ${p0Issues.length} critical issue${p0Issues.length > 1 ? 's' : ''}`,
+      reason: 'Critical issues impact user experience and scoring accuracy.',
+      btn: 'View Issues',
+      handler: () => switchTab('issues')
+    });
+  }
+
+  // 2. No recent tests
+  if (run) {
+    const lastRunAge = Date.now() - new Date(run.created_at).getTime();
+    if (lastRunAge > 24 * 60 * 60 * 1000) {
+      prompts.push({
+        action: 'Run a Broad Scan to check engine health',
+        reason: `Last test was ${timeAgo(run.created_at)}. Regular testing catches regressions early.`,
+        btn: 'Run Scan',
+        handler: () => startTest('broad')
+      });
+    }
+  }
+
+  // 3. Test vs Prod divergence
+  if (run && feed.length > 0) {
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const prodRecent = feed.filter(q => new Date(q.created_at) >= sevenDaysAgo && q.donde_match);
+    if (prodRecent.length > 10) {
+      const prodAvg = prodRecent.reduce((s, q) => s + q.donde_match, 0) / prodRecent.length;
+      const testAvg = Number(run.avg_dm) || 0;
+      const divergence = testAvg > 0 ? ((testAvg - prodAvg) / testAvg * 100) : 0;
+      if (divergence > 10) {
+        prompts.push({
+          action: 'Production diverging from test results',
+          reason: `Prod is ${divergence.toFixed(0)}% lower than test (${prodAvg.toFixed(1)} vs ${testAvg.toFixed(1)}). Investigate.`,
+          btn: 'View Live',
+          handler: () => switchTab('live')
+        });
+      }
+    }
+  }
+
+  // 4. Score Fit improved — suggest regression guard
+  if (state.trendData && state.trendData.length >= 2) {
+    const curr = state.trendData[0];
+    const prev = state.trendData[1];
+    const fitDelta = (Number(curr.avg_score_fit) || 0) - (Number(prev.avg_score_fit) || 0);
+    if (fitDelta > 5) {
+      prompts.push({
+        action: 'Run Regression Guard to validate recent improvement',
+        reason: `Score Fit improved ${fitDelta.toFixed(1)} pts — verify it holds across golden queries.`,
+        btn: 'Run Guard',
+        handler: () => startTest('regression')
+      });
+    }
+  }
+
+  return prompts.slice(0, 3);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Wave 2: User Engagement Stats (#8)
+// ═══════════════════════════════════════════════════════════════════
+
+function computeUserEngagement() {
+  const feed = state.liveFeed || [];
+  const now = new Date();
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const recent = feed.filter(q => new Date(q.created_at) >= sevenDaysAgo);
+
+  // Distinct users (by source field or just count unique patterns)
+  const userMap = {};
+  for (const q of recent) {
+    const key = q.auth_user_id || q.source || 'anonymous';
+    if (!userMap[key]) userMap[key] = 0;
+    userMap[key]++;
+  }
+  const distinctUsers = Object.keys(userMap).length;
+  const repeatUsers = Object.values(userMap).filter(c => c >= 2).length;
+  const avgPerUser = distinctUsers > 0 ? (recent.length / distinctUsers).toFixed(1) : '0';
+
+  // Most popular occasion
+  const occasionMap = {};
+  for (const q of recent) {
+    if (q.occasion) {
+      occasionMap[q.occasion] = (occasionMap[q.occasion] || 0) + 1;
+    }
+  }
+  const topOccasion = Object.entries(occasionMap).sort((a, b) => b[1] - a[1])[0];
+
+  return {
+    distinctUsers,
+    repeatUsers,
+    avgPerUser,
+    topOccasion: topOccasion ? topOccasion[0] : 'N/A'
+  };
+}
+
+// Wave 2: Refresh all data (for quick action toolbar)
+async function refreshAllData() {
+  showToast('Refreshing all data...');
+  await Promise.all([loadInitData(), loadRunHistory(), loadLiveFeed(), loadIssues(), loadTrendData()]);
+  checkApiHealth();
+  if (typeof renderActionCenter === 'function') renderActionCenter();
+  if (typeof renderTestVsProdStrip === 'function') renderTestVsProdStrip();
+  if (typeof updateKpiSparklines === 'function') updateKpiSparklines();
+  if (typeof renderWave2Components === 'function') renderWave2Components();
+  showToast('Data refreshed');
+}
+
+// Wave 2: Export current view (for quick action toolbar)
+function exportCurrentView() {
+  if (state.activeTab === 'test') {
+    if (typeof exportRunHistory === 'function') exportRunHistory();
+  } else if (state.activeTab === 'live') {
+    if (typeof exportLiveFeed === 'function') exportLiveFeed();
+  } else if (state.activeTab === 'issues') {
+    if (typeof exportIssues === 'function') exportIssues();
+  } else {
+    showToast('No export available for this tab');
   }
 }

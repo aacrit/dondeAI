@@ -15,6 +15,11 @@ const API_BASE = 'https://vwbzkgsxmgwcvmvuxnbe.supabase.co/functions/v1/recommen
 const LIVE_POLL_INTERVAL = 10000;
 const PIPE_POLL_INTERVAL = 15000;
 
+// Wave 2: CEO personalization
+const CEO_NAME = 'Aacrit';
+const CALENDAR_ID = 'aacrit@gmail.com'; // CEO's Google Calendar ID
+const CHICAGO_TZ = 'America/Chicago';
+
 // ═══════════════════════════════════════════════════════════════════
 // Test Type Definitions
 // ═══════════════════════════════════════════════════════════════════
@@ -167,10 +172,16 @@ let state = {
   lastTestType: null,         // for quick rerun
   lastTestConfig: null,       // for quick rerun
   lastDataRefresh: null,      // timestamp of last successful data load (for freshness indicator)
+  // Wave 2
+  calendarOpen: false,        // calendar panel visible
+  cmdPaletteOpen: false,      // command palette visible
+  cmdPaletteIdx: 0,           // focused command index
+  lastScrollY: 0,             // for quick actions show/hide
+  quickActionsVisible: true,  // quick actions bar visibility
 };
 
 // Session persistence keys
-const SESSION_KEYS = ['activeTab', 'liveFilter', 'liveFilters', 'pulseMode', 'blurbMode', 'autoRefresh', 'autoRefreshSecs', 'testConfig'];
+const SESSION_KEYS = ['activeTab', 'liveFilter', 'liveFilters', 'pulseMode', 'blurbMode', 'autoRefresh', 'autoRefreshSecs', 'testConfig', 'expandedPulse', 'selectedRunId'];
 
 function saveSession() {
   try {
@@ -285,6 +296,47 @@ function timeAgo(ts) {
 function fmtTime(ts) {
   return new Date(ts).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 }
+
+// Wave 2: Session snapshot for Daily Digest (#4)
+function saveSessionSnapshot(stats) {
+  try {
+    const snapshot = {
+      avg_dm: stats.avg_dm || 0,
+      avg_fit: stats.avg_fit || 0,
+      avg_blurb: stats.avg_blurb || 0,
+      query_count: stats.query_count || 0,
+      grade_pass_rate: stats.grade_pass_rate || 0,
+      timestamp: Date.now()
+    };
+    localStorage.setItem('cc-session-snapshot', JSON.stringify(snapshot));
+  } catch (_) {}
+}
+
+function getLastSessionSnapshot() {
+  try {
+    const raw = localStorage.getItem('cc-session-snapshot');
+    return raw ? JSON.parse(raw) : null;
+  } catch (_) { return null; }
+}
+
+// Wave 2: Command palette commands (#10)
+const CMD_PALETTE_COMMANDS = [
+  // Navigation
+  { cat: 'Navigation', icon: '1\u20E3', name: 'Go to Test tab', key: '1', action: () => switchTab('test') },
+  { cat: 'Navigation', icon: '2\u20E3', name: 'Go to Live tab', key: '2', action: () => switchTab('live') },
+  { cat: 'Navigation', icon: '3\u20E3', name: 'Go to Data tab', key: '3', action: () => switchTab('data') },
+  { cat: 'Navigation', icon: '4\u20E3', name: 'Go to Issues tab', key: '4', action: () => switchTab('issues') },
+  // Actions
+  { cat: 'Actions', icon: '\u25B6', name: 'Run Broad Scan', key: 's', action: () => startTest('broad') },
+  { cat: 'Actions', icon: '\u21BB', name: 'Refresh all data', key: 'r', action: () => refreshAllData() },
+  { cat: 'Actions', icon: '\uD83D\uDCBE', name: 'Export current view', key: 'e', action: () => exportCurrentView() },
+  { cat: 'Actions', icon: '\uD83D\uDCC5', name: 'Toggle calendar', action: () => toggleCalendarPanel() },
+  { cat: 'Actions', icon: '\uD83D\uDD14', name: 'Toggle terminal', key: 't', action: () => toggleTerminal() },
+  // Tests
+  { cat: 'Tests', icon: '\u25A0', name: 'Run Category Focus', action: () => startTest('category') },
+  { cat: 'Tests', icon: '\u26A0', name: 'Run Regression Guard', action: () => startTest('regression') },
+  { cat: 'Tests', icon: '\uD83D\uDDE1', name: 'Run Edge Cases', action: () => startTest('edge') },
+];
 
 // Toast for CC (share.js not loaded here)
 function showToast(message) {
