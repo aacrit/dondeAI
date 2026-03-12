@@ -936,7 +936,7 @@ function computeDecisionPrompts() {
   const feed = state.liveFeed || [];
 
   // 1. Grade issues detected
-  const openIssues = issues.filter(i => i.status === 'open');
+  const openIssues = issues.filter(i => !i.status || i.status === 'open');
   const p0Issues = openIssues.filter(i => i.severity === 'P0');
   if (p0Issues.length > 0) {
     prompts.push({
@@ -1036,27 +1036,4 @@ function computeUserEngagement() {
   };
 }
 
-// Wave 2: Refresh all data (for quick action toolbar)
-async function refreshAllData() {
-  showToast('Refreshing all data...');
-  await Promise.all([loadInitData(), loadRunHistory(), loadLiveFeed(), loadIssues(), loadTrendData()]);
-  checkApiHealth();
-  if (typeof renderActionCenter === 'function') renderActionCenter();
-  if (typeof renderTestVsProdStrip === 'function') renderTestVsProdStrip();
-  if (typeof updateKpiSparklines === 'function') updateKpiSparklines();
-  if (typeof renderWave2Components === 'function') renderWave2Components();
-  showToast('Data refreshed');
-}
-
-// Wave 2: Export current view (for quick action toolbar)
-function exportCurrentView() {
-  if (state.activeTab === 'test') {
-    if (typeof exportRunHistory === 'function') exportRunHistory();
-  } else if (state.activeTab === 'live') {
-    if (typeof exportLiveFeed === 'function') exportLiveFeed();
-  } else if (state.activeTab === 'issues') {
-    if (typeof exportIssues === 'function') exportIssues();
-  } else {
-    showToast('No export available for this tab');
-  }
-}
+// Note: refreshAllData() is defined in cc-compare.js; exportCurrentView() is defined in cc-ui.js
