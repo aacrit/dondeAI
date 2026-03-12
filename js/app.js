@@ -1103,7 +1103,9 @@ function wireEvents() {
             // Swap in the fresh Claude blurb with a subtle fade
             const $rec = document.getElementById('result-recommendation');
             if ($rec && blurbData.recommendation) {
-              $rec.style.opacity = '0.4';
+              // Fade out current blurb, swap text, fade back in
+              $rec.style.transition = 'opacity 150ms var(--ease-out)';
+              $rec.style.opacity = '0';
               setTimeout(() => {
                 let recText = blurbData.recommendation
                   .replace(/\u2014/g, ', ')
@@ -1125,7 +1127,7 @@ function wireEvents() {
                 if ($tip && blurbData.insider_tip) {
                   $tip.textContent = blurbData.insider_tip.replace(/\u2014/g, ', ').replace(/ , /g, ', ');
                 }
-              }, 200);
+              }, 150);
             }
           }).catch((err) => {
             // Silent failure — template blurb stays
@@ -4376,9 +4378,6 @@ function renderDeepContextExtras(data) {
 
   // Info Stream — unified living metadata surface
   renderInfoStream(data);
-
-  // V8: Cuisine drawer — signature dishes + menu highlights + flavor (separate bottom-sheet)
-  renderCuisineDrawer(data);
 
   // Origin Story
   const $origin = document.getElementById('origin-story');
