@@ -98,6 +98,16 @@ Errors: HTTP non-200 → toast + canvas | `success:false` → show `recommendati
   theme: {culture, mode}, colorMode, soundEnabled, history, pendingFeedback }
 ```
 
+## CEO Dashboard Data (Supabase queries for debugging issues)
+
+Grading code: `js/cc-grading.js` (frontend) + `dondeBackend/_shared/grading.ts` (backend) — must stay in sync.
+
+- `gauntlet_runs` table: `run_id, avg_dm, avg_score_fit, avg_blurb_quality, grade_pass_count, grade_distribution, total, gap_count, mode, created_at`
+- `gauntlet_results` table: `query, donde_match, restaurant_name, score_fit_score, score_fit_grade, blurb_quality_score, blurb_quality_grade, gap_type, run_id`
+- `user_queries` table: `special_request, donde_match, score_fit_score, blurb_quality_score, recommendation_text, source, created_at`
+- To find open blurb issues: query `gauntlet_results` for latest `run_id` where `blurb_quality_score < 80`
+- Dashboard analytics: `js/cc-analytics.js` (loadIssues, loadTrend, loadLiveFeed)
+
 ## Run
 
 Open `index.html` in browser. No build step, no dependencies, no env vars.
