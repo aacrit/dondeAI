@@ -206,7 +206,7 @@ async function loadLiveFeed() {
     // Load ALL user queries with restaurant name via FK join, excluding test data
     let { data: queries, error } = await sbClient
       .from('user_queries')
-      .select('id, special_request, donde_match, created_at, recommended_restaurant_id, source, was_fallback, response_time_ms, exclude_count, unmatched_keywords, claude_relevance_score, occasion, price_level, recommendation_text, restaurants!recommended_restaurant_id(name)')
+      .select('id, special_request, donde_match, created_at, recommended_restaurant_id, source, was_fallback, response_time_ms, exclude_count, unmatched_keywords, claude_relevance_score, occasion, price_level, recommendation_text, score_fit_score, score_fit_grade, blurb_quality_score, blurb_quality_grade, restaurants!recommended_restaurant_id(name)')
       .neq('source', 'command-center')
       .order('created_at', { ascending: false });
 
@@ -333,9 +333,24 @@ function updateLiveKPIsFromQueries(queries) {
     queries.filter(q => (q.donde_match || 0) < 40).length,
   ];
 
+  // Grade stats
+  const withFit = queries.filter(q => q.score_fit_score != null);
+  const withBlurb = queries.filter(q => q.blurb_quality_score != null);
+  const avgFit = withFit.length > 0 ? withFit.reduce((s, q) => s + q.score_fit_score, 0) / withFit.length : null;
+  const avgBlurb = withBlurb.length > 0 ? withBlurb.reduce((s, q) => s + q.blurb_quality_score, 0) / withBlurb.length : null;
+  const gradePassCount = queries.filter(q =>
+    (q.donde_match || 0) >= 70 && (q.score_fit_score || 0) >= 80 && (q.blurb_quality_score || 0) >= 80
+  ).length;
+  const gradePassRate = withFit.length > 0 ? (gradePassCount / withFit.length * 100) : null;
+  // Grade issues: below B+ (87) on either score fit or blurb quality
+  const gradeIssueCount = queries.filter(q =>
+    (q.score_fit_score != null && q.score_fit_score < 87) ||
+    (q.blurb_quality_score != null && q.blurb_quality_score < 87)
+  ).length;
+
   updateLiveKPIs({ searches: count, avgDm, passRate, fallbackRate,
     p50Response, p95Response, satisfactionPct, unmatchedRate,
-    scoreDist, lowScores });
+    scoreDist, lowScores, avgFit, avgBlurb, gradePassRate, gradeIssueCount });
 }
 
 async function pollLiveFeed() {
@@ -344,7 +359,7 @@ async function pollLiveFeed() {
   try {
     let query = sbClient
       .from('user_queries')
-      .select('id, special_request, donde_match, created_at, recommended_restaurant_id, source, was_fallback, response_time_ms, exclude_count, unmatched_keywords, claude_relevance_score, occasion, price_level, recommendation_text, restaurants!recommended_restaurant_id(name)')
+      .select('id, special_request, donde_match, created_at, recommended_restaurant_id, source, was_fallback, response_time_ms, exclude_count, unmatched_keywords, claude_relevance_score, occasion, price_level, recommendation_text, score_fit_score, score_fit_grade, blurb_quality_score, blurb_quality_grade, restaurants!recommended_restaurant_id(name)')
       .neq('source', 'command-center')
       .order('created_at', { ascending: false })
       .limit(20);
@@ -489,6 +504,9 @@ function gapTypeFixAction(gapType) {
     case 'regression': return 'Investigate scoring regression vs baseline';
     case 'cliché': return 'Fix blurb template in prompts-v5.ts';
     case 'missing': return 'Run enrichment pipeline for missing data';
+    case 'grade_fit': return 'Review relevance/factor alignment in scoring-v9.ts';
+    case 'grade_blurb': return 'Fix blurb generation in prompts-v5.ts (slop, voice, specificity)';
+    case 'grade_both': return 'Fix scoring-v9.ts weights AND prompts-v5.ts blurb template';
     default: return 'Investigate query scoring';
   }
 }
@@ -507,11 +525,20 @@ async function loadIssues() {
 
     // Parallel fetch: test gaps (latest run only) + prod low scores + historical data + previous run results
     const gapsQuery = sbClient.from('gauntlet_results')
-      .select('query, donde_match, gap_type, gap_severity, category, restaurant_name, food, vibe, service, reputation, convenience, relevance_type, run_id')
+      .select('query, donde_match, gap_type, gap_severity, category, restaurant_name, food, vibe, service, reputation, convenience, relevance_type, run_id, score_fit_score, score_fit_grade, blurb_quality_score, blurb_quality_grade')
       .not('gap_type', 'is', null)
       .order('donde_match', { ascending: true })
       .limit(100);
     if (latestRunId) gapsQuery.eq('run_id', latestRunId);
+
+    // Test results with grade issues (below B+) — separate from gap_type issues
+    const testGradeQuery = latestRunId
+      ? sbClient.from('gauntlet_results')
+          .select('query, donde_match, category, restaurant_name, food, vibe, service, reputation, convenience, relevance_type, run_id, score_fit_score, score_fit_grade, blurb_quality_score, blurb_quality_grade')
+          .eq('run_id', latestRunId)
+          .not('score_fit_grade', 'is', null)
+          .limit(200)
+      : Promise.resolve({ data: null });
 
     // Previous run query for trend deltas
     const prevQuery = prevRunId
@@ -521,7 +548,7 @@ async function loadIssues() {
           .limit(200)
       : Promise.resolve({ data: null });
 
-    const [gapsRes, prodRes, histRes, prevRes] = await Promise.all([
+    const [gapsRes, prodRes, histRes, prevRes, gradeIssuesRes, testGradeRes] = await Promise.all([
       gapsQuery,
 
       // Production low-score queries
@@ -536,6 +563,16 @@ async function loadIssues() {
       fetch('data/gap-details.json').then(r => r.ok ? r.json() : null).catch(() => null),
 
       prevQuery,
+
+      // Production grade issues: queries where score fit or blurb quality < B+ (87)
+      sbClient.from('user_queries')
+        .select('id, special_request, donde_match, created_at, response_time_ms, was_fallback, score_fit_score, score_fit_grade, blurb_quality_score, blurb_quality_grade, recommendation_text, restaurants!recommended_restaurant_id(name)')
+        .neq('source', 'command-center')
+        .not('score_fit_grade', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(200),
+
+      testGradeQuery,
     ]);
 
     // Build previous run lookup for trend computation
@@ -576,6 +613,62 @@ async function loadIssues() {
       }
     }
 
+    // Process test grade issues (below B+ on score fit or blurb quality)
+    if (testGradeRes?.data) {
+      for (const g of testGradeRes.data) {
+        const key = g.query.toLowerCase().trim();
+        const fitBelow = g.score_fit_score != null && g.score_fit_score < 87;
+        const blurbBelow = g.blurb_quality_score != null && g.blurb_quality_score < 87;
+        if (!fitBelow && !blurbBelow) continue;
+
+        // Enrich existing test issues with grade data
+        const existing = issues.find(i => i.query.toLowerCase().trim() === key);
+        if (existing) {
+          existing.scoreFitGrade = g.score_fit_grade;
+          existing.scoreFitScore = g.score_fit_score;
+          existing.blurbQualityGrade = g.blurb_quality_grade;
+          existing.blurbQualityScore = g.blurb_quality_score;
+          continue;
+        }
+        if (seen.has(key)) continue;
+        seen.add(key);
+
+        let gapType, fixAction;
+        if (fitBelow && blurbBelow) {
+          gapType = 'grade_both';
+          fixAction = `Score Fit ${g.score_fit_grade} (${g.score_fit_score}) + Blurb ${g.blurb_quality_grade} (${g.blurb_quality_score}): Fix scoring + blurb prompt`;
+        } else if (fitBelow) {
+          gapType = 'grade_fit';
+          fixAction = `Score Fit ${g.score_fit_grade} (${g.score_fit_score}): Review relevance/factor alignment`;
+        } else {
+          gapType = 'grade_blurb';
+          fixAction = `Blurb Quality ${g.blurb_quality_grade} (${g.blurb_quality_score}): Fix blurb generation`;
+        }
+
+        const severity = (g.score_fit_score || 100) < 73 || (g.blurb_quality_score || 100) < 73 ? 'P0' : 'P1';
+        issues.push({
+          query: g.query,
+          dm: g.donde_match || 0,
+          gapType,
+          severity,
+          category: g.category || '--',
+          restaurant: g.restaurant_name || '--',
+          source: 'test',
+          sourceDetail: g.run_id,
+          factors: { food: g.food, vibe: g.vibe, service: g.service, reputation: g.reputation, convenience: g.convenience },
+          relevanceType: g.relevance_type,
+          fixAction,
+          prevDm: null,
+          deltaDm: null,
+          isNew: false,
+          scoreFitGrade: g.score_fit_grade,
+          scoreFitScore: g.score_fit_score,
+          blurbQualityGrade: g.blurb_quality_grade,
+          blurbQualityScore: g.blurb_quality_score,
+        });
+      }
+    }
+
     // Process production low scores
     if (prodRes.data) {
       for (const q of prodRes.data) {
@@ -600,6 +693,55 @@ async function loadIssues() {
           prevDm: null,
           deltaDm: null,
           isNew: false,
+        });
+      }
+    }
+
+    // Process production grade issues (score fit or blurb quality below B+)
+    if (gradeIssuesRes.data) {
+      for (const q of gradeIssuesRes.data) {
+        const key = (q.special_request || '').toLowerCase().trim();
+        if (!key || seen.has(key)) continue;
+        const fitBelow = q.score_fit_score != null && q.score_fit_score < 87;
+        const blurbBelow = q.blurb_quality_score != null && q.blurb_quality_score < 87;
+        if (!fitBelow && !blurbBelow) continue;
+        seen.add(key);
+
+        // Determine gap type and fix action based on which grade failed
+        let gapType, fixAction;
+        if (fitBelow && blurbBelow) {
+          gapType = 'grade_both';
+          fixAction = `Score Fit ${q.score_fit_grade} (${q.score_fit_score}) + Blurb ${q.blurb_quality_grade} (${q.blurb_quality_score}): Fix scoring weights in scoring-v9.ts AND blurb prompt in prompts-v5.ts`;
+        } else if (fitBelow) {
+          gapType = 'grade_fit';
+          fixAction = `Score Fit ${q.score_fit_grade} (${q.score_fit_score}): Review relevance/factor alignment in scoring-v9.ts for this query type`;
+        } else {
+          gapType = 'grade_blurb';
+          fixAction = `Blurb Quality ${q.blurb_quality_grade} (${q.blurb_quality_score}): Fix blurb generation in prompts-v5.ts (check slop, voice, specificity)`;
+        }
+
+        const severity = (q.score_fit_score || 100) < 73 || (q.blurb_quality_score || 100) < 73 ? 'P0' : 'P1';
+        issues.push({
+          query: q.special_request,
+          dm: q.donde_match || 0,
+          gapType,
+          severity,
+          category: '--',
+          restaurant: q.restaurants?.name || '--',
+          source: 'prod',
+          sourceDetail: `${fmtTime(q.created_at)} F:${q.score_fit_grade || '--'} B:${q.blurb_quality_grade || '--'}`,
+          factors: null,
+          relevanceType: null,
+          fixAction,
+          responseTime: q.response_time_ms,
+          wasFallback: q.was_fallback,
+          prevDm: null,
+          deltaDm: null,
+          isNew: false,
+          scoreFitGrade: q.score_fit_grade,
+          scoreFitScore: q.score_fit_score,
+          blurbQualityGrade: q.blurb_quality_grade,
+          blurbQualityScore: q.blurb_quality_score,
         });
       }
     }
