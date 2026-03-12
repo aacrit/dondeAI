@@ -536,22 +536,8 @@
                 <div class="info-stream" id="info-stream" role="region"
                      aria-label="Restaurant details" aria-live="polite"></div>
 
-                <!-- Cuisine Details: inline section (was overlay drawer) -->
-                <div class="cuisine-details" id="cuisine-details" style="display: none;">
-                  <span class="cuisine-details__label type-data--sm" id="cuisine-details-label"></span>
-                  <div class="cuisine-details__section" id="cuisine-details-dishes" style="display: none;">
-                    <span class="cuisine-details__section-label type-data--sm">What to Order</span>
-                    <div class="cuisine-details__dishes"></div>
-                  </div>
-                  <div class="cuisine-details__section" id="cuisine-details-highlights" style="display: none;">
-                    <span class="cuisine-details__section-label type-data--sm">Popular Items</span>
-                    <div class="cuisine-details__pills"></div>
-                  </div>
-                  <div class="cuisine-details__section" id="cuisine-details-flavor" style="display: none;">
-                    <span class="cuisine-details__section-label type-data--sm">Flavor Profile</span>
-                    <div class="cuisine-details__flavors"></div>
-                  </div>
-                </div>
+                <!-- Cuisine Details: expandable pills in Tier 2 -->
+                <div class="cuisine-pills" id="cuisine-pills" style="display: none;"></div>
 
               </div>
 
@@ -605,21 +591,6 @@
             </article>
           </div>
 
-          <!-- V9: Floating Action Bar — persistent quick actions on scroll -->
-          <div class="floating-bar" id="floating-bar" aria-label="Quick actions" hidden>
-            <a class="floating-bar__action" id="fab-directions" data-action="fab-directions" aria-label="Get directions">
-              <svg viewBox="0 0 256 256" width="20" height="20"><path fill="currentColor" d="M228.64,113.36l-96-96a8,8,0,0,0-11.32,0l-96,96a8,8,0,0,0,0,11.32l96,96a8,8,0,0,0,11.32,0l96-96A8,8,0,0,0,228.64,113.36ZM128,220.69,35.31,128,128,35.31,220.69,128Z"/></svg>
-              <span class="floating-bar__label">Directions</span>
-            </a>
-            <a class="floating-bar__action" id="fab-call" data-action="fab-call" aria-label="Call restaurant" hidden>
-              <svg viewBox="0 0 256 256" width="20" height="20"><path fill="currentColor" d="M222.37,158.46l-47.11-21.11-.13-.06a16,16,0,0,0-15.17,1.4,8.12,8.12,0,0,0-.75.56L134.87,160c-15.42-7.49-31.34-23.29-38.83-38.51l20.78-24.71c.2-.25.39-.5.57-.77a16,16,0,0,0,1.32-15.06l0-.12L97.54,33.64a16,16,0,0,0-16.62-9.52A56.26,56.26,0,0,0,32,80c0,79.4,64.6,144,144,144a56.26,56.26,0,0,0,55.88-48.92A16,16,0,0,0,222.37,158.46Z"/></svg>
-              <span class="floating-bar__label">Call</span>
-            </a>
-            <a class="floating-bar__action" id="fab-reserve" data-action="fab-reserve" aria-label="Make reservation" hidden>
-              <svg viewBox="0 0 256 256" width="20" height="20"><path fill="currentColor" d="M208,32H184V24a8,8,0,0,0-16,0v8H88V24a8,8,0,0,0-16,0v8H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32Zm0,176H48V48H72v8a8,8,0,0,0,16,0V48h80v8a8,8,0,0,0,16,0V48h24Z"/></svg>
-              <span class="floating-bar__label">Reserve</span>
-            </a>
-          </div>
 
         </section>
 

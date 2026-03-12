@@ -677,7 +677,6 @@ function wireEvents() {
         collapseFilters();
         // Revert auto-theme
         revertAutoTheme();
-        hideFloatingBar(); // V9: Hide floating bar on reset
         break;
 
       case 'back':
@@ -1170,6 +1169,24 @@ function wireEvents() {
         break;
       }
 
+
+      case 'toggle-cuisine-pill': {
+        const idx = btn.dataset.index;
+        const expanded = btn.getAttribute('aria-expanded') === 'true';
+        const $body = document.querySelector(`[data-pill-body="${idx}"]`);
+        if ($body) {
+          if (expanded) {
+            btn.setAttribute('aria-expanded', 'false');
+            $body.style.maxHeight = '0';
+            $body.classList.remove('cuisine-pill-group__body--open');
+          } else {
+            btn.setAttribute('aria-expanded', 'true');
+            $body.classList.add('cuisine-pill-group__body--open');
+            $body.style.maxHeight = $body.scrollHeight + 'px';
+          }
+        }
+        break;
+      }
 
       case 'share':
         haptic(HAPTICS.tick);
@@ -2721,8 +2738,6 @@ function renderResult(data) {
   // F3: Enhanced map navigation tile
   renderMapPreview(data);
 
-  // V9: Floating Action Bar — populate and wire
-  renderFloatingBar(data);
 
   // Inject icons into footer action buttons
   const $tryAgainIcon = document.getElementById('try-again-icon');
@@ -3755,82 +3770,6 @@ function renderMapPreview(data) {
   if ($glanceNav) $glanceNav.style.display = 'none';
 }
 
-/* ---- V9: Floating Action Bar ---- */
-let _fabObserver = null;
-
-function renderFloatingBar(data) {
-  const $fab = document.getElementById('floating-bar');
-  if (!$fab) return;
-
-  const r = data.restaurant;
-
-  // Populate directions link
-  const $directions = document.getElementById('fab-directions');
-  if ($directions && r.address) {
-    const mapsUrl = r.google_place_id
-      ? `https://www.google.com/maps/place/?q=place_id:${r.google_place_id}`
-      : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.name + ' ' + r.address)}`;
-    $directions.href = mapsUrl;
-    $directions.target = '_blank';
-    $directions.rel = 'noopener noreferrer';
-    $directions.hidden = false;
-  }
-
-  // Populate call link
-  const $call = document.getElementById('fab-call');
-  if ($call) {
-    if (r.phone) {
-      $call.href = `tel:${r.phone}`;
-      $call.hidden = false;
-    } else {
-      $call.hidden = true;
-    }
-  }
-
-  // Populate reserve link
-  const $reserve = document.getElementById('fab-reserve');
-  if ($reserve) {
-    if (r.website) {
-      $reserve.href = r.website;
-      $reserve.target = '_blank';
-      $reserve.rel = 'noopener noreferrer';
-      $reserve.hidden = false;
-    } else {
-      $reserve.hidden = true;
-    }
-  }
-
-  // Show the bar
-  $fab.hidden = false;
-
-  // Observe the glance actions to show/hide floating bar on scroll
-  if (_fabObserver) _fabObserver.disconnect();
-  const $glanceActions = document.querySelector('.card-footer');
-  if ($glanceActions) {
-    _fabObserver = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          $fab.classList.remove('floating-bar--visible');
-        } else {
-          $fab.classList.add('floating-bar--visible');
-        }
-      });
-    }, { threshold: 0 });
-    _fabObserver.observe($glanceActions);
-  } else {
-    // If no glance actions, show immediately
-    $fab.classList.add('floating-bar--visible');
-  }
-}
-
-function hideFloatingBar() {
-  const $fab = document.getElementById('floating-bar');
-  if ($fab) {
-    $fab.classList.remove('floating-bar--visible');
-    $fab.hidden = true;
-  }
-  if (_fabObserver) _fabObserver.disconnect();
-}
 
 /* ---- F4: Update Bookmark Button State ---- */
 function updateBookmarkBtn(restaurantId) {
@@ -4340,65 +4279,58 @@ function renderDeepContextExtras(data) {
   }
 }
 
-/* ---- Cuisine Details: inline section in Tier 2 (replaces overlay drawer) ---- */
+/* ---- Cuisine Pills: expandable pill groups in Tier 2 ---- */
 function renderCuisineDetails(data) {
   const dp = data.deep_context || {};
-  const $container = document.getElementById('cuisine-details');
+  const $container = document.getElementById('cuisine-pills');
   if (!$container) return;
 
-  const hasDishes = dp.signature_dishes?.length > 0;
-  const hasHighlights = dp.menu_highlights?.length > 0;
-  const hasFlavors = dp.flavor_profiles?.length > 0;
+  const groups = [];
 
-  // Hide entire section if no cuisine data
-  if (!hasDishes && !hasHighlights && !hasFlavors) {
+  // What to Order
+  if (dp.signature_dishes?.length) {
+    const bodyHTML = dp.signature_dishes.slice(0, 4).map(d =>
+      `<div class="cuisine-pill-group__dish">
+        <span class="cuisine-pill-group__dish-name">${d.dish}</span>
+        <span class="cuisine-pill-group__dish-why">${d.why || ''}</span>
+      </div>`
+    ).join('');
+    groups.push({ label: 'What to Order', body: bodyHTML });
+  }
+
+  // Popular Items
+  if (dp.menu_highlights?.length) {
+    const bodyHTML = `<div class="cuisine-pill-group__items">${
+      dp.menu_highlights.map(item =>
+        `<span class="cuisine-pill-group__item">${item}</span>`
+      ).join('')
+    }</div>`;
+    groups.push({ label: 'Popular Items', body: bodyHTML });
+  }
+
+  // Flavor Profile
+  if (dp.flavor_profiles?.length) {
+    const bodyHTML = `<div class="cuisine-pill-group__items">${
+      dp.flavor_profiles.map(f =>
+        `<span class="cuisine-pill-group__item">${f}</span>`
+      ).join('')
+    }</div>`;
+    groups.push({ label: 'Flavor Profile', body: bodyHTML });
+  }
+
+  if (groups.length === 0) {
     $container.style.display = 'none';
     return;
   }
 
-  // Set cuisine label
-  const $label = document.getElementById('cuisine-details-label');
-  if ($label) $label.textContent = data.restaurant?.cuisine_type || 'Cuisine';
-
-  // Signature dishes
-  const $dishesSection = document.getElementById('cuisine-details-dishes');
-  const $dishes = $dishesSection?.querySelector('.cuisine-details__dishes');
-  if ($dishes && hasDishes) {
-    $dishes.innerHTML = dp.signature_dishes.slice(0, 4).map(d =>
-      `<div class="cuisine-details__dish">
-        <span class="cuisine-details__dish-name type-structural">${d.dish}</span>
-        <span class="cuisine-details__dish-why type-data--sm">${d.why || ''}</span>
-      </div>`
-    ).join('');
-    $dishesSection.style.display = '';
-  } else if ($dishesSection) {
-    $dishesSection.style.display = 'none';
-  }
-
-  // Menu highlights
-  const $highlightsSection = document.getElementById('cuisine-details-highlights');
-  const $pills = $highlightsSection?.querySelector('.cuisine-details__pills');
-  if ($pills && hasHighlights) {
-    $pills.innerHTML = dp.menu_highlights.map(item =>
-      `<span class="cuisine-details__pill type-data--sm">${item}</span>`
-    ).join('');
-    $highlightsSection.style.display = '';
-  } else if ($highlightsSection) {
-    $highlightsSection.style.display = 'none';
-  }
-
-  // Flavor profiles
-  const $flavorSection = document.getElementById('cuisine-details-flavor');
-  const $flavors = $flavorSection?.querySelector('.cuisine-details__flavors');
-  if ($flavors && hasFlavors) {
-    $flavors.innerHTML = dp.flavor_profiles.map(f =>
-      `<span class="cuisine-details__flavor-tag type-data--sm">${f}</span>`
-    ).join('');
-    $flavorSection.style.display = '';
-  } else if ($flavorSection) {
-    $flavorSection.style.display = 'none';
-  }
-
+  $container.innerHTML = groups.map((g, i) =>
+    `<div class="cuisine-pill-group">
+      <button class="cuisine-pill-group__toggle type-data--sm" aria-expanded="false" data-action="toggle-cuisine-pill" data-index="${i}">
+        ${g.label} <span class="cuisine-pill-group__chevron"></span>
+      </button>
+      <div class="cuisine-pill-group__body" data-pill-body="${i}">${g.body}</div>
+    </div>`
+  ).join('');
   $container.style.display = '';
 }
 

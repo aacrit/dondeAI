@@ -26,8 +26,6 @@
  *   renderIntentBoostBadge(data) — Boost signal pill
  *   renderRelaxationNotice(data) — Filter expansion notice
  *   renderMapPreview(data)       — Google Maps link
- *   renderFloatingBar(data)      — Floating action bar
- *   hideFloatingBar()            — Hide floating bar
  *   renderDishMatchChip(data)    — Dish match indicator
  *   renderFeedbackState(id)      — Like/dislike button state
  *   updateBookmarkBtn(id)        — Bookmark button state
@@ -39,7 +37,7 @@
  *   renderDeepContextExtras(data)  — USP, wow factors, cuisine drawer
  *   renderPerfectFor(data)         — Scenario pills
  *   renderQuickStats(data)         — Impact-ranked stat ribbon
- *   renderCuisineDetails(data)     — Cuisine details inline in Tier 2
+ *   renderCuisineDetails(data)     — Expandable cuisine pills in Tier 2
  *
  * MODALS:
  *   openTileExpand(tileEl)   — Score tile modal
