@@ -1766,55 +1766,58 @@ async function retestSelectedIssues() {
   let fixed = 0, improved = 0, unchanged = 0;
   const retestResults = [];
 
-  for (let i = 0; i < indices.length; i++) {
-    const idx = indices[i];
-    const issue = state.issues[idx];
-    if (!issue) continue;
+  try {
+    for (let i = 0; i < indices.length; i++) {
+      const idx = indices[i];
+      const issue = state.issues[idx];
+      if (!issue) continue;
 
-    if (textEl) textEl.textContent = `Retesting ${i + 1}/${total}: "${issue.query}"`;
-    if (fillEl) fillEl.style.width = `${((i + 1) / total) * 100}%`;
+      if (textEl) textEl.textContent = `Retesting ${i + 1}/${total}: "${issue.query}"`;
+      if (fillEl) fillEl.style.width = `${((i + 1) / total) * 100}%`;
 
-    try {
-      const prevDm = issue.dm;
-      const resp = await callAPI(issue.query);
-      const newDm = resp.donde_match || 0;
-      issue.retestDm = newDm;
+      try {
+        const prevDm = issue.dm;
+        const resp = await callAPI(issue.query);
+        const newDm = resp.donde_match || 0;
+        issue.retestDm = newDm;
 
-      if (newDm >= 60) {
-        issue.status = 'fixed';
-        fixed++;
-      } else if (newDm > issue.dm) {
-        issue.status = 'improved';
-        improved++;
-      } else if (newDm < issue.dm) {
-        issue.status = 'regressed';
-        unchanged++;
-      } else {
-        issue.status = 'open';
+        if (newDm >= 60) {
+          issue.status = 'fixed';
+          fixed++;
+        } else if (newDm > issue.dm) {
+          issue.status = 'improved';
+          improved++;
+        } else if (newDm < issue.dm) {
+          issue.status = 'regressed';
+          unchanged++;
+        } else {
+          issue.status = 'open';
+          unchanged++;
+        }
+
+        if (resp.restaurant?.name) issue.restaurant = resp.restaurant.name;
+
+        const pass = newDm >= 60;
+        const gap = pass ? null : (issue.gapType || determineGapType(resp, newDm));
+        retestResults.push({
+          query: issue.query, cat: issue.category || 'unknown', dm: newDm, pass,
+          gap, restaurant: issue.restaurant, severity: issue.severity,
+          prevDm, queryId: issue.queryId || `retest-${idx}`,
+        });
+      } catch (e) {
+        console.warn(`Retest failed for "${issue.query}":`, e.message);
         unchanged++;
       }
-
-      if (resp.restaurant?.name) issue.restaurant = resp.restaurant.name;
-
-      const pass = newDm >= 60;
-      const gap = pass ? null : (issue.gapType || determineGapType(resp, newDm));
-      retestResults.push({
-        query: issue.query, cat: issue.category || 'unknown', dm: newDm, pass,
-        gap, restaurant: issue.restaurant, severity: issue.severity,
-        prevDm, queryId: issue.queryId || `retest-${idx}`,
-      });
-    } catch (e) {
-      unchanged++;
     }
-  }
 
-  // Log all retest results as a single gauntlet run
-  if (retestResults.length && typeof persistResults === 'function') {
-    await persistResults({ type: 'retest', results: retestResults });
+    // Log all retest results as a single gauntlet run
+    if (retestResults.length && typeof persistResults === 'function') {
+      await persistResults({ type: 'retest', results: retestResults });
+    }
+  } finally {
+    state.retesting = false;
+    if (progressEl) progressEl.style.display = 'none';
   }
-
-  state.retesting = false;
-  if (progressEl) progressEl.style.display = 'none';
 
   showToast(`Retest complete: ${fixed} fixed, ${improved} improved, ${unchanged} unchanged`);
 
