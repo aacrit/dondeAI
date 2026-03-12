@@ -906,7 +906,13 @@ function initKeyboardShortcuts() {
       case 't':
         if (typeof toggleTerminal === 'function') toggleTerminal();
         break;
+      case '/':
+        e.preventDefault();
+        if (typeof openCommandPalette === 'function') openCommandPalette();
+        break;
       case 'Escape':
+        if (state.cmdPaletteOpen) { closeCommandPalette(); break; }
+        if (state.calendarOpen) { toggleCalendarPanel(); break; }
         closeQueryPanel();
         closeShortcuts();
         if (state.terminalOpen) closeTerminal();
@@ -2562,4 +2568,418 @@ function renderTestVsProdStrip() {
       </div>
     </div>`;
   el.style.display = '';
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Wave 2: CEO Greeting (#1)
+// ═══════════════════════════════════════════════════════════════════
+
+function renderGreeting() {
+  const line1 = document.getElementById('greeting-line1');
+  const line2 = document.getElementById('greeting-line2');
+  if (!line1) return;
+
+  const now = new Date(new Date().toLocaleString('en-US', { timeZone: CHICAGO_TZ }));
+  const hour = now.getHours();
+  let greeting;
+  if (hour < 12) greeting = 'Good morning';
+  else if (hour < 17) greeting = 'Good afternoon';
+  else greeting = 'Good evening';
+
+  line1.textContent = `${greeting}, ${CEO_NAME}`;
+
+  // System health context
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const dateStr = `${dayNames[now.getDay()]}, ${monthNames[now.getMonth()]} ${now.getDate()}`;
+
+  const issues = (state.issues || []).filter(i => i.status === 'open');
+  const queryCount = (state.liveFeed || []).filter(q => {
+    const qDate = new Date(q.created_at);
+    return qDate.toDateString() === now.toDateString();
+  }).length;
+
+  let healthText;
+  if (issues.filter(i => i.severity === 'P0').length > 0) {
+    healthText = `${issues.length} items need attention`;
+  } else if (issues.length > 0) {
+    healthText = `${issues.length} minor issues`;
+  } else {
+    healthText = 'System running smoothly';
+  }
+
+  line2.textContent = `${dateStr} \u00B7 ${healthText} \u00B7 ${queryCount} queries today`;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Wave 2: Executive Briefing (#2)
+// ═══════════════════════════════════════════════════════════════════
+
+function renderExecutiveBriefing(stats) {
+  const el = document.getElementById('executive-briefing');
+  if (!el) return;
+
+  const cards = [];
+
+  // User Satisfaction card
+  const sat = stats.satisfaction;
+  const satValue = sat.value !== null ? `${sat.value}%` : '--';
+  const satSub = sat.feedbackCount > 0 ? `${sat.feedbackCount} responses` : 'No feedback yet';
+  let satTrend = '';
+  if (sat.value !== null && sat.prev !== null) {
+    const delta = sat.value - sat.prev;
+    if (delta > 0) satTrend = `<div class="cc-briefing-card__trend cc-briefing-card__trend--up">\u25B2 ${delta}pts vs yesterday</div>`;
+    else if (delta < 0) satTrend = `<div class="cc-briefing-card__trend cc-briefing-card__trend--down">\u25BC ${Math.abs(delta)}pts vs yesterday</div>`;
+    else satTrend = `<div class="cc-briefing-card__trend cc-briefing-card__trend--flat">\u2014 Same as yesterday</div>`;
+  }
+  cards.push(`<div class="cc-briefing-card">
+    <div class="cc-briefing-card__value">${satValue}</div>
+    <div class="cc-briefing-card__label">User Satisfaction \u00B7 ${satSub}</div>
+    ${satTrend}
+  </div>`);
+
+  // Engine Quality card
+  const eng = stats.engine;
+  const engValue = eng.grade || '--';
+  const engSub = eng.score !== null ? `Score: ${eng.score}` : '';
+  let engTrend = '';
+  if (eng.score !== null && eng.prev !== null) {
+    const delta = eng.score - eng.prev;
+    if (delta > 0) engTrend = `<div class="cc-briefing-card__trend cc-briefing-card__trend--up">\u25B2 ${delta}pts from last run</div>`;
+    else if (delta < 0) engTrend = `<div class="cc-briefing-card__trend cc-briefing-card__trend--down">\u25BC ${Math.abs(delta)}pts from last run</div>`;
+    else engTrend = `<div class="cc-briefing-card__trend cc-briefing-card__trend--flat">\u2014 Stable</div>`;
+  }
+  cards.push(`<div class="cc-briefing-card">
+    <div class="cc-briefing-card__value">${engValue}</div>
+    <div class="cc-briefing-card__label">Engine Quality \u00B7 ${engSub}</div>
+    ${engTrend}
+  </div>`);
+
+  el.innerHTML = cards.join('');
+  el.style.display = '';
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Wave 2: Daily Digest (#4)
+// ═══════════════════════════════════════════════════════════════════
+
+function renderDailyDigest(digest) {
+  const el = document.getElementById('daily-digest');
+  if (!el) return;
+
+  el.innerHTML = `
+    <span class="cc-daily-digest__icon">${digest.icon}</span>
+    <span class="cc-daily-digest__text">${digest.message}</span>`;
+  el.style.display = '';
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Wave 2: Decision Prompts (#5)
+// ═══════════════════════════════════════════════════════════════════
+
+function renderDecisionPrompts(prompts) {
+  const el = document.getElementById('decision-prompts');
+  if (!el || prompts.length === 0) {
+    if (el) el.style.display = 'none';
+    return;
+  }
+
+  el.innerHTML = prompts.map((p, i) => `
+    <div class="cc-decision-prompt">
+      <div class="cc-decision-prompt__body">
+        <div class="cc-decision-prompt__action-text">${escapeHtml(p.action)}</div>
+        <div class="cc-decision-prompt__reason">${escapeHtml(p.reason)}</div>
+      </div>
+      <button class="cc-decision-prompt__btn" onclick="executeDecisionPrompt(${i})">${escapeHtml(p.btn)}</button>
+    </div>`).join('');
+  el.style.display = '';
+
+  // Store handlers for onclick
+  window._decisionPrompts = prompts;
+}
+
+function executeDecisionPrompt(idx) {
+  const prompts = window._decisionPrompts || [];
+  if (prompts[idx] && prompts[idx].handler) {
+    prompts[idx].handler();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Wave 2: Calendar Panel (#3)
+// ═══════════════════════════════════════════════════════════════════
+
+function toggleCalendarPanel() {
+  const panel = document.getElementById('calendar-panel');
+  const backdrop = document.getElementById('calendar-backdrop');
+  const toggle = document.getElementById('calendar-toggle');
+  const iframe = document.getElementById('calendar-iframe');
+  if (!panel) return;
+
+  state.calendarOpen = !state.calendarOpen;
+
+  if (state.calendarOpen) {
+    // Set iframe src on first open
+    if (!iframe.src || iframe.src === 'about:blank' || iframe.src === '') {
+      iframe.src = `https://calendar.google.com/calendar/embed?src=${encodeURIComponent(CALENDAR_ID)}&mode=AGENDA&showTitle=0&showNav=0&showPrint=0&showCalendars=0&bgcolor=%230c0d0f&color=%238b8ff5`;
+    }
+    panel.classList.add('cc-calendar-panel--open');
+    backdrop.classList.add('cc-calendar-panel__backdrop--visible');
+    toggle.classList.add('cc-calendar-toggle--active');
+  } else {
+    panel.classList.remove('cc-calendar-panel--open');
+    backdrop.classList.remove('cc-calendar-panel__backdrop--visible');
+    toggle.classList.remove('cc-calendar-toggle--active');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Wave 2: Quick Actions Toolbar (#6)
+// ═══════════════════════════════════════════════════════════════════
+
+function initQuickActionsScroll() {
+  const bar = document.getElementById('quick-actions-bar');
+  if (!bar) return;
+
+  let lastY = window.scrollY;
+  window.addEventListener('scroll', () => {
+    const currentY = window.scrollY;
+    if (currentY > lastY + 10 && currentY > 100) {
+      bar.classList.add('cc-quick-actions--hidden');
+    } else if (currentY < lastY - 10 || currentY < 50) {
+      bar.classList.remove('cc-quick-actions--hidden');
+    }
+    lastY = currentY;
+  }, { passive: true });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Wave 2: Trend Insights (#7)
+// ═══════════════════════════════════════════════════════════════════
+
+function renderTrendInsights() {
+  const grid = document.getElementById('trend-insights-grid');
+  if (!grid || !state.trendData || state.trendData.length < 2) return;
+
+  const data = [...state.trendData].reverse(); // chronological order
+  const metrics = [
+    { key: 'avg_dm', label: 'Avg DondeMatch', color: 'var(--cc-accent)' },
+    { key: 'avg_score_fit', label: 'Score Fit', color: 'var(--cc-green)' },
+    { key: 'avg_blurb_quality', label: 'Blurb Quality', color: 'var(--cc-amber)' },
+    { key: 'passed_60', label: 'Pass Rate', color: 'var(--cc-blue, #3b82f6)', isRate: true }
+  ];
+
+  grid.innerHTML = metrics.map(m => {
+    const values = data.map(d => {
+      if (m.isRate && d.total > 0) return (d[m.key] / d.total * 100);
+      return Number(d[m.key]) || 0;
+    });
+    const current = values[values.length - 1];
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const range = max - min || 1;
+
+    // SVG line chart
+    const w = 200, h = 60, padY = 4;
+    const points = values.map((v, i) => {
+      const x = values.length > 1 ? (i / (values.length - 1)) * w : w / 2;
+      const y = padY + (1 - (v - min) / range) * (h - 2 * padY);
+      return `${x},${y}`;
+    });
+    const polyline = points.join(' ');
+    const areaPoints = `0,${h} ${polyline} ${w},${h}`;
+
+    const displayVal = m.isRate ? `${current.toFixed(0)}%` : current.toFixed(1);
+    const minLabel = m.isRate ? `${min.toFixed(0)}%` : min.toFixed(1);
+    const maxLabel = m.isRate ? `${max.toFixed(0)}%` : max.toFixed(1);
+
+    return `<div class="cc-trend-chart">
+      <div class="cc-trend-chart__header">
+        <span class="cc-trend-chart__label">${m.label}</span>
+        <span class="cc-trend-chart__value">${displayVal}</span>
+      </div>
+      <svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+        <polygon class="cc-trend-chart__area" points="${areaPoints}" style="fill:${m.color}"/>
+        <polyline class="cc-trend-chart__line" points="${polyline}" style="stroke:${m.color}"/>
+        <circle class="cc-trend-chart__dot" cx="${values.length > 1 ? w : w/2}" cy="${padY + (1 - (current - min) / range) * (h - 2 * padY)}" r="3" style="fill:${m.color}"/>
+      </svg>
+      <div class="cc-trend-chart__range">
+        <span>${minLabel}</span>
+        <span>${maxLabel}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Wave 2: User Engagement (#8)
+// ═══════════════════════════════════════════════════════════════════
+
+function renderUserEngagement(stats) {
+  const el = document.getElementById('user-engagement');
+  if (!el) return;
+
+  el.innerHTML = `
+    <div class="cc-user-stat">
+      <div class="cc-user-stat__val">${stats.distinctUsers}</div>
+      <div class="cc-user-stat__label">Users (7d)</div>
+    </div>
+    <div class="cc-user-stat">
+      <div class="cc-user-stat__val">${stats.repeatUsers}</div>
+      <div class="cc-user-stat__label">Repeat Users</div>
+    </div>
+    <div class="cc-user-stat">
+      <div class="cc-user-stat__val">${stats.avgPerUser}</div>
+      <div class="cc-user-stat__label">Avg/User</div>
+    </div>
+    <div class="cc-user-stat">
+      <div class="cc-user-stat__val">${escapeHtml(stats.topOccasion)}</div>
+      <div class="cc-user-stat__label">Top Occasion</div>
+    </div>`;
+  el.style.display = '';
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Wave 2: Command Palette (#10)
+// ═══════════════════════════════════════════════════════════════════
+
+function openCommandPalette() {
+  const el = document.getElementById('command-palette');
+  if (!el) return;
+  state.cmdPaletteOpen = true;
+  state.cmdPaletteIdx = 0;
+  el.style.display = '';
+  const input = document.getElementById('cmd-palette-input');
+  if (input) {
+    input.value = '';
+    input.focus();
+  }
+  filterCommands('');
+}
+
+function closeCommandPalette() {
+  const el = document.getElementById('command-palette');
+  if (!el) return;
+  state.cmdPaletteOpen = false;
+  el.style.display = 'none';
+}
+
+function filterCommands(query) {
+  const results = document.getElementById('cmd-palette-results');
+  if (!results) return;
+
+  const q = query.toLowerCase().trim();
+  const filtered = q
+    ? CMD_PALETTE_COMMANDS.filter(c => c.name.toLowerCase().includes(q) || c.cat.toLowerCase().includes(q))
+    : CMD_PALETTE_COMMANDS;
+
+  // Group by category
+  const groups = {};
+  for (const cmd of filtered) {
+    if (!groups[cmd.cat]) groups[cmd.cat] = [];
+    groups[cmd.cat].push(cmd);
+  }
+
+  let html = '';
+  let idx = 0;
+  for (const [cat, cmds] of Object.entries(groups)) {
+    html += `<div class="cc-cmd-palette__cat">${escapeHtml(cat)}</div>`;
+    for (const cmd of cmds) {
+      const activeClass = idx === state.cmdPaletteIdx ? 'cc-cmd-palette__item--active' : '';
+      html += `<div class="cc-cmd-palette__item ${activeClass}" data-cmd-idx="${idx}" onclick="executePaletteCommand(${idx})" onmouseenter="state.cmdPaletteIdx=${idx};highlightPaletteItem(${idx})">
+        <span class="cc-cmd-palette__item-icon">${cmd.icon}</span>
+        <span class="cc-cmd-palette__item-name">${escapeHtml(cmd.name)}</span>
+        ${cmd.key ? `<span class="cc-cmd-palette__item-key">${cmd.key}</span>` : ''}
+      </div>`;
+      idx++;
+    }
+  }
+  results.innerHTML = html || '<div class="cc-cmd-palette__cat">No matches</div>';
+
+  // Store filtered list for keyboard navigation
+  window._filteredCommands = filtered;
+}
+
+function highlightPaletteItem(idx) {
+  const items = document.querySelectorAll('.cc-cmd-palette__item');
+  items.forEach((el, i) => {
+    el.classList.toggle('cc-cmd-palette__item--active', i === idx);
+  });
+}
+
+function executePaletteCommand(idx) {
+  const cmds = window._filteredCommands || CMD_PALETTE_COMMANDS;
+  if (cmds[idx] && cmds[idx].action) {
+    closeCommandPalette();
+    cmds[idx].action();
+  }
+}
+
+function handlePaletteKeydown(e) {
+  if (!state.cmdPaletteOpen) return;
+  const cmds = window._filteredCommands || CMD_PALETTE_COMMANDS;
+
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    state.cmdPaletteIdx = Math.min(state.cmdPaletteIdx + 1, cmds.length - 1);
+    highlightPaletteItem(state.cmdPaletteIdx);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    state.cmdPaletteIdx = Math.max(state.cmdPaletteIdx - 1, 0);
+    highlightPaletteItem(state.cmdPaletteIdx);
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    executePaletteCommand(state.cmdPaletteIdx);
+  } else if (e.key === 'Escape') {
+    e.preventDefault();
+    closeCommandPalette();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Wave 2: Master render + keyboard integration
+// ═══════════════════════════════════════════════════════════════════
+
+function initWave2Keyboard() {
+  document.addEventListener('keydown', (e) => {
+    if (state.cmdPaletteOpen) {
+      handlePaletteKeydown(e);
+    }
+  });
+}
+
+function renderWave2Components() {
+  // #1 Greeting
+  renderGreeting();
+
+  // #2 Executive Briefing
+  const briefingStats = computeExecutiveBriefing();
+  renderExecutiveBriefing(briefingStats);
+
+  // #4 Daily Digest
+  const digest = computeDailyDigest();
+  renderDailyDigest(digest);
+
+  // #5 Decision Prompts
+  const prompts = computeDecisionPrompts();
+  renderDecisionPrompts(prompts);
+
+  // #7 Trend Insights
+  renderTrendInsights();
+
+  // #8 User Engagement
+  const engagement = computeUserEngagement();
+  renderUserEngagement(engagement);
+
+  // Save current snapshot for next session's digest
+  const run = state.latestRun;
+  if (run) {
+    saveSessionSnapshot({
+      avg_dm: Number(run.avg_dm) || 0,
+      avg_fit: Number(run.avg_score_fit) || 0,
+      avg_blurb: Number(run.avg_blurb_quality) || 0,
+      query_count: (state.liveFeed || []).length,
+      grade_pass_rate: run.total > 0 ? ((run.grade_pass_count || 0) / run.total * 100) : 0
+    });
+  }
 }
