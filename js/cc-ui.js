@@ -3223,7 +3223,69 @@ function updateMobileIssuesBadge() {
   badge.textContent = p0Count > 0 ? p0Count : '';
 }
 
+// Toggle run history collapse on mobile
+function toggleMobileRunHistory() {
+  const section = document.getElementById('run-history');
+  if (section) section.classList.toggle('cc-m-expanded');
+}
+
+// Toggle "More metrics" on Live tab (shows hidden KPI rows)
+function toggleMobileMetrics() {
+  const btn = document.getElementById('mobile-more-metrics');
+  if (!btn) return;
+  btn.classList.toggle('cc-m-expanded');
+  const isExpanded = btn.classList.contains('cc-m-expanded');
+  btn.textContent = isExpanded ? 'Less metrics' : 'More metrics';
+
+  // Show/hide the performance and grade KPI rows
+  const gradeKpis = document.getElementById('live-grade-kpis');
+  if (gradeKpis) gradeKpis.style.display = isExpanded ? '' : '';
+
+  // Find the second .cc-live-kpis (performance row) - it's after the first one
+  const allKpiRows = document.querySelectorAll('#panel-live .cc-live-kpis');
+  allKpiRows.forEach((row, i) => {
+    if (i > 0) {
+      row.style.display = isExpanded ? 'grid' : 'none';
+    }
+  });
+}
+
+// Show "More metrics" button on mobile when Live tab is active
+function initMobileMoreMetrics() {
+  const btn = document.getElementById('mobile-more-metrics');
+  if (!btn) return;
+  // Show on mobile only (CSS handles visibility via display:none on desktop)
+  if (window.matchMedia('(max-width: 767px)').matches) {
+    btn.style.display = '';
+  }
+}
+
 // Initialize mobile features on DOMContentLoaded
 document.addEventListener('DOMContentLoaded', () => {
   initQueryPanelGesture();
+
+  // Run history: make title row toggle expansion on mobile
+  const runHistoryTitle = document.querySelector('.cc-run-history__title-row');
+  if (runHistoryTitle) {
+    runHistoryTitle.addEventListener('click', (e) => {
+      if (window.matchMedia('(max-width: 767px)').matches) {
+        e.stopPropagation();
+        toggleMobileRunHistory();
+      }
+    });
+  }
+
+  // Init more metrics button when switching to live tab
+  initMobileMoreMetrics();
+
+  // Live tests section: tappable header to expand on mobile
+  const liveTestsHeader = document.querySelector('.cc-live-tests__header');
+  if (liveTestsHeader) {
+    liveTestsHeader.addEventListener('click', () => {
+      if (window.matchMedia('(max-width: 767px)').matches) {
+        const section = document.getElementById('live-tests-section');
+        if (section) section.classList.toggle('cc-m-expanded');
+      }
+    });
+  }
 });
