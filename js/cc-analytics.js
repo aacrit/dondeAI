@@ -786,9 +786,47 @@ async function loadIssues() {
       if (saved) {
         issue.status = saved.status;
         issue.retestDm = saved.retestDm;
+        // Update grade data if retest captured it
+        if (saved.scoreFitScore != null) issue.scoreFitScore = saved.scoreFitScore;
+        if (saved.scoreFitGrade) issue.scoreFitGrade = saved.scoreFitGrade;
+        if (saved.blurbQualityScore != null) issue.blurbQualityScore = saved.blurbQualityScore;
+        if (saved.blurbQualityGrade) issue.blurbQualityGrade = saved.blurbQualityGrade;
       } else {
         issue.status = 'open';
       }
+    }
+
+    // Restore resolved/improved issues that are no longer in DB
+    // (e.g., issue was retested and passed — no longer a gap in latest run)
+    const issueKeys = new Set(issues.map(i => i.query.toLowerCase().trim()));
+    const maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
+    for (const [key, saved] of Object.entries(savedStatuses)) {
+      if (issueKeys.has(key)) continue; // Already in current issues
+      if (!saved.query) continue; // Old format without full data
+      if (Date.now() - (saved.ts || 0) > maxAge) continue; // Expired
+      // Re-create the issue from saved data
+      issues.push({
+        query: saved.query,
+        dm: saved.dm || 0,
+        gapType: saved.gapType || 'unknown',
+        severity: saved.severity || 'P2',
+        category: saved.category || '--',
+        restaurant: saved.restaurant || '--',
+        source: saved.source || 'test',
+        sourceDetail: saved.sourceDetail || '',
+        factors: saved.factors || null,
+        relevanceType: saved.relevanceType || null,
+        fixAction: saved.fixAction || '',
+        status: saved.status,
+        retestDm: saved.retestDm,
+        prevDm: null,
+        deltaDm: null,
+        isNew: false,
+        scoreFitGrade: saved.scoreFitGrade,
+        scoreFitScore: saved.scoreFitScore,
+        blurbQualityGrade: saved.blurbQualityGrade,
+        blurbQualityScore: saved.blurbQualityScore,
+      });
     }
 
     // Snapshot previous counts before overwriting (for executive summary trends)
