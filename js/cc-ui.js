@@ -43,6 +43,11 @@ function switchTab(name) {
   // Position indicator
   positionTabIndicator();
 
+  // Update mobile bottom nav
+  document.querySelectorAll('.cc-mobile-nav__tab').forEach(t => {
+    t.classList.toggle('cc-mobile-nav__tab--active', t.dataset.tab === name);
+  });
+
   // Start live polling when switching to live tab
   if (name === 'live' && !state.livePollTimer) {
     if (typeof startLivePolling === 'function') startLivePolling();
@@ -87,6 +92,8 @@ function updateSystemStatus(text, color) {
     else dot.classList.add('cc-header__dot--offline');
   }
   if (label) label.textContent = text;
+  // Sync mobile status dot
+  syncMobileStatusDot(color);
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -755,6 +762,9 @@ function renderRunHistory(runs) {
       </tr>
     `;
   }).join('');
+
+  // Also render mobile run history cards
+  renderMobileRunCards(runs);
 }
 
 async function toggleRunDetail(row) {
@@ -1457,6 +1467,7 @@ function renderIssues(issues) {
   updateExecutiveSummary(allIssues);
   updateActionBarCount(issues);
   generateIssueInsight(allIssues);
+  updateMobileIssuesBadge();
 
   if (!issues || issues.length === 0) {
     list.innerHTML = '<div class="cc-empty-state"><div class="cc-empty-state__icon">&#9989;</div><div class="cc-empty-state__text">No issues found. System is healthy!</div></div>';
@@ -3034,3 +3045,185 @@ function renderWave2Components() {
     });
   }
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// Mobile — Bottom sheet, overflow menu, run history cards, gestures
+// ═══════════════════════════════════════════════════════════════════
+
+function toggleMobileMenu() {
+  const menu = document.getElementById('mobile-menu');
+  const backdrop = document.getElementById('mobile-menu-backdrop');
+  if (!menu || !backdrop) return;
+  const isOpen = menu.classList.contains('cc--open');
+  menu.classList.toggle('cc--open', !isOpen);
+  backdrop.classList.toggle('cc--open', !isOpen);
+  // Sync badge states
+  const autoBadge = document.getElementById('mobile-auto-badge');
+  if (autoBadge) {
+    const isAuto = state.autoRefresh;
+    autoBadge.textContent = isAuto ? 'On' : 'Off';
+    autoBadge.classList.toggle('cc-mobile-menu__badge--active', isAuto);
+  }
+  const liveBadge = document.getElementById('mobile-live-badge');
+  if (liveBadge) {
+    const isLive = state.liveAPI;
+    liveBadge.textContent = isLive ? 'On' : 'Off';
+    liveBadge.classList.toggle('cc-mobile-menu__badge--active', isLive);
+  }
+}
+
+// Mobile run history cards — called after renderRunHistory on mobile
+function renderMobileRunCards(runs) {
+  const container = document.getElementById('run-history-cards');
+  if (!container) return;
+  if (!runs || runs.length === 0) {
+    container.innerHTML = '<div class="cc-empty-state"><div class="cc-empty-state__text">No test runs yet</div></div>';
+    return;
+  }
+
+  container.innerHTML = runs.map(r => {
+    const date = new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    const passRate = r.total > 0 ? pct(r.passed_60, r.total) : '--';
+    const gradePassRate = r.grade_pass_count != null && r.total > 0 ? (r.grade_pass_count / r.total * 100) : Number(passRate);
+    const healthClass = (r.avg_dm >= 75 && gradePassRate >= 80) ? 'cc-run-card--healthy' : (r.avg_dm >= 60 && gradePassRate >= 50) ? 'cc-run-card--warning' : 'cc-run-card--critical';
+
+    let deltaHtml = '';
+    if (r.delta_avg_dm != null && r.delta_avg_dm !== 0) {
+      const cls = r.delta_avg_dm > 0 ? 'cc-run-card__delta--up' : 'cc-run-card__delta--down';
+      deltaHtml = `<span class="cc-run-card__delta ${cls}">${r.delta_avg_dm > 0 ? '▲' : '▼'} ${r.delta_avg_dm > 0 ? '+' : ''}${r1(r.delta_avg_dm)}</span>`;
+    }
+
+    const fitGrade = r.avg_score_fit != null && typeof letterGrade === 'function' ? letterGrade(r.avg_score_fit) : '--';
+    const blurbGrade = r.avg_blurb_quality != null && typeof letterGrade === 'function' ? letterGrade(r.avg_blurb_quality) : '--';
+
+    return `
+      <div class="cc-run-card ${healthClass}" data-run-id="${escapeHtml(r.run_id)}" onclick="selectRun('${escapeHtml(r.run_id)}'); toggleMobileRunDetail(this)">
+        <div class="cc-run-card__top">
+          <span class="cc-run-card__type">${escapeHtml(r.mode || 'Broad Scan')}</span>
+          <span class="cc-run-card__date">${date}</span>
+        </div>
+        <div class="cc-run-card__stats">
+          <span><span class="cc-run-card__stat-val">${r.total || '--'}</span> queries</span>
+          <span><span class="cc-run-card__stat-val ${ragClass(r.avg_dm)}">${r1(r.avg_dm)}</span> avg DM</span>
+          <span><span class="cc-run-card__stat-val">${passRate}%</span> pass</span>
+          <span>Fit <span class="cc-run-card__stat-val">${fitGrade}</span></span>
+          <span>Blurb <span class="cc-run-card__stat-val">${blurbGrade}</span></span>
+          ${deltaHtml}
+        </div>
+        <div class="cc-run-card__detail" id="card-detail-${escapeHtml(r.run_id)}"></div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function toggleMobileRunDetail(card) {
+  const runId = card.dataset.runId;
+  const isExpanded = card.classList.contains('cc-run-card--expanded');
+
+  // Collapse all
+  document.querySelectorAll('.cc-run-card--expanded').forEach(c => c.classList.remove('cc-run-card--expanded'));
+
+  if (isExpanded) return;
+
+  card.classList.add('cc-run-card--expanded');
+
+  const detail = card.querySelector('.cc-run-card__detail');
+  if (!detail || detail.dataset.loaded) return;
+
+  if (!sbClient) { detail.textContent = 'Not authenticated'; return; }
+
+  try {
+    const { data: results } = await sbClient
+      .from('gauntlet_results')
+      .select('query, category, donde_match, score_pass, gap_type, restaurant_name, score_fit_grade, blurb_quality_grade')
+      .eq('run_id', runId)
+      .order('donde_match', { ascending: true })
+      .limit(20);
+
+    if (!results || results.length === 0) {
+      detail.textContent = 'No detailed results.';
+      detail.dataset.loaded = '1';
+      return;
+    }
+
+    const gaps = results.filter(r => r.gap_type);
+    const passes = results.filter(r => !r.gap_type);
+    let html = '';
+    if (gaps.length > 0) {
+      html += `<div style="font-size:0.7rem;color:var(--cc-text-2);margin-bottom:4px"><strong>${gaps.length} issue${gaps.length > 1 ? 's' : ''}</strong></div>`;
+      html += gaps.slice(0, 5).map(r => `<div style="font-size:0.7rem;padding:3px 0;color:var(--cc-red)">
+        <span style="font-family:var(--cc-mono)">${r.donde_match}</span> ${escapeHtml(r.query?.substring(0, 40) || '--')}${r.query?.length > 40 ? '...' : ''}
+      </div>`).join('');
+      if (gaps.length > 5) html += `<div style="font-size:0.65rem;color:var(--cc-text-3)">+${gaps.length - 5} more</div>`;
+    }
+    if (passes.length > 0) {
+      html += `<div style="font-size:0.7rem;color:var(--cc-text-2);margin-top:6px"><strong>${passes.length} passed</strong></div>`;
+    }
+    detail.innerHTML = html;
+    detail.dataset.loaded = '1';
+  } catch (e) {
+    detail.textContent = 'Error loading details.';
+  }
+}
+
+// Mobile status dot sync — called from updateSystemStatus
+function syncMobileStatusDot(color) {
+  const headerLeft = document.querySelector('.cc-header__left');
+  if (headerLeft) {
+    headerLeft.classList.toggle('cc--online', color === 'green');
+  }
+}
+
+// Query panel touch-to-dismiss gesture for mobile
+function initQueryPanelGesture() {
+  const handle = document.getElementById('query-panel-handle');
+  const panel = document.getElementById('query-panel');
+  if (!handle || !panel) return;
+
+  let startY = 0;
+  let currentY = 0;
+  let isDragging = false;
+
+  handle.addEventListener('touchstart', (e) => {
+    startY = e.touches[0].clientY;
+    isDragging = true;
+    panel.style.transition = 'none';
+  }, { passive: true });
+
+  handle.addEventListener('touchmove', (e) => {
+    if (!isDragging) return;
+    currentY = e.touches[0].clientY;
+    const deltaY = currentY - startY;
+    if (deltaY > 0) {
+      panel.style.transform = `translateY(${deltaY}px)`;
+    }
+  }, { passive: true });
+
+  handle.addEventListener('touchend', () => {
+    if (!isDragging) return;
+    isDragging = false;
+    panel.style.transition = '';
+    const deltaY = currentY - startY;
+    if (deltaY > 100) {
+      closeQueryPanel();
+    } else {
+      panel.style.transform = '';
+      if (panel.classList.contains('cc-query-panel--open')) {
+        panel.style.transform = 'translateY(0)';
+      }
+    }
+  });
+}
+
+// Update mobile issues badge
+function updateMobileIssuesBadge() {
+  const badge = document.getElementById('mobile-issues-badge');
+  if (!badge) return;
+  const p0Count = (state.issues || []).filter(i => i.severity === 'P0' && i.status !== 'fixed').length;
+  badge.textContent = p0Count > 0 ? p0Count : '';
+}
+
+// Initialize mobile features on DOMContentLoaded
+document.addEventListener('DOMContentLoaded', () => {
+  initQueryPanelGesture();
+});

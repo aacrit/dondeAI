@@ -54,7 +54,41 @@
       </div>
       <a href="index.html" class="cc-header__back">Back to Donde</a>
     </div>
+    <!-- Mobile overflow menu button (visible only on mobile) -->
+    <button class="cc-mobile-menu-btn" id="mobile-menu-btn" onclick="toggleMobileMenu()" title="Menu" aria-label="Menu">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+    </button>
   </header>
+
+  <!-- ═══ Mobile Overflow Menu (bottom sheet) ═══ -->
+  <div class="cc-mobile-menu-backdrop" id="mobile-menu-backdrop" onclick="toggleMobileMenu()"></div>
+  <div class="cc-mobile-menu" id="mobile-menu">
+    <div class="cc-mobile-menu__handle"></div>
+    <div class="cc-mobile-menu__items">
+      <button class="cc-mobile-menu__item" onclick="toggleMobileMenu(); refreshAllData()">
+        <span class="cc-mobile-menu__icon">&#8635;</span>Refresh Data
+      </button>
+      <button class="cc-mobile-menu__item" onclick="toggleMobileMenu(); toggleAutoRefresh()">
+        <span class="cc-mobile-menu__icon">&#9201;</span>
+        <span>Auto-Refresh</span>
+        <span class="cc-mobile-menu__badge" id="mobile-auto-badge">Off</span>
+      </button>
+      <button class="cc-mobile-menu__item" onclick="toggleMobileMenu(); toggleLiveAPI()">
+        <span class="cc-mobile-menu__icon">&#9889;</span>
+        <span>Live API</span>
+        <span class="cc-mobile-menu__badge cc-mobile-menu__badge--live" id="mobile-live-badge">Off</span>
+      </button>
+      <button class="cc-mobile-menu__item" onclick="toggleMobileMenu(); toggleCalendarPanel()">
+        <span class="cc-mobile-menu__icon">&#128197;</span>Today's Calendar
+      </button>
+      <button class="cc-mobile-menu__item" onclick="toggleMobileMenu(); exportCurrentView()">
+        <span class="cc-mobile-menu__icon">&#128190;</span>Export Report
+      </button>
+      <a class="cc-mobile-menu__item" href="index.html">
+        <span class="cc-mobile-menu__icon">&#8592;</span>Back to Donde
+      </a>
+    </div>
+  </div>
 
   <!-- ═══ Auth Gate ═══ -->
   <div id="auth-gate" style="display:none">
@@ -320,6 +354,9 @@
         </table>
       </div>
 
+      <!-- Mobile Run History Cards (visible only on mobile) -->
+      <div class="cc-run-cards" id="run-history-cards"></div>
+
       <!-- Compare Panel (hidden by default) -->
       <div class="cc-compare" id="compare-panel" style="display:none">
         <div class="cc-compare__header">
@@ -472,6 +509,7 @@
 
     <!-- ═══ Query Detail Slide-Out ═══ -->
     <div class="cc-query-panel" id="query-panel">
+      <div class="cc-query-panel__drag-handle" id="query-panel-handle"><span></span></div>
       <div class="cc-query-panel__header">
         <span class="cc-query-panel__title">Query Detail</span>
         <button class="cc-query-panel__close" onclick="closeQueryPanel()" title="Close">&times;</button>
@@ -750,6 +788,27 @@
       </div>
     </div>
   </div>
+
+  <!-- ═══ Mobile Bottom Navigation ═══ -->
+  <nav class="cc-mobile-nav" id="mobile-nav">
+    <button class="cc-mobile-nav__tab cc-mobile-nav__tab--active" data-tab="test" onclick="switchTab('test')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      <span>Test</span>
+    </button>
+    <button class="cc-mobile-nav__tab" data-tab="live" onclick="switchTab('live')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      <span>Live</span>
+    </button>
+    <button class="cc-mobile-nav__tab" data-tab="data" onclick="switchTab('data')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+      <span>Data</span>
+    </button>
+    <button class="cc-mobile-nav__tab" data-tab="issues" onclick="switchTab('issues')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <span>Issues</span>
+      <span class="cc-mobile-nav__badge" id="mobile-issues-badge"></span>
+    </button>
+  </nav>
 
   <script src="js/cc-queries.js"></script>
   <script src="js/cc-config.js"></script>
