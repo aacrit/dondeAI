@@ -68,7 +68,7 @@
 **The Insight:** At Google, we learned that owning the moment of intent is worth more than owning the category. DondeAI shouldn't try to be "the restaurant app" — it should own the specific moment: "It's 7pm, I'm hungry, I don't know where to go." You have `time_of_day` intelligence. You have occasion filters. But you're not marketing to the moment. You're marketing to the category.
 
 **What to Build:**
-- SEO landing pages: "Best date night restaurants in Wicker Park tonight" — dynamically generated from your 913 restaurants + occasion scores
+- SEO landing pages: "Best date night restaurants in Wicker Park tonight" — dynamically generated from your 2,719 restaurants + occasion scores
 - Instagram/TikTok content: "Donde picked my Friday night dinner" — 15-second format showing craving → recommendation → actual meal
 - Weekly "Chicago Tonight" email/push: 3 curated picks based on trending data, weather, day of week
 - Partnership with 2-3 Chicago food influencers: "Let Donde pick for me" challenge
@@ -109,7 +109,7 @@
 
 ### 7. Expand the Data Moat Before Someone Copies You
 
-**The Insight:** 913 restaurants is strong for Chicago. But your real moat isn't the count — it's the 38-field deep profiles, the 7-dimension occasion scores, the review intelligence with dish catalogs and semantic tags. Nobody else has this. But data moats erode if you don't actively expand them. Your discovery pipeline runs monthly. That's not fast enough.
+**The Insight:** 2,719 restaurants is strong for Chicago. But your real moat isn't the count — it's the 38-field deep profiles, the 7-dimension occasion scores, the review intelligence with dish catalogs and semantic tags. Nobody else has this. But data moats erode if you don't actively expand them. Your discovery pipeline runs monthly. That's not fast enough.
 
 **What to Build:**
 - Increase discovery pipeline frequency to weekly for net-new restaurants (Chicago restaurant scene changes fast)
