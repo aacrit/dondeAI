@@ -40,6 +40,7 @@
       <div class="cc-header__status">
         <span class="cc-header__dot cc-header__dot--offline" id="status-dot"></span>
         <span class="cc-header__status-text" id="status-text">Offline</span>
+        <span class="cc-freshness" id="data-freshness"></span>
       </div>
       <a href="index.html" class="cc-header__back">Back to Donde</a>
     </div>
@@ -107,6 +108,12 @@
         <div class="cc-grade-kpi__val" id="kpi-grade-pass">--</div>
       </div>
     </section>
+
+    <!-- ═══ Action Center ═══ -->
+    <section class="cc-action-center" id="action-center" style="display:none"></section>
+
+    <!-- ═══ Test vs Production Comparison ═══ -->
+    <div class="cc-comparison-strip" id="test-vs-prod-strip" style="display:none"></div>
 
     <!-- ═══ Smart Suggestion ═══ -->
     <div class="cc-suggest" id="suggest-strip" style="display:none">
@@ -320,11 +327,11 @@
           <div class="cc-live-kpi__label">Searches</div>
         </div>
         <div class="cc-live-kpi">
-          <div class="cc-live-kpi__val" id="live-avg-dm">--</div>
+          <div class="cc-live-kpi__val" id="live-avg-dm">--</div><span id="spark-avg-dm"></span>
           <div class="cc-live-kpi__label">Avg DM</div>
         </div>
         <div class="cc-live-kpi">
-          <div class="cc-live-kpi__val" id="live-pass-rate">--</div>
+          <div class="cc-live-kpi__val" id="live-pass-rate">--</div><span id="spark-pass-rate"></span>
           <div class="cc-live-kpi__label">Pass Rate</div>
         </div>
         <div class="cc-live-kpi">
@@ -353,11 +360,11 @@
       <!-- Grade KPIs (Row 3: Quality Grades) -->
       <div class="cc-live-kpis" id="live-grade-kpis" style="margin-top:6px">
         <div class="cc-live-kpi">
-          <div class="cc-live-kpi__val" id="live-avg-fit">--</div>
+          <div class="cc-live-kpi__val" id="live-avg-fit">--</div><span id="spark-avg-fit"></span>
           <div class="cc-live-kpi__label">Avg Score Fit</div>
         </div>
         <div class="cc-live-kpi">
-          <div class="cc-live-kpi__val" id="live-avg-blurb">--</div>
+          <div class="cc-live-kpi__val" id="live-avg-blurb">--</div><span id="spark-avg-blurb"></span>
           <div class="cc-live-kpi__label">Avg Blurb Quality</div>
         </div>
         <div class="cc-live-kpi">
@@ -369,6 +376,9 @@
           <div class="cc-live-kpi__label">Grade Issues</div>
         </div>
       </div>
+
+      <!-- Live Issues (#5) -->
+      <div id="live-issues-section"></div>
 
       <!-- Score Distribution -->
       <div class="cc-score-dist" id="score-dist">

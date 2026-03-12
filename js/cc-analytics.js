@@ -79,6 +79,12 @@ async function initDashboard() {
   if (typeof loadHeatmapData === 'function') loadHeatmapData();
   if (typeof computePerfBaseline === 'function') computePerfBaseline();
 
+  // Dashboard overhaul: render new components
+  if (typeof renderActionCenter === 'function') renderActionCenter();
+  if (typeof renderTestVsProdStrip === 'function') renderTestVsProdStrip();
+  if (typeof updateKpiSparklines === 'function') updateKpiSparklines();
+  if (typeof initKpiClickHandlers === 'function') initKpiClickHandlers();
+
   // Anomaly detection after trend data is loaded
   if (state.latestRun && typeof checkForAnomalies === 'function') {
     checkForAnomalies(state.latestRun);
@@ -224,9 +230,11 @@ async function loadLiveFeed() {
     if (queries && queries.length > 0) {
       state.liveFeed = queries;
       state.liveLastId = queries[0].id;
+      state.lastDataRefresh = Date.now();
       applyLiveFilter();
     } else {
       state.liveFeed = [];
+      state.lastDataRefresh = Date.now();
       applyLiveFilter();
     }
   } catch (e) {
@@ -253,6 +261,8 @@ function applyLiveFilter() {
 
   renderLiveFeed(filtered);
   updateLiveKPIsFromQueries(filtered);
+  if (typeof renderLiveIssues === 'function') renderLiveIssues(filtered);
+  if (typeof updateKpiSparklines === 'function') updateKpiSparklines();
 }
 
 /** Set filter and re-render (called from UI) */
@@ -342,10 +352,10 @@ function updateLiveKPIsFromQueries(queries) {
     (q.donde_match || 0) >= 70 && (q.score_fit_score || 0) >= 80 && (q.blurb_quality_score || 0) >= 80
   ).length;
   const gradePassRate = withFit.length > 0 ? (gradePassCount / withFit.length * 100) : null;
-  // Grade issues: below B+ (87) on either score fit or blurb quality
+  // Grade issues: below B (87) on either score fit or blurb quality
   const gradeIssueCount = queries.filter(q =>
-    (q.score_fit_score != null && q.score_fit_score < 87) ||
-    (q.blurb_quality_score != null && q.blurb_quality_score < 87)
+    (q.score_fit_score != null && q.score_fit_score < 83) ||
+    (q.blurb_quality_score != null && q.blurb_quality_score < 83)
   ).length;
 
   updateLiveKPIs({ searches: count, avgDm, passRate, fallbackRate,
@@ -531,7 +541,7 @@ async function loadIssues() {
       .limit(100);
     if (latestRunId) gapsQuery.eq('run_id', latestRunId);
 
-    // Test results with grade issues (below B+) — separate from gap_type issues
+    // Test results with grade issues (below B) — separate from gap_type issues
     const testGradeQuery = latestRunId
       ? sbClient.from('gauntlet_results')
           .select('query, donde_match, category, restaurant_name, food, vibe, service, reputation, convenience, relevance_type, run_id, score_fit_score, score_fit_grade, blurb_quality_score, blurb_quality_grade')
@@ -564,7 +574,7 @@ async function loadIssues() {
 
       prevQuery,
 
-      // Production grade issues: queries where score fit or blurb quality < B+ (87)
+      // Production grade issues: queries where score fit or blurb quality < B (83)
       sbClient.from('user_queries')
         .select('id, special_request, donde_match, created_at, response_time_ms, was_fallback, score_fit_score, score_fit_grade, blurb_quality_score, blurb_quality_grade, recommendation_text, restaurants!recommended_restaurant_id(name)')
         .neq('source', 'command-center')
@@ -613,12 +623,12 @@ async function loadIssues() {
       }
     }
 
-    // Process test grade issues (below B+ on score fit or blurb quality)
+    // Process test grade issues (below B on score fit or blurb quality)
     if (testGradeRes?.data) {
       for (const g of testGradeRes.data) {
         const key = g.query.toLowerCase().trim();
-        const fitBelow = g.score_fit_score != null && g.score_fit_score < 87;
-        const blurbBelow = g.blurb_quality_score != null && g.blurb_quality_score < 87;
+        const fitBelow = g.score_fit_score != null && g.score_fit_score < 83;
+        const blurbBelow = g.blurb_quality_score != null && g.blurb_quality_score < 83;
         if (!fitBelow && !blurbBelow) continue;
 
         // Enrich existing test issues with grade data
@@ -697,13 +707,13 @@ async function loadIssues() {
       }
     }
 
-    // Process production grade issues (score fit or blurb quality below B+)
+    // Process production grade issues (score fit or blurb quality below B)
     if (gradeIssuesRes.data) {
       for (const q of gradeIssuesRes.data) {
         const key = (q.special_request || '').toLowerCase().trim();
         if (!key || seen.has(key)) continue;
-        const fitBelow = q.score_fit_score != null && q.score_fit_score < 87;
-        const blurbBelow = q.blurb_quality_score != null && q.blurb_quality_score < 87;
+        const fitBelow = q.score_fit_score != null && q.score_fit_score < 83;
+        const blurbBelow = q.blurb_quality_score != null && q.blurb_quality_score < 83;
         if (!fitBelow && !blurbBelow) continue;
         seen.add(key);
 
@@ -788,6 +798,10 @@ async function loadIssues() {
     // Apply default filter (open only) and render
     applyIssueFilters();
     updateIssuesBadge(issues);
+
+    // Re-render action center and comparison strip with updated issue data
+    if (typeof renderActionCenter === 'function') renderActionCenter();
+    if (typeof renderTestVsProdStrip === 'function') renderTestVsProdStrip();
   } catch (e) {
     console.error('Failed to load issues:', e);
     const list = document.getElementById('issues-list');
