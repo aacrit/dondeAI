@@ -233,6 +233,14 @@ function ragColor(dm) {
   return 'var(--cc-red)';
 }
 
+function gradeColorClass(grade) {
+  if (!grade) return 'grey';
+  if (grade.startsWith('A')) return 'green';
+  if (grade.startsWith('B')) return 'blue';
+  if (grade.startsWith('C')) return 'amber';
+  return 'red';
+}
+
 function pct(n, d) { return d === 0 ? '0' : (n / d * 100).toFixed(1); }
 function r1(n) { return Math.round(n * 10) / 10; }
 

@@ -559,6 +559,8 @@ function renderLiveFeed(queries) {
     const icon = dm >= 60 ? '&#10003;' : dm >= 40 ? '&#9888;' : '&#10007;';
     const iconClass = dm >= 60 ? 'cc-live-icon--pass' : dm >= 40 ? 'cc-live-icon--warn' : 'cc-live-icon--fail';
     const badges = [];
+    if (q.score_fit_grade) badges.push(`<span class="cc-live-entry__badge cc-live-entry__grade-badge cc-live-entry__grade-badge--${gradeColorClass(q.score_fit_grade)}" title="Score Fit: ${q.score_fit_score}">F:${q.score_fit_grade}</span>`);
+    if (q.blurb_quality_grade) badges.push(`<span class="cc-live-entry__badge cc-live-entry__grade-badge cc-live-entry__grade-badge--${gradeColorClass(q.blurb_quality_grade)}" title="Blurb Quality: ${q.blurb_quality_score}">B:${q.blurb_quality_grade}</span>`);
     if (q.was_fallback) badges.push('<span class="cc-live-entry__badge cc-live-entry__badge--fallback">FB</span>');
     if (q.response_time_ms) badges.push(`<span class="cc-live-entry__response">${q.response_time_ms}ms</span>`);
     if (q.exclude_count > 0) badges.push(`<span class="cc-live-entry__badge cc-live-entry__badge--retry">x${q.exclude_count}</span>`);
@@ -617,6 +619,34 @@ function updateLiveKPIs(stats) {
       <span class="rag-red">${dist[3]} (<40)</span>
     `;
   }
+
+  // Grade KPIs
+  const fitEl = document.getElementById('live-avg-fit');
+  const blurbEl = document.getElementById('live-avg-blurb');
+  if (fitEl) {
+    if (stats.avgFit != null) {
+      const fitGrade = stats.avgFit >= 97 ? 'A+' : stats.avgFit >= 93 ? 'A' : stats.avgFit >= 87 ? 'B+' : stats.avgFit >= 83 ? 'B' : stats.avgFit >= 80 ? 'B-' : stats.avgFit >= 73 ? 'C' : 'D';
+      fitEl.textContent = `${fitGrade} (${Math.round(stats.avgFit)})`;
+      fitEl.classList.remove('rag-green', 'rag-amber', 'rag-red');
+      fitEl.classList.add(stats.avgFit >= 87 ? 'rag-green' : stats.avgFit >= 80 ? 'rag-amber' : 'rag-red');
+    } else {
+      fitEl.textContent = '--';
+    }
+  }
+  if (blurbEl) {
+    if (stats.avgBlurb != null) {
+      const blurbGrade = stats.avgBlurb >= 97 ? 'A+' : stats.avgBlurb >= 93 ? 'A' : stats.avgBlurb >= 87 ? 'B+' : stats.avgBlurb >= 83 ? 'B' : stats.avgBlurb >= 80 ? 'B-' : stats.avgBlurb >= 73 ? 'C' : 'D';
+      blurbEl.textContent = `${blurbGrade} (${Math.round(stats.avgBlurb)})`;
+      blurbEl.classList.remove('rag-green', 'rag-amber', 'rag-red');
+      blurbEl.classList.add(stats.avgBlurb >= 87 ? 'rag-green' : stats.avgBlurb >= 80 ? 'rag-amber' : 'rag-red');
+    } else {
+      blurbEl.textContent = '--';
+    }
+  }
+  el('live-grade-pass', stats.gradePassRate != null ? `${stats.gradePassRate.toFixed(0)}%` : '--');
+  colorKpi('live-grade-pass', stats.gradePassRate >= 80 ? 'green' : stats.gradePassRate >= 60 ? 'amber' : 'red');
+  el('live-grade-issues', stats.gradeIssueCount != null ? stats.gradeIssueCount : '--');
+  colorKpi('live-grade-issues', (stats.gradeIssueCount || 0) === 0 ? 'green' : (stats.gradeIssueCount || 0) <= 3 ? 'amber' : 'red');
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -1070,9 +1100,12 @@ function closeQueryPanel() {
 // ─── Root-Cause Grouping ───
 
 const ROOT_CAUSE_GROUPS = [
-  { key: 'intent',            label: 'Intent Gaps',    icon: '\uD83C\uDFAF', desc: 'Engine misunderstood user intent' },
-  { key: 'scoring',           label: 'Scoring Gaps',   icon: '\uD83D\uDCCA', desc: 'Right restaurant, wrong score' },
-  { key: 'relevance_ceiling', label: 'Data Gaps',      icon: '\uD83D\uDCC1', desc: 'Missing data limited the match' },
+  { key: 'intent',            label: 'Intent Gaps',     icon: '\uD83C\uDFAF', desc: 'Engine misunderstood user intent' },
+  { key: 'scoring',           label: 'Scoring Gaps',    icon: '\uD83D\uDCCA', desc: 'Right restaurant, wrong score' },
+  { key: 'relevance_ceiling', label: 'Data Gaps',       icon: '\uD83D\uDCC1', desc: 'Missing data limited the match' },
+  { key: 'grade_fit',         label: 'Score Fit Issues', icon: '\uD83D\uDD27', desc: 'Score does not accurately reflect query-restaurant fit' },
+  { key: 'grade_blurb',       label: 'Blurb Issues',    icon: '\u270D\uFE0F', desc: 'Recommendation text quality below B+' },
+  { key: 'grade_both',        label: 'Fit + Blurb Issues', icon: '\u26A0\uFE0F', desc: 'Both score fit and blurb quality below B+' },
   { key: '_other',            label: 'Low Performers',  icon: '\uD83D\uDCC9', desc: 'Generally weak matches' },
 ];
 
@@ -1426,6 +1459,8 @@ function renderIssues(issues) {
             <span class="cc-issue__dm ${ragClass(i.dm)}">${i.dm}</span>
             <span class="cc-issue__query">"${escapeHtml(i.query)}"</span>
             <span class="cc-issue__severity cc-issues-badge--${i.severity.toLowerCase()} cc-issue__severity--clickable ${statusCycleClass}" onclick="event.stopPropagation(); toggleIssueStatus(${idx})" title="Click to cycle status">${i.status === 'in_progress' ? 'WIP' : i.severity}</span>
+            ${i.scoreFitGrade ? `<span class="cc-live-entry__grade-badge cc-live-entry__grade-badge--${gradeColorClass(i.scoreFitGrade)}" title="Score Fit: ${i.scoreFitScore}">F:${i.scoreFitGrade}</span>` : ''}
+            ${i.blurbQualityGrade ? `<span class="cc-live-entry__grade-badge cc-live-entry__grade-badge--${gradeColorClass(i.blurbQualityGrade)}" title="Blurb Quality: ${i.blurbQualityScore}">B:${i.blurbQualityGrade}</span>` : ''}
             ${trendBadge}
             ${statusBadge}
           </div>
@@ -1490,7 +1525,11 @@ function applyIssueFilters() {
   const { severity, type, source, status } = state.issueFilters || {};
   let filtered = (state.issues || []).filter(i => {
     if (severity !== 'all' && i.severity !== severity) return false;
-    if (type !== 'all' && i.gapType !== type) return false;
+    if (type !== 'all') {
+      if (type === 'grade_fit' && i.gapType !== 'grade_fit' && i.gapType !== 'grade_both') return false;
+      else if (type === 'grade_blurb' && i.gapType !== 'grade_blurb' && i.gapType !== 'grade_both') return false;
+      else if (type !== 'grade_fit' && type !== 'grade_blurb' && i.gapType !== type) return false;
+    }
     if (source !== 'all' && i.source !== source) return false;
     if (status && status !== 'all') {
       const issueStatus = i.status || 'open';

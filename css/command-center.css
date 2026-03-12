@@ -797,6 +797,12 @@ body {
 .cc-live-entry__badge--retry { background: var(--cc-surface-3, #333); color: var(--cc-text-2); }
 .cc-live-entry__badge--liked { color: var(--cc-green); background: none; }
 .cc-live-entry__badge--disliked { color: var(--cc-red); background: none; }
+.cc-live-entry__grade-badge { font-weight: 600; letter-spacing: 0.02em; }
+.cc-live-entry__grade-badge--green { background: var(--cc-green); color: #000; }
+.cc-live-entry__grade-badge--blue { background: #4a90d9; color: #fff; }
+.cc-live-entry__grade-badge--amber { background: var(--cc-amber); color: #000; }
+.cc-live-entry__grade-badge--red { background: var(--cc-red); color: #fff; }
+.cc-live-entry__grade-badge--grey { background: var(--cc-surface-3, #444); color: var(--cc-text-2); }
 .cc-live-entry__response {
   font-family: var(--cc-mono);
   font-size: 0.62rem;
