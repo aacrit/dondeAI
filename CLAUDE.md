@@ -1,6 +1,6 @@
 # DondeAI Frontend
 
-Last updated: 2026-03-11
+Last updated: 2026-03-12
 
 > **Read this file first. Only read `docs/*.md` when task-relevant. Only open source files when modifying code.**
 
