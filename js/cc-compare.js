@@ -380,14 +380,20 @@ function updateCountdownDisplay() {
 }
 
 async function refreshAllData() {
-  showToast('Refreshing...');
+  showToast('Refreshing all data...');
   await Promise.all([
     loadInitData(),
     loadRunHistory(),
+    typeof loadLiveFeed === 'function' ? loadLiveFeed() : Promise.resolve(),
     loadIssues(),
     typeof loadTrendData === 'function' ? loadTrendData() : Promise.resolve(),
   ]);
   if (typeof loadHeatmapData === 'function') loadHeatmapData();
+  if (typeof checkApiHealth === 'function') checkApiHealth();
+  if (typeof renderActionCenter === 'function') renderActionCenter();
+  if (typeof renderTestVsProdStrip === 'function') renderTestVsProdStrip();
+  if (typeof updateKpiSparklines === 'function') updateKpiSparklines();
+  if (typeof renderWave2Components === 'function') renderWave2Components();
   showToast('Data refreshed');
 }
 

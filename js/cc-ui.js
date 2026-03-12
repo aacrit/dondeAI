@@ -864,6 +864,8 @@ function initKeyboardShortcuts() {
       case '3': switchTab('data'); break;
       case '4': switchTab('issues'); break;
       case 't':
+        if (typeof toggleTerminal === 'function') toggleTerminal();
+        break;
       case 's':
         if (state.activeTest) stopTest();
         else startTest('broad');
@@ -902,9 +904,6 @@ function initKeyboardShortcuts() {
       case 'h':
         if (e.key === 'h' && !e.shiftKey) break; // only ? and H
         toggleShortcuts();
-        break;
-      case 't':
-        if (typeof toggleTerminal === 'function') toggleTerminal();
         break;
       case '/':
         e.preventDefault();
@@ -965,11 +964,6 @@ window.addEventListener('resize', () => positionTabIndicator());
 // ═══════════════════════════════════════════════════════════════════
 
 let _freshnessTimer = null;
-
-function startFreshnessTicker() {
-  updateFreshness();
-  _freshnessTimer = setInterval(updateFreshness, 30000); // every 30s
-}
 
 function updateFreshness() {
   const run = state.latestRun;
@@ -2438,7 +2432,12 @@ function updateFreshnessIndicator() {
 function startFreshnessTicker() {
   state.lastDataRefresh = Date.now();
   updateFreshnessIndicator();
-  setInterval(updateFreshnessIndicator, 30000);
+  updateFreshness();
+  if (_freshnessTimer) clearInterval(_freshnessTimer);
+  _freshnessTimer = setInterval(() => {
+    updateFreshnessIndicator();
+    updateFreshness();
+  }, 30000);
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -2596,7 +2595,7 @@ function renderGreeting() {
   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const dateStr = `${dayNames[now.getDay()]}, ${monthNames[now.getMonth()]} ${now.getDate()}`;
 
-  const issues = (state.issues || []).filter(i => i.status === 'open');
+  const issues = (state.issues || []).filter(i => !i.status || i.status === 'open');
   const queryCount = (state.liveFeed || []).filter(q => {
     const qDate = new Date(q.created_at);
     return qDate.toDateString() === now.toDateString();

@@ -374,8 +374,8 @@ async function runCategoryFocus(categories) {
   if (typeof generatedQueries !== 'undefined' && generatedQueries.length) {
     pool = pool.concat(generatedQueries.filter(gq => cats.includes(gq.category)).map(gq => ({ cat: gq.category || 'Food', diff: 'generated', query: gq.query || gq.special_request || '' })).filter(q => q.query));
   }
-  const catQueries = pool.filter(q => cats.includes(q.cat));
-  if (cfg.difficulty !== 'all') catQueries.filter(q => q.diff === cfg.difficulty || q.diff === 'custom');
+  let catQueries = pool.filter(q => cats.includes(q.cat));
+  if (cfg.difficulty !== 'all') catQueries = catQueries.filter(q => q.diff === cfg.difficulty || q.diff === 'custom');
   const queries = shuffle(catQueries).slice(0, cfg.count);
   const ac = initTest('category', queries.length);
 
