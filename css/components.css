@@ -6559,13 +6559,11 @@
 }
 
 /* Progressive reveal: elements paper-land in sequence when card enters */
-/* Stretched stagger: 700ms cascade for richer "content materializing" effect */
+/* Blurb + Tell More omitted — blurb starts collapsed, Tell More hidden until blurb arrives */
 .result-card--revealing .result-photos    { opacity: 0; animation: paperLand 400ms var(--ease-out) 0ms forwards; }
 .result-card--revealing .glance-hero      { opacity: 0; animation: paperLand 400ms var(--ease-out) 120ms forwards; }
 .result-card--revealing .glance-nav       { opacity: 0; animation: paperLand 350ms var(--ease-out) 280ms forwards; }
-.result-card--revealing .tell-more-btn    { opacity: 0; animation: revealUp 300ms var(--ease-out) 400ms forwards; }
-.result-card--revealing .card-footer      { opacity: 0; animation: paperLand 350ms var(--ease-out) 520ms forwards; }
-/* Blurb is omitted from stagger — starts collapsed, revealed by _revealBlurb() */
+.result-card--revealing .card-footer      { opacity: 0; animation: paperLand 350ms var(--ease-out) 400ms forwards; }
 
 /* (V10: Scaffold, progress ink, ghost headline, oscillation removed — instant loading) */
 
