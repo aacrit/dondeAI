@@ -109,7 +109,17 @@ Open `index.html` in browser. No build step, no dependencies, no env vars.
 
 ## Git Workflow
 
-Commit and push to the feature branch. **CI auto-merges `claude/**` branches to `main`** via `.github/workflows/auto-merge-claude.yml` — no manual merge needed.
+For every task that modifies code:
+1. Create a new branch from main (naming: `feature/`, `fix/`, or `chore/` prefix)
+2. Make all changes on that branch
+3. Commit with a clear, descriptive message
+4. Push the branch to origin
+5. Open a pull request with a summary of changes
+6. Do NOT merge — leave PR open for my review
+
+**Never commit directly to main.**
+
+CI auto-merges `claude/**` branches to `main` via `.github/workflows/auto-merge-claude.yml` — no manual merge needed.
 
 ## Coding Standards
 
