@@ -1896,38 +1896,40 @@
   padding-left: var(--space-sm);
 }
 
-/* Progressive blurb: subtle shimmer while Claude writes in background */
-.donde-blurb--upgrading .donde-blurb__text {
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    var(--fg3) 50%,
-    transparent 100%
-  );
-  background-size: 200% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  animation: blurbShimmer 2s var(--ease-out) infinite;
+/* Score-first blurb: collapsed until Claude responds */
+.donde-blurb--pending {
+  height: 0;
+  overflow: hidden;
+  opacity: 0;
+  margin: 0;
+  padding: 0;
 }
 
-@keyframes blurbShimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+/* Measuring helper (temporarily visible to get scrollHeight) */
+.donde-blurb--measuring {
+  height: auto !important;
+  opacity: 0 !important;
+  position: absolute !important;
+  visibility: hidden !important;
 }
 
-/* Ink-reveal animation for upgraded blurb text */
-.donde-blurb__text--upgrading-in {
+/* Blurb arriving: expanding into layout */
+.donde-blurb--arriving {
+  overflow: hidden;
+  transition: height 400ms var(--ease-out), opacity 300ms var(--ease-out);
+  opacity: 1;
+}
+
+/* Ink-reveal for blurb text (first appearance) */
+.donde-blurb__text--revealing {
   animation: inkReveal 600ms cubic-bezier(0.2, 1, 0.4, 1) forwards;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .donde-blurb--upgrading .donde-blurb__text {
-    animation: none;
-    background: none;
-    -webkit-background-clip: unset;
-    background-clip: unset;
+  .donde-blurb--arriving {
+    transition: none;
   }
-  .donde-blurb__text--upgrading-in {
+  .donde-blurb__text--revealing {
     animation: none;
   }
 }
@@ -6560,11 +6562,10 @@
 /* Stretched stagger: 700ms cascade for richer "content materializing" effect */
 .result-card--revealing .result-photos    { opacity: 0; animation: paperLand 400ms var(--ease-out) 0ms forwards; }
 .result-card--revealing .glance-hero      { opacity: 0; animation: paperLand 400ms var(--ease-out) 120ms forwards; }
-.result-card--revealing .donde-blurb      { opacity: 0; animation: revealUp 350ms var(--ease-out) 280ms forwards; }
-.result-card--revealing .donde-blurb__text { clip-path: inset(0 100% 0 0); animation: inkReveal 600ms cubic-bezier(0.2, 1, 0.4, 1) 480ms forwards; }
-.result-card--revealing .glance-nav       { opacity: 0; animation: paperLand 350ms var(--ease-out) 400ms forwards; }
-.result-card--revealing .tell-more-btn    { opacity: 0; animation: revealUp 300ms var(--ease-out) 520ms forwards; }
-.result-card--revealing .card-footer      { opacity: 0; animation: paperLand 350ms var(--ease-out) 640ms forwards; }
+.result-card--revealing .glance-nav       { opacity: 0; animation: paperLand 350ms var(--ease-out) 280ms forwards; }
+.result-card--revealing .tell-more-btn    { opacity: 0; animation: revealUp 300ms var(--ease-out) 400ms forwards; }
+.result-card--revealing .card-footer      { opacity: 0; animation: paperLand 350ms var(--ease-out) 520ms forwards; }
+/* Blurb is omitted from stagger — starts collapsed, revealed by _revealBlurb() */
 
 /* (V10: Scaffold, progress ink, ghost headline, oscillation removed — instant loading) */
 
