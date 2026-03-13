@@ -1,6 +1,6 @@
 # Frontend Architecture
 
-Last updated: 2026-03-10
+Last updated: 2026-03-13
 
 ## Tech Stack
 
@@ -15,15 +15,23 @@ css/
   tokens.css            # Custom properties (spacing, type, motion, z-index, RAG colors)
   typography.css        # .type-emotional, .type-structural, .type-data
   layout.css            # .app, .cockpit, .step-track, .step, .header, .back-btn
-  components.css        # All component styles (~5500 lines, largest file)
+  components.css        # All component styles (~6600 lines, largest file)
   animations.css        # @keyframes, score-ring, card-swap, ink transitions
   responsive.css        # min-width breakpoints (375, 768, 1024, 1440, 2560)
+  arcade-ops.css        # Arcade Ops easter egg styles (~1000 lines)
   themes/               # neutral.css, indian.css, middleeastern.css, japanese.css, southamerican.css
 js/
-  app.js                # Orchestrator (~3800 lines): init, event delegation, rendering, loading flow
+  app.js                # Orchestrator (~5000 lines): init, event delegation, rendering, loading flow
   state.js              # Pub/sub: getState(), setState(patch), subscribe(fn)
   router.js             # Canvas↔Result via translateX
-  api.js                # Supabase client + V9 response normalization
+  api.js                # Supabase client + V9 response normalization + progressive blurb fetch
+  globals.js            # Shared DOM refs ($dom), haptics (HAPTICS), AbortController, animation timers
+  render.js             # Render module scaffold (monolith breakup target — functions still in app.js)
+  transitions.js        # Transitions module scaffold (monolith breakup target — functions still in app.js)
+  events.js             # Events module scaffold (monolith breakup target — functions still in app.js)
+  motion.js             # Animation timeline API, RAF cleanup, micro-interaction helpers
+  spring.js             # Spring physics via Motion One CDN (named presets: snappy, smooth, gentle, bouncy, score)
+  debug-motion.js       # Motion debug overlay (?debug=motion or Ctrl+Shift+M)
   animations.js         # Score hero ring, factor bars, particles
   theme.js              # Theme engine + labels + wash transition
   audio.js              # Web Audio chimes per culture
@@ -34,6 +42,19 @@ js/
   offline.js            # Connectivity detection
   utils.js              # 50+ SVG icons, cuisine mapper, score threshold functions
   auth.js               # Supabase Auth (Google SSO)
+  arcade-ops.js         # Arcade Ops easter egg (~1000 lines)
+command-center.html     # CEO Command Center dashboard (~825 lines)
+css/command-center.css  # Command Center dark theme (~5500 lines)
+js/
+  cc-config.js          # CC constants, agent definitions, state, helpers (~365 lines)
+  cc-agents.js          # CC agent orchestration, API calls, XP system (~660 lines)
+  cc-analytics.js       # CC gauntlet data loading, quality metrics (~1077 lines)
+  cc-ui.js              # CC pulse cards, live feed, query detail panel (~3300 lines)
+  cc-queries.js         # CC 1,042 Chicago test queries (~1057 lines)
+  cc-tests.js           # CC 6 test runners, live result streaming (~893 lines)
+  cc-compare.js         # CC comparative run view (~738 lines)
+  cc-grading.js         # CC score fit + blurb quality grading (~440 lines)
+  cc-generated-queries.js # CC persona-driven generated queries browser (~222 lines)
 ```
 
 ## Module Graph
@@ -43,7 +64,12 @@ index.html → js/app.js (imports all)
   ├── state.js, router.js, persistence.js, theme.js, audio.js
   ├── voice.js, animations.js, share.js, offline.js
   ├── accessibility.js, api.js, auth.js, utils.js
+  ├── globals.js, motion.js, spring.js, debug-motion.js
+  ├── render.js, transitions.js, events.js (scaffold modules)
+  └── arcade-ops.js
 ```
+
+**External dependency:** Motion One via importmap CDN (`https://cdn.jsdelivr.net/npm/motion@11/+esm`, ~6.5KB). Provides real spring physics for `spring.js`.
 
 No circular dependencies. Each module exposes `init*()` called once at boot.
 

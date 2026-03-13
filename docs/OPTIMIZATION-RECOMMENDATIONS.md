@@ -1,20 +1,22 @@
 # DondeAI Optimization Recommendations
 
-Last updated: 2026-03-09
+Last updated: 2026-03-13
 
 Strategic optimization assessment by CEO Advisor. Ranked by impact × feasibility.
 
 ---
 
-## 1. Break the `app.js` Monolith
+## 1. Break the `app.js` Monolith (In Progress)
 
-**Insight:** `app.js` is ~3,800 lines — orchestrator, renderer, event handler, and loading flow manager in one file. This is the biggest technical debt in the frontend and slows every future change.
+**Insight:** `app.js` is ~5,000 lines — orchestrator, renderer, event handler, and loading flow manager in one file. This is the biggest technical debt in the frontend and slows every future change.
 
 **What to Build:**
 - Extract rendering functions into `js/render.js` (renderResult, renderPhotos, renderKnownFor, renderYourSpots)
 - Extract loading/transition flow into `js/transitions.js` (beginCanvasFold, manifestResult, reverseCanvasFold, unfoldResultToCanvas)
 - Extract event handling into `js/events.js` (the data-action switch)
 - Keep `app.js` as a thin orchestrator that imports and wires these modules
+
+**Progress:** Scaffold modules created (`render.js`, `transitions.js`, `events.js`) with target function groups documented. Shared globals extracted to `globals.js` (DOM refs, haptics, AbortController, animation timers). Functions not yet migrated — still live in `app.js`. New utility modules added: `motion.js` (timeline API), `spring.js` (Motion One spring physics).
 
 **Effort:** M (1-2 weeks)
 **Impact:** Developer velocity, bug surface reduction, future feature speed

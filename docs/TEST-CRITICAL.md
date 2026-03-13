@@ -1,6 +1,6 @@
 # Smoke Tests (Critical Path)
 
-Last updated: 2026-03-02
+Last updated: 2026-03-13
 
 Run before every deployment or major change. All must pass.
 

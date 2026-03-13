@@ -1,6 +1,6 @@
 # Design System
 
-Last updated: 2026-03-02
+Last updated: 2026-03-13
 
 ## Philosophy — "Ink & Momentum"
 
@@ -75,6 +75,18 @@ Every open/close, in/out, show/hide transition uses **identical duration and eas
 |---------|-------|----------|
 | User-initiated | `cubic-bezier(0.34, 1.56, 0.64, 1)` | `var(--spring)` |
 | System reveal | `cubic-bezier(0.4, 0, 0.2, 1)` | `var(--ease-out)` |
+
+### Spring Physics (Motion One)
+
+Real spring animations via Motion One CDN (`js/spring.js`). Named presets:
+
+| Preset | Stiffness | Damping | Use |
+|--------|-----------|---------|-----|
+| `snappy` | 500 | 30 | Buttons, toggles |
+| `smooth` | 300 | 25 | Cards, panels |
+| `gentle` | 200 | 20 | Page transitions |
+| `bouncy` | 400 | 15 | Celebrations, pops |
+| `score` | 120 | 14 | Score ring fill |
 
 ## V10 Result Card Layout
 

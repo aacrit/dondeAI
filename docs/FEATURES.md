@@ -1,6 +1,6 @@
 # Features
 
-Last updated: 2026-03-02
+Last updated: 2026-03-13
 
 ## Core Journey
 
@@ -10,6 +10,7 @@ Last updated: 2026-03-02
 - [x] Filters: occasion (9), neighborhood (14 + Anywhere), budget (4 + Any), dietary (multi-select)
 - [x] CTA disabled until craving entered
 - [x] V10 loading: instant slide + 300ms fade (score count-up only animation)
+- [x] Progressive blurb loading: show result instantly with fallback blurb, upgrade with Claude blurb in background
 - [x] Result card: photos → score + name → blurb → address → actions → footer
 - [x] Try Another — instant from ranked queue, API fallback when exhausted
 - [x] Start Over — reset to canvas
@@ -41,6 +42,7 @@ Last updated: 2026-03-02
 - [x] Sound/haptic chimes per culture + celebration for 88%+
 - [x] V10 "Your Spots" — unified recent + saved + visited history
 - [x] Known For — inline pills in Tier 2 (moved from Tier 1)
+- [x] Cuisine info — expandable pills (replaced cuisine drawer overlay)
 - [x] Share sheet — 8 channels + canvas card
 - [x] Time-of-day intelligence
 - [x] 2-row compact footer: Going + Try Another / Feedback + Start Over
@@ -76,6 +78,17 @@ Last updated: 2026-03-02
 - [x] Grade KPI strip (avg fit, avg blurb, grade pass rate)
 - [x] Grade badges in test results and run detail views
 - [x] Run filter bar for selected runs
+- [x] Mobile-optimized layout (collapse-by-default, expand on interaction)
+- [x] Live API toggle (green "Scoring Only" $0 / red "LIVE API" $$$)
+- [x] Standalone live tests: Blurb Quality Check + Intent Classification
+- [x] Comparative run view (side-by-side improved/regressed/unchanged)
+- [x] 6 independent test runners with live result streaming
+- [x] Retest issues opens terminal + ticker
+- [x] Grading synced with backend V15 calibration
+
+## Easter Eggs
+
+- [x] Arcade Ops — hidden interactive experience (`js/arcade-ops.js` + `css/arcade-ops.css`)
 
 ## Persistence (localStorage)
 

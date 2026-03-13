@@ -218,13 +218,17 @@ All three must be true:
 
 | Path | Lines | Purpose |
 |------|-------|---------|
-| `command-center.html` | 374 | Dashboard shell + auth gate |
-| `css/command-center.css` | ~1800 | Dark theme, agent colors, animations |
-| `js/cc-config.js` | 255 | Config, agents, state, helpers |
-| `js/cc-agents.js` | 300+ | Test orchestration, API calls, XP |
-| `js/cc-analytics.js` | 74+ | Gauntlet data loading, quality render |
-| `js/cc-ui.js` | 150+ | Pulse, status, clock, count-up |
-| `js/cc-queries.js` | 1042 | Chicago query dataset |
+| `command-center.html` | ~825 | Dashboard shell + auth gate |
+| `css/command-center.css` | ~5500 | Dark theme, agent colors, animations, mobile layout |
+| `js/cc-config.js` | ~365 | Config, agents, state, helpers |
+| `js/cc-agents.js` | ~660 | Test orchestration, API calls, XP |
+| `js/cc-analytics.js` | ~1077 | Gauntlet data loading, quality metrics |
+| `js/cc-ui.js` | ~3300 | Pulse cards, live feed, query detail panel, sparklines, KPI handlers |
+| `js/cc-queries.js` | ~1057 | Chicago query dataset (1,042 queries) |
+| `js/cc-tests.js` | ~893 | 6 independent test runners, live result streaming |
+| `js/cc-compare.js` | ~738 | Comparative run view (side-by-side improved/regressed/unchanged) |
+| `js/cc-grading.js` | ~440 | Score Fit + Blurb Quality grading (synced with backend V15) |
+| `js/cc-generated-queries.js` | ~222 | Persona-driven generated queries browser |
 | `data/dashboard-data.json` | — | Sample gauntlet run |
 
 ### Backend (`dondeBackend/`)

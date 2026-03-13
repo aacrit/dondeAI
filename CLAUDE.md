@@ -1,6 +1,6 @@
 # DondeAI Frontend
 
-Last updated: 2026-03-12
+Last updated: 2026-03-13
 
 > **Read this file first. Only read `docs/*.md` when task-relevant. Only open source files when modifying code.**
 
@@ -10,7 +10,7 @@ AI restaurant recommendations for Chicago. One craving in, one perfect spot out.
 
 1. **Read MD files first** — `CLAUDE.md` → `docs/DESIGN-SYSTEM.md` → `docs/ARCHITECTURE.md`. These contain all context.
 2. **Read code on demand** — Use Grep/Glob to find exact locations rather than reading entire files.
-3. **Never read entire large files** — `app.js` (~4000 lines), `components.css` (~6000 lines), `index.html` (~1500 lines). Use offset/limit.
+3. **Never read entire large files** — `app.js` (~5000 lines), `components.css` (~6600 lines). Use offset/limit.
 4. **Use the doc index below** — Each doc covers a specific domain.
 
 ## Documentation Index
@@ -97,9 +97,10 @@ Errors: HTTP non-200 → toast + canvas | `success:false` → show `recommendati
 
 ```js
 { step, craving, occasion, neighborhood, priceLevel, dietaryRestrictions,
-  result, loading, error, excludeIds,
+  openNow, result, loading, error, excludeIds,
   rankedQueue: [], rankedQueueIndex: 0,
-  theme: {culture, mode}, colorMode, soundEnabled, history, pendingFeedback }
+  theme: {culture, mode}, colorMode, soundEnabled, history, pendingFeedback,
+  user, isAuthenticated }
 ```
 
 ## Run
