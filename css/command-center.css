@@ -5529,6 +5529,19 @@ body {
   .cc-live-kpi__val { font-size: 0.95rem; }
   .cc-issues-card { min-width: 88px; flex: 0 0 calc(33.33% - 6px); }
   .cc-main { padding: 10px 8px 80px; }
+  /* Mobile: Grade hero */
+  .cc-grade-hero { padding: 12px 0 8px; }
+  .cc-grade-hero__letter { font-size: 40px; }
+  .cc-grade-hero__label { font-size: var(--cc-type-xs); }
+  /* Mobile: Quick query */
+  .cc-quick-query__input { padding: 10px 12px; font-size: var(--cc-type-md); }
+  .cc-quick-query__bar { gap: 6px; }
+  .cc-quick-result__header { flex-wrap: wrap; gap: 4px; }
+  .cc-quick-result__factors { word-spacing: 2px; }
+  /* Mobile: Briefing text */
+  .cc-briefing-text { padding: 10px 12px; font-size: var(--cc-type-xs); }
+  /* Mobile: Sparkline */
+  .cc-sparkline { height: 24px; }
 }
 
 /* ═══════════════════════════════════════════════════════════════════
