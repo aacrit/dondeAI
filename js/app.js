@@ -2009,38 +2009,79 @@ function _writeBlurbText($rec, text) {
 function _animateBlurbIn($blurb, $rec) {
   if (!$blurb || !$blurb.classList.contains('donde-blurb--pending')) return;
 
+  const $tier2 = document.getElementById('tier-leanin');
+  const $tellMore = document.getElementById('tell-more-btn');
+
   if (REDUCED_MOTION.matches) {
+    // Instant: collapse Tier 2, show blurb, show Tell More
+    if ($tier2) { $tier2.classList.remove('tier--expanded'); $tier2.setAttribute('aria-hidden', 'true'); $tier2.style.maxHeight = ''; }
     $blurb.classList.remove('donde-blurb--pending');
+    if ($tellMore) { $tellMore.style.display = ''; $tellMore.setAttribute('aria-expanded', 'false'); }
     return;
   }
 
-  // Measure target height for smooth expand
-  $blurb.classList.add('donde-blurb--measuring');
-  const targetHeight = $blurb.scrollHeight;
-  $blurb.classList.remove('donde-blurb--measuring');
+  // Phase 1: Collapse Tier 2 (score ring + factor bars slide away)
+  const collapseDuration = 450; // matches --dur-expand
+  if ($tier2 && $tier2.classList.contains('tier--expanded')) {
+    $tier2.style.willChange = 'max-height, opacity';
+    $tier2.style.maxHeight = $tier2.scrollHeight + 'px';
+    void $tier2.offsetHeight; // force reflow
+    requestAnimationFrame(() => {
+      $tier2.style.maxHeight = '0';
+    });
+    // After collapse, reset Tier 2 state
+    setTimeout(() => {
+      $tier2.classList.remove('tier--expanded');
+      $tier2.setAttribute('aria-hidden', 'true');
+      $tier2.style.willChange = '';
+    }, collapseDuration);
+  }
 
-  // Animate: expand container height
-  $blurb.style.height = '0px';
-  $blurb.classList.remove('donde-blurb--pending');
-  $blurb.classList.add('donde-blurb--arriving');
+  // Phase 2: Expand blurb (starts 200ms into Tier 2 collapse for cross-fade feel)
+  const blurbDelay = ($tier2 && $tier2.classList.contains('tier--expanded')) ? 200 : 0;
+  setTimeout(() => {
+    // Measure target height
+    $blurb.classList.add('donde-blurb--measuring');
+    const targetHeight = $blurb.scrollHeight;
+    $blurb.classList.remove('donde-blurb--measuring');
 
-  requestAnimationFrame(() => {
-    $blurb.style.height = targetHeight + 'px';
+    // Animate expand
+    $blurb.style.height = '0px';
+    $blurb.classList.remove('donde-blurb--pending');
+    $blurb.classList.add('donde-blurb--arriving');
 
-    // After expand completes, ink-reveal the text
-    $blurb.addEventListener('transitionend', function onExpand(e) {
-      if (e.propertyName !== 'height') return;
-      $blurb.removeEventListener('transitionend', onExpand);
-      $blurb.style.height = ''; // Let it be auto for reflows
-      $blurb.classList.remove('donde-blurb--arriving');
+    requestAnimationFrame(() => {
+      $blurb.style.height = targetHeight + 'px';
 
-      // Ink-reveal text
-      $rec.classList.add('donde-blurb__text--revealing');
-      $rec.addEventListener('animationend', () => {
-        $rec.classList.remove('donde-blurb__text--revealing');
-      }, { once: true });
-    }, { once: false });
-  });
+      $blurb.addEventListener('transitionend', function onExpand(e) {
+        if (e.propertyName !== 'height') return;
+        $blurb.removeEventListener('transitionend', onExpand);
+        $blurb.style.height = '';
+        $blurb.classList.remove('donde-blurb--arriving');
+
+        // Ink-reveal text
+        $rec.classList.add('donde-blurb__text--revealing');
+        $rec.addEventListener('animationend', () => {
+          $rec.classList.remove('donde-blurb__text--revealing');
+        }, { once: true });
+
+        // Phase 3: Fade in Tell More button
+        if ($tellMore) {
+          $tellMore.style.display = '';
+          $tellMore.style.opacity = '0';
+          $tellMore.setAttribute('aria-expanded', 'false');
+          requestAnimationFrame(() => {
+            $tellMore.style.transition = 'opacity 300ms var(--ease-out)';
+            $tellMore.style.opacity = '1';
+            setTimeout(() => {
+              $tellMore.style.transition = '';
+              $tellMore.style.opacity = '';
+            }, 350);
+          });
+        }
+      }, { once: false });
+    });
+  }, blurbDelay);
 }
 
 function _revealBlurb(data) {
@@ -2349,11 +2390,11 @@ async function manifestResult(data) {
         const $rName = $resultCard.querySelector('.result-name');
         if ($rName) $rName.classList.add('result-name--animated');
 
-        // Clean up revealing class after all animations complete (520ms + 350ms + buffer)
+        // Clean up revealing class after all animations complete (400ms + 350ms + buffer)
         _scaffoldTimers.push(setTimeout(() => {
           $resultCard.classList.remove('result-card--revealing');
           if ($rName) $rName.classList.remove('result-name--animated');
-        }, 950));
+        }, 830));
       }
     }, 750));
   }
@@ -2391,6 +2432,27 @@ async function manifestResult(data) {
     }, 1400));
   }
 
+  // Auto-expand Tier 2 (score ring + factor bars) while waiting for Claude blurb
+  _scaffoldTimers.push(setTimeout(() => {
+    const $tier2 = document.getElementById('tier-leanin');
+    if ($tier2 && !$tier2.classList.contains('tier--expanded')) {
+      // Eagerly prepare Tier 2 content
+      if (!_tier2Prepared && _pendingResultData) {
+        _tier2Prepared = true;
+        prepareTier2(_pendingResultData, _pendingCuisine);
+      }
+      // Expand Tier 2
+      $tier2.setAttribute('aria-hidden', 'false');
+      $tier2.classList.add('tier--expanded');
+      $tier2.style.willChange = 'max-height, opacity';
+      requestAnimationFrame(() => {
+        $tier2.style.maxHeight = $tier2.scrollHeight + 'px';
+      });
+      // Animate score ring + factor bars
+      renderTier2Animations();
+    }
+  }, REDUCED_MOTION.matches ? 0 : 900));
+
   // Score-first blurb: fire background Claude blurb fetch immediately (gate is internal)
   _revealBlurb(data);
 
@@ -2402,11 +2464,11 @@ async function manifestResult(data) {
   // Schedule edge-hint replays
   scheduleEdgeHintReplay();
 
-  // Show More arrow bounce hint after 5s idle (if Tier 2 not already opened)
+  // Show More arrow bounce hint after 8s idle (delayed because Tell More appears after blurb)
   if (_arrowBounceTimer) clearTimeout(_arrowBounceTimer);
   _arrowBounceTimer = setTimeout(() => {
     const $tellMore = document.getElementById('tell-more-btn');
-    if ($tellMore && $tellMore.getAttribute('aria-expanded') !== 'true') {
+    if ($tellMore && $tellMore.style.display !== 'none' && $tellMore.getAttribute('aria-expanded') !== 'true') {
       const $arrow = $tellMore.querySelector('.tell-more-btn__arrow');
       if ($arrow) {
         $arrow.classList.add('tell-more-btn__arrow--bouncing');
@@ -2414,7 +2476,7 @@ async function manifestResult(data) {
           () => $arrow.classList.remove('tell-more-btn__arrow--bouncing'), { once: true });
       }
     }
-  }, 5000);
+  }, 8000);
 }
 
 /* ---- Settle (cleanup after manifest completes) ---- */
@@ -2629,7 +2691,7 @@ function renderResult(data) {
   const $tier2 = document.getElementById('tier-leanin');
   const $tellMore = document.getElementById('tell-more-btn');
   if ($tier2) { $tier2.classList.remove('tier--expanded'); $tier2.setAttribute('aria-hidden', 'true'); $tier2.style.maxHeight = ''; $tier2._transitioning = false; }
-  if ($tellMore) { $tellMore.setAttribute('aria-expanded', 'false'); const t = $tellMore.querySelector('.tell-more-btn__text'); if (t) t.textContent = 'See Match Details'; }
+  if ($tellMore) { $tellMore.setAttribute('aria-expanded', 'false'); $tellMore.style.display = 'none'; const t = $tellMore.querySelector('.tell-more-btn__text'); if (t) t.textContent = 'See Match Details'; }
 
   // Cuisine detection (for accent color + auto-theme)
   const cuisine = getCuisineFromResult(data);
