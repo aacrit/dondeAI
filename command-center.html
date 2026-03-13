@@ -346,7 +346,7 @@
       </div>
 
       <!-- Live Result Stream -->
-      <div class="cc-result-stream" id="result-stream"></div>
+      <div class="cc-result-stream" id="result-stream" aria-live="polite"></div>
 
       <!-- Trend Insights (#7) -->
       <details class="cc-trend-insights" id="trend-insights">
@@ -517,7 +517,7 @@
           <span class="cc-live-feed__rate" id="live-rate">-- queries/min</span>
           <button class="cc-btn cc-btn--xs" onclick="exportLiveFeed()" title="Export CSV">Export</button>
         </div>
-        <div class="cc-live-feed__list" id="live-feed-list">
+        <div class="cc-live-feed__list" id="live-feed-list" aria-live="polite">
           <div class="cc-empty-state">
             <div class="cc-empty-state__icon">&#128225;</div>
             <div class="cc-empty-state__text">Waiting for live queries...</div>

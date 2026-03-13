@@ -1712,6 +1712,19 @@ body {
   color: var(--cc-text-3);
   margin-top: 4px;
   opacity: 0.7;
+  padding: 2px 6px;
+  border-radius: 3px;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+.cc-freshness--amber {
+  background: rgba(240, 166, 58, 0.12);
+  color: var(--cc-amber);
+  opacity: 1;
+}
+.cc-freshness--red {
+  background: rgba(239, 100, 97, 0.15);
+  color: var(--cc-red);
+  opacity: 1;
 }
 
 /* ─── Query Detail Slide-Out ─── */

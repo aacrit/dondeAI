@@ -1078,11 +1078,36 @@ function updateFreshness() {
   const run = state.latestRun;
   if (!run) return;
 
+  const diffMs = Date.now() - new Date(run.created_at).getTime();
+  const diffHrs = diffMs / 3600000;
   const ago = timeAgo(run.created_at);
+
   const els = ['pulse-health-fresh', 'pulse-quality-fresh', 'pulse-attention-fresh'];
+
+  let text, cls;
+  if (diffHrs < 1) {
+    text = `Updated ${ago}`;
+    cls = '';
+  } else if (diffHrs < 6) {
+    text = `Updated ${ago}`;
+    cls = 'cc-freshness--amber';
+  } else if (diffHrs < 24) {
+    const hrs = Math.floor(diffHrs);
+    text = `Data is ${hrs}h old — Run a test?`;
+    cls = 'cc-freshness--amber';
+  } else {
+    const days = Math.floor(diffHrs / 24);
+    text = `No tests in ${days} day${days > 1 ? 's' : ''}. Engine health unknown.`;
+    cls = 'cc-freshness--red';
+  }
+
   els.forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.textContent = `Updated ${ago}`;
+    if (el) {
+      el.textContent = text;
+      el.className = 'cc-pulse__freshness';
+      if (cls) el.classList.add(cls);
+    }
   });
 }
 
@@ -3417,5 +3442,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (section) section.classList.toggle('cc-m-expanded');
       }
     });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// Accessibility: delegated keyboard handler for role="button" elements
+// ═══════════════════════════════════════════════════════════════════
+
+document.addEventListener('keydown', e => {
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.getAttribute('role') === 'button' && e.target.tagName !== 'BUTTON') {
+    e.preventDefault();
+    e.target.click();
   }
 });
