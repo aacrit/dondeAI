@@ -308,6 +308,34 @@ function fmtTime(ts) {
   return new Date(ts).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// Canonical API Call
+// ═══════════════════════════════════════════════════════════════════
+
+async function callAPI(specialRequest, params = {}, signal) {
+  const body = { special_request: specialRequest, ...params };
+  // Auto-add skip_claude unless forcing live or liveAPI is on
+  if (!params._forceLive && !state.liveAPI) body.skip_claude = true;
+  // Clean internal flag from body
+  delete body._forceLive;
+  const resp = await fetch(API_BASE, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      'apikey': SUPABASE_ANON_KEY,
+    },
+    body: JSON.stringify(body),
+    signal,
+  });
+  if (!resp.ok) {
+    const text = await resp.text().catch(() => '');
+    try { return JSON.parse(text); } catch (_) {}
+    throw new Error(`API ${resp.status}: ${text.slice(0, 200)}`);
+  }
+  return resp.json();
+}
+
 // Wave 2: Session snapshot for Daily Digest (#4)
 function saveSessionSnapshot(stats) {
   try {

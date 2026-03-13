@@ -4,30 +4,6 @@
  */
 
 // ═══════════════════════════════════════════════════════════════════
-// API Call
-// ═══════════════════════════════════════════════════════════════════
-
-async function callAPI(specialRequest, params = {}, signal) {
-  const body = { special_request: specialRequest, ...params };
-  const resp = await fetch(API_BASE, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-      'apikey': SUPABASE_ANON_KEY,
-    },
-    body: JSON.stringify(body),
-    signal,
-  });
-  if (!resp.ok) {
-    const text = await resp.text().catch(() => '');
-    try { return JSON.parse(text); } catch (_) {}
-    throw new Error(`API ${resp.status}: ${text.slice(0, 200)}`);
-  }
-  return resp.json();
-}
-
-// ═══════════════════════════════════════════════════════════════════
 // Terminal Logging
 // ═══════════════════════════════════════════════════════════════════
 

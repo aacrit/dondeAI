@@ -61,8 +61,8 @@ async function initDashboard() {
     switchTab(state.activeTab);
   }
 
-  // Load everything in parallel
-  await Promise.all([
+  // Load everything in parallel — allSettled prevents one failure from blocking dashboard
+  const settled = await Promise.allSettled([
     loadInitData(),
     loadRunHistory(),
     loadLiveFeed(),
@@ -70,6 +70,12 @@ async function initDashboard() {
     loadIssues(),
     loadTrendData(),
   ]);
+  const loadNames = ['initData', 'runHistory', 'liveFeed', 'pipelines', 'issues', 'trendData'];
+  settled.forEach((result, i) => {
+    if (result.status === 'rejected') {
+      console.warn(`Dashboard load failed [${loadNames[i]}]:`, result.reason);
+    }
+  });
 
   // Post-load analytics
   checkApiHealth();
