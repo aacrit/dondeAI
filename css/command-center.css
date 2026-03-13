@@ -2551,9 +2551,73 @@ body {
 .cc-skeleton--table { height: 120px; }
 .cc-skeleton--card { height: 60px; }
 
+.cc-skeleton--inline {
+  display: inline-block;
+  min-width: 40px;
+  height: 1.2em;
+  border-radius: 4px;
+  background: var(--cc-surface-2);
+  position: relative;
+  overflow: hidden;
+}
+.cc-skeleton--inline::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.08) 50%, transparent 100%);
+  animation: shimmer-inline 2s infinite;
+}
+@keyframes shimmer-inline { 100% { transform: translateX(100%); } }
+
 @keyframes shimmer {
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }
+}
+
+/* ─── Staggered Pulse Card Entry ─── */
+.cc-pulse__card { animation: cc-fadeInUp 0.3s ease-out both; }
+.cc-pulse__card:nth-child(2) { animation-delay: 0.1s; }
+.cc-pulse__card:nth-child(3) { animation-delay: 0.2s; }
+
+/* ─── Engine Grade Hero ─── */
+.cc-grade-hero {
+  text-align: center;
+  padding: 20px 0 12px;
+}
+.cc-grade-hero__letter {
+  font-family: var(--cc-mono);
+  font-size: 64px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--cc-text);
+  transition: color 0.3s ease;
+}
+.cc-grade-hero__letter.rag-green { color: var(--cc-green); }
+.cc-grade-hero__letter.rag-amber { color: var(--cc-amber); }
+.cc-grade-hero__letter.rag-red { color: var(--cc-red); }
+.cc-grade-hero__label {
+  font-size: var(--cc-type-sm);
+  color: var(--cc-text-2);
+  margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+.cc-grade-hero__sub {
+  font-size: var(--cc-type-xs);
+  color: var(--cc-text-3);
+  margin-top: 4px;
+}
+
+/* ─── Executive Briefing ─── */
+.cc-briefing-text {
+  padding: 12px 16px;
+  font-size: var(--cc-type-sm);
+  color: var(--cc-text-2);
+  line-height: 1.5;
+  border-left: 3px solid var(--cc-accent);
+  background: var(--cc-surface-2);
+  border-radius: 0 var(--cc-radius) var(--cc-radius) 0;
 }
 
 /* ─── Focus-Visible (Keyboard Navigation) ─── */

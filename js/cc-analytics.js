@@ -101,12 +101,80 @@ async function initDashboard() {
     checkForAnomalies(state.latestRun);
   }
 
+  // Executive briefing auto-generation
+  const briefing = generateExecutiveBriefing();
+  const briefEl = document.getElementById('executive-briefing');
+  if (briefEl && briefing) {
+    briefEl.style.display = '';
+    briefEl.innerHTML = `<div class="cc-briefing-text">${briefing}</div>`;
+  }
+
   // Restore auto-refresh if it was enabled
   if (state.autoRefresh && typeof startAutoRefresh === 'function') {
     startAutoRefresh();
     const btn = document.getElementById('auto-refresh-toggle');
     if (btn) btn.classList.add('cc-auto-refresh__toggle--active');
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Executive Briefing
+// ═══════════════════════════════════════════════════════════════════
+
+function generateExecutiveBriefing() {
+  const run = state.latestRun;
+  if (!run) return null;
+
+  const avgDm = Number(run.avg_dm) || 0;
+  const avgFit = Number(run.avg_score_fit) || avgDm;
+  const avgBlurb = Number(run.avg_blurb_quality) || avgDm;
+  const engineScore = (avgDm * 0.4) + (avgFit * 0.3) + (avgBlurb * 0.3);
+
+  let grade;
+  if (engineScore >= 93) grade = 'A+';
+  else if (engineScore >= 90) grade = 'A';
+  else if (engineScore >= 87) grade = 'B+';
+  else if (engineScore >= 83) grade = 'B';
+  else if (engineScore >= 80) grade = 'B-';
+  else if (engineScore >= 73) grade = 'C';
+  else if (engineScore >= 60) grade = 'D';
+  else grade = 'F';
+
+  // Trend from last 3 runs
+  const trend = state.trendData || [];
+  let trendWord = 'stable';
+  if (trend.length >= 3) {
+    const recent3 = trend.slice(0, 3).map(r => Number(r.avg_dm));
+    const avg3 = recent3.reduce((a, b) => a + b, 0) / recent3.length;
+    if (avg3 > avgDm + 2) trendWord = 'declining';
+    else if (avg3 < avgDm - 2) trendWord = 'improving';
+  }
+
+  // Issue counts
+  const issues = state.issues || [];
+  const p0Count = issues.filter(i => i.severity === 'P0' && (!i.status || i.status === 'open')).length;
+  const p1Count = issues.filter(i => i.severity === 'P1' && (!i.status || i.status === 'open')).length;
+
+  // Status sentence
+  const passRate = run.grade_pass_count != null && run.total > 0
+    ? Math.round(run.grade_pass_count / run.total * 100)
+    : (run.total > 0 ? Math.round(run.passed_60 / run.total * 100) : 0);
+  const status = `Engine grade <strong>${grade}</strong> (${Math.round(engineScore)}) with ${passRate}% pass rate across ${run.total} queries. Trend is ${trendWord}.`;
+
+  // Risk sentence
+  let risk;
+  if (p0Count > 0) risk = `<span class="rag-red">${p0Count} critical issue${p0Count > 1 ? 's' : ''}</span> require immediate attention.`;
+  else if (p1Count > 0) risk = `${p1Count} important issue${p1Count > 1 ? 's' : ''} to review, no critical blockers.`;
+  else risk = 'No open issues detected. System is healthy.';
+
+  // Action sentence
+  let action;
+  if (p0Count > 0) action = 'Recommended action: fix P0 issues, then run a regression guard.';
+  else if (trendWord === 'declining') action = 'Recommended action: run a broad scan to identify emerging gaps.';
+  else if (grade.startsWith('A')) action = 'System performing well. Consider running edge cases for coverage.';
+  else action = 'Recommended action: run a category focus on the weakest signal type.';
+
+  return `${status} ${risk} ${action}`;
 }
 
 // ═══════════════════════════════════════════════════════════════════

@@ -277,6 +277,39 @@ function renderSparklineInverted(values) {
   }).join('');
 }
 
+// ── Engine Grade Hero ──
+
+function updateGradeHero(run) {
+  const letterEl = document.getElementById('grade-hero-letter');
+  const subEl = document.getElementById('grade-hero-sub');
+  if (!letterEl) return;
+
+  const avgDm = Number(run.avg_dm) || 0;
+  const avgFit = Number(run.avg_score_fit) || avgDm;
+  const avgBlurb = Number(run.avg_blurb_quality) || avgDm;
+  const engineScore = (avgDm * 0.4) + (avgFit * 0.3) + (avgBlurb * 0.3);
+
+  let grade;
+  if (engineScore >= 93) grade = 'A+';
+  else if (engineScore >= 90) grade = 'A';
+  else if (engineScore >= 87) grade = 'B+';
+  else if (engineScore >= 83) grade = 'B';
+  else if (engineScore >= 80) grade = 'B-';
+  else if (engineScore >= 73) grade = 'C';
+  else if (engineScore >= 60) grade = 'D';
+  else grade = 'F';
+
+  letterEl.textContent = grade;
+  letterEl.className = 'cc-grade-hero__letter';
+  if (engineScore >= 80) letterEl.classList.add('rag-green');
+  else if (engineScore >= 60) letterEl.classList.add('rag-amber');
+  else letterEl.classList.add('rag-red');
+
+  if (subEl) {
+    subEl.textContent = `DM ${Math.round(avgDm)} | Fit ${Math.round(avgFit)} | Blurb ${Math.round(avgBlurb)} = ${Math.round(engineScore)}`;
+  }
+}
+
 // ── Pulse Reactivity ──
 
 function updatePulseFromRun(run) {
@@ -292,6 +325,9 @@ function updatePulseFromRun(run) {
 
   // Update grade KPI strip
   updateGradeKpis(run);
+
+  // Update grade hero
+  updateGradeHero(run);
 
   // Update freshness to this run's time
   const ago = timeAgo(run.created_at);
