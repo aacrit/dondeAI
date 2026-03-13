@@ -258,23 +258,47 @@ function togglePulseExpand(cardId) {
 }
 
 function renderSparkline(values, maxVal) {
-  if (!values.length) return '';
+  if (!values || !values.length) return '';
   const max = maxVal || Math.max(...values, 1);
-  return values.map((v, i) => {
-    const height = Math.max((v / max) * 28, 3);
-    const cls = ragClass(v);
-    return `<span class="cc-sparkline__bar ${cls}" style="height:${height}px" title="${Math.round(v)}"></span>`;
-  }).join('');
+  const w = 120, h = 28, pad = 2;
+  const points = values.map((v, i) => {
+    const x = pad + (i / Math.max(values.length - 1, 1)) * (w - 2 * pad);
+    const y = pad + (1 - v / max) * (h - 2 * pad);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+  const gid = 'sg' + Math.random().toString(36).slice(2, 7);
+  const firstX = pad, lastX = pad + (w - 2 * pad);
+  const area = `${firstX},${h} ${points} ${lastX},${h}`;
+  return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:28px;display:block" preserveAspectRatio="none">
+    <defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="var(--cc-accent)" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="var(--cc-accent)" stop-opacity="0"/>
+    </linearGradient></defs>
+    <polygon points="${area}" fill="url(#${gid})"/>
+    <polyline points="${points}" fill="none" stroke="var(--cc-accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>`;
 }
 
 function renderSparklineInverted(values) {
-  if (!values.length) return '';
+  if (!values || !values.length) return '';
   const max = Math.max(...values, 1);
-  return values.map(v => {
-    const height = Math.max((v / max) * 28, 3);
-    const cls = v > 5 ? 'rag-red' : v > 0 ? 'rag-amber' : 'rag-green';
-    return `<span class="cc-sparkline__bar ${cls}" style="height:${height}px" title="${v} gaps"></span>`;
-  }).join('');
+  const w = 120, h = 28, pad = 2;
+  const points = values.map((v, i) => {
+    const x = pad + (i / Math.max(values.length - 1, 1)) * (w - 2 * pad);
+    const y = pad + (1 - v / max) * (h - 2 * pad);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+  const gid = 'si' + Math.random().toString(36).slice(2, 7);
+  const firstX = pad, lastX = pad + (w - 2 * pad);
+  const area = `${firstX},${h} ${points} ${lastX},${h}`;
+  return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:28px;display:block" preserveAspectRatio="none">
+    <defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="var(--cc-red)" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="var(--cc-red)" stop-opacity="0"/>
+    </linearGradient></defs>
+    <polygon points="${area}" fill="url(#${gid})"/>
+    <polyline points="${points}" fill="none" stroke="var(--cc-red)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>`;
 }
 
 // ── Engine Grade Hero ──
@@ -307,6 +331,42 @@ function updateGradeHero(run) {
 
   if (subEl) {
     subEl.textContent = `DM ${Math.round(avgDm)} | Fit ${Math.round(avgFit)} | Blurb ${Math.round(avgBlurb)} = ${Math.round(engineScore)}`;
+  }
+}
+
+// ── Quick Query Testing ──
+
+async function runQuickQuery() {
+  const input = document.getElementById('quick-query-input');
+  const resultEl = document.getElementById('quick-query-result');
+  const query = input?.value?.trim();
+  if (!query) return;
+  resultEl.style.display = '';
+  resultEl.innerHTML = '<div class="cc-skeleton--inline" style="width:100%;height:60px"></div>';
+  try {
+    const resp = await callAPI(query);
+    const dm = resp.donde_match || 0;
+    const fit = typeof computeScoreFitGrade === 'function' ? computeScoreFitGrade(query, resp) : { score: 0, grade: '-' };
+    const blurb = typeof computeBlurbQualityGrade === 'function' ? computeBlurbQualityGrade(query, resp) : { score: 0, grade: '-' };
+    const sv9 = resp.scoring_v9 || {};
+    resultEl.innerHTML = `
+      <div class="cc-quick-result">
+        <div class="cc-quick-result__header">
+          <span class="cc-quick-result__name">${escapeHtml(resp.restaurant?.name || 'Unknown')}</span>
+          <span class="cc-quick-result__dm ${ragClass(dm)}">${dm}</span>
+        </div>
+        <div class="cc-quick-result__grades">
+          Score Fit: <span class="cc-grade-pill cc-grade-pill--${gradeColorClass(fit.grade)}">${fit.grade}</span>
+          Blurb: <span class="cc-grade-pill cc-grade-pill--${gradeColorClass(blurb.grade)}">${blurb.grade}</span>
+          Type: ${sv9.relevance_type || '-'}
+        </div>
+        <div class="cc-quick-result__factors">
+          F:${r1(sv9.food||0)} V:${r1(sv9.vibe||0)} S:${r1(sv9.service||0)} R:${r1(sv9.reputation||0)} C:${r1(sv9.convenience||0)}
+        </div>
+        <button class="cc-btn cc-btn--xs" onclick="addCustomQuery('${escapeHtml(query).replace(/'/g, "\\'")}','Food')">Pin to Custom</button>
+      </div>`;
+  } catch (e) {
+    resultEl.innerHTML = `<div class="cc-quick-result cc-quick-result--error">Error: ${escapeHtml(e.message?.slice(0,80) || 'Unknown error')}</div>`;
   }
 }
 
@@ -2623,6 +2683,9 @@ function initKpiClickHandlers() {
     'live-avg-fit': () => { switchTab('issues'); },
     'live-avg-blurb': () => { switchTab('issues'); },
     'live-grade-pass': () => { switchTab('issues'); },
+    'live-p50': () => { switchTab('live'); setLiveAdvFilter('scoreRange', 'slow'); },
+    'live-p95': () => { switchTab('live'); setLiveAdvFilter('scoreRange', 'slow'); },
+    'live-satisfaction': () => { switchTab('live'); setLiveAdvFilter('feedback', 'yes'); },
   };
 
   for (const [id, handler] of Object.entries(kpiActions)) {
@@ -2631,6 +2694,7 @@ function initKpiClickHandlers() {
       const kpiDiv = el.closest('.cc-live-kpi');
       if (kpiDiv) {
         kpiDiv.classList.add('cc-live-kpi--clickable');
+        kpiDiv.style.cursor = 'pointer';
         kpiDiv.addEventListener('click', handler);
       }
     }

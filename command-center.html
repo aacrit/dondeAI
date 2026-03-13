@@ -318,6 +318,15 @@
         <div class="cc-custom-queries__list" id="custom-query-list"></div>
       </details>
 
+      <!-- Quick Query Test -->
+      <div class="cc-quick-query" id="quick-query-section">
+        <div class="cc-quick-query__bar">
+          <input type="text" class="cc-quick-query__input" id="quick-query-input" placeholder="Test any query..." onkeydown="if(event.key==='Enter')runQuickQuery()">
+          <button class="cc-btn cc-btn--sm cc-btn--accent" onclick="runQuickQuery()">Test</button>
+        </div>
+        <div class="cc-quick-query__result" id="quick-query-result" style="display:none"></div>
+      </div>
+
       <!-- Active Test Progress -->
       <div class="cc-test-progress" id="test-progress" style="display:none">
         <div class="cc-test-progress__header">

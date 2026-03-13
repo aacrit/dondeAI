@@ -2609,6 +2609,42 @@ body {
   margin-top: 4px;
 }
 
+/* ─── Quick Query ─── */
+.cc-quick-query { margin-bottom: 16px; }
+.cc-quick-query__bar { display: flex; gap: 8px; }
+.cc-quick-query__input {
+  flex: 1;
+  background: var(--cc-surface-2);
+  border: 1px solid var(--cc-border);
+  border-radius: var(--cc-radius);
+  padding: 8px 12px;
+  color: var(--cc-text);
+  font-size: var(--cc-type-sm);
+  font-family: var(--cc-font);
+}
+.cc-quick-query__input:focus { border-color: var(--cc-accent); outline: none; }
+.cc-quick-result {
+  margin-top: 8px;
+  padding: 12px;
+  background: var(--cc-surface-2);
+  border-radius: var(--cc-radius);
+  border: 1px solid var(--cc-border);
+}
+.cc-quick-result__header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.cc-quick-result__name { font-weight: 600; color: var(--cc-text); }
+.cc-quick-result__dm { font-family: var(--cc-mono); font-size: 1.25rem; font-weight: 700; }
+.cc-quick-result__grades { font-size: var(--cc-type-xs); color: var(--cc-text-2); margin-bottom: 6px; display: flex; gap: 12px; align-items: center; }
+.cc-quick-result__factors { font-family: var(--cc-mono); font-size: var(--cc-type-xs); color: var(--cc-text-3); margin-bottom: 8px; }
+.cc-quick-result--error { color: var(--cc-red); }
+
+/* ─── Grade Pill ─── */
+.cc-grade-pill { padding: 1px 6px; border-radius: 3px; font-weight: 600; font-size: var(--cc-type-xs); }
+.cc-grade-pill--green { background: var(--cc-green); color: #000; }
+.cc-grade-pill--blue { background: #4a90d9; color: #fff; }
+.cc-grade-pill--amber { background: var(--cc-amber); color: #000; }
+.cc-grade-pill--red { background: var(--cc-red); color: #fff; }
+.cc-grade-pill--grey { background: var(--cc-surface-3); color: var(--cc-text-2); }
+
 /* ─── Executive Briefing ─── */
 .cc-briefing-text {
   padding: 12px 16px;
