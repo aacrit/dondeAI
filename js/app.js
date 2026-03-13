@@ -1067,69 +1067,8 @@ function wireEvents() {
           // Safety: ensure _swapInFlight resets even if animation callbacks fail
           setTimeout(() => { _swapInFlight = false; }, 1000);
 
-          // V8.8: Fire background API call for fresh Claude blurb
-          const blurbRestaurant = nextResult.restaurant || {};
-          const blurbPayload = {
-            restaurant_data: {
-              name: blurbRestaurant.name,
-              cuisine_type: blurbRestaurant.cuisine_type,
-              price_level: blurbRestaurant.price_level,
-              neighborhood_name: blurbRestaurant.neighborhood_name,
-              noise_level: blurbRestaurant.noise_level,
-              lighting_ambiance: blurbRestaurant.lighting_ambiance,
-              outdoor_seating: blurbRestaurant.outdoor_seating,
-              tags: nextResult.tags || [],
-              deep_context: nextResult.deep_context || {},
-            },
-            context: {
-              special_request: getState().craving,
-              occasion: getState().occasion,
-              neighborhood: getState().neighborhood,
-              score_tier: (() => {
-                const s = nextResult.donde_match || 0;
-                if (s >= 90) return 'exceptional';
-                if (s >= 80) return 'great';
-                if (s >= 65) return 'good';
-                if (s >= 50) return 'decent';
-                return 'weak';
-              })(),
-              match_narrative: nextResult.match_narrative || null,
-            },
-          };
-          console.log('[Try Again] Fetching fresh blurb for:', blurbRestaurant.name);
-          fetchBlurb(blurbPayload).then((blurbData) => {
-            console.log('[Try Again] Blurb received:', { hasRec: !!blurbData.recommendation, len: blurbData.recommendation?.length });
-            // Swap in the fresh Claude blurb with a subtle fade
-            const $rec = document.getElementById('result-recommendation');
-            if ($rec && blurbData.recommendation) {
-              $rec.style.opacity = '0.4';
-              setTimeout(() => {
-                let recText = blurbData.recommendation
-                  .replace(/\u2014/g, ', ')
-                  .replace(/ , /g, ', ')
-                  .replace(/,\s*,/g, ',');
-                // Preserve first-sentence bold (lede structure)
-                const fse = recText.search(/[.!?]\s/);
-                if (fse > 10 && fse < recText.length - 5) {
-                  const first = recText.slice(0, fse + 1);
-                  const rest = recText.slice(fse + 1);
-                  $rec.innerHTML = `<strong>${_escHtml(first)}</strong>${_escHtml(rest)}`;
-                } else {
-                  $rec.textContent = recText;
-                }
-                $rec.style.opacity = '1';
-
-                // Also update insider tip if available
-                const $tip = document.getElementById('story-tip-text');
-                if ($tip && blurbData.insider_tip) {
-                  $tip.textContent = blurbData.insider_tip.replace(/\u2014/g, ', ').replace(/ , /g, ', ');
-                }
-              }, 200);
-            }
-          }).catch((err) => {
-            // Silent failure — template blurb stays
-            console.warn('[Try Again] Fresh blurb fetch failed:', err.message);
-          });
+          // Score-first blurb: fetch Claude blurb in background, reveal when ready
+          _revealBlurb(nextResult);
 
           break;
         }
@@ -2053,14 +1992,66 @@ function updateFilterSummary() {
   }
 }
 
-/* ---- Progressive Blurb: upgrade fallback blurb with fresh Claude blurb in background ---- */
-let _blurbUpgradeAbort = null;
-function _upgradeBlurb(data) {
-  // Cancel any prior in-flight upgrade
-  if (_blurbUpgradeAbort) _blurbUpgradeAbort.abort();
-  _blurbUpgradeAbort = new AbortController();
+/* ---- Score-First Blurb: fetch Claude blurb in background, reveal when ready ---- */
+let _blurbRevealAbort = null;
+const BLURB_REVEAL_GATE_MS = 1200; // Min delay before blurb can appear (let score animation establish)
+
+function _writeBlurbText($rec, text) {
+  let recText = text.replace(/\u2014/g, ', ').replace(/ , /g, ', ').replace(/,\s*,/g, ',');
+  const fse = recText.search(/[.!?]\s/);
+  if (fse > 10 && fse < recText.length - 5) {
+    $rec.innerHTML = `<strong>${_escHtml(recText.slice(0, fse + 1))}</strong>${_escHtml(recText.slice(fse + 1))}`;
+  } else {
+    $rec.textContent = recText;
+  }
+}
+
+function _animateBlurbIn($blurb, $rec) {
+  if (!$blurb || !$blurb.classList.contains('donde-blurb--pending')) return;
+
+  if (REDUCED_MOTION.matches) {
+    $blurb.classList.remove('donde-blurb--pending');
+    return;
+  }
+
+  // Measure target height for smooth expand
+  $blurb.classList.add('donde-blurb--measuring');
+  const targetHeight = $blurb.scrollHeight;
+  $blurb.classList.remove('donde-blurb--measuring');
+
+  // Animate: expand container height
+  $blurb.style.height = '0px';
+  $blurb.classList.remove('donde-blurb--pending');
+  $blurb.classList.add('donde-blurb--arriving');
+
+  requestAnimationFrame(() => {
+    $blurb.style.height = targetHeight + 'px';
+
+    // After expand completes, ink-reveal the text
+    $blurb.addEventListener('transitionend', function onExpand(e) {
+      if (e.propertyName !== 'height') return;
+      $blurb.removeEventListener('transitionend', onExpand);
+      $blurb.style.height = ''; // Let it be auto for reflows
+      $blurb.classList.remove('donde-blurb--arriving');
+
+      // Ink-reveal text
+      $rec.classList.add('donde-blurb__text--revealing');
+      $rec.addEventListener('animationend', () => {
+        $rec.classList.remove('donde-blurb__text--revealing');
+      }, { once: true });
+    }, { once: false });
+  });
+}
+
+function _revealBlurb(data) {
+  if (_blurbRevealAbort) _blurbRevealAbort.abort();
+  _blurbRevealAbort = new AbortController();
 
   const restaurant = data.restaurant || {};
+  const $rec = document.getElementById('result-recommendation');
+  const $blurb = document.getElementById('donde-blurb');
+  if (!$rec || !$blurb) return;
+
   const blurbPayload = {
     restaurant_data: {
       name: restaurant.name,
@@ -2089,61 +2080,38 @@ function _upgradeBlurb(data) {
     },
   };
 
-  const $rec = document.getElementById('result-recommendation');
-  const $blurb = document.getElementById('donde-blurb');
-
-  // Add shimmer class while Claude writes
-  if ($blurb) $blurb.classList.add('donde-blurb--upgrading');
+  const fetchStart = performance.now();
 
   fetchBlurb(blurbPayload).then((blurbData) => {
-    if (!$rec || !blurbData.recommendation) return;
+    // Guard: still showing the same restaurant?
+    if (getState().result?.restaurant?.id !== restaurant.id) return;
 
-    // Remove shimmer
-    if ($blurb) $blurb.classList.remove('donde-blurb--upgrading');
-
-    // Fade out old text
-    $rec.style.opacity = '0';
-    setTimeout(() => {
-      // Write new text with lede structure
-      let recText = blurbData.recommendation
-        .replace(/\u2014/g, ', ')
-        .replace(/ , /g, ', ')
-        .replace(/,\s*,/g, ',');
-      const fse = recText.search(/[.!?]\s/);
-      if (fse > 10 && fse < recText.length - 5) {
-        const first = recText.slice(0, fse + 1);
-        const rest = recText.slice(fse + 1);
-        $rec.innerHTML = `<strong>${_escHtml(first)}</strong>${_escHtml(rest)}`;
-      } else {
-        $rec.textContent = recText;
-      }
-
-      // Ink-reveal the upgraded blurb
-      $rec.style.opacity = '';
-      if (!REDUCED_MOTION.matches) {
-        $rec.classList.add('donde-blurb__text--upgrading-in');
-        $rec.addEventListener('animationend', () => {
-          $rec.classList.remove('donde-blurb__text--upgrading-in');
-        }, { once: true });
-      }
-
-      // Update insider tip if available
-      const $tip = document.getElementById('story-tip-text');
-      if ($tip && blurbData.insider_tip) {
-        $tip.textContent = blurbData.insider_tip.replace(/\u2014/g, ', ').replace(/ , /g, ', ');
-      }
-
-      // Update intent boost display if returned
-      if (blurbData.intent_boost?.active && $blurb) {
-        $blurb.classList.add('donde-blurb--boosted');
-      }
-    }, 250); // Match fade-out duration
-  }).catch((err) => {
-    // Silent failure — fallback blurb stays, just remove shimmer
-    if (err.name !== 'AbortError') {
-      console.warn('[Blurb Upgrade] Fresh blurb fetch failed:', err.message);
+    // Write Claude blurb text (overwriting the deterministic fallback)
+    if (blurbData.recommendation) {
+      _writeBlurbText($rec, blurbData.recommendation);
     }
-    if ($blurb) $blurb.classList.remove('donde-blurb--upgrading');
+    // Update insider tip
+    const $tip = document.getElementById('story-tip-text');
+    if ($tip && blurbData.insider_tip) {
+      $tip.textContent = blurbData.insider_tip.replace(/\u2014/g, ', ').replace(/ , /g, ', ');
+    }
+    // Intent boost
+    if (blurbData.intent_boost?.active) {
+      $blurb.classList.add('donde-blurb--boosted');
+    }
+
+    // Gate: wait for score animation to establish before revealing
+    const elapsed = performance.now() - fetchStart;
+    const delay = Math.max(0, BLURB_REVEAL_GATE_MS - elapsed);
+    setTimeout(() => _animateBlurbIn($blurb, $rec), delay);
+
+  }).catch((err) => {
+    if (err.name === 'AbortError') return;
+    console.warn('[Blurb Reveal] Claude fetch failed, revealing fallback:', err.message);
+    // Reveal the deterministic fallback that renderResult already placed in DOM
+    const elapsed = performance.now() - fetchStart;
+    const delay = Math.max(0, BLURB_REVEAL_GATE_MS - elapsed);
+    setTimeout(() => _animateBlurbIn($blurb, $rec), delay);
   });
 }
 
@@ -2381,11 +2349,11 @@ async function manifestResult(data) {
         const $rName = $resultCard.querySelector('.result-name');
         if ($rName) $rName.classList.add('result-name--animated');
 
-        // Clean up revealing class after all animations complete (stretched stagger: 640ms + 350ms + buffer)
+        // Clean up revealing class after all animations complete (520ms + 350ms + buffer)
         _scaffoldTimers.push(setTimeout(() => {
           $resultCard.classList.remove('result-card--revealing');
           if ($rName) $rName.classList.remove('result-name--animated');
-        }, 1100));
+        }, 950));
       }
     }, 750));
   }
@@ -2423,10 +2391,8 @@ async function manifestResult(data) {
     }, 1400));
   }
 
-  // Progressive blurb: fire background Claude blurb upgrade (after card is visible)
-  _scaffoldTimers.push(setTimeout(() => {
-    _upgradeBlurb(data);
-  }, 1000));
+  // Score-first blurb: fire background Claude blurb fetch immediately (gate is internal)
+  _revealBlurb(data);
 
   // Settle — clean up after animations complete
   _scaffoldTimers.push(setTimeout(() => {
@@ -2837,8 +2803,9 @@ function renderResult(data) {
       $rec.textContent = recText;
     }
     if ($blurb) {
+      // Blurb starts collapsed — will be revealed by _revealBlurb() after Claude responds
+      $blurb.classList.add('donde-blurb--pending');
       $blurb.style.display = recText ? '' : 'none';
-      // V5: Boost-aware blurb accent border
       $blurb.classList.toggle('donde-blurb--boosted', !!data.intent_boost?.active);
     }
   }
