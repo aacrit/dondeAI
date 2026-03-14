@@ -394,6 +394,12 @@ async function refreshAllData() {
   if (typeof renderTestVsProdStrip === 'function') renderTestVsProdStrip();
   if (typeof updateKpiSparklines === 'function') updateKpiSparklines();
   if (typeof renderWave2Components === 'function') renderWave2Components();
+  // Premium Overhaul refresh
+  if (typeof renderMorningBrief === 'function') renderMorningBrief();
+  if (typeof updateHeaderAction === 'function') updateHeaderAction();
+  if (typeof updateTabBadges === 'function') updateTabBadges();
+  if (typeof renderImpactSimulator === 'function') renderImpactSimulator();
+  if (typeof evaluateSLAs === 'function') evaluateSLAs();
   showToast('Data refreshed');
 }
 

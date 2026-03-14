@@ -68,6 +68,9 @@ function switchTab(name) {
 
   // Smart suggestion when switching to issues
   if (name === 'issues') setTimeout(checkSmartSuggestion, 500);
+
+  // Update header action button context
+  if (typeof updateHeaderAction === 'function') updateHeaderAction();
 }
 
 function positionTabIndicator() {
@@ -3455,3 +3458,364 @@ document.addEventListener('keydown', e => {
     e.target.click();
   }
 });
+
+// ═══════════════════════════════════════════════════════════════════
+// Morning Brief
+// ═══════════════════════════════════════════════════════════════════
+
+function renderMorningBrief() {
+  const el = document.getElementById('morning-brief');
+  if (!el) return;
+
+  const run = state.latestRun;
+  if (!run) return;
+
+  el.style.display = '';
+
+  // Grade + sentence
+  const avgDm = Number(run.avg_dm) || 0;
+  const avgFit = Number(run.avg_score_fit) || avgDm;
+  const avgBlurb = Number(run.avg_blurb_quality) || avgDm;
+  const engineScore = (avgDm * 0.4) + (avgFit * 0.3) + (avgBlurb * 0.3);
+
+  let grade;
+  if (engineScore >= 93) grade = 'A+';
+  else if (engineScore >= 90) grade = 'A';
+  else if (engineScore >= 87) grade = 'B+';
+  else if (engineScore >= 83) grade = 'B';
+  else if (engineScore >= 80) grade = 'B-';
+  else if (engineScore >= 73) grade = 'C';
+  else if (engineScore >= 60) grade = 'D';
+  else grade = 'F';
+
+  const gradeEl = document.getElementById('brief-grade');
+  if (gradeEl) {
+    gradeEl.textContent = grade;
+    gradeEl.className = 'cc-morning-brief__grade';
+    if (engineScore >= 80) gradeEl.classList.add('rag-green');
+    else if (engineScore >= 60) gradeEl.classList.add('rag-amber');
+    else gradeEl.classList.add('rag-red');
+  }
+
+  // Status sentence
+  const openIssues = (state.issues || []).filter(i => (!i.status || i.status === 'open'));
+  const p0 = openIssues.filter(i => i.severity === 'P0');
+  const trend = state.trendData || [];
+  let trendWord = 'stable';
+  if (trend.length >= 2) {
+    const delta = Number(run.avg_dm) - Number(trend[1]?.avg_dm || 0);
+    if (delta > 2) trendWord = 'improving';
+    else if (delta < -2) trendWord = 'declining';
+  }
+
+  const sentenceEl = document.getElementById('brief-sentence');
+  if (sentenceEl) {
+    let sentence = `Engine grade ${grade} (${Math.round(engineScore)}). Quality ${trendWord}.`;
+    if (p0.length > 0) sentence += ` ${p0.length} critical issue${p0.length > 1 ? 's' : ''}.`;
+    else if (openIssues.length > 0) sentence += ` ${openIssues.length} open issue${openIssues.length > 1 ? 's' : ''}.`;
+    else sentence += ' No open issues.';
+    sentenceEl.textContent = sentence;
+  }
+
+  // Delta strip
+  const prev = trend.length > 1 ? trend[1] : null;
+  renderBriefDelta('brief-dm-delta', avgDm, prev ? Number(prev.avg_dm) : null);
+  renderBriefDelta('brief-fit-delta', avgFit, prev ? Number(prev.avg_score_fit || prev.avg_dm) : null);
+  renderBriefDelta('brief-blurb-delta', avgBlurb, prev ? Number(prev.avg_blurb_quality || prev.avg_dm) : null);
+
+  // Activity line
+  const activityEl = document.getElementById('brief-activity');
+  if (activityEl) {
+    const lastSession = getLastSessionSnapshot ? getLastSessionSnapshot() : null;
+    const sinceTime = lastSession?.timestamp || new Date(Date.now() - 86400000).toISOString();
+    const prodQueries = (state.liveFeed || []).filter(q => q.created_at >= sinceTime && q.source !== 'command-center');
+    const lowGrade = prodQueries.filter(q => (q.score_fit_score != null && q.score_fit_score < 80) || (q.blurb_quality_score != null && q.blurb_quality_score < 80));
+    const fallbacks = prodQueries.filter(q => q.was_fallback);
+    if (prodQueries.length > 0) {
+      activityEl.textContent = `${prodQueries.length} prod queries since you left. ${lowGrade.length} scored below B-. ${fallbacks.length} fallback${fallbacks.length !== 1 ? 's' : ''}.`;
+    } else {
+      activityEl.textContent = `Last test run: ${timeAgo(run.created_at)}.`;
+    }
+  }
+
+  // Priority action
+  const actionEl = document.getElementById('brief-action');
+  if (actionEl) {
+    if (p0.length > 0) {
+      actionEl.innerHTML = `<button class="cc-btn cc-btn--primary" onclick="switchTab('issues')">Fix ${p0.length} Critical Issue${p0.length > 1 ? 's' : ''}</button>`;
+    } else if (!run.created_at || (Date.now() - new Date(run.created_at).getTime()) > 86400000) {
+      actionEl.innerHTML = `<button class="cc-btn cc-btn--primary" onclick="startTest('broad')">Run Health Check</button>`;
+    } else if (openIssues.length > 0) {
+      actionEl.innerHTML = `<button class="cc-btn cc-btn--primary" onclick="switchTab('issues')">Review ${openIssues.length} Issue${openIssues.length > 1 ? 's' : ''}</button>`;
+    } else {
+      actionEl.innerHTML = `<span style="color:var(--cc-green);font-size:var(--cc-type-sm)">All clear — system healthy</span>`;
+    }
+  }
+}
+
+function renderBriefDelta(elId, current, prev) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  if (prev == null || isNaN(prev)) {
+    el.textContent = Math.round(current);
+    el.className = 'cc-morning-brief__delta-val';
+    return;
+  }
+  const delta = current - prev;
+  const sign = delta > 0 ? '+' : '';
+  const cls = delta > 1 ? 'rag-green' : delta < -1 ? 'rag-red' : '';
+  const arrow = delta > 1 ? ' \u2191' : delta < -1 ? ' \u2193' : '';
+  el.innerHTML = `${Math.round(current)} <span class="${cls}" style="font-size:var(--cc-type-2xs)">${sign}${Math.round(delta * 10) / 10}${arrow}</span>`;
+  el.className = 'cc-morning-brief__delta-val';
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Header Action Button
+// ═══════════════════════════════════════════════════════════════════
+
+function updateHeaderAction() {
+  const btn = document.getElementById('header-action-btn');
+  if (!btn) return;
+
+  btn.className = 'cc-header__action cc-btn cc-btn--primary';
+
+  if (state.activeTest) {
+    btn.textContent = 'Stop';
+    btn.classList.add('cc-header__action--stop');
+  } else {
+    const openIssues = (state.issues || []).filter(i => (!i.status || i.status === 'open'));
+    const p0p1 = openIssues.filter(i => i.severity === 'P0' || i.severity === 'P1');
+    if (state.activeTab === 'issues' && p0p1.length > 0) {
+      btn.textContent = `Fix Issues (${p0p1.length})`;
+      btn.classList.add('cc-header__action--issues');
+    } else if (state.latestRun?.gap_count > 0) {
+      btn.textContent = `${state.latestRun.gap_count} Gaps`;
+      btn.classList.add('cc-header__action--issues');
+    } else {
+      btn.textContent = 'Run Scan';
+    }
+  }
+}
+
+function handleHeaderAction() {
+  const btn = document.getElementById('header-action-btn');
+  if (!btn) return;
+
+  if (state.activeTest) {
+    if (typeof stopTest === 'function') stopTest();
+  } else if (btn.textContent.includes('Fix') || btn.textContent.includes('Gaps')) {
+    switchTab('issues');
+  } else {
+    if (typeof startTest === 'function') startTest('broad');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Tab Badges
+// ═══════════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════════
+// Impact Simulator
+// ═══════════════════════════════════════════════════════════════════
+
+function renderImpactSimulator() {
+  const el = document.getElementById('impact-simulator');
+  if (!el) return;
+
+  const run = state.latestRun;
+  const issues = (state.issues || []).filter(i => (!i.status || i.status === 'open'));
+  if (!run || issues.length === 0) {
+    el.style.display = 'none';
+    return;
+  }
+
+  el.style.display = '';
+
+  const total = run.total || 1;
+  const currentPass = run.grade_pass_count || run.passed_60 || 0;
+  const currentRate = (currentPass / total * 100);
+
+  // Group issues by gap type and simulate fixing each group
+  const groups = {};
+  for (const issue of issues) {
+    const key = issue.gapType || 'other';
+    if (!groups[key]) groups[key] = { count: 0, label: key };
+    groups[key].count++;
+  }
+
+  // Simulate: each fixed issue adds 1 to pass count
+  const totalFixable = issues.length;
+  const projectedPass = Math.min(total, currentPass + totalFixable);
+  const projectedRate = (projectedPass / total * 100);
+  const delta = projectedRate - currentRate;
+
+  // Subtitle
+  const subEl = document.getElementById('impact-sim-subtitle');
+  if (subEl) {
+    subEl.textContent = delta > 0
+      ? `Fixing ${totalFixable} issue${totalFixable > 1 ? 's' : ''}: +${Math.round(delta)}% pass rate`
+      : 'No fixable issues detected';
+  }
+
+  // Bar
+  const currentBar = document.getElementById('impact-sim-current');
+  const projBar = document.getElementById('impact-sim-projected');
+  if (currentBar) {
+    currentBar.style.width = currentRate + '%';
+    currentBar.textContent = Math.round(currentRate) + '%';
+  }
+  if (projBar) {
+    projBar.style.width = Math.max(0, projectedRate - currentRate) + '%';
+    if (delta > 0) projBar.textContent = Math.round(projectedRate) + '%';
+  }
+
+  // Groups ranked by impact
+  const groupsEl = document.getElementById('impact-sim-groups');
+  if (groupsEl) {
+    const sorted = Object.values(groups).sort((a, b) => b.count - a.count);
+    groupsEl.innerHTML = sorted.slice(0, 4).map(g => {
+      const groupDelta = (g.count / total * 100);
+      return `<div class="cc-impact-sim__group">
+        <span class="cc-impact-sim__group-label">Fix ${g.count} ${g.label} issue${g.count > 1 ? 's' : ''}</span>
+        <span class="cc-impact-sim__group-impact">+${groupDelta.toFixed(1)}%</span>
+      </div>`;
+    }).join('');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// SLA Monitor
+// ═══════════════════════════════════════════════════════════════════
+
+function evaluateSLAs() {
+  const indicator = document.getElementById('sla-indicator');
+  if (!indicator) return;
+
+  const slas = (typeof SLA_DEFAULTS !== 'undefined') ? SLA_DEFAULTS : [];
+  if (slas.length === 0) return;
+
+  const run = state.latestRun;
+  const issues = (state.issues || []).filter(i => (!i.status || i.status === 'open'));
+  const liveFeed = state.liveFeed || [];
+
+  // Compute current values
+  const values = {};
+  if (run) {
+    const total = run.total || 1;
+    const passCount = run.grade_pass_count || run.passed_60 || 0;
+    values.grade_pass_rate = (passCount / total * 100);
+    values.avg_dm = Number(run.avg_dm) || 0;
+  }
+  values.p0_count = issues.filter(i => i.severity === 'P0').length;
+
+  // Response time from live feed
+  const recentQueries = liveFeed.slice(0, 50);
+  const responseTimes = recentQueries.map(q => q.response_time_ms).filter(Boolean).sort((a, b) => a - b);
+  values.p95_response = responseTimes.length > 0 ? responseTimes[Math.floor(responseTimes.length * 0.95)] : 0;
+  values.fallback_rate = recentQueries.length > 0
+    ? (recentQueries.filter(q => q.was_fallback).length / recentQueries.length * 100)
+    : 0;
+
+  // Evaluate each SLA
+  let breaches = 0;
+  let warns = 0;
+  const results = slas.map(sla => {
+    const val = values[sla.id];
+    if (val == null) return { ...sla, value: null, status: 'unknown' };
+
+    let status = 'ok';
+    if (sla.direction === 'above') {
+      if (val < sla.threshold) { status = 'breach'; breaches++; }
+      else if (val < sla.warn || val === sla.threshold) { status = 'warn'; warns++; }
+    } else {
+      if (val > sla.threshold) { status = 'breach'; breaches++; }
+      else if (val > sla.warn) { status = 'warn'; warns++; }
+    }
+
+    return { ...sla, value: val, status };
+  });
+
+  // Store for panel rendering
+  state.slaResults = results;
+
+  // Update indicator
+  indicator.style.display = '';
+  const iconEl = document.getElementById('sla-indicator-icon');
+  const countEl = document.getElementById('sla-indicator-count');
+
+  if (breaches > 0) {
+    indicator.className = 'cc-sla-indicator cc-sla-indicator--breach';
+    if (iconEl) iconEl.textContent = '\u26A0';
+    if (countEl) countEl.textContent = breaches;
+  } else if (warns > 0) {
+    indicator.className = 'cc-sla-indicator cc-sla-indicator--warn';
+    if (iconEl) iconEl.textContent = '\u26A0';
+    if (countEl) countEl.textContent = warns;
+  } else {
+    indicator.className = 'cc-sla-indicator cc-sla-indicator--ok';
+    if (iconEl) iconEl.textContent = '\u2713';
+    if (countEl) countEl.textContent = '';
+  }
+}
+
+function toggleSlaPanel() {
+  const panel = document.getElementById('sla-panel');
+  if (!panel) return;
+
+  if (panel.style.display === 'none') {
+    panel.style.display = '';
+    renderSlaPanel();
+  } else {
+    panel.style.display = 'none';
+  }
+}
+
+function renderSlaPanel() {
+  const body = document.getElementById('sla-panel-body');
+  if (!body || !state.slaResults) return;
+
+  body.innerHTML = state.slaResults.map(sla => {
+    const valDisplay = sla.value != null
+      ? (Number.isInteger(sla.value) ? sla.value : sla.value.toFixed(1)) + (sla.unit || '')
+      : '--';
+    const threshDisplay = sla.threshold + (sla.unit || '');
+    return `<div class="cc-sla-row">
+      <span class="cc-sla-row__name">${sla.name}</span>
+      <span class="cc-sla-row__value ${sla.status === 'ok' ? 'rag-green' : sla.status === 'warn' ? 'rag-amber' : sla.status === 'breach' ? 'rag-red' : ''}">${valDisplay}</span>
+      <span class="cc-sla-row__threshold" style="font-size:var(--cc-type-2xs);color:var(--cc-text-3)">${sla.direction === 'above' ? '\u2265' : '\u2264'} ${threshDisplay}</span>
+      <span class="cc-sla-row__status cc-sla-row__status--${sla.status}"></span>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Tab Badges
+// ═══════════════════════════════════════════════════════════════════
+
+function updateTabBadges() {
+  // Test tab: gap count from latest run
+  const testBadge = document.getElementById('tab-test-badge');
+  if (testBadge) {
+    const gaps = state.latestRun?.gap_count || 0;
+    testBadge.textContent = gaps > 0 ? gaps : '';
+    testBadge.style.display = gaps > 0 ? '' : 'none';
+  }
+
+  // Live tab: queries in last hour
+  const liveBadge = document.getElementById('tab-live-badge');
+  if (liveBadge) {
+    const oneHourAgo = new Date(Date.now() - 3600000).toISOString();
+    const recentCount = (state.liveFeed || []).filter(q => q.created_at >= oneHourAgo).length;
+    liveBadge.textContent = recentCount > 0 ? recentCount : '';
+    liveBadge.style.display = recentCount > 0 ? '' : 'none';
+  }
+
+  // Issues tab: open P0+P1 count
+  const issuesBadge = document.getElementById('tab-issues-badge');
+  if (issuesBadge) {
+    const openIssues = (state.issues || []).filter(i => (!i.status || i.status === 'open'));
+    const urgent = openIssues.filter(i => i.severity === 'P0' || i.severity === 'P1');
+    issuesBadge.textContent = urgent.length > 0 ? urgent.length : '';
+    issuesBadge.style.display = urgent.length > 0 ? '' : 'none';
+  }
+}
