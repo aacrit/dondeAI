@@ -47,6 +47,11 @@
           <span class="cc-live-toggle__label" id="live-api-label">Scoring Only</span>
         </button>
       </div>
+      <button class="cc-header__action cc-btn cc-btn--primary" id="header-action-btn" onclick="handleHeaderAction()">Run Scan</button>
+      <button class="cc-sla-indicator" id="sla-indicator" onclick="toggleSlaPanel()" title="SLA Status" style="display:none">
+        <span class="cc-sla-indicator__icon" id="sla-indicator-icon"></span>
+        <span class="cc-sla-indicator__count" id="sla-indicator-count"></span>
+      </button>
       <div class="cc-header__status">
         <span class="cc-header__dot cc-header__dot--offline" id="status-dot"></span>
         <span class="cc-header__status-text" id="status-text">Offline</span>
@@ -102,7 +107,31 @@
   <!-- ═══ Main Content ═══ -->
   <main class="cc-main" id="main-content">
 
-    <!-- ═══ Daily Digest ═══ -->
+    <!-- ═══ Morning Brief ═══ -->
+    <section class="cc-morning-brief" id="morning-brief" style="display:none">
+      <div class="cc-morning-brief__status">
+        <span class="cc-morning-brief__grade" id="brief-grade">--</span>
+        <span class="cc-morning-brief__sentence" id="brief-sentence">Loading engine status...</span>
+      </div>
+      <div class="cc-morning-brief__deltas" id="brief-deltas">
+        <div class="cc-morning-brief__delta">
+          <span class="cc-morning-brief__delta-label">DondeMatch</span>
+          <span class="cc-morning-brief__delta-val" id="brief-dm-delta">--</span>
+        </div>
+        <div class="cc-morning-brief__delta">
+          <span class="cc-morning-brief__delta-label">Score Fit</span>
+          <span class="cc-morning-brief__delta-val" id="brief-fit-delta">--</span>
+        </div>
+        <div class="cc-morning-brief__delta">
+          <span class="cc-morning-brief__delta-label">Blurb Quality</span>
+          <span class="cc-morning-brief__delta-val" id="brief-blurb-delta">--</span>
+        </div>
+      </div>
+      <div class="cc-morning-brief__activity" id="brief-activity"></div>
+      <div class="cc-morning-brief__action" id="brief-action"></div>
+    </section>
+
+    <!-- ═══ Daily Digest (legacy) ═══ -->
     <div class="cc-daily-digest" id="daily-digest" style="display:none"></div>
 
     <!-- ═══ Pulse: 3 hero KPI cards ═══ -->
@@ -185,10 +214,10 @@
 
     <!-- ═══ Tab Bar ═══ -->
     <nav class="cc-tabs" role="tablist">
-      <button class="cc-tab cc-tab--active" role="tab" aria-selected="true" data-tab="test" onclick="switchTab('test')">Test</button>
-      <button class="cc-tab" role="tab" aria-selected="false" data-tab="live" onclick="switchTab('live')">Live</button>
+      <button class="cc-tab cc-tab--active" role="tab" aria-selected="true" data-tab="test" onclick="switchTab('test')">Test <span class="cc-tab__badge" id="tab-test-badge"></span></button>
+      <button class="cc-tab" role="tab" aria-selected="false" data-tab="live" onclick="switchTab('live')">Live <span class="cc-tab__badge" id="tab-live-badge"></span></button>
       <button class="cc-tab" role="tab" aria-selected="false" data-tab="data" onclick="switchTab('data')">Data</button>
-      <button class="cc-tab" role="tab" aria-selected="false" data-tab="issues" onclick="switchTab('issues')" id="tab-issues-btn">Issues</button>
+      <button class="cc-tab" role="tab" aria-selected="false" data-tab="issues" onclick="switchTab('issues')" id="tab-issues-btn">Issues <span class="cc-tab__badge" id="tab-issues-badge"></span></button>
       <div class="cc-tab__indicator" id="tab-indicator"></div>
     </nav>
 
@@ -642,6 +671,19 @@
         </div>
       </div>
 
+      <!-- Impact Simulator -->
+      <div class="cc-impact-sim" id="impact-simulator" style="display:none">
+        <div class="cc-impact-sim__header">
+          <span class="cc-impact-sim__title">Impact Simulator</span>
+          <span class="cc-impact-sim__subtitle" id="impact-sim-subtitle"></span>
+        </div>
+        <div class="cc-impact-sim__bar">
+          <div class="cc-impact-sim__current" id="impact-sim-current"></div>
+          <div class="cc-impact-sim__projected" id="impact-sim-projected"></div>
+        </div>
+        <div class="cc-impact-sim__groups" id="impact-sim-groups"></div>
+      </div>
+
       <!-- Retest Progress (hidden by default) -->
       <div class="cc-retest-progress" id="retest-progress" style="display:none">
         <div class="cc-retest-progress__bar">
@@ -828,6 +870,15 @@
       <span class="cc-mobile-nav__badge" id="mobile-issues-badge"></span>
     </button>
   </nav>
+
+  <!-- SLA Panel Overlay -->
+  <div class="cc-sla-panel" id="sla-panel" style="display:none">
+    <div class="cc-sla-panel__header">
+      <span class="cc-sla-panel__title">SLA Monitor</span>
+      <button class="cc-sla-panel__close" onclick="toggleSlaPanel()">&times;</button>
+    </div>
+    <div class="cc-sla-panel__body" id="sla-panel-body"></div>
+  </div>
 
   <script src="js/cc-queries.js"></script>
   <script src="js/cc-config.js"></script>

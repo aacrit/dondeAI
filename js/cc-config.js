@@ -21,6 +21,18 @@ const CALENDAR_ID = 'aacrit@gmail.com'; // CEO's Google Calendar ID
 const CHICAGO_TZ = 'America/Chicago';
 
 // ═══════════════════════════════════════════════════════════════════
+// SLA Defaults
+// ═══════════════════════════════════════════════════════════════════
+
+const SLA_DEFAULTS = [
+  { id: 'grade_pass_rate', name: 'Grade Pass Rate', threshold: 85, warn: 80, unit: '%', direction: 'above' },
+  { id: 'avg_dm', name: 'Avg DondeMatch', threshold: 75, warn: 70, unit: '', direction: 'above' },
+  { id: 'p0_count', name: 'P0 Issues', threshold: 0, warn: 1, unit: '', direction: 'below' },
+  { id: 'p95_response', name: 'p95 Response', threshold: 5000, warn: 3000, unit: 'ms', direction: 'below' },
+  { id: 'fallback_rate', name: 'Fallback Rate', threshold: 10, warn: 5, unit: '%', direction: 'below' },
+];
+
+// ═══════════════════════════════════════════════════════════════════
 // Test Type Definitions
 // ═══════════════════════════════════════════════════════════════════
 
