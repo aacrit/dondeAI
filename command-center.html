@@ -131,7 +131,12 @@
       <div class="cc-morning-brief__action" id="brief-action"></div>
     </section>
 
-    <!-- ═══ Daily Digest (legacy) ═══ -->
+    <!-- ═══ Trend Timeline ═══ -->
+    <div class="cc-trend-chart" id="trend-chart" style="display:none">
+      <div class="cc-trend-chart__tooltip" id="trend-tooltip"></div>
+    </div>
+
+    <!-- ═══ Daily Digest ═══ -->
     <div class="cc-daily-digest" id="daily-digest" style="display:none"></div>
 
     <!-- ═══ Pulse: 3 hero KPI cards ═══ -->
@@ -220,6 +225,16 @@
       <button class="cc-tab" role="tab" aria-selected="false" data-tab="issues" onclick="switchTab('issues')" id="tab-issues-btn">Issues <span class="cc-tab__badge" id="tab-issues-badge"></span></button>
       <div class="cc-tab__indicator" id="tab-indicator"></div>
     </nav>
+
+    <!-- ═══ Quick Query (Promoted) ═══ -->
+    <div class="cc-quick-query cc-quick-query--promoted" id="quick-query-promoted">
+      <div class="cc-quick-query__bar">
+        <input type="text" class="cc-quick-query__input" id="promoted-query-input" placeholder="Test a query..." autocomplete="off" onkeydown="if(event.key==='Enter')runPromotedQuery()" oninput="showQuerySuggestions(this.value)">
+        <button class="cc-btn cc-btn--primary cc-btn--sm" onclick="runPromotedQuery()">Test</button>
+      </div>
+      <div class="cc-quick-query__suggestions" id="query-suggestions" style="display:none"></div>
+      <div id="promoted-query-result" style="display:none"></div>
+    </div>
 
     <!-- ═══ Tab Panel: TEST ═══ -->
     <div class="cc-tab-panel cc-tab-panel--active" id="panel-test" role="tabpanel">

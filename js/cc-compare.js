@@ -400,6 +400,7 @@ async function refreshAllData() {
   if (typeof updateTabBadges === 'function') updateTabBadges();
   if (typeof renderImpactSimulator === 'function') renderImpactSimulator();
   if (typeof evaluateSLAs === 'function') evaluateSLAs();
+  if (typeof renderTrendChart === 'function') renderTrendChart();
   showToast('Data refreshed');
 }
 

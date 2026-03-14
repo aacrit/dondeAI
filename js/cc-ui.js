@@ -3466,13 +3466,10 @@ document.addEventListener('keydown', e => {
 function renderMorningBrief() {
   const el = document.getElementById('morning-brief');
   if (!el) return;
-
   const run = state.latestRun;
   if (!run) return;
-
   el.style.display = '';
 
-  // Grade + sentence
   const avgDm = Number(run.avg_dm) || 0;
   const avgFit = Number(run.avg_score_fit) || avgDm;
   const avgBlurb = Number(run.avg_blurb_quality) || avgDm;
@@ -3497,7 +3494,6 @@ function renderMorningBrief() {
     else gradeEl.classList.add('rag-red');
   }
 
-  // Status sentence
   const openIssues = (state.issues || []).filter(i => (!i.status || i.status === 'open'));
   const p0 = openIssues.filter(i => i.severity === 'P0');
   const trend = state.trendData || [];
@@ -3517,28 +3513,24 @@ function renderMorningBrief() {
     sentenceEl.textContent = sentence;
   }
 
-  // Delta strip
   const prev = trend.length > 1 ? trend[1] : null;
   renderBriefDelta('brief-dm-delta', avgDm, prev ? Number(prev.avg_dm) : null);
   renderBriefDelta('brief-fit-delta', avgFit, prev ? Number(prev.avg_score_fit || prev.avg_dm) : null);
   renderBriefDelta('brief-blurb-delta', avgBlurb, prev ? Number(prev.avg_blurb_quality || prev.avg_dm) : null);
 
-  // Activity line
   const activityEl = document.getElementById('brief-activity');
   if (activityEl) {
-    const lastSession = getLastSessionSnapshot ? getLastSessionSnapshot() : null;
+    const lastSession = typeof getLastSessionSnapshot === 'function' ? getLastSessionSnapshot() : null;
     const sinceTime = lastSession?.timestamp || new Date(Date.now() - 86400000).toISOString();
     const prodQueries = (state.liveFeed || []).filter(q => q.created_at >= sinceTime && q.source !== 'command-center');
     const lowGrade = prodQueries.filter(q => (q.score_fit_score != null && q.score_fit_score < 80) || (q.blurb_quality_score != null && q.blurb_quality_score < 80));
-    const fallbacks = prodQueries.filter(q => q.was_fallback);
     if (prodQueries.length > 0) {
-      activityEl.textContent = `${prodQueries.length} prod queries since you left. ${lowGrade.length} scored below B-. ${fallbacks.length} fallback${fallbacks.length !== 1 ? 's' : ''}.`;
+      activityEl.textContent = `${prodQueries.length} prod queries since you left. ${lowGrade.length} scored below B-.`;
     } else {
       activityEl.textContent = `Last test run: ${timeAgo(run.created_at)}.`;
     }
   }
 
-  // Priority action
   const actionEl = document.getElementById('brief-action');
   if (actionEl) {
     if (p0.length > 0) {
@@ -3548,7 +3540,7 @@ function renderMorningBrief() {
     } else if (openIssues.length > 0) {
       actionEl.innerHTML = `<button class="cc-btn cc-btn--primary" onclick="switchTab('issues')">Review ${openIssues.length} Issue${openIssues.length > 1 ? 's' : ''}</button>`;
     } else {
-      actionEl.innerHTML = `<span style="color:var(--cc-green);font-size:var(--cc-type-sm)">All clear — system healthy</span>`;
+      actionEl.innerHTML = `<span style="color:var(--cc-green);font-size:var(--cc-type-sm)">All clear</span>`;
     }
   }
 }
@@ -3558,7 +3550,6 @@ function renderBriefDelta(elId, current, prev) {
   if (!el) return;
   if (prev == null || isNaN(prev)) {
     el.textContent = Math.round(current);
-    el.className = 'cc-morning-brief__delta-val';
     return;
   }
   const delta = current - prev;
@@ -3566,7 +3557,6 @@ function renderBriefDelta(elId, current, prev) {
   const cls = delta > 1 ? 'rag-green' : delta < -1 ? 'rag-red' : '';
   const arrow = delta > 1 ? ' \u2191' : delta < -1 ? ' \u2193' : '';
   el.innerHTML = `${Math.round(current)} <span class="${cls}" style="font-size:var(--cc-type-2xs)">${sign}${Math.round(delta * 10) / 10}${arrow}</span>`;
-  el.className = 'cc-morning-brief__delta-val';
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -3576,9 +3566,7 @@ function renderBriefDelta(elId, current, prev) {
 function updateHeaderAction() {
   const btn = document.getElementById('header-action-btn');
   if (!btn) return;
-
   btn.className = 'cc-header__action cc-btn cc-btn--primary';
-
   if (state.activeTest) {
     btn.textContent = 'Stop';
     btn.classList.add('cc-header__action--stop');
@@ -3598,21 +3586,17 @@ function updateHeaderAction() {
 }
 
 function handleHeaderAction() {
-  const btn = document.getElementById('header-action-btn');
-  if (!btn) return;
-
   if (state.activeTest) {
     if (typeof stopTest === 'function') stopTest();
-  } else if (btn.textContent.includes('Fix') || btn.textContent.includes('Gaps')) {
-    switchTab('issues');
   } else {
-    if (typeof startTest === 'function') startTest('broad');
+    const btn = document.getElementById('header-action-btn');
+    if (btn && (btn.textContent.includes('Fix') || btn.textContent.includes('Gaps'))) {
+      switchTab('issues');
+    } else {
+      if (typeof startTest === 'function') startTest('broad');
+    }
   }
 }
-
-// ═══════════════════════════════════════════════════════════════════
-// Tab Badges
-// ═══════════════════════════════════════════════════════════════════
 
 // ═══════════════════════════════════════════════════════════════════
 // Impact Simulator
@@ -3621,21 +3605,15 @@ function handleHeaderAction() {
 function renderImpactSimulator() {
   const el = document.getElementById('impact-simulator');
   if (!el) return;
-
   const run = state.latestRun;
   const issues = (state.issues || []).filter(i => (!i.status || i.status === 'open'));
-  if (!run || issues.length === 0) {
-    el.style.display = 'none';
-    return;
-  }
-
+  if (!run || issues.length === 0) { el.style.display = 'none'; return; }
   el.style.display = '';
 
   const total = run.total || 1;
   const currentPass = run.grade_pass_count || run.passed_60 || 0;
   const currentRate = (currentPass / total * 100);
 
-  // Group issues by gap type and simulate fixing each group
   const groups = {};
   for (const issue of issues) {
     const key = issue.gapType || 'other';
@@ -3643,42 +3621,24 @@ function renderImpactSimulator() {
     groups[key].count++;
   }
 
-  // Simulate: each fixed issue adds 1 to pass count
   const totalFixable = issues.length;
   const projectedPass = Math.min(total, currentPass + totalFixable);
   const projectedRate = (projectedPass / total * 100);
   const delta = projectedRate - currentRate;
 
-  // Subtitle
   const subEl = document.getElementById('impact-sim-subtitle');
-  if (subEl) {
-    subEl.textContent = delta > 0
-      ? `Fixing ${totalFixable} issue${totalFixable > 1 ? 's' : ''}: +${Math.round(delta)}% pass rate`
-      : 'No fixable issues detected';
-  }
+  if (subEl) subEl.textContent = delta > 0 ? `Fixing ${totalFixable} issue${totalFixable > 1 ? 's' : ''}: +${Math.round(delta)}% pass rate` : '';
 
-  // Bar
   const currentBar = document.getElementById('impact-sim-current');
   const projBar = document.getElementById('impact-sim-projected');
-  if (currentBar) {
-    currentBar.style.width = currentRate + '%';
-    currentBar.textContent = Math.round(currentRate) + '%';
-  }
-  if (projBar) {
-    projBar.style.width = Math.max(0, projectedRate - currentRate) + '%';
-    if (delta > 0) projBar.textContent = Math.round(projectedRate) + '%';
-  }
+  if (currentBar) { currentBar.style.width = currentRate + '%'; currentBar.textContent = Math.round(currentRate) + '%'; }
+  if (projBar) { projBar.style.width = Math.max(0, projectedRate - currentRate) + '%'; if (delta > 0) projBar.textContent = Math.round(projectedRate) + '%'; }
 
-  // Groups ranked by impact
   const groupsEl = document.getElementById('impact-sim-groups');
   if (groupsEl) {
-    const sorted = Object.values(groups).sort((a, b) => b.count - a.count);
-    groupsEl.innerHTML = sorted.slice(0, 4).map(g => {
-      const groupDelta = (g.count / total * 100);
-      return `<div class="cc-impact-sim__group">
-        <span class="cc-impact-sim__group-label">Fix ${g.count} ${g.label} issue${g.count > 1 ? 's' : ''}</span>
-        <span class="cc-impact-sim__group-impact">+${groupDelta.toFixed(1)}%</span>
-      </div>`;
+    groupsEl.innerHTML = Object.values(groups).sort((a, b) => b.count - a.count).slice(0, 4).map(g => {
+      const gd = (g.count / total * 100);
+      return `<div class="cc-impact-sim__group"><span class="cc-impact-sim__group-label">Fix ${g.count} ${g.label}</span><span class="cc-impact-sim__group-impact">+${gd.toFixed(1)}%</span></div>`;
     }).join('');
   }
 }
@@ -3690,7 +3650,6 @@ function renderImpactSimulator() {
 function evaluateSLAs() {
   const indicator = document.getElementById('sla-indicator');
   if (!indicator) return;
-
   const slas = (typeof SLA_DEFAULTS !== 'undefined') ? SLA_DEFAULTS : [];
   if (slas.length === 0) return;
 
@@ -3698,31 +3657,22 @@ function evaluateSLAs() {
   const issues = (state.issues || []).filter(i => (!i.status || i.status === 'open'));
   const liveFeed = state.liveFeed || [];
 
-  // Compute current values
   const values = {};
   if (run) {
     const total = run.total || 1;
-    const passCount = run.grade_pass_count || run.passed_60 || 0;
-    values.grade_pass_rate = (passCount / total * 100);
+    values.grade_pass_rate = ((run.grade_pass_count || run.passed_60 || 0) / total * 100);
     values.avg_dm = Number(run.avg_dm) || 0;
   }
   values.p0_count = issues.filter(i => i.severity === 'P0').length;
-
-  // Response time from live feed
   const recentQueries = liveFeed.slice(0, 50);
   const responseTimes = recentQueries.map(q => q.response_time_ms).filter(Boolean).sort((a, b) => a - b);
   values.p95_response = responseTimes.length > 0 ? responseTimes[Math.floor(responseTimes.length * 0.95)] : 0;
-  values.fallback_rate = recentQueries.length > 0
-    ? (recentQueries.filter(q => q.was_fallback).length / recentQueries.length * 100)
-    : 0;
+  values.fallback_rate = recentQueries.length > 0 ? (recentQueries.filter(q => q.was_fallback).length / recentQueries.length * 100) : 0;
 
-  // Evaluate each SLA
-  let breaches = 0;
-  let warns = 0;
+  let breaches = 0, warns = 0;
   const results = slas.map(sla => {
     const val = values[sla.id];
     if (val == null) return { ...sla, value: null, status: 'unknown' };
-
     let status = 'ok';
     if (sla.direction === 'above') {
       if (val < sla.threshold) { status = 'breach'; breaches++; }
@@ -3731,18 +3681,13 @@ function evaluateSLAs() {
       if (val > sla.threshold) { status = 'breach'; breaches++; }
       else if (val > sla.warn) { status = 'warn'; warns++; }
     }
-
     return { ...sla, value: val, status };
   });
 
-  // Store for panel rendering
   state.slaResults = results;
-
-  // Update indicator
   indicator.style.display = '';
   const iconEl = document.getElementById('sla-indicator-icon');
   const countEl = document.getElementById('sla-indicator-count');
-
   if (breaches > 0) {
     indicator.className = 'cc-sla-indicator cc-sla-indicator--breach';
     if (iconEl) iconEl.textContent = '\u26A0';
@@ -3761,30 +3706,17 @@ function evaluateSLAs() {
 function toggleSlaPanel() {
   const panel = document.getElementById('sla-panel');
   if (!panel) return;
-
-  if (panel.style.display === 'none') {
-    panel.style.display = '';
-    renderSlaPanel();
-  } else {
-    panel.style.display = 'none';
-  }
+  if (panel.style.display === 'none') { panel.style.display = ''; renderSlaPanel(); }
+  else { panel.style.display = 'none'; }
 }
 
 function renderSlaPanel() {
   const body = document.getElementById('sla-panel-body');
   if (!body || !state.slaResults) return;
-
   body.innerHTML = state.slaResults.map(sla => {
-    const valDisplay = sla.value != null
-      ? (Number.isInteger(sla.value) ? sla.value : sla.value.toFixed(1)) + (sla.unit || '')
-      : '--';
+    const valDisplay = sla.value != null ? (Number.isInteger(sla.value) ? sla.value : sla.value.toFixed(1)) + (sla.unit || '') : '--';
     const threshDisplay = sla.threshold + (sla.unit || '');
-    return `<div class="cc-sla-row">
-      <span class="cc-sla-row__name">${sla.name}</span>
-      <span class="cc-sla-row__value ${sla.status === 'ok' ? 'rag-green' : sla.status === 'warn' ? 'rag-amber' : sla.status === 'breach' ? 'rag-red' : ''}">${valDisplay}</span>
-      <span class="cc-sla-row__threshold" style="font-size:var(--cc-type-2xs);color:var(--cc-text-3)">${sla.direction === 'above' ? '\u2265' : '\u2264'} ${threshDisplay}</span>
-      <span class="cc-sla-row__status cc-sla-row__status--${sla.status}"></span>
-    </div>`;
+    return `<div class="cc-sla-row"><span class="cc-sla-row__name">${sla.name}</span><span class="cc-sla-row__value ${sla.status === 'ok' ? 'rag-green' : sla.status === 'warn' ? 'rag-amber' : sla.status === 'breach' ? 'rag-red' : ''}">${valDisplay}</span><span style="font-size:var(--cc-type-2xs);color:var(--cc-text-3)">${sla.direction === 'above' ? '\u2265' : '\u2264'} ${threshDisplay}</span><span class="cc-sla-row__status cc-sla-row__status--${sla.status}"></span></div>`;
   }).join('');
 }
 
@@ -3793,15 +3725,12 @@ function renderSlaPanel() {
 // ═══════════════════════════════════════════════════════════════════
 
 function updateTabBadges() {
-  // Test tab: gap count from latest run
   const testBadge = document.getElementById('tab-test-badge');
   if (testBadge) {
     const gaps = state.latestRun?.gap_count || 0;
     testBadge.textContent = gaps > 0 ? gaps : '';
     testBadge.style.display = gaps > 0 ? '' : 'none';
   }
-
-  // Live tab: queries in last hour
   const liveBadge = document.getElementById('tab-live-badge');
   if (liveBadge) {
     const oneHourAgo = new Date(Date.now() - 3600000).toISOString();
@@ -3809,13 +3738,234 @@ function updateTabBadges() {
     liveBadge.textContent = recentCount > 0 ? recentCount : '';
     liveBadge.style.display = recentCount > 0 ? '' : 'none';
   }
-
-  // Issues tab: open P0+P1 count
   const issuesBadge = document.getElementById('tab-issues-badge');
   if (issuesBadge) {
-    const openIssues = (state.issues || []).filter(i => (!i.status || i.status === 'open'));
-    const urgent = openIssues.filter(i => i.severity === 'P0' || i.severity === 'P1');
+    const urgent = (state.issues || []).filter(i => (!i.status || i.status === 'open') && (i.severity === 'P0' || i.severity === 'P1'));
     issuesBadge.textContent = urgent.length > 0 ? urgent.length : '';
     issuesBadge.style.display = urgent.length > 0 ? '' : 'none';
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Trend Timeline (Phase 5)
+// ═══════════════════════════════════════════════════════════════════
+
+function renderTrendChart() {
+  const container = document.getElementById('trend-chart');
+  if (!container) return;
+  const trend = state.trendData || [];
+  if (trend.length < 2) { container.style.display = 'none'; return; }
+  container.style.display = '';
+
+  const data = trend.slice().reverse(); // oldest first
+  const w = container.clientWidth - 32;
+  const h = 80;
+  const padX = 24, padY = 8;
+
+  // DM line
+  const dmValues = data.map(r => Number(r.avg_dm) || 0);
+  const maxDm = Math.max(...dmValues, 80);
+  const minDm = Math.min(...dmValues, 50);
+  const range = maxDm - minDm || 1;
+
+  const points = dmValues.map((v, i) => {
+    const x = padX + (i / Math.max(data.length - 1, 1)) * (w - 2 * padX);
+    const y = padY + (1 - (v - minDm) / range) * (h - 2 * padY);
+    return { x, y, v, run: data[i] };
+  });
+
+  const linePoints = points.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+  const areaPoints = `${points[0].x.toFixed(1)},${h} ${linePoints} ${points[points.length - 1].x.toFixed(1)},${h}`;
+
+  // Pass rate line (secondary)
+  const passValues = data.map(r => {
+    const total = r.total || 1;
+    const passed = r.grade_pass_count || r.passed_60 || 0;
+    return (passed / total * 100);
+  });
+  const maxPass = 100, minPass = Math.min(...passValues, 50);
+  const passRange = maxPass - minPass || 1;
+  const passPoints = passValues.map((v, i) => {
+    const x = padX + (i / Math.max(data.length - 1, 1)) * (w - 2 * padX);
+    const y = padY + (1 - (v - minPass) / passRange) * (h - 2 * padY);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+
+  const gid = 'tg' + Math.random().toString(36).slice(2, 7);
+
+  let svg = `<svg viewBox="0 0 ${w + 32} ${h + 16}" preserveAspectRatio="none" style="width:100%;height:100%">
+    <defs>
+      <linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="var(--cc-accent)" stop-opacity="0.2"/>
+        <stop offset="100%" stop-color="var(--cc-accent)" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <polygon points="${areaPoints}" fill="url(#${gid})"/>
+    <polyline points="${linePoints}" fill="none" stroke="var(--cc-accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <polyline points="${passPoints}" fill="none" stroke="var(--cc-green)" stroke-width="1.5" stroke-dasharray="4,3" stroke-linecap="round" opacity="0.6"/>`;
+
+  // Dots for each run
+  points.forEach((p, i) => {
+    const isAnomaly = p.run.delta_avg_dm != null && p.run.delta_avg_dm < -3;
+    const color = isAnomaly ? 'var(--cc-red)' : 'var(--cc-accent)';
+    svg += `<circle class="cc-trend-chart__dot" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3" fill="${color}" stroke="var(--cc-bg)" stroke-width="1.5" data-idx="${i}" onmouseenter="showTrendTooltip(event,${i})" onmouseleave="hideTrendTooltip()"/>`;
+  });
+
+  // Axis labels
+  svg += `<text x="${padX}" y="${h + 12}" fill="var(--cc-text-3)" font-size="9" font-family="var(--cc-mono)">${Math.round(minDm)}</text>`;
+  svg += `<text x="${padX}" y="${padY - 1}" fill="var(--cc-text-3)" font-size="9" font-family="var(--cc-mono)">${Math.round(maxDm)}</text>`;
+  svg += `</svg>`;
+
+  // Keep tooltip div
+  const tooltip = container.querySelector('.cc-trend-chart__tooltip');
+  container.innerHTML = svg;
+  if (tooltip) container.appendChild(tooltip);
+  else {
+    const tt = document.createElement('div');
+    tt.className = 'cc-trend-chart__tooltip';
+    tt.id = 'trend-tooltip';
+    container.appendChild(tt);
+  }
+
+  // Store data for tooltip
+  container._trendData = data;
+  container._points = points;
+}
+
+function showTrendTooltip(event, idx) {
+  const container = document.getElementById('trend-chart');
+  const tooltip = document.getElementById('trend-tooltip');
+  if (!container || !tooltip || !container._trendData) return;
+  const run = container._trendData[idx];
+  const pt = container._points[idx];
+  if (!run) return;
+
+  const date = new Date(run.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const dm = Math.round(Number(run.avg_dm) || 0);
+  const delta = run.delta_avg_dm != null ? (run.delta_avg_dm > 0 ? '+' : '') + Math.round(run.delta_avg_dm * 10) / 10 : '';
+  const mode = run.mode || 'test';
+
+  tooltip.innerHTML = `<strong>${dm}</strong> DM ${delta ? `<span class="${run.delta_avg_dm >= 0 ? 'rag-green' : 'rag-red'}">${delta}</span>` : ''}<br>${mode} &middot; ${date}`;
+  tooltip.classList.add('cc-trend-chart__tooltip--visible');
+
+  const rect = container.getBoundingClientRect();
+  tooltip.style.left = Math.min(pt.x, rect.width - 150) + 'px';
+  tooltip.style.top = Math.max(0, pt.y - 50) + 'px';
+}
+
+function hideTrendTooltip() {
+  const tooltip = document.getElementById('trend-tooltip');
+  if (tooltip) tooltip.classList.remove('cc-trend-chart__tooltip--visible');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Quick Query Promoted (Phase 4)
+// ═══════════════════════════════════════════════════════════════════
+
+const PLACEHOLDER_QUERIES = [
+  'romantic Italian dinner',
+  'best tacos near Wicker Park',
+  'quiet brunch spot',
+  'speakeasy with craft cocktails',
+  'family-friendly deep dish',
+  'outdoor rooftop bar',
+  'BYOB sushi',
+  'late night ramen',
+];
+let placeholderIdx = 0;
+let placeholderTimer = null;
+
+function startPlaceholderRotation() {
+  const input = document.getElementById('promoted-query-input');
+  if (!input) return;
+  placeholderTimer = setInterval(() => {
+    placeholderIdx = (placeholderIdx + 1) % PLACEHOLDER_QUERIES.length;
+    input.placeholder = PLACEHOLDER_QUERIES[placeholderIdx];
+  }, 5000);
+}
+
+function runPromotedQuery() {
+  const input = document.getElementById('promoted-query-input');
+  const resultEl = document.getElementById('promoted-query-result');
+  const query = input?.value?.trim();
+  if (!query) return;
+  hideSuggestions();
+  resultEl.style.display = '';
+  resultEl.innerHTML = '<div class="cc-skeleton--inline" style="width:100%;height:50px"></div>';
+  callAPI(query).then(resp => {
+    const dm = resp.donde_match || 0;
+    const fit = typeof computeScoreFitGrade === 'function' ? computeScoreFitGrade(query, resp) : { score: 0, grade: '-' };
+    const blurb = typeof computeBlurbQualityGrade === 'function' ? computeBlurbQualityGrade(query, resp) : { score: 0, grade: '-' };
+    const sv9 = resp.scoring_v9 || {};
+    resultEl.innerHTML = `<div class="cc-quick-result"><div class="cc-quick-result__header"><span class="cc-quick-result__name">${escapeHtml(resp.restaurant?.name || 'Unknown')}</span><span class="cc-quick-result__dm ${ragClass(dm)}">${dm}</span></div><div class="cc-quick-result__grades">Fit: <span class="cc-grade-pill cc-grade-pill--${typeof gradeColorClass === 'function' ? gradeColorClass(fit.grade) : 'blue'}">${fit.grade}</span> Blurb: <span class="cc-grade-pill cc-grade-pill--${typeof gradeColorClass === 'function' ? gradeColorClass(blurb.grade) : 'blue'}">${blurb.grade}</span> ${sv9.relevance_type || ''}</div><div class="cc-quick-result__factors" style="font-family:var(--cc-mono);font-size:var(--cc-type-2xs);color:var(--cc-text-2);margin-top:4px">F:${r1(sv9.food||0)} V:${r1(sv9.vibe||0)} S:${r1(sv9.service||0)} R:${r1(sv9.reputation||0)} C:${r1(sv9.convenience||0)}</div></div>`;
+  }).catch(e => {
+    resultEl.innerHTML = `<div class="cc-quick-result cc-quick-result--error">Error: ${escapeHtml(e.message?.slice(0,60) || 'Unknown')}</div>`;
+  });
+}
+
+function showQuerySuggestions(val) {
+  const sugEl = document.getElementById('query-suggestions');
+  if (!sugEl) return;
+  if (!val || val.length < 2) { sugEl.style.display = 'none'; return; }
+  const issues = (state.issues || []).filter(i => (!i.status || i.status === 'open'));
+  const matches = issues.filter(i => i.query && i.query.toLowerCase().includes(val.toLowerCase())).slice(0, 5);
+  if (matches.length === 0) { sugEl.style.display = 'none'; return; }
+  sugEl.style.display = '';
+  sugEl.innerHTML = matches.map(m =>
+    `<div class="cc-quick-query__suggestion" onclick="selectSuggestion('${escapeHtml(m.query).replace(/'/g, "\\'")}')"><span>${escapeHtml(m.query)}</span><span class="cc-quick-query__suggestion-dm ${ragClass(m.dm)}">${m.dm}</span></div>`
+  ).join('');
+}
+
+function selectSuggestion(query) {
+  const input = document.getElementById('promoted-query-input');
+  if (input) { input.value = query; }
+  hideSuggestions();
+  runPromotedQuery();
+}
+
+function hideSuggestions() {
+  const sugEl = document.getElementById('query-suggestions');
+  if (sugEl) sugEl.style.display = 'none';
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Keyboard Shortcut Hints (Phase 4)
+// ═══════════════════════════════════════════════════════════════════
+
+function initShortcutHints() {
+  const hints = [
+    { selector: '[data-test="broad"]', key: 'S', label: 'Start/Stop' },
+    { selector: '.cc-header__back', key: 'Esc', label: 'Back' },
+  ];
+  hints.forEach(({ selector, key, label }) => {
+    const el = document.querySelector(selector);
+    if (!el) return;
+    el.style.position = 'relative';
+    let timer;
+    el.addEventListener('mouseenter', () => {
+      timer = setTimeout(() => {
+        let hint = el.querySelector('.cc-shortcut-hint');
+        if (!hint) {
+          hint = document.createElement('span');
+          hint.className = 'cc-shortcut-hint';
+          hint.innerHTML = `${label} <kbd>${key}</kbd>`;
+          el.appendChild(hint);
+        }
+        hint.classList.add('cc-shortcut-hint--visible');
+      }, 1500);
+    });
+    el.addEventListener('mouseleave', () => {
+      clearTimeout(timer);
+      const hint = el.querySelector('.cc-shortcut-hint');
+      if (hint) hint.classList.remove('cc-shortcut-hint--visible');
+    });
+  });
+}
+
+// Init placeholder rotation and shortcut hints after DOM ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => { startPlaceholderRotation(); initShortcutHints(); });
+} else {
+  startPlaceholderRotation();
+  initShortcutHints();
 }
