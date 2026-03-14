@@ -389,6 +389,49 @@ const CMD_PALETTE_COMMANDS = [
   { cat: 'Tests', icon: '\uD83D\uDDE1', name: 'Run Edge Cases', action: () => startTest('edge') },
 ];
 
+// ═══════════════════════════════════════════════════════════════════
+// Live API Toggle (moved from cc-agents.js — that file is not loaded)
+// ═══════════════════════════════════════════════════════════════════
+
+function toggleLiveAPI() {
+  state.liveAPI = !state.liveAPI;
+  saveSession();
+  updateLiveAPIUI();
+  updateTestCosts();
+}
+
+function updateLiveAPIUI() {
+  const btn = document.getElementById('live-api-toggle');
+  const dot = document.getElementById('live-api-dot');
+  const label = document.getElementById('live-api-label');
+  if (!btn || !label) return;
+  if (state.liveAPI) {
+    btn.classList.remove('cc-live-toggle__btn--off');
+    btn.classList.add('cc-live-toggle__btn--on');
+    label.textContent = 'LIVE API';
+  } else {
+    btn.classList.remove('cc-live-toggle__btn--on');
+    btn.classList.add('cc-live-toggle__btn--off');
+    label.textContent = 'Scoring Only';
+  }
+  // Sync mobile badge
+  const mobileBadge = document.getElementById('mobile-live-badge');
+  if (mobileBadge) mobileBadge.textContent = state.liveAPI ? 'On' : 'Off';
+}
+
+function updateTestCosts() {
+  const cards = document.querySelectorAll('.cc-test-card[data-test]');
+  cards.forEach(card => {
+    const type = card.dataset.test;
+    const meta = card.querySelector('.cc-test-card__meta');
+    if (meta && TEST_TYPES[type]) {
+      const cost = getTestCost(type);
+      const time = TEST_TYPES[type].time;
+      meta.textContent = `${cost} \u00B7 ${time}`;
+    }
+  });
+}
+
 // Toast for CC (share.js not loaded here)
 function showToast(message) {
   let toast = document.getElementById('cc-toast');

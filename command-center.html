@@ -53,8 +53,8 @@
         <span class="cc-sla-indicator__count" id="sla-indicator-count"></span>
       </button>
       <div class="cc-header__status">
-        <span class="cc-header__dot cc-header__dot--offline" id="status-dot"></span>
-        <span class="cc-header__status-text" id="status-text">Offline</span>
+        <span class="cc-header__dot" id="status-dot"></span>
+        <span class="cc-header__status-text" id="status-text">Checking...</span>
         <span class="cc-freshness" id="data-freshness"></span>
       </div>
       <a href="index.html" class="cc-header__back">Back to Donde</a>
@@ -98,7 +98,7 @@
   <!-- ═══ Auth Gate ═══ -->
   <div id="auth-gate" style="display:none">
     <div class="cc-auth">
-      <h2 class="cc-auth__title">Access Denied</h2>
+      <h2 class="cc-auth__title">Sign In Required</h2>
       <p class="cc-auth__message" id="auth-message">Sign in with your Google account to continue.</p>
       <button class="cc-btn cc-btn--primary" id="auth-sign-in">Sign in with Google</button>
     </div>
@@ -246,21 +246,21 @@
           <div class="cc-test-card__icon">&#9654;</div>
           <div class="cc-test-card__name">Broad Scan</div>
           <div class="cc-test-card__desc" id="broad-desc">20 random queries across all categories</div>
-          <div class="cc-test-card__meta" id="broad-meta">~$0.20 &middot; ~2 min</div>
+          <div class="cc-test-card__meta" id="broad-meta">$0.00 &middot; ~2 min</div>
         </button>
         <button class="cc-test-card" data-test="category" onclick="startTest('category')">
           <span class="cc-test-card__gear" onclick="event.stopPropagation();toggleConfig('category')" title="Configure">&#9881;</span>
           <div class="cc-test-card__icon">&#9632;</div>
           <div class="cc-test-card__name">Category Focus</div>
           <div class="cc-test-card__desc" id="category-desc">15 queries from selected categories</div>
-          <div class="cc-test-card__meta" id="category-meta">~$0.15 &middot; ~1 min</div>
+          <div class="cc-test-card__meta" id="category-meta">$0.00 &middot; ~1 min</div>
         </button>
         <button class="cc-test-card" data-test="regression" onclick="startTest('regression')">
           <span class="cc-test-card__gear" onclick="event.stopPropagation();toggleConfig('regression')" title="Configure">&#9881;</span>
           <div class="cc-test-card__icon">&#9888;</div>
           <div class="cc-test-card__name">Regression Guard</div>
           <div class="cc-test-card__desc">23 golden queries with baseline scores</div>
-          <div class="cc-test-card__meta" id="regression-meta">~$0.25 &middot; ~3 min</div>
+          <div class="cc-test-card__meta" id="regression-meta">$0.00 &middot; ~3 min</div>
         </button>
         <!-- Inline config panel (moves below active card) -->
         <div class="cc-config-panel" id="config-panel"></div>
