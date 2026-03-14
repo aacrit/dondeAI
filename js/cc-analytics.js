@@ -109,6 +109,14 @@ async function initDashboard() {
     briefEl.innerHTML = `<div class="cc-briefing-text">${briefing}</div>`;
   }
 
+  // Premium Overhaul: Morning Brief, Header Action, Tab Badges, Impact Sim, SLA, Trend
+  if (typeof renderMorningBrief === 'function') renderMorningBrief();
+  if (typeof updateHeaderAction === 'function') updateHeaderAction();
+  if (typeof updateTabBadges === 'function') updateTabBadges();
+  if (typeof renderImpactSimulator === 'function') renderImpactSimulator();
+  if (typeof evaluateSLAs === 'function') evaluateSLAs();
+  if (typeof renderTrendChart === 'function') renderTrendChart();
+
   // Restore auto-refresh if it was enabled
   if (state.autoRefresh && typeof startAutoRefresh === 'function') {
     startAutoRefresh();
