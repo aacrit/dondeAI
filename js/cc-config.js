@@ -415,12 +415,12 @@ function updateLiveAPIUI() {
   if (!btn || !label) return;
   btn.setAttribute('aria-pressed', state.liveAPI ? 'true' : 'false');
   if (state.liveAPI) {
-    btn.classList.remove('cc-live-toggle__btn--off');
-    btn.classList.add('cc-live-toggle__btn--on');
+    btn.classList.remove('mc-live-toggle__btn--off');
+    btn.classList.add('mc-live-toggle__btn--on');
     label.textContent = 'LIVE API';
   } else {
-    btn.classList.remove('cc-live-toggle__btn--on');
-    btn.classList.add('cc-live-toggle__btn--off');
+    btn.classList.remove('mc-live-toggle__btn--on');
+    btn.classList.add('mc-live-toggle__btn--off');
     label.textContent = 'Scoring Only';
   }
   // Sync mobile badge
@@ -443,15 +443,15 @@ function updateTestCosts() {
 
 // Toast for CC (share.js not loaded here)
 function showToast(message) {
-  let toast = document.getElementById('cc-toast');
+  let toast = document.getElementById('mc-toast');
   if (!toast) {
     toast = document.createElement('div');
-    toast.id = 'cc-toast';
-    toast.className = 'cc-toast';
+    toast.id = 'mc-toast';
+    toast.className = 'mc-toast';
     document.body.appendChild(toast);
   }
   toast.textContent = message;
-  toast.classList.add('cc-toast--visible');
+  toast.classList.add('mc-toast--visible');
   clearTimeout(toast._timer);
-  toast._timer = setTimeout(() => toast.classList.remove('cc-toast--visible'), 2500);
+  toast._timer = setTimeout(() => toast.classList.remove('mc-toast--visible'), 2500);
 }

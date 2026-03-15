@@ -348,6 +348,18 @@ a {
   color: var(--cc-text3);
 }
 
+.mc-grade__dist {
+  display: flex;
+  gap: 2px;
+  margin-left: auto;
+}
+.mc-grade__dist-bar {
+  width: 4px;
+  border-radius: 2px;
+  min-height: 8px;
+  max-height: 24px;
+}
+
 /* ─── 12. Board Sections ─── */
 .mc-section__title {
   font-size: var(--text-xs);
@@ -446,7 +458,7 @@ a {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 200px;
+  max-width: 70%;
 }
 
 .mc-feed-item__score {
@@ -581,6 +593,12 @@ a {
   color: var(--cc-accent);
 }
 
+.mc-chip:focus-visible {
+  outline: 2px solid var(--cc-accent);
+  outline-offset: 2px;
+  background: var(--cc-accent-soft);
+}
+
 /* Terminal input row */
 .mc-terminal__input-row {
   display: flex;
@@ -670,8 +688,42 @@ a {
   pointer-events: auto;
 }
 
-/* ─── 20. Mobile Responsive ─── */
+/* ─── 20. Loading Skeleton Shimmer ─── */
+@keyframes mc-shimmer {
+  0% { background-position: -200px 0; }
+  100% { background-position: 200px 0; }
+}
+.mc-pulse-card--loading .mc-pulse-card__value {
+  background: linear-gradient(90deg, var(--cc-surface2) 25%, var(--cc-surface3) 50%, var(--cc-surface2) 75%);
+  background-size: 400px 100%;
+  animation: mc-shimmer 1.5s infinite linear;
+  color: transparent;
+  border-radius: var(--radius-sm);
+}
+
+/* ─── 21. Test Pulse Animation ─── */
+@keyframes mc-test-pulse {
+  0%, 100% { border-left-color: var(--cc-accent); }
+  50% { border-left-color: var(--cc-blue); }
+}
+.mc-board--testing {
+  animation: mc-test-pulse 2s ease-in-out infinite;
+  border-left-color: var(--cc-accent);
+}
+
+/* ─── 22. Agent Status Dot Pulse ─── */
+@keyframes mc-dot-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+.mc-div-dot--active {
+  animation: mc-dot-pulse 1.5s ease-in-out infinite;
+}
+
+/* ─── 23. Mobile Responsive ─── */
 @media (max-width: 768px) {
+  body { overflow-y: auto; }
+
   :root {
     --board-w: 100%;
   }
@@ -699,7 +751,7 @@ a {
   }
 
   .mc-feed-item__query {
-    max-width: 140px;
+    max-width: 60%;
   }
 
   .mc-header__back {
@@ -717,7 +769,24 @@ a {
   }
 }
 
-/* ─── 21. Reduced Motion ─── */
+@media (max-width: 375px) {
+  .mc-pulse-card { padding: var(--space-sm); }
+  .mc-pulse-card__value { font-size: var(--text-lg); }
+  .mc-grade { padding: var(--space-sm) var(--space-md); }
+  .mc-grade__letter { font-size: var(--text-xl); }
+  .mc-terminal__input { font-size: var(--text-xs); }
+  .mc-chips { gap: var(--space-xs); }
+  .mc-chip { padding: 3px 8px; font-size: 10px; }
+}
+
+@media (max-width: 320px) {
+  .mc-pulse { gap: var(--space-xs); }
+  .mc-pulse-card__value { font-size: var(--text-base); }
+  .mc-feed-item__query { max-width: 120px; }
+  .mc-header__logo span { display: none; }
+}
+
+/* ─── 24. Reduced Motion ─── */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

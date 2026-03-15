@@ -123,6 +123,13 @@ const COO_COMMANDS = [
     chip: null,
   },
   {
+    id: 'export',
+    patterns: [/export/i, /download/i, /share/i],
+    action: cmdExport,
+    description: 'Export latest run results as CSV',
+    chip: null,
+  },
+  {
     id: 'deploy',
     patterns: [/deploy/i, /ship/i, /push/i],
     action: cmdDeploy,
@@ -226,6 +233,8 @@ function initCOOTerminal() {
   $input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
+      const $sug = document.getElementById('coo-suggestions');
+      if ($sug) $sug.style.display = 'none';
       processCOOInput($input.value);
       $input.value = '';
     }
@@ -248,6 +257,18 @@ function initCOOTerminal() {
         $input.value = '';
       }
     }
+  });
+
+  $input.addEventListener('input', () => {
+    showCOOSuggestions($input.value);
+  });
+
+  $input.addEventListener('blur', () => {
+    // Delay hiding so click events on suggestions can fire
+    setTimeout(() => {
+      const $sug = document.getElementById('coo-suggestions');
+      if ($sug) $sug.style.display = 'none';
+    }, 150);
   });
 
   // Quick-action chips
@@ -349,24 +370,45 @@ function renderAgentStatus() {
   );
   const p0 = issues.filter((i) => i.gap_severity === 'P0').length;
 
+  // Infra: check pipeline statuses
+  let infraHealth = 'green', infraMetric = 'OK', infraActive = false;
+  const pipelines = state.pipelineStatuses || {};
+  for (const op of Object.keys(pipelines)) {
+    const ps = pipelines[op];
+    if (ps && ps.status === 'failed') { infraHealth = 'red'; infraMetric = 'Failed'; break; }
+    if (ps && ps.status === 'running') { infraHealth = 'amber'; infraMetric = 'Running'; infraActive = true; }
+  }
+
+  // Frontend: check active test
+  let frontendHealth = 'green', frontendMetric = 'OK', frontendActive = false;
+  if (state.activeTest) { frontendHealth = 'amber'; frontendMetric = 'Testing'; frontendActive = true; }
+
+  // Security: check issues for security category
+  let securityHealth = 'green', securityMetric = 'OK';
+  const secIssues = (state.issues || []).filter(
+    (i) => (!i.status || i.status === 'open') && i.category && i.category.toLowerCase().includes('security')
+  );
+  if (secIssues.length > 0) { securityHealth = 'amber'; securityMetric = `${secIssues.length} issue${secIssues.length > 1 ? 's' : ''}`; }
+
   const divisions = [
     {
       name: 'Quality',
       health:
         p0 > 0 ? 'red' : run && Number(run.avg_dm) >= 75 ? 'green' : 'amber',
       metric: run ? `DM ${Math.round(run.avg_dm)}` : '--',
+      active: false,
     },
-    { name: 'Infra', health: 'green', metric: 'OK' },
-    { name: 'Frontend', health: 'green', metric: 'OK' },
-    { name: 'Product', health: 'green', metric: 'Idle' },
-    { name: 'Security', health: 'green', metric: 'OK' },
+    { name: 'Infra', health: infraHealth, metric: infraMetric, active: infraActive },
+    { name: 'Frontend', health: frontendHealth, metric: frontendMetric, active: frontendActive },
+    { name: 'Product', health: 'green', metric: 'Idle', active: false },
+    { name: 'Security', health: securityHealth, metric: securityMetric, active: false },
   ];
 
   el.innerHTML = divisions
     .map(
       (d) => `
     <div class="mc-div-row">
-      <span class="mc-div-dot mc-div-dot--${d.health}"></span>
+      <span class="mc-div-dot mc-div-dot--${d.health}${d.active ? ' mc-div-dot--active' : ''}"></span>
       <span class="mc-div-name">${d.name}</span>
       <span class="mc-div-metric">${d.metric}</span>
     </div>`
@@ -811,6 +853,7 @@ function cmdHelp() {
   cooLog('info', 'db health     Show database overview');
   cooLog('info', 'compare       Compare last 2 test runs');
   cooLog('info', 'edge          Run edge case probes');
+  cooLog('info', 'export        Export latest run report to clipboard');
   cooLog('info', 'deploy        Show deploy command');
   cooLog('info', 'live feed     Show recent production queries');
   cooLog('info', 'clear         Clear terminal');
@@ -849,6 +892,94 @@ async function triggerPipeline(operation) {
   } catch (e) {
     cooLog('error', `Pipeline trigger failed: ${e.message}`);
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Command Handlers — Export
+// ═══════════════════════════════════════════════════════════════════
+
+async function cmdExport() {
+  const run = state.latestRun;
+  if (!run) { cooLog('warn', 'No run data to export.'); return; }
+
+  cooLog('action', 'Generating export...');
+
+  // Build summary text
+  const avgDm = Math.round(Number(run.avg_dm) || 0);
+  const avgFit = Math.round(Number(run.avg_score_fit) || 0);
+  const avgBlurb = Math.round(Number(run.avg_blurb_quality) || 0);
+  const passCount = run.grade_pass_count || run.passed_60 || 0;
+  const total = run.total || 1;
+  const passRate = Math.round(passCount / total * 100);
+  const grade = computeEngineGrade(run);
+  const date = new Date(run.created_at).toISOString().split('T')[0];
+
+  const summary = [
+    `DondeAI Mission Control — Report`,
+    `Date: ${date}`,
+    `Run: ${run.run_id}`,
+    ``,
+    `Engine Grade: ${grade}`,
+    `Avg DondeMatch: ${avgDm}`,
+    `Avg Score Fit: ${avgFit}`,
+    `Avg Blurb Quality: ${avgBlurb}`,
+    `Pass Rate: ${passRate}% (${passCount}/${total})`,
+    `Gaps: ${run.gap_count || 0}`,
+    `Mode: ${run.mode || 'test'}`,
+  ].join('\n');
+
+  // Copy to clipboard
+  try {
+    await navigator.clipboard.writeText(summary);
+    cooLog('success', 'Report copied to clipboard.');
+  } catch (e) {
+    cooLog('info', summary);
+    cooLog('info', '(Select and copy the above text)');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// COO Terminal Autocomplete
+// ═══════════════════════════════════════════════════════════════════
+
+function showCOOSuggestions(val) {
+  let $sug = document.getElementById('coo-suggestions');
+  if (!$sug) {
+    $sug = document.createElement('div');
+    $sug.id = 'coo-suggestions';
+    Object.assign($sug.style, {
+      position: 'absolute', bottom: '100%', left: '0', right: '0',
+      background: 'var(--cc-surface2)', border: '1px solid var(--cc-border)',
+      borderRadius: '4px', maxHeight: '180px', overflowY: 'auto',
+      display: 'none', zIndex: '10',
+    });
+    const inputRow = document.querySelector('.mc-terminal__input-row');
+    if (inputRow) { inputRow.style.position = 'relative'; inputRow.appendChild($sug); }
+  }
+
+  const trimmed = val.trim().toLowerCase();
+  if (!trimmed || trimmed.length < 2) { $sug.style.display = 'none'; return; }
+
+  const matches = COO_COMMANDS.filter(cmd => {
+    if (cmd.id.startsWith(trimmed)) return true;
+    if (cmd.description.toLowerCase().includes(trimmed)) return true;
+    return cmd.patterns.some(p => {
+      const src = p.source.replace(/[\\^$.*+?()[\]{}|]/g, '').toLowerCase();
+      return src.includes(trimmed);
+    });
+  }).slice(0, 5);
+
+  if (matches.length === 0) { $sug.style.display = 'none'; return; }
+
+  $sug.innerHTML = matches.map(cmd =>
+    `<div style="padding:4px 12px;cursor:pointer;font-size:12px;font-family:var(--font-mono);color:var(--cc-text2);border-bottom:1px solid var(--cc-border)"
+         onmouseover="this.style.background='var(--cc-accent-soft)'"
+         onmouseout="this.style.background=''"
+         onclick="document.getElementById('coo-input').value='${cmd.id}';processCOOInput('${cmd.id}');this.parentElement.style.display='none'">
+      <span style="color:var(--cc-accent)">${cmd.id}</span> — ${cmd.description}
+    </div>`
+  ).join('');
+  $sug.style.display = 'block';
 }
 
 // ═══════════════════════════════════════════════════════════════════

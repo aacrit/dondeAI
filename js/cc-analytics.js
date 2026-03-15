@@ -17,16 +17,34 @@ async function checkAuth() {
       document.getElementById('main-content').style.display = '';
       document.getElementById('auth-gate').style.display = 'none';
       initDashboard();
+
+      // Refresh session every 30 minutes
+      setInterval(async () => {
+        if (sbClient) {
+          try {
+            const { error } = await sbClient.auth.refreshSession();
+            if (error) console.warn('Session refresh failed:', error.message);
+          } catch (_) {}
+        }
+      }, 30 * 60 * 1000);
     } else {
       showAccessDenied(sb, session);
     }
   } catch (e) {
     console.warn('Auth check failed:', e);
-    // Still allow dashboard in dev mode
+    // Show error message to user
+    const msg = document.getElementById('auth-message');
+    if (msg) msg.textContent = 'Connection failed. Retrying...';
+    // Still try to initialize
     try {
       const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
       sbClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    } catch (_) {}
+    } catch (importErr) {
+      console.warn('Supabase import failed:', importErr);
+      const msg2 = document.getElementById('auth-message');
+      if (msg2) msg2.textContent = 'Unable to connect to DondeAI services. Check your network and refresh.';
+      return; // Don't init dashboard without connection
+    }
     initDashboard();
   }
 }
