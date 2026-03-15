@@ -29,7 +29,7 @@
   </div>
 
   <!-- ═══ Header ═══ -->
-  <header class="mc-header">
+  <header class="mc-header" role="banner">
     <div class="mc-header__left">
       <div class="mc-header__logo">
         <svg viewBox="0 0 32 44" width="16" height="22">
@@ -48,7 +48,7 @@
           <span class="mc-live-toggle__label" id="live-api-label">Scoring Only</span>
         </button>
       </div>
-      <span class="mc-health-dot" id="mc-health-dot" title="System health"></span>
+      <span class="mc-health-dot" id="mc-health-dot" title="System health" role="status" aria-label="System health indicator"></span>
       <a href="index.html" class="mc-header__back" title="Back to DondeAI">Back</a>
     </div>
   </header>
@@ -57,19 +57,19 @@
   <main class="mc-layout" id="main-content" style="display:none">
 
     <!-- ─── Left Panel: Mission Board ─── -->
-    <aside class="mc-board">
+    <aside class="mc-board" role="complementary" aria-label="Mission Board">
 
       <!-- Pulse Cards -->
       <div class="mc-pulse">
-        <div class="mc-pulse-card" id="pulse-health">
+        <div class="mc-pulse-card" id="pulse-health" role="status">
           <div class="mc-pulse-card__value rag-green" id="pulse-health-val">--</div>
           <div class="mc-pulse-card__label">Pass Rate</div>
         </div>
-        <div class="mc-pulse-card" id="pulse-dm">
+        <div class="mc-pulse-card" id="pulse-dm" role="status">
           <div class="mc-pulse-card__value" id="pulse-dm-val">--</div>
           <div class="mc-pulse-card__label">Avg DM</div>
         </div>
-        <div class="mc-pulse-card" id="pulse-issues">
+        <div class="mc-pulse-card" id="pulse-issues" role="status">
           <div class="mc-pulse-card__value" id="pulse-issues-val">--</div>
           <div class="mc-pulse-card__label">Issues</div>
         </div>
@@ -79,6 +79,7 @@
       <div class="mc-grade" id="mc-grade">
         <span class="mc-grade__letter" id="mc-grade-letter">--</span>
         <span class="mc-grade__sub" id="mc-grade-sub">Engine Grade</span>
+        <div class="mc-grade__dist" id="mc-grade-dist"></div>
       </div>
 
       <!-- Agent Divisions -->
@@ -106,17 +107,17 @@
     </aside>
 
     <!-- ─── Right Panel: COO Terminal ─── -->
-    <section class="mc-terminal">
+    <section class="mc-terminal" role="region" aria-label="COO Terminal">
       <div class="mc-terminal__header">
         <span class="mc-terminal__title">COO Terminal</span>
         <button class="mc-terminal__clear" onclick="cmdClear()" title="Clear">Clear</button>
       </div>
 
-      <div class="mc-terminal__output" id="coo-output">
+      <div class="mc-terminal__output" id="coo-output" role="log" aria-live="polite" aria-label="Terminal output">
       </div>
 
       <!-- Quick Action Chips -->
-      <div class="mc-chips">
+      <div class="mc-chips" role="toolbar" aria-label="Quick actions">
         <button class="mc-chip" data-coo-cmd="scan">Scan</button>
         <button class="mc-chip" data-coo-cmd="regression">Regression</button>
         <button class="mc-chip" data-coo-cmd="fix bugs">Fix Bugs</button>
@@ -135,14 +136,14 @@
   </main>
 
   <!-- ═══ Footer ═══ -->
-  <footer class="mc-footer" id="mc-footer">
+  <footer class="mc-footer" id="mc-footer" role="contentinfo">
     <span id="mc-footer-engine">Engine V18</span>
     <span class="mc-footer__sep">|</span>
     <span id="mc-footer-cache">Cache --</span>
     <span class="mc-footer__sep">|</span>
     <span id="mc-footer-latency">-- avg</span>
     <span class="mc-footer__sep">|</span>
-    <span>15 agents</span>
+    <span>16 agents</span>
   </footer>
 
   <!-- Dark pulse flash animation -->

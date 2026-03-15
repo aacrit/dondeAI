@@ -11,6 +11,9 @@ document.addEventListener('DOMContentLoaded', () => {
   checkAuth();
   if (typeof initCOOTerminal === 'function') initCOOTerminal();
   if (typeof updateLiveAPIUI === 'function') updateLiveAPIUI();
+
+  // Show loading state on pulse cards
+  document.querySelectorAll('.mc-pulse-card').forEach(c => c.classList.add('mc-pulse-card--loading'));
 });
 
 // ═══════════════════════════════════════════════════════════════════
@@ -19,6 +22,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function updatePulseFromRun(run) {
   if (!run) return;
+
+  // Remove loading skeleton
+  document.querySelectorAll('.mc-pulse-card').forEach(c => c.classList.remove('mc-pulse-card--loading'));
 
   const avgDm = Math.round(Number(run.avg_dm) || 0);
   const avgFit = Math.round(Number(run.avg_score_fit) || 0);
@@ -73,8 +79,55 @@ function updatePulseFromRun(run) {
     $board.classList.add(passRate >= 80 ? 'mc-board--green' : passRate >= 60 ? 'mc-board--amber' : 'mc-board--red');
   }
 
+  // Grade distribution bar
+  const $dist = document.getElementById('mc-grade-dist');
+  if ($dist && run.grade_distribution) {
+    const gd = typeof run.grade_distribution === 'string' ? JSON.parse(run.grade_distribution) : run.grade_distribution;
+    const grades = ['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D', 'F'];
+    const colors = { 'A+': '#22c55e', 'A': '#22c55e', 'A-': '#4ade80', 'B+': '#6366f1', 'B': '#6366f1', 'B-': '#818cf8', 'C+': '#f59e0b', 'C': '#f59e0b', 'C-': '#fbbf24', 'D': '#ef4444', 'F': '#ef4444' };
+    $dist.innerHTML = grades.filter(g => gd[g]).map(g => {
+      const count = gd[g] || 0;
+      const h = Math.max(4, Math.round((count / total) * 24));
+      return `<div class="mc-grade__dist-bar" style="height:${h}px;background:${colors[g]}" title="${g}: ${count}"></div>`;
+    }).join('');
+  }
+
+  // Sparklines from trend data
+  if (state.trendData && state.trendData.length >= 3) {
+    renderMiniSparkline('pulse-health', state.trendData.map(r => {
+      const t = r.total || 1;
+      const p = r.grade_pass_count || r.passed_60 || 0;
+      return Math.round(p / t * 100);
+    }));
+    renderMiniSparkline('pulse-dm', state.trendData.map(r => Math.round(Number(r.avg_dm) || 0)));
+  }
+
   // Store for COO terminal
   state.latestRun = run;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Sparkline Renderer
+// ═══════════════════════════════════════════════════════════════════
+
+function renderMiniSparkline(parentId, values) {
+  const $parent = document.getElementById(parentId);
+  if (!$parent) return;
+  let $spark = $parent.querySelector('.mc-sparkline');
+  if (!$spark) {
+    $spark = document.createElement('div');
+    $spark.className = 'mc-sparkline';
+    $spark.style.cssText = 'display:flex;align-items:flex-end;gap:1px;height:16px;margin-top:4px;justify-content:center';
+    $parent.appendChild($spark);
+  }
+  const max = Math.max(...values, 1);
+  const recent = values.slice(0, 8).reverse(); // oldest to newest, max 8 bars
+  $spark.innerHTML = recent.map((v, i) => {
+    const h = Math.max(2, Math.round((v / max) * 16));
+    const isLast = i === recent.length - 1;
+    const color = v >= 80 ? 'var(--cc-green)' : v >= 60 ? 'var(--cc-amber)' : 'var(--cc-red)';
+    return `<div style="width:3px;height:${h}px;background:${color};border-radius:1px;opacity:${isLast ? '1' : '0.4'}"></div>`;
+  }).join('');
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -168,12 +221,14 @@ function updateSystemStatus(text, color) {
 
 function appendResultRow(result) {
   if (typeof cooLog !== 'function') return;
-  const dm = result.donde_match || 0;
-  const name = result.restaurant?.name || '?';
-  const query = result._query || '';
-  const fitGrade = result._fitGrade || '';
-  const blurbGrade = result._blurbGrade || '';
-  const type = dm >= 70 ? 'success' : dm >= 50 ? 'warn' : 'error';
+  // Handle both cc-tests.js format (dm, query, restaurant as string, scoreFitGrade, blurbGrade)
+  // and raw API format (donde_match, restaurant as object, _query, _fitGrade, _blurbGrade)
+  const dm = result.dm ?? result.donde_match ?? 0;
+  const name = (typeof result.restaurant === 'string' ? result.restaurant : result.restaurant?.name) || '?';
+  const query = result.query || result._query || '';
+  const fitGrade = result.scoreFitGrade || result._fitGrade || '';
+  const blurbGrade = result.blurbGrade || result._blurbGrade || '';
+  const type = result.pass === true ? 'success' : result.pass === false ? (dm < 50 ? 'error' : 'warn') : (dm >= 70 ? 'success' : dm >= 50 ? 'warn' : 'error');
   cooLog(type, `"${query.slice(0, 35)}" → ${name} DM ${dm} | Fit: ${fitGrade} | Blurb: ${blurbGrade}`);
 }
 
@@ -183,12 +238,20 @@ function appendSummaryRow(name, total, passed, avgDm, elapsed, celebrate, testTy
   cooLog('info', '────────────────────────────────');
   cooLog(pct >= 80 ? 'success' : 'warn',
     `${name}: ${passed}/${total} passed (${pct}%), avg DM ${avgDm}, ${elapsed}`);
+
+  // Remove testing animation
+  const board = document.querySelector('.mc-board');
+  if (board) board.classList.remove('mc-board--testing');
 }
 
 function showTestProgress(name, current, total, avgDm) {
   // Minimal progress update in terminal
   if (typeof cooLog !== 'function') return;
-  if (current === 1) cooLog('action', `${name}: running... (${total} queries)`);
+  if (current === 1) {
+    cooLog('action', `${name}: running... (${total} queries)`);
+    const board = document.querySelector('.mc-board');
+    if (board) board.classList.add('mc-board--testing');
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════

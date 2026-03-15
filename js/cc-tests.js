@@ -4,87 +4,6 @@
  */
 
 // ═══════════════════════════════════════════════════════════════════
-// Terminal Logging
-// ═══════════════════════════════════════════════════════════════════
-
-function openTerminal() {
-  state.terminalOpen = true;
-  const el = document.getElementById('cc-terminal');
-  const bd = document.getElementById('terminal-backdrop');
-  if (el) el.classList.add('cc-terminal--open');
-  if (bd) bd.classList.add('cc-terminal__backdrop--visible');
-  // FAB: switch to close icon, reset unread
-  const fab = document.getElementById('terminal-fab');
-  if (fab) fab.classList.add('cc-terminal-fab--active');
-  state.unreadLogs = 0;
-  updateTerminalBadge();
-}
-
-function closeTerminal() {
-  state.terminalOpen = false;
-  const el = document.getElementById('cc-terminal');
-  const bd = document.getElementById('terminal-backdrop');
-  if (el) el.classList.remove('cc-terminal--open');
-  if (bd) bd.classList.remove('cc-terminal__backdrop--visible');
-  // FAB: switch back to terminal icon
-  const fab = document.getElementById('terminal-fab');
-  if (fab) fab.classList.remove('cc-terminal-fab--active');
-}
-
-function toggleTerminal() {
-  state.terminalOpen ? closeTerminal() : openTerminal();
-}
-
-function updateTerminalBadge() {
-  const badge = document.getElementById('terminal-badge');
-  if (!badge) return;
-  const count = state.unreadLogs || 0;
-  if (count > 0) {
-    badge.textContent = count > 99 ? '99+' : count;
-    badge.classList.add('cc-terminal-fab__badge--visible');
-    badge.classList.remove('cc-terminal-fab__badge--pop');
-    void badge.offsetWidth;
-    badge.classList.add('cc-terminal-fab__badge--pop');
-  } else {
-    badge.classList.remove('cc-terminal-fab__badge--visible');
-  }
-}
-
-function clearTerminal() {
-  const body = document.getElementById('terminal-output');
-  if (body) body.innerHTML = '';
-}
-
-function termLog(type, msg) {
-  const body = document.getElementById('terminal-output');
-  if (!body) return;
-
-  // Remove cursor from previous line
-  const prev = body.querySelector('.cc-term-cursor');
-  if (prev) prev.remove();
-
-  const prefix = { action: '→', success: '✓', warn: '⚠', error: '✗', info: '◆', system: '·' };
-  const time = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
-  const line = document.createElement('div');
-  line.className = `cc-term-line cc-term-line--${type}`;
-  line.textContent = `${time}  ${prefix[type] || '·'}  ${msg}`;
-
-  // Add blinking cursor to latest line
-  const cursor = document.createElement('span');
-  cursor.className = 'cc-term-cursor';
-  line.appendChild(cursor);
-
-  body.appendChild(line);
-  body.scrollTop = body.scrollHeight;
-
-  // Track unread logs when terminal is closed
-  if (!state.terminalOpen) {
-    state.unreadLogs = (state.unreadLogs || 0) + 1;
-    updateTerminalBadge();
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════
 // Ticker
 // ═══════════════════════════════════════════════════════════════════
 
@@ -113,32 +32,12 @@ function updateTicker(progress, total, avgDm, gaps) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// Dark Pulse
-// ═══════════════════════════════════════════════════════════════════
-
-function triggerDarkPulse() {
-  const el = document.getElementById('dark-pulse');
-  if (!el) return;
-  el.style.display = 'block';
-  el.style.animation = 'none';
-  void el.offsetWidth;
-  el.style.animation = '';
-  setTimeout(() => { el.style.display = 'none'; }, 700);
-}
-
-// ═══════════════════════════════════════════════════════════════════
 // Test Orchestrator
 // ═══════════════════════════════════════════════════════════════════
 
 function startTest(type) {
   if (state.activeTest) {
     stopTest();
-    return;
-  }
-
-  if (type === 'category') {
-    const picker = document.getElementById('cat-picker');
-    if (picker) picker.style.display = picker.style.display === 'none' ? 'flex' : 'none';
     return;
   }
 
@@ -151,10 +50,6 @@ function startTest(type) {
   showTicker();
   triggerDarkPulse();
   termLog('system', `Starting ${TEST_TYPES[type]?.name || type}...`);
-
-  // Show result search
-  const searchEl = document.getElementById('result-search');
-  if (searchEl) searchEl.style.display = 'flex';
 
   const runners = {
     broad: runBroadScan,
@@ -172,8 +67,6 @@ function startTest(type) {
 function runMultiCategoryTest() {
   const cats = state.selectedCategories;
   if (!cats.length) { showToast('Select at least one category'); return; }
-  const picker = document.getElementById('cat-picker');
-  if (picker) picker.style.display = 'none';
 
   state.lastTestType = 'category';
   state.lastTestConfig = { categories: [...cats] };
@@ -181,8 +74,6 @@ function runMultiCategoryTest() {
   showTicker();
   triggerDarkPulse();
   termLog('system', `Starting Category Focus: ${cats.join(', ')}...`);
-  const searchEl = document.getElementById('result-search');
-  if (searchEl) searchEl.style.display = 'flex';
   runCategoryFocus(cats);
 }
 
@@ -197,13 +88,6 @@ function finishTest() {
   if (!state.activeTest) return;
   const test = state.activeTest;
   state.activeTest = null;
-
-  // Update UI
-  const progress = document.getElementById('test-progress');
-  if (progress) progress.style.display = 'none';
-
-  // Re-enable test cards
-  document.querySelectorAll('.cc-test-card').forEach(c => c.classList.remove('cc-test-card--disabled'));
 
   // Hide ticker
   hideTicker();
@@ -247,15 +131,6 @@ function initTest(type, total) {
     results: [],
     startTime: Date.now(),
   };
-
-  // Disable other test cards
-  document.querySelectorAll('.cc-test-card').forEach(c => {
-    if (c.dataset.test !== type) c.classList.add('cc-test-card--disabled');
-  });
-
-  // Clear previous results
-  const stream = document.getElementById('result-stream');
-  if (stream) stream.innerHTML = '';
 
   // Show progress bar
   showTestProgress(TEST_TYPES[type]?.name || type, 0, total, 0);
