@@ -30,13 +30,18 @@ AI restaurant recommendations for Chicago. One craving in, one perfect spot out.
 
 | Skill | Purpose | Trigger |
 |-------|---------|---------|
+| `donde-coo` | **COO super-agent** — orchestrates all agents across both repos, runs quality cycles, reports to CEO | Auto on significant changes, manual |
 | `/frontenddesign` | UI/animation/layout enforcement (Ink Rule, 3-voice type, motion grammar, 10 themes, WCAG AA) | Auto on UI tasks |
 | `/ceo-advisor` | Strategic product advisor — Top 10 prioritized recommendations | Manual |
 | `/donde-premium-advisor` | Premium app audit (UI polish, backend, marketing psychology, Claude Code mastery) | Manual |
 | `/donde-ciso` | Security audit across 10 domains — severity-ranked findings with remediation | Manual or auto on security changes |
 | `/update-docs` | Scans codebase and updates all MD files to reflect current state | Auto when Claude judges changes are significant |
 
-All skills in `.claude/skills/`. Frontend design review checklist (7 points): accent usage, type voice, motion curve + symmetry, theme coverage, keyboard nav, reduced-motion, badge neutrality.
+All skills in `.claude/skills/`. COO agent in `.claude/agents/donde-coo.md`. Frontend design review checklist (7 points): accent usage, type voice, motion curve + symmetry, theme coverage, keyboard nav, reduced-motion, badge neutrality.
+
+## Agent Hierarchy
+
+The COO agent (`donde-coo`) orchestrates all operations across both repos. Frontend skills (`/frontenddesign`, `/ceo-advisor`, `/donde-premium-advisor`, `/donde-ciso`, `/update-docs`) report through the COO for coordination. COO agent definition: `.claude/agents/donde-coo.md` (this repo, mirror) + `../dondeBackend/.claude/agents/donde-coo.md` (canonical). See backend CLAUDE.md for the full org chart, 4 divisions, and team expansion plan.
 
 ## Design Philosophy — "Ink & Momentum" (V10, Locked)
 
