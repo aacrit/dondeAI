@@ -1355,7 +1355,7 @@ function renderCuisineDetails(data) {
 
   if (dp.menu_highlights?.length) {
     const bodyHTML = `<div class="cuisine-pill-group__items">${
-      dp.menu_highlights.map(item =>
+      dp.menu_highlights.slice(0, 6).map(item =>
         `<span class="cuisine-pill-group__item">${item}</span>`
       ).join('')
     }</div>`;
@@ -1364,7 +1364,7 @@ function renderCuisineDetails(data) {
 
   if (dp.flavor_profiles?.length) {
     const bodyHTML = `<div class="cuisine-pill-group__items">${
-      dp.flavor_profiles.map(f =>
+      dp.flavor_profiles.slice(0, 5).map(f =>
         `<span class="cuisine-pill-group__item">${f}</span>`
       ).join('')
     }</div>`;

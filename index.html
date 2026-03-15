@@ -84,7 +84,7 @@
         <span class="logo-tagline type-data--sm" aria-hidden="true">One Pick. Zero Stress.</span>
       </button>
       <span class="header__hood type-data--sm" id="header-hood" style="display: none;" aria-label="Neighborhood"></span>
-      <div class="header__actions">
+      <nav class="header__actions" aria-label="App controls">
         <button class="header__btn" data-action="toggle-sound" aria-label="Unmute sound" title="Sound">
           <!-- Speaker with waves (shown when sound ON) -->
           <svg class="sound-icon sound-icon--on" viewBox="0 0 256 256" width="20" height="20">
@@ -115,7 +115,7 @@
           <!-- Avatar image (shown when signed in) -->
           <img class="auth-icon auth-icon--avatar" id="auth-avatar-img" src="" alt="Account" width="24" height="24" style="display:none;">
         </button>
-      </div>
+      </nav>
     </header>
 
     <!-- SSO: User Menu Dropdown -->
@@ -564,7 +564,7 @@
               </button>
 
               <!-- ══════ CARD FOOTER — Row 1: Going + Try Another | Row 2: Feedback + Start Over ══════ -->
-              <div class="card-footer" id="card-footer">
+              <footer class="card-footer" id="card-footer">
                 <!-- ROW 1: Going + Try Another side by side -->
                 <div class="card-footer__primary-row">
                   <button class="going-btn type-structural" id="going-btn" data-action="going" aria-label="I'm going here">
@@ -598,7 +598,7 @@
                     <span class="start-over-link__text">Start Over</span>
                   </button>
                 </div>
-              </div>
+              </footer>
 
               <!-- User query echo — low priority, bottom of card -->
               <p class="craving-echo type-data--sm" id="craving-echo"></p>
