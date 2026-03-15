@@ -26,22 +26,42 @@ AI restaurant recommendations for Chicago. One craving in, one perfect spot out.
 | `docs/CEO-COMMAND-CENTER.md` | Admin dashboard architecture (agents, pipelines, data health) |
 | `_archive/VERSION-HISTORY.md` | Pre-V9/V10 specs, removed features, scoring evolution |
 
-## Skills
+## Agents & Skills
+
+### Frontend Division Agents (`.claude/agents/`)
+
+| Agent | Purpose | Trigger |
+|-------|---------|---------|
+| `frontend-builder` | Component engineering — takes specs, builds UI following Ink & Momentum | CEO directives, COO tasks |
+| `frontend-fixer` | UI bug remediation — root-cause grouping, surgical fixes across themes | UAT failures, visual bugs |
+| `css-theme-specialist` | 10 cultural theme variants — coverage audits, token management | New components, theme bugs |
+| `donde-coo` | **COO** (mirror) — orchestrates all agents across 5 divisions | Auto on significant changes, manual |
+
+### Skills (`.claude/skills/`)
 
 | Skill | Purpose | Trigger |
 |-------|---------|---------|
-| `donde-coo` | **COO super-agent** — orchestrates all agents across both repos, runs quality cycles, reports to CEO | Auto on significant changes, manual |
 | `/frontenddesign` | UI/animation/layout enforcement (Ink Rule, 3-voice type, motion grammar, 10 themes, WCAG AA) | Auto on UI tasks |
-| `/ceo-advisor` | Strategic product advisor — Top 10 prioritized recommendations | Manual |
-| `/donde-premium-advisor` | Premium app audit (UI polish, backend, marketing psychology, Claude Code mastery) | Manual |
-| `/donde-ciso` | Security audit across 10 domains — severity-ranked findings with remediation | Manual or auto on security changes |
-| `/update-docs` | Scans codebase and updates all MD files to reflect current state | Auto when Claude judges changes are significant |
+| `/ceo-advisor` | Strategic product advisor (stub → backend canonical) | Manual |
+| `/donde-premium-advisor` | Premium app audit (stub → backend canonical) | Manual |
+| `/donde-ciso` | Security audit (stub → backend canonical) | Manual or auto on security changes |
+| `/update-docs` | Documentation sync (stub → backend canonical) | Auto on significant changes |
 
-All skills in `.claude/skills/`. COO agent in `.claude/agents/donde-coo.md`. Frontend design review checklist (7 points): accent usage, type voice, motion curve + symmetry, theme coverage, keyboard nav, reduced-motion, badge neutrality.
+Frontend design review checklist (7 points): accent usage, type voice, motion curve + symmetry, theme coverage, keyboard nav, reduced-motion, badge neutrality.
 
 ## Agent Hierarchy
 
-The COO agent (`donde-coo`) orchestrates all operations across both repos. Frontend skills (`/frontenddesign`, `/ceo-advisor`, `/donde-premium-advisor`, `/donde-ciso`, `/update-docs`) report through the COO for coordination. COO agent definition: `.claude/agents/donde-coo.md` (this repo, mirror) + `../dondeBackend/.claude/agents/donde-coo.md` (canonical). See backend CLAUDE.md for the full org chart, 4 divisions, and team expansion plan.
+The COO (`donde-coo`) orchestrates all agents across **5 divisions**. Frontend execution agents (`frontend-builder`, `frontend-fixer`, `css-theme-specialist`) are the Frontend Division. Backend agents (11 total) handle Quality, Infrastructure, Product, and Security. COO canonical definition: `../dondeBackend/.claude/agents/donde-coo.md`.
+
+```
+CEO (Aacrit)
+  └── COO
+        ├── Quality ———— analytics-expert, bug-fixer, gen-test-queries, continuous-tester
+        ├── Infrastructure — perf-optimizer, db-reviewer, update-docs, prod-sentinel
+        ├── Frontend ———— frontend-builder, frontend-fixer, css-theme-specialist, uat-tester, frontenddesign
+        ├── Product ————— ceo-advisor, donde-premium-advisor
+        └── Security ———— donde-ciso
+```
 
 ## Design Philosophy — "Ink & Momentum" (V10, Locked)
 
