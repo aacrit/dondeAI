@@ -5,13 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="description" content="Donde — AI-powered restaurant recommendations for Chicago. Tell us what you're craving.">
   <meta name="theme-color" content="#383838">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Donde">
+  <link rel="manifest" href="manifest.json">
   <title>Donde — One Pick. Zero Stress.</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 44'%3E%3Cpath d='M10.5 1C10.5 1 10 8.5 12.5 11.5Q14 13 14.5 13.5' fill='none' stroke='%23383838' stroke-width='2.5' stroke-linecap='round'/%3E%3Cpath d='M21.5 1C21.5 1 22 8.5 19.5 11.5Q18 13 17.5 13.5' fill='none' stroke='%23383838' stroke-width='2.5' stroke-linecap='round'/%3E%3Cpath d='M16 13.5C22 11 29 14 28 21C27 27 19 29 16 31L16 34' fill='none' stroke='%23383838' stroke-width='2.8' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='40' r='2.8' fill='%23383838'/%3E%3C/svg%3E">
 
-  <!-- Web Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- API preconnect — saves ~200-400ms on first recommendation request -->
+  <link rel="preconnect" href="https://vwbzkgsxmgwcvmvuxnbe.supabase.co">
+  <link rel="dns-prefetch" href="https://vwbzkgsxmgwcvmvuxnbe.supabase.co">
+
+  <!-- Self-hosted Web Fonts (woff2, font-display: swap) -->
+  <!-- Run scripts/download-fonts.sh to fetch woff2 files, then remove the Google Fonts fallback below -->
+  <link rel="stylesheet" href="css/fonts.css">
+  <!-- Google Fonts fallback (remove after self-hosting fonts are downloaded) -->
+  <!-- <link rel="preconnect" href="https://fonts.googleapis.com"> -->
+  <!-- <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin> -->
+  <!-- <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&subset=latin&display=swap" rel="stylesheet"> -->
 
   <!-- CSS: Load order matters -->
   <link rel="stylesheet" href="css/reset.css">
@@ -23,7 +34,10 @@
   <link rel="stylesheet" href="css/themes/middleeastern.css">
   <link rel="stylesheet" href="css/layout.css">
   <link rel="stylesheet" href="css/typography.css">
-  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/components/canvas.css">
+  <link rel="stylesheet" href="css/components/result.css">
+  <link rel="stylesheet" href="css/components/modals.css">
+  <link rel="stylesheet" href="css/components/ui.css">
   <link rel="stylesheet" href="css/animations.css">
   <link rel="stylesheet" href="css/responsive.css">
 </head>
@@ -808,5 +822,19 @@
   }
   </script>
   <script type="module" src="js/app.js"></script>
+
+  <!-- Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then(reg => {
+            // Check for updates periodically
+            setInterval(() => reg.update(), 60 * 60 * 1000); // hourly
+          })
+          .catch(() => { /* SW registration failed — app works without it */ });
+      });
+    }
+  </script>
 </body>
 </html>

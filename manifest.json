@@ -1,0 +1,32 @@
+{
+  "name": "Donde — AI Restaurant Recommendations",
+  "short_name": "Donde",
+  "description": "AI-powered restaurant recommendations for Chicago. One pick. Zero stress.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#383838",
+  "background_color": "#0c0d0f",
+  "categories": ["food", "lifestyle"],
+  "lang": "en",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='96' fill='%23383838'/%3E%3Cg transform='translate(176,80) scale(5)'%3E%3Cpath d='M10.5 1C10.5 1 10 8.5 12.5 11.5Q14 13 14.5 13.5' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round'/%3E%3Cpath d='M21.5 1C21.5 1 22 8.5 19.5 11.5Q18 13 17.5 13.5' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round'/%3E%3Cpath d='M16 13.5C22 11 29 14 28 21C27 27 19 29 16 31L16 34' fill='none' stroke='white' stroke-width='2.8' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='40' r='2.8' fill='%238b8ff5'/%3E%3C/g%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='36' fill='%23383838'/%3E%3Cg transform='translate(64,24) scale(2)'%3E%3Cpath d='M10.5 1C10.5 1 10 8.5 12.5 11.5Q14 13 14.5 13.5' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round'/%3E%3Cpath d='M21.5 1C21.5 1 22 8.5 19.5 11.5Q18 13 17.5 13.5' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round'/%3E%3Cpath d='M16 13.5C22 11 29 14 28 21C27 27 19 29 16 31L16 34' fill='none' stroke='white' stroke-width='2.8' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='40' r='2.8' fill='%238b8ff5'/%3E%3C/g%3E%3C/svg%3E",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='96' fill='%23383838'/%3E%3Cg transform='translate(176,80) scale(5)'%3E%3Cpath d='M10.5 1C10.5 1 10 8.5 12.5 11.5Q14 13 14.5 13.5' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round'/%3E%3Cpath d='M21.5 1C21.5 1 22 8.5 19.5 11.5Q18 13 17.5 13.5' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round'/%3E%3Cpath d='M16 13.5C22 11 29 14 28 21C27 27 19 29 16 31L16 34' fill='none' stroke='white' stroke-width='2.8' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='40' r='2.8' fill='%238b8ff5'/%3E%3C/g%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

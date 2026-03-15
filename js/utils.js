@@ -95,7 +95,47 @@ export const ICON_SVG = {
   patio:         '<path fill="currentColor" d="M128,16a88.1,88.1,0,0,0-88,88c0,75.3,80,132.17,83.41,134.55a8,8,0,0,0,9.18,0C136,236.17,216,179.3,216,104A88.1,88.1,0,0,0,128,16Zm0,56a32,32,0,1,1-32,32A32,32,0,0,1,128,72Z"/>',
 };
 
+/**
+ * Render an SVG icon via external sprite (<use href>).
+ * The sprite is loaded once and cached by the browser (img/icons.svg).
+ * Falls back to inline path data if the icon name isn't recognized.
+ */
+let _spriteLoaded = false;
+let _spriteLoadAttempted = false;
+
+function _ensureSpriteInjected() {
+  if (_spriteLoadAttempted) return;
+  _spriteLoadAttempted = true;
+  // Inject sprite into DOM for same-origin <use> references (avoids CORS issues)
+  fetch('img/icons.svg')
+    .then(r => r.ok ? r.text() : '')
+    .then(svg => {
+      if (!svg) return;
+      const div = document.createElement('div');
+      div.style.display = 'none';
+      div.setAttribute('aria-hidden', 'true');
+      div.innerHTML = svg;
+      document.body.insertBefore(div, document.body.firstChild);
+      _spriteLoaded = true;
+    })
+    .catch(() => { /* sprite unavailable, inline fallback used */ });
+}
+
+// Kick off sprite injection on module load
+if (typeof document !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', _ensureSpriteInjected);
+  } else {
+    _ensureSpriteInjected();
+  }
+}
+
 export function svgIcon(name, size = 16) {
+  // When sprite is injected, use lightweight <use> reference
+  if (_spriteLoaded) {
+    return `<svg viewBox="0 0 256 256" width="${size}" height="${size}" fill="currentColor" aria-hidden="true"><use href="#icon-${name}"/></svg>`;
+  }
+  // Fallback: inline path data (works before sprite loads)
   const path = ICON_SVG[name] || ICON_SVG.plate;
   return `<svg viewBox="0 0 256 256" width="${size}" height="${size}" fill="currentColor" aria-hidden="true">${path}</svg>`;
 }

@@ -1217,7 +1217,7 @@ async function openQueryDetail(queryId) {
 
       ${r ? `
         <hr class="cc-query-panel__divider">
-        ${photo ? `<img class="cc-query-panel__photo" src="${photo}" alt="${escapeHtml(r.name)}" loading="lazy">` : ''}
+        ${photo ? `<img class="cc-query-panel__photo" src="${photo}" alt="${escapeHtml(r.name)}" loading="lazy" decoding="async" width="400" height="300">` : ''}
         <div class="cc-query-panel__section">
           <div class="cc-query-panel__label">Recommended</div>
           <div class="cc-query-panel__restaurant">${escapeHtml(r.name)}</div>

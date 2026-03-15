@@ -1961,7 +1961,7 @@ body {
   .cc-shortcuts-grid { grid-template-columns: 1fr; }
   .cc-live-filter { flex-wrap: wrap; }
   .cc-header__action { display: none; }
-  .cc-sla-indicator { display: none !important; }
+  .cc-sla-indicator.cc-sla-indicator { display: none; }
   .cc-morning-brief { padding: 16px; }
   .cc-morning-brief__status { flex-wrap: wrap; gap: 8px; }
   .cc-morning-brief__grade { font-size: var(--cc-type-xl); }
@@ -3137,10 +3137,10 @@ body {
 .cc-cat-preset:hover { border-color: var(--cc-accent); color: var(--cc-text); }
 
 .cc-cat-pill { transition: all 0.12s ease; }
-.cc-cat-pill--selected {
-  background: var(--cc-accent-dim) !important;
-  border-color: var(--cc-accent) !important;
-  color: var(--cc-accent) !important;
+.cc-cat-pill.cc-cat-pill--selected {
+  background: var(--cc-accent-dim);
+  border-color: var(--cc-accent);
+  color: var(--cc-accent);
 }
 .cc-cat-picker__run {
   background: var(--cc-accent);
@@ -3487,8 +3487,8 @@ body {
 }
 
 /* ─── Score Celebration ─── */
-.cc-result-summary--celebrate {
-  border-color: var(--cc-green) !important;
+.cc-result-summary.cc-result-summary--celebrate {
+  border-color: var(--cc-green);
   box-shadow: 0 0 20px rgba(52, 211, 153, 0.15);
 }
 .cc-result-summary--celebrate .cc-result-summary__dm {
@@ -3557,8 +3557,8 @@ body {
   flex-shrink: 0;
 }
 .cc-result-row:hover .cc-result-row__pin { opacity: 1; }
-.cc-result-row__pin--active {
-  opacity: 1 !important;
+.cc-result-row__pin.cc-result-row__pin--active {
+  opacity: 1;
   color: var(--cc-amber);
 }
 
@@ -5573,7 +5573,8 @@ body {
 
   /* Live issues section — show only if non-empty (handled by JS) */
 
-  /* Keyboard shortcuts overlay — hide trigger on mobile */
+  /* Keyboard shortcuts overlay — hide trigger on mobile
+     !important needed: JS sets inline style.display */
   .cc-modal-overlay#shortcuts-overlay { display: none !important; }
 
   /* Issues: hide bulk action bar by default, show when items selected */
@@ -5585,7 +5586,7 @@ body {
   /* Cat picker — hide until category test selected */
 
   /* Run filter bar — hide */
-  .cc-run-filter-bar { display: none !important; }
+  .cc-run-filter-bar.cc-run-filter-bar { display: none; }
 
 }
 
@@ -5732,9 +5733,9 @@ body {
   gap: 8px;
 }
 
-.cc-test-card--live {
-  border-color: rgba(239, 68, 68, 0.35) !important;
-  background: rgba(239, 68, 68, 0.06) !important;
+.cc-test-card.cc-test-card--live {
+  border-color: rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.06);
 }
 
 .cc-test-card--live .cc-test-card__icon {
@@ -5745,8 +5746,8 @@ body {
   color: #ef4444;
 }
 
-.cc-test-card--live:hover {
-  border-color: #ef4444 !important;
+.cc-test-card.cc-test-card--live:hover {
+  border-color: #ef4444;
   box-shadow: 0 0 16px rgba(239, 68, 68, 0.2);
 }
 
