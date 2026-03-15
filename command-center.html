@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Command Center — DondeAI</title>
+  <title>Mission Control — DondeAI</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -11,898 +11,151 @@
 </head>
 <body>
 
-  <!-- ═══ Header ═══ -->
-  <header class="cc-header">
-    <div class="cc-header__left">
-      <div class="cc-header__logo">
-        <svg viewBox="0 0 32 44" width="18" height="25">
+  <!-- ═══ Auth Gate ═══ -->
+  <div class="mc-auth-gate" id="auth-gate">
+    <div class="mc-auth-card">
+      <div class="mc-auth-logo">
+        <svg viewBox="0 0 32 44" width="32" height="44">
           <path d="M10.5 1 C10.5 1, 10 8.5, 12.5 11.5 Q14 13, 14.5 13.5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
           <path d="M21.5 1 C21.5 1, 22 8.5, 19.5 11.5 Q18 13, 17.5 13.5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
           <path d="M16 13.5 C22 11, 29 14, 28 21 C27 27, 19 29, 16 31 L16 34" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>
           <circle cx="16" cy="40" r="2.8" fill="var(--cc-accent)"/>
         </svg>
-        <span>Donde</span>
       </div>
-      <div class="cc-greeting" id="ceo-greeting">
-        <h1 class="cc-greeting__line1" id="greeting-line1">Command Center</h1>
-        <div class="cc-greeting__line2" id="greeting-line2"></div>
+      <h2>DondeAI Mission Control</h2>
+      <p id="auth-message">Sign in with your Google account to continue.</p>
+      <button class="mc-auth-btn" id="auth-sign-in">Sign in with Google</button>
+    </div>
+  </div>
+
+  <!-- ═══ Header ═══ -->
+  <header class="mc-header">
+    <div class="mc-header__left">
+      <div class="mc-header__logo">
+        <svg viewBox="0 0 32 44" width="16" height="22">
+          <path d="M10.5 1 C10.5 1, 10 8.5, 12.5 11.5 Q14 13, 14.5 13.5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M21.5 1 C21.5 1, 22 8.5, 19.5 11.5 Q18 13, 17.5 13.5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M16 13.5 C22 11, 29 14, 28 21 C27 27, 19 29, 16 31 L16 34" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>
+          <circle cx="16" cy="40" r="2.8" fill="var(--cc-accent)"/>
+        </svg>
+        <span>Mission Control</span>
       </div>
     </div>
-    <div class="cc-header__right">
-      <button class="cc-calendar-toggle" id="calendar-toggle" onclick="toggleCalendarPanel()" title="Today's Calendar" aria-label="Toggle calendar panel">&#128197; Today</button>
-      <div class="cc-auto-refresh">
-        <button class="cc-auto-refresh__toggle" id="auto-refresh-toggle" onclick="toggleAutoRefresh()" title="Auto-refresh data" aria-label="Toggle auto-refresh">
-          <svg viewBox="0 0 24 24" width="14" height="14"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="62.8" stroke-dashoffset="0" id="auto-refresh-ring"/></svg>
-          Auto
-        </button>
-        <select class="cc-auto-refresh__select" onchange="setAutoRefreshInterval(this.value)" title="Refresh interval" aria-label="Auto-refresh interval">
-          <option value="30">30s</option>
-          <option value="60" selected>60s</option>
-        </select>
-        <span class="cc-auto-refresh__countdown" id="auto-refresh-countdown"></span>
-      </div>
-      <div class="cc-live-toggle">
-        <button class="cc-live-toggle__btn cc-live-toggle__btn--off" id="live-api-toggle" onclick="toggleLiveAPI()" title="Toggle Live Claude API (costs $)" aria-label="Toggle Live API mode" aria-pressed="false">
-          <span class="cc-live-toggle__dot" id="live-api-dot"></span>
-          <span class="cc-live-toggle__label" id="live-api-label">Scoring Only</span>
+    <div class="mc-header__right">
+      <div class="mc-live-toggle">
+        <button class="mc-live-toggle__btn mc-live-toggle__btn--off" id="live-api-toggle" onclick="toggleLiveAPI()" aria-pressed="false">
+          <span class="mc-live-toggle__dot" id="live-api-dot"></span>
+          <span class="mc-live-toggle__label" id="live-api-label">Scoring Only</span>
         </button>
       </div>
-      <button class="cc-header__action cc-btn cc-btn--primary" id="header-action-btn" onclick="handleHeaderAction()" aria-label="Run scan">Run Scan</button>
-      <button class="cc-sla-indicator cc-sla-indicator--ok" id="sla-indicator" onclick="toggleSlaPanel()" title="SLA Status" aria-label="SLA status monitor">
-        <span class="cc-sla-indicator__icon" id="sla-indicator-icon">&#8212;</span>
-        <span class="cc-sla-indicator__count" id="sla-indicator-count"></span>
-      </button>
-      <div class="cc-header__status">
-        <span class="cc-header__dot" id="status-dot"></span>
-        <span class="cc-header__status-text" id="status-text">Checking...</span>
-        <span class="cc-freshness" id="data-freshness"></span>
-      </div>
-      <a href="index.html" class="cc-header__back">Back to Donde</a>
+      <span class="mc-health-dot" id="mc-health-dot" title="System health"></span>
+      <a href="index.html" class="mc-header__back" title="Back to DondeAI">Back</a>
     </div>
-    <!-- Mobile overflow menu button (visible only on mobile) -->
-    <button class="cc-mobile-menu-btn" id="mobile-menu-btn" onclick="toggleMobileMenu()" title="Menu" aria-label="Menu">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
-    </button>
   </header>
 
-  <!-- ═══ Mobile Overflow Menu (bottom sheet) ═══ -->
-  <div class="cc-mobile-menu-backdrop" id="mobile-menu-backdrop" onclick="toggleMobileMenu()"></div>
-  <div class="cc-mobile-menu" id="mobile-menu">
-    <div class="cc-mobile-menu__handle"></div>
-    <div class="cc-mobile-menu__items">
-      <button class="cc-mobile-menu__item" onclick="toggleMobileMenu(); refreshAllData()">
-        <span class="cc-mobile-menu__icon">&#8635;</span>Refresh Data
-      </button>
-      <button class="cc-mobile-menu__item" onclick="toggleMobileMenu(); toggleAutoRefresh()">
-        <span class="cc-mobile-menu__icon">&#9201;</span>
-        <span>Auto-Refresh</span>
-        <span class="cc-mobile-menu__badge" id="mobile-auto-badge">Off</span>
-      </button>
-      <button class="cc-mobile-menu__item" onclick="toggleMobileMenu(); toggleLiveAPI()">
-        <span class="cc-mobile-menu__icon">&#9889;</span>
-        <span>Live API</span>
-        <span class="cc-mobile-menu__badge cc-mobile-menu__badge--live" id="mobile-live-badge">Off</span>
-      </button>
-      <button class="cc-mobile-menu__item" onclick="toggleMobileMenu(); toggleCalendarPanel()">
-        <span class="cc-mobile-menu__icon">&#128197;</span>Today's Calendar
-      </button>
-      <button class="cc-mobile-menu__item" onclick="toggleMobileMenu(); exportCurrentView()">
-        <span class="cc-mobile-menu__icon">&#128190;</span>Export Report
-      </button>
-      <a class="cc-mobile-menu__item" href="index.html">
-        <span class="cc-mobile-menu__icon">&#8592;</span>Back to Donde
-      </a>
-    </div>
-  </div>
+  <!-- ═══ Main Content (2-panel) ═══ -->
+  <main class="mc-layout" id="main-content" style="display:none">
 
-  <!-- ═══ Auth Gate ═══ -->
-  <div id="auth-gate" style="display:none">
-    <div class="cc-auth">
-      <h2 class="cc-auth__title">Sign In Required</h2>
-      <p class="cc-auth__message" id="auth-message">Sign in with your Google account to continue.</p>
-      <button class="cc-btn cc-btn--primary" id="auth-sign-in">Sign in with Google</button>
-    </div>
-  </div>
+    <!-- ─── Left Panel: Mission Board ─── -->
+    <aside class="mc-board">
 
-  <!-- ═══ Main Content ═══ -->
-  <main class="cc-main" id="main-content">
-
-    <!-- ═══ Morning Brief ═══ -->
-    <section class="cc-morning-brief" id="morning-brief">
-      <div class="cc-morning-brief__status">
-        <span class="cc-morning-brief__grade" id="brief-grade">--</span>
-        <span class="cc-morning-brief__sentence" id="brief-sentence">Loading engine status...</span>
-      </div>
-      <div class="cc-morning-brief__deltas" id="brief-deltas">
-        <div class="cc-morning-brief__delta">
-          <span class="cc-morning-brief__delta-label">DondeMatch</span>
-          <span class="cc-morning-brief__delta-val" id="brief-dm-delta">--</span>
+      <!-- Pulse Cards -->
+      <div class="mc-pulse">
+        <div class="mc-pulse-card" id="pulse-health">
+          <div class="mc-pulse-card__value rag-green" id="pulse-health-val">--</div>
+          <div class="mc-pulse-card__label">Pass Rate</div>
         </div>
-        <div class="cc-morning-brief__delta">
-          <span class="cc-morning-brief__delta-label">Score Fit</span>
-          <span class="cc-morning-brief__delta-val" id="brief-fit-delta">--</span>
+        <div class="mc-pulse-card" id="pulse-dm">
+          <div class="mc-pulse-card__value" id="pulse-dm-val">--</div>
+          <div class="mc-pulse-card__label">Avg DM</div>
         </div>
-        <div class="cc-morning-brief__delta">
-          <span class="cc-morning-brief__delta-label">Blurb Quality</span>
-          <span class="cc-morning-brief__delta-val" id="brief-blurb-delta">--</span>
-        </div>
-      </div>
-      <div class="cc-morning-brief__activity" id="brief-activity"></div>
-      <div class="cc-morning-brief__action" id="brief-action"></div>
-    </section>
-
-    <!-- ═══ Trend Timeline ═══ -->
-    <div class="cc-trend-chart" id="trend-chart">
-      <div class="cc-trend-chart__empty" id="trend-chart-empty">Loading trend data...</div>
-      <div class="cc-trend-chart__tooltip" id="trend-tooltip"></div>
-    </div>
-
-    <!-- ═══ Daily Digest ═══ -->
-    <div class="cc-daily-digest" id="daily-digest" style="display:none"></div>
-
-    <!-- ═══ Pulse: 3 hero KPI cards ═══ -->
-    <section class="cc-pulse" id="pulse-section">
-      <div class="cc-pulse__card cc-pulse__card--health" id="pulse-health" role="button" tabindex="0" title="Click to expand details" aria-live="polite">
-        <div class="cc-pulse__ring">
-          <svg viewBox="0 0 80 80" class="cc-pulse__svg">
-            <circle cx="40" cy="40" r="34" fill="none" stroke="var(--cc-surface-3)" stroke-width="5"/>
-            <circle cx="40" cy="40" r="34" fill="none" stroke="var(--cc-green)" stroke-width="5"
-              stroke-dasharray="213.6" stroke-dashoffset="213.6" stroke-linecap="round"
-              transform="rotate(-90 40 40)" id="pulse-health-ring"/>
-          </svg>
-          <div class="cc-pulse__value" id="pulse-health-val">--</div>
-        </div>
-        <div class="cc-pulse__label">System Health</div>
-        <div class="cc-pulse__sub" id="pulse-health-sub">Loading...</div>
-        <div class="cc-pulse__freshness" id="pulse-health-fresh"></div>
-        <div class="cc-pulse__expand"></div>
-      </div>
-
-      <div class="cc-pulse__card cc-pulse__card--quality" id="pulse-quality" role="button" tabindex="0" title="Click to expand details">
-        <div class="cc-pulse__big" id="pulse-quality-val">--</div>
-        <div class="cc-pulse__label">Avg DondeMatch</div>
-        <div class="cc-pulse__sub" id="pulse-quality-sub">Loading...</div>
-        <div class="cc-pulse__freshness" id="pulse-quality-fresh"></div>
-        <div class="cc-pulse__expand"></div>
-      </div>
-
-      <div class="cc-pulse__card cc-pulse__card--attention" id="pulse-attention" role="button" tabindex="0" title="Click to expand details">
-        <div class="cc-pulse__big cc-pulse__big--attention" id="pulse-attention-val">--</div>
-        <div class="cc-pulse__label">Needs Attention</div>
-        <div class="cc-pulse__sub" id="pulse-attention-sub">Loading...</div>
-        <div class="cc-pulse__freshness" id="pulse-attention-fresh"></div>
-        <div class="cc-pulse__expand"></div>
-      </div>
-    </section>
-
-    <!-- ═══ Engine Grade Hero ═══ -->
-    <div class="cc-grade-hero" id="grade-hero">
-      <div class="cc-grade-hero__letter" id="grade-hero-letter">--</div>
-      <div class="cc-grade-hero__label">Engine Grade</div>
-      <div class="cc-grade-hero__sub" id="grade-hero-sub">Awaiting data...</div>
-    </div>
-
-    <!-- ═══ Executive Briefing ═══ -->
-    <section class="cc-briefing" id="executive-briefing" style="display:none"></section>
-
-    <!-- ═══ Grade KPI Strip ═══ -->
-    <section class="cc-grade-kpi-strip" id="grade-kpi-strip">
-      <div class="cc-grade-kpi">
-        <div class="cc-grade-kpi__label">Score Fit</div>
-        <div class="cc-grade-kpi__val" id="kpi-score-fit">--</div>
-      </div>
-      <div class="cc-grade-kpi">
-        <div class="cc-grade-kpi__label">Blurb Quality</div>
-        <div class="cc-grade-kpi__val" id="kpi-blurb-quality">--</div>
-      </div>
-      <div class="cc-grade-kpi">
-        <div class="cc-grade-kpi__label">Grade Pass Rate</div>
-        <div class="cc-grade-kpi__val" id="kpi-grade-pass">--</div>
-      </div>
-    </section>
-
-    <!-- ═══ Action Center ═══ -->
-    <section class="cc-action-center" id="action-center" style="display:none"></section>
-
-    <!-- ═══ Test vs Production Comparison ═══ -->
-    <div class="cc-comparison-strip" id="test-vs-prod-strip" style="display:none"></div>
-
-    <!-- ═══ Decision Prompts ═══ -->
-    <div class="cc-decision-prompts" id="decision-prompts" style="display:none"></div>
-
-    <!-- ═══ Smart Suggestion (legacy fallback) ═══ -->
-    <div class="cc-suggest" id="suggest-strip" style="display:none">
-      <span class="cc-suggest__icon">&#9889;</span>
-      <span class="cc-suggest__text" id="suggest-text"></span>
-      <button class="cc-suggest__action" id="suggest-btn"></button>
-      <button class="cc-suggest__dismiss" onclick="dismissSuggestion()" title="Dismiss">&times;</button>
-    </div>
-
-    <!-- ═══ Tab Bar ═══ -->
-    <nav class="cc-tabs" role="tablist">
-      <button class="cc-tab cc-tab--active" role="tab" aria-selected="true" data-tab="test" onclick="switchTab('test')">Test <span class="cc-tab__badge" id="tab-test-badge" style="display:none"></span></button>
-      <button class="cc-tab" role="tab" aria-selected="false" data-tab="live" onclick="switchTab('live')">Live <span class="cc-tab__badge" id="tab-live-badge" style="display:none"></span></button>
-      <button class="cc-tab" role="tab" aria-selected="false" data-tab="data" onclick="switchTab('data')">Data</button>
-      <button class="cc-tab" role="tab" aria-selected="false" data-tab="issues" onclick="switchTab('issues')" id="tab-issues-btn">Issues <span class="cc-tab__badge" id="tab-issues-badge" style="display:none"></span></button>
-      <div class="cc-tab__indicator" id="tab-indicator"></div>
-    </nav>
-
-    <!-- ═══ Quick Query (Promoted) ═══ -->
-    <div class="cc-quick-query cc-quick-query--promoted" id="quick-query-promoted">
-      <div class="cc-quick-query__bar">
-        <input type="text" class="cc-quick-query__input" id="promoted-query-input" placeholder="Test a query..." autocomplete="off" onkeydown="if(event.key==='Enter')runPromotedQuery()" oninput="showQuerySuggestions(this.value)" aria-label="Test a query">
-        <button class="cc-btn cc-btn--primary cc-btn--sm" onclick="runPromotedQuery()">Test</button>
-      </div>
-      <div class="cc-quick-query__suggestions" id="query-suggestions" style="display:none"></div>
-      <div id="promoted-query-result" style="display:none"></div>
-    </div>
-
-    <!-- ═══ Tab Panel: TEST ═══ -->
-    <div class="cc-tab-panel cc-tab-panel--active" id="panel-test" role="tabpanel">
-
-      <!-- Test Type Cards -->
-      <div class="cc-test-grid" id="test-grid">
-        <button class="cc-test-card" data-test="broad" onclick="startTest('broad')" aria-label="Run Broad Scan test">
-          <span class="cc-test-card__gear" onclick="event.stopPropagation();toggleConfig('broad')" title="Configure">&#9881;</span>
-          <div class="cc-test-card__icon">&#9654;</div>
-          <div class="cc-test-card__name">Broad Scan</div>
-          <div class="cc-test-card__desc" id="broad-desc">20 random queries across all categories</div>
-          <div class="cc-test-card__meta" id="broad-meta">$0.00 &middot; ~2 min</div>
-        </button>
-        <button class="cc-test-card" data-test="category" onclick="startTest('category')" aria-label="Run Category Focus test">
-          <span class="cc-test-card__gear" onclick="event.stopPropagation();toggleConfig('category')" title="Configure">&#9881;</span>
-          <div class="cc-test-card__icon">&#9632;</div>
-          <div class="cc-test-card__name">Category Focus</div>
-          <div class="cc-test-card__desc" id="category-desc">15 queries from selected categories</div>
-          <div class="cc-test-card__meta" id="category-meta">$0.00 &middot; ~1 min</div>
-        </button>
-        <button class="cc-test-card" data-test="regression" onclick="startTest('regression')" aria-label="Run Regression Guard test">
-          <span class="cc-test-card__gear" onclick="event.stopPropagation();toggleConfig('regression')" title="Configure">&#9881;</span>
-          <div class="cc-test-card__icon">&#9888;</div>
-          <div class="cc-test-card__name">Regression Guard</div>
-          <div class="cc-test-card__desc">23 golden queries with baseline scores</div>
-          <div class="cc-test-card__meta" id="regression-meta">$0.00 &middot; ~3 min</div>
-        </button>
-        <!-- Inline config panel (moves below active card) -->
-        <div class="cc-config-panel" id="config-panel"></div>
-      </div>
-
-      <!-- More Tests (engineering-focused, collapsed by default) -->
-      <details class="cc-more-tests" id="more-tests">
-        <summary class="cc-more-tests__toggle">More Tests</summary>
-        <div class="cc-blurb-mode">
-          <button data-mode="quick" class="active" onclick="setBlurbMode('quick')">Quick (regex)</button>
-          <button data-mode="deep" onclick="setBlurbMode('deep')">Deep (Claude)</button>
-        </div>
-        <div class="cc-test-grid cc-test-grid--secondary">
-          <button class="cc-test-card cc-test-card--secondary" data-test="edge" onclick="startTest('edge')">
-            <div class="cc-test-card__icon">&#128737;</div>
-            <div class="cc-test-card__name">Edge Cases</div>
-            <div class="cc-test-card__desc">20 probes: SQL injection, empty, unicode</div>
-            <div class="cc-test-card__meta">~$0.20 &middot; ~1 min</div>
-          </button>
-          <button class="cc-test-card cc-test-card--secondary" data-test="blurb" onclick="startTest('blurb')">
-            <div class="cc-test-card__icon">&#9998;</div>
-            <div class="cc-test-card__name">Blurb Quality</div>
-            <div class="cc-test-card__desc">10 blurbs checked for clich&eacute;s &middot; <span id="blurb-mode-label">Quick</span></div>
-            <div class="cc-test-card__meta">~$0.05 &middot; ~30s (Quick) / ~$1.00 &middot; ~30s (Deep)</div>
-          </button>
-          <button class="cc-test-card cc-test-card--secondary" data-test="coverage" onclick="startTest('coverage')">
-            <div class="cc-test-card__icon">&#9744;</div>
-            <div class="cc-test-card__name">Data Coverage</div>
-            <div class="cc-test-card__desc">10 restaurants checked for missing fields</div>
-            <div class="cc-test-card__meta">~$0.05 &middot; ~30s</div>
-          </button>
-        </div>
-      </details>
-
-      <!-- Live API Tests (always call Claude — highlighted in red) — collapsed on mobile -->
-      <div class="cc-live-tests" id="live-tests-section">
-        <div class="cc-live-tests__header">
-          <span class="cc-live-tests__icon">&#9888;</span>
-          Live API Tests
-          <span class="cc-live-tests__cost">Calls Claude &mdash; costs $</span>
-        </div>
-        <div class="cc-test-grid cc-test-grid--live">
-          <button class="cc-test-card cc-test-card--live" data-test="blurb-live" onclick="startTest('blurb-live')">
-            <div class="cc-test-card__icon">&#9998;</div>
-            <div class="cc-test-card__name">Blurb Quality Check</div>
-            <div class="cc-test-card__desc">1 query with full Claude blurb generation</div>
-            <div class="cc-test-card__meta">~$0.30 &middot; ~5s</div>
-          </button>
-          <button class="cc-test-card cc-test-card--live" data-test="intent-live" onclick="startTest('intent-live')">
-            <div class="cc-test-card__icon">&#129504;</div>
-            <div class="cc-test-card__name">Intent Classification</div>
-            <div class="cc-test-card__desc">1 ambiguous query to test Claude intent fallback</div>
-            <div class="cc-test-card__meta">~$0.05 &middot; ~3s</div>
-          </button>
+        <div class="mc-pulse-card" id="pulse-issues">
+          <div class="mc-pulse-card__value" id="pulse-issues-val">--</div>
+          <div class="mc-pulse-card__label">Issues</div>
         </div>
       </div>
 
-      <!-- Category Picker (multi-select with presets) -->
-      <div class="cc-cat-picker" id="cat-picker" style="display:none">
-        <div class="cc-cat-picker__presets">
-          <button class="cc-cat-preset" onclick="setCatPreset('food-vibe')">Cuisine + Vibe</button>
-          <button class="cc-cat-preset" onclick="setCatPreset('full')">Full Spectrum</button>
-          <button class="cc-cat-preset" onclick="setCatPreset('weakest')">Weakest</button>
-        </div>
-        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-          <span class="cc-cat-picker__label">Categories:</span>
-          <button class="cc-cat-pill" data-cat="Food" onclick="toggleCatPill(this)">Food</button>
-          <button class="cc-cat-pill" data-cat="Vibe" onclick="toggleCatPill(this)">Vibe</button>
-          <button class="cc-cat-pill" data-cat="Service" onclick="toggleCatPill(this)">Service</button>
-          <button class="cc-cat-pill" data-cat="Rep" onclick="toggleCatPill(this)">Rep</button>
-          <button class="cc-cat-pill" data-cat="Conv" onclick="toggleCatPill(this)">Conv</button>
-          <span class="cc-cat-picker__count" id="cat-count"></span>
-          <button class="cc-cat-picker__run" id="cat-run-btn" onclick="runMultiCategoryTest()">Run</button>
-        </div>
+      <!-- Engine Grade -->
+      <div class="mc-grade" id="mc-grade">
+        <span class="mc-grade__letter" id="mc-grade-letter">--</span>
+        <span class="mc-grade__sub" id="mc-grade-sub">Engine Grade</span>
       </div>
 
-      <!-- Generated Queries Browser -->
-      <details class="cc-gen-queries" id="gen-queries-section">
-        <summary>Generated Test Queries <span class="cc-gen-badge" id="gen-queries-count">(0)</span></summary>
-        <div class="cc-gen-queries__body" id="gen-queries-body">
-          <div class="cc-gen-empty">Loading generated queries...</div>
-        </div>
-      </details>
-
-      <!-- Custom Queries -->
-      <details class="cc-custom-queries" id="custom-queries-section">
-        <summary>Your Test Queries <span id="custom-query-count"></span></summary>
-        <div class="cc-custom-queries__form">
-          <input class="cc-custom-queries__input" id="custom-query-input" placeholder="e.g. best tacos near Wicker Park" maxlength="200">
-          <select class="cc-custom-queries__select" id="custom-query-cat">
-            <option value="Food">Food</option>
-            <option value="Vibe">Vibe</option>
-            <option value="Service">Service</option>
-            <option value="Rep">Rep</option>
-            <option value="Conv">Conv</option>
-          </select>
-          <button class="cc-custom-queries__add" onclick="addCustomQuery()">Add</button>
-        </div>
-        <div class="cc-custom-queries__list" id="custom-query-list"></div>
-      </details>
-
-      <!-- Quick Query Test -->
-      <div class="cc-quick-query" id="quick-query-section">
-        <div class="cc-quick-query__bar">
-          <input type="text" class="cc-quick-query__input" id="quick-query-input" placeholder="Test any query..." onkeydown="if(event.key==='Enter')runQuickQuery()">
-          <button class="cc-btn cc-btn--sm cc-btn--accent" onclick="runQuickQuery()">Test</button>
-        </div>
-        <div class="cc-quick-query__result" id="quick-query-result" style="display:none"></div>
+      <!-- Agent Divisions -->
+      <div class="mc-section">
+        <div class="mc-section__title">Divisions</div>
+        <div id="mc-agents"></div>
       </div>
-
-      <!-- Active Test Progress -->
-      <div class="cc-test-progress" id="test-progress" style="display:none">
-        <div class="cc-test-progress__header">
-          <span class="cc-test-progress__name" id="test-progress-name"></span>
-          <span class="cc-test-progress__stats" id="test-progress-stats"></span>
-          <button class="cc-test-progress__stop" id="test-stop-btn" onclick="stopTest()">Stop</button>
-        </div>
-        <div class="cc-test-progress__bar">
-          <div class="cc-test-progress__fill" id="test-progress-fill"></div>
-        </div>
-      </div>
-
-      <!-- Result Search -->
-      <div class="cc-result-search" id="result-search" style="display:none">
-        <input class="cc-result-search__input" id="result-search-input" placeholder="Filter results..." oninput="filterResults(this.value)">
-        <span class="cc-result-search__count" id="result-search-count"></span>
-      </div>
-
-      <!-- Live Result Stream -->
-      <div class="cc-result-stream" id="result-stream" aria-live="polite"></div>
-
-      <!-- Trend Insights (#7) -->
-      <details class="cc-trend-insights" id="trend-insights">
-        <summary class="cc-trend-insights__toggle">Trend Insights (7-day)</summary>
-        <div class="cc-trend-insights__grid" id="trend-insights-grid"></div>
-      </details>
 
       <!-- Run History -->
-      <div class="cc-run-history" id="run-history">
-        <div class="cc-run-history__title-row">
-          <span class="cc-run-history__title">Recent Runs</span>
-          <div class="cc-run-history__actions">
-            <button class="cc-btn cc-btn--xs" onclick="exportRunHistory()" title="Export CSV">Export</button>
-            <button class="cc-btn cc-btn--xs" onclick="if(state.runHistory.length>=2)openCompareView(state.runHistory[1].run_id,state.runHistory[0].run_id)" title="Compare last 2 runs">Compare</button>
-          </div>
+      <div class="mc-section">
+        <div class="mc-section__title">Recent Runs</div>
+        <div class="mc-runs" id="mc-runs">
+          <div class="mc-empty">No runs yet</div>
         </div>
-        <div class="cc-run-filter-bar" id="run-filter-bar" style="display:none"></div>
-        <table class="cc-run-history__table" id="run-history-table">
-          <thead><tr><th>Date</th><th>Type</th><th>Queries</th><th>Avg DM</th><th>Pass%</th><th>Fit</th><th>Blurb</th><th>&Delta;</th></tr></thead>
-          <tbody id="run-history-body"></tbody>
-        </table>
-      </div>
-
-      <!-- Mobile Run History Cards (visible only on mobile) -->
-      <div class="cc-run-cards" id="run-history-cards"></div>
-
-      <!-- Compare Panel (hidden by default) -->
-      <div class="cc-compare" id="compare-panel" style="display:none">
-        <div class="cc-compare__header">
-          <span class="cc-compare__title">Run Comparison</span>
-          <div class="cc-compare__header-actions">
-            <button class="cc-btn cc-btn--xs" onclick="exportCompareCSV()">Export</button>
-            <button class="cc-compare__close" onclick="closeCompareView()" title="Close">&times;</button>
-          </div>
-        </div>
-        <div class="cc-compare__header-info"></div>
-        <div class="cc-compare__counts"></div>
-        <div class="cc-compare__body"></div>
-      </div>
-
-      <!-- Test Coverage Heatmap -->
-      <details class="cc-heatmap-section" id="heatmap-section">
-        <summary class="cc-heatmap-section__toggle">Test Coverage Heatmap</summary>
-        <div class="cc-heatmap" id="heatmap-grid"></div>
-      </details>
-    </div>
-
-    <!-- ═══ Tab Panel: LIVE ═══ -->
-    <div class="cc-tab-panel" id="panel-live" role="tabpanel">
-
-      <!-- Live Filter -->
-      <div class="cc-live-filter" id="live-filter">
-        <button class="cc-live-filter__btn cc-live-filter__btn--active" data-period="all" onclick="setLiveFilter('all')">All Time</button>
-        <button class="cc-live-filter__btn" data-period="today" onclick="setLiveFilter('today')">Today</button>
-        <button class="cc-live-filter__btn" data-period="7d" onclick="setLiveFilter('7d')">Last 7 Days</button>
-        <select class="cc-live-filter__select" onchange="setLiveAdvFilter('scoreRange', this.value)">
-          <option value="all">All Scores</option>
-          <option value="high">80+ (Strong)</option>
-          <option value="mid">60-79 (Pass)</option>
-          <option value="low">&lt;60 (Fail)</option>
-        </select>
-        <select class="cc-live-filter__select" onchange="setLiveAdvFilter('fallback', this.value)">
-          <option value="all">All Queries</option>
-          <option value="yes">Fallbacks Only</option>
-          <option value="no">Non-fallbacks</option>
-        </select>
-        <select class="cc-live-filter__select" onchange="setLiveAdvFilter('feedback', this.value)">
-          <option value="all">All Feedback</option>
-          <option value="liked">Liked</option>
-          <option value="disliked">Disliked</option>
-          <option value="none">No Feedback</option>
-        </select>
-      </div>
-
-      <!-- Live KPIs (Row 1: Operational) -->
-      <div class="cc-live-kpis" id="live-kpis">
-        <div class="cc-live-kpi">
-          <div class="cc-live-kpi__val" id="live-searches">--</div>
-          <div class="cc-live-kpi__label">Searches</div>
-        </div>
-        <div class="cc-live-kpi">
-          <div class="cc-live-kpi__val" id="live-avg-dm">--</div><span id="spark-avg-dm"></span>
-          <div class="cc-live-kpi__label">Avg DM</div>
-        </div>
-        <div class="cc-live-kpi">
-          <div class="cc-live-kpi__val" id="live-pass-rate">--</div><span id="spark-pass-rate"></span>
-          <div class="cc-live-kpi__label">Pass Rate</div>
-        </div>
-        <div class="cc-live-kpi">
-          <div class="cc-live-kpi__val" id="live-fallback-rate">--</div>
-          <div class="cc-live-kpi__label">Fallback Rate</div>
-        </div>
-        <!-- Row 2: Performance -->
-        <div class="cc-live-kpi">
-          <div class="cc-live-kpi__val" id="live-p50">--</div>
-          <div class="cc-live-kpi__label">P50 Response</div>
-        </div>
-        <div class="cc-live-kpi">
-          <div class="cc-live-kpi__val" id="live-p95">--</div>
-          <div class="cc-live-kpi__label">P95 Response</div>
-        </div>
-        <div class="cc-live-kpi">
-          <div class="cc-live-kpi__val" id="live-satisfaction">--</div>
-          <div class="cc-live-kpi__label">Satisfaction</div>
-        </div>
-        <div class="cc-live-kpi">
-          <div class="cc-live-kpi__val" id="live-unmatched">--</div>
-          <div class="cc-live-kpi__label">Unmatched Rate</div>
-        </div>
-      </div>
-
-      <!-- Mobile: More Metrics toggle -->
-      <button class="cc-m-more-metrics" id="mobile-more-metrics" onclick="toggleMobileMetrics()">More metrics</button>
-
-      <!-- Grade KPIs (Row 3: Quality Grades) -->
-      <div class="cc-live-kpis" id="live-grade-kpis" style="margin-top:6px">
-        <div class="cc-live-kpi">
-          <div class="cc-live-kpi__val" id="live-avg-fit">--</div><span id="spark-avg-fit"></span>
-          <div class="cc-live-kpi__label">Avg Score Fit</div>
-        </div>
-        <div class="cc-live-kpi">
-          <div class="cc-live-kpi__val" id="live-avg-blurb">--</div><span id="spark-avg-blurb"></span>
-          <div class="cc-live-kpi__label">Avg Blurb Quality</div>
-        </div>
-        <div class="cc-live-kpi">
-          <div class="cc-live-kpi__val" id="live-grade-pass">--</div>
-          <div class="cc-live-kpi__label">Grade Pass Rate</div>
-        </div>
-        <div class="cc-live-kpi">
-          <div class="cc-live-kpi__val" id="live-grade-issues">--</div>
-          <div class="cc-live-kpi__label">Grade Issues</div>
-        </div>
-      </div>
-
-      <!-- User Engagement (#8) -->
-      <div class="cc-user-stats" id="user-engagement" style="display:none"></div>
-
-      <!-- Live Issues (#5) -->
-      <div id="live-issues-section"></div>
-
-      <!-- Score Distribution -->
-      <div class="cc-score-dist" id="score-dist">
-        <div class="cc-score-dist__title">Score Distribution</div>
-        <div class="cc-score-dist__bar">
-          <div class="cc-score-dist__seg cc-score-dist__seg--green" id="dist-green"></div>
-          <div class="cc-score-dist__seg cc-score-dist__seg--amber" id="dist-amber"></div>
-          <div class="cc-score-dist__seg cc-score-dist__seg--orange" id="dist-orange"></div>
-          <div class="cc-score-dist__seg cc-score-dist__seg--red" id="dist-red"></div>
-        </div>
-        <div class="cc-score-dist__labels" id="dist-labels"></div>
-      </div>
-
-      <!-- API Health Strip -->
-      <div class="cc-api-health" id="api-health">
-        <span id="api-version">Engine: --</span>
-        <span class="cc-api-health__sep">&middot;</span>
-        <span id="api-latency">Avg latency: --</span>
-        <span class="cc-api-health__sep">&middot;</span>
-        <span id="api-status">Status: checking...</span>
-        <span class="cc-api-health__sep">&middot;</span>
-        <span id="api-perf-baseline" class="cc-api-perf"></span>
       </div>
 
       <!-- Live Feed -->
-      <div class="cc-live-feed" id="live-feed">
-        <div class="cc-live-feed__header">
-          <span>Live Production</span>
-          <span class="cc-live-feed__rate" id="live-rate">-- queries/min</span>
-          <button class="cc-btn cc-btn--xs" onclick="exportLiveFeed()" title="Export CSV">Export</button>
-        </div>
-        <div class="cc-live-feed__list" id="live-feed-list" aria-live="polite">
-          <div class="cc-empty-state">
-            <div class="cc-empty-state__icon">&#128225;</div>
-            <div class="cc-empty-state__text">Waiting for live queries...</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ═══ Query Detail Slide-Out ═══ -->
-    <div class="cc-query-panel" id="query-panel">
-      <div class="cc-query-panel__drag-handle" id="query-panel-handle"><span></span></div>
-      <div class="cc-query-panel__header">
-        <span class="cc-query-panel__title">Query Detail</span>
-        <button class="cc-query-panel__close" onclick="closeQueryPanel()" title="Close">&times;</button>
-      </div>
-      <div class="cc-query-panel__body" id="query-panel-body">
-        <!-- Populated dynamically -->
-      </div>
-    </div>
-    <div class="cc-query-panel__backdrop" id="query-panel-backdrop" onclick="closeQueryPanel()"></div>
-
-    <!-- ═══ Calendar Slide-Out Panel ═══ -->
-    <div class="cc-calendar-panel" id="calendar-panel">
-      <div class="cc-calendar-panel__header">
-        <span class="cc-calendar-panel__title">Today's Schedule</span>
-        <button class="cc-calendar-panel__close" onclick="toggleCalendarPanel()" title="Close">&times;</button>
-      </div>
-      <div class="cc-calendar-panel__body" id="calendar-panel-body">
-        <iframe id="calendar-iframe" class="cc-calendar-panel__iframe" style="border:0" width="100%" height="100%"></iframe>
-      </div>
-    </div>
-    <div class="cc-calendar-panel__backdrop" id="calendar-backdrop" onclick="toggleCalendarPanel()"></div>
-
-    <!-- ═══ Tab Panel: DATA ═══ -->
-    <div class="cc-tab-panel" id="panel-data" role="tabpanel">
-
-      <!-- Database Overview -->
-      <div class="cc-db-overview" id="db-overview">
-        <div class="cc-db-stat">
-          <span class="cc-db-stat__val" id="db-total">--</span>
-          <span class="cc-db-stat__label">Active Restaurants</span>
-        </div>
-        <div class="cc-db-stat">
-          <span class="cc-db-stat__val" id="db-enriched">--</span>
-          <span class="cc-db-stat__label">Enriched</span>
-        </div>
-        <div class="cc-db-stat">
-          <span class="cc-db-stat__val" id="db-tags">--</span>
-          <span class="cc-db-stat__label">Tags</span>
-        </div>
-        <div class="cc-db-stat">
-          <span class="cc-db-stat__val" id="db-occasions">--</span>
-          <span class="cc-db-stat__label">Occasion Scores</span>
+      <div class="mc-section">
+        <div class="mc-section__title">Live Feed</div>
+        <div class="mc-feed" id="mc-feed">
+          <div class="mc-empty">No recent queries</div>
         </div>
       </div>
 
-      <!-- Pipeline Actions -->
-      <div class="cc-pipelines">
-        <div class="cc-pipelines__title">Pipelines</div>
-        <div class="cc-pipeline-grid" id="pipeline-grid">
-          <button class="cc-pipeline-btn" data-op="discovery" onclick="triggerPipeline('discovery')">
-            <span class="cc-pipeline-btn__icon">&#128269;</span>
-            <span class="cc-pipeline-btn__name">Discovery</span>
-            <span class="cc-pipeline-btn__status" id="pipe-discovery">Idle</span>
-          </button>
-          <button class="cc-pipeline-btn" data-op="enrichment" onclick="triggerPipeline('enrichment')">
-            <span class="cc-pipeline-btn__icon">&#9878;</span>
-            <span class="cc-pipeline-btn__name">Enrichment</span>
-            <span class="cc-pipeline-btn__status" id="pipe-enrichment">Idle</span>
-          </button>
-          <button class="cc-pipeline-btn" data-op="scores_tags" onclick="triggerPipeline('scores_tags')">
-            <span class="cc-pipeline-btn__icon">&#9733;</span>
-            <span class="cc-pipeline-btn__name">Scores &amp; Tags</span>
-            <span class="cc-pipeline-btn__status" id="pipe-scores_tags">Idle</span>
-          </button>
-          <button class="cc-pipeline-btn" data-op="audit" onclick="triggerPipeline('audit')">
-            <span class="cc-pipeline-btn__icon">&#128203;</span>
-            <span class="cc-pipeline-btn__name">Full Audit</span>
-            <span class="cc-pipeline-btn__status" id="pipe-audit">Idle</span>
-          </button>
-        </div>
+    </aside>
+
+    <!-- ─── Right Panel: COO Terminal ─── -->
+    <section class="mc-terminal">
+      <div class="mc-terminal__header">
+        <span class="mc-terminal__title">COO Terminal</span>
+        <button class="mc-terminal__clear" onclick="cmdClear()" title="Clear">Clear</button>
       </div>
 
-      <!-- Pipeline History -->
-      <div class="cc-pipe-history" id="pipe-history">
-        <div class="cc-pipe-history__title">Recent Operations</div>
-        <div class="cc-pipe-history__list" id="pipe-history-list">
-          <div class="cc-empty-state">
-            <div class="cc-empty-state__text">No recent operations</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ═══ Tab Panel: ISSUES ═══ -->
-    <div class="cc-tab-panel" id="panel-issues" role="tabpanel">
-
-      <!-- Smart Insight Banner -->
-      <div class="cc-issues-insight" id="issues-insight" style="display:none">
-        <span class="cc-issues-insight__icon">&#128161;</span>
-        <span class="cc-issues-insight__text" id="issues-insight-text"></span>
-        <button class="cc-btn cc-btn--xs cc-issues-insight__action" id="issues-insight-action" style="display:none"></button>
-        <button class="cc-issues-insight__dismiss" onclick="dismissInsight()">&times;</button>
+      <div class="mc-terminal__output" id="coo-output">
       </div>
 
-      <!-- Executive Summary Cards -->
-      <div class="cc-issues-executive" id="issues-executive">
-        <div class="cc-issues-card cc-issues-card--critical" onclick="setIssueFilter('severity','P0')" role="button" tabindex="0">
-          <div class="cc-issues-card__count" id="exec-critical-count">0</div>
-          <div class="cc-issues-card__label">Critical</div>
-          <div class="cc-issues-card__trend" id="exec-critical-trend"></div>
-        </div>
-        <div class="cc-issues-card cc-issues-card--warning" onclick="setIssueFilter('severity','P1')" role="button" tabindex="0">
-          <div class="cc-issues-card__count" id="exec-warning-count">0</div>
-          <div class="cc-issues-card__label">Warning</div>
-          <div class="cc-issues-card__trend" id="exec-warning-trend"></div>
-        </div>
-        <div class="cc-issues-card cc-issues-card--resolved" onclick="setIssueFilter('status','fixed')" role="button" tabindex="0">
-          <div class="cc-issues-card__count" id="exec-resolved-count">0</div>
-          <div class="cc-issues-card__label">Resolved</div>
-          <div class="cc-issues-card__trend" id="exec-resolved-trend"></div>
-        </div>
+      <!-- Quick Action Chips -->
+      <div class="mc-chips">
+        <button class="mc-chip" data-coo-cmd="scan">Scan</button>
+        <button class="mc-chip" data-coo-cmd="regression">Regression</button>
+        <button class="mc-chip" data-coo-cmd="fix bugs">Fix Bugs</button>
+        <button class="mc-chip" data-coo-cmd="db health">DB Health</button>
+        <button class="mc-chip" data-coo-cmd="security audit">Security</button>
+        <button class="mc-chip" data-coo-cmd="cache status">Cache</button>
       </div>
 
-      <!-- Impact Simulator -->
-      <div class="cc-impact-sim" id="impact-simulator" style="display:none">
-        <div class="cc-impact-sim__header">
-          <span class="cc-impact-sim__title">Impact Simulator</span>
-          <span class="cc-impact-sim__subtitle" id="impact-sim-subtitle"></span>
-        </div>
-        <div class="cc-impact-sim__bar">
-          <div class="cc-impact-sim__current" id="impact-sim-current"></div>
-          <div class="cc-impact-sim__projected" id="impact-sim-projected"></div>
-        </div>
-        <div class="cc-impact-sim__groups" id="impact-sim-groups"></div>
+      <!-- Input -->
+      <div class="mc-terminal__input-row">
+        <span class="mc-terminal__prompt">$</span>
+        <input type="text" class="mc-terminal__input" id="coo-input" placeholder="Type a command... (/ to focus)" autocomplete="off" spellcheck="false">
       </div>
-
-      <!-- Retest Progress (hidden by default) -->
-      <div class="cc-retest-progress" id="retest-progress" style="display:none">
-        <div class="cc-retest-progress__bar">
-          <div class="cc-retest-progress__fill" id="retest-progress-fill"></div>
-        </div>
-        <span class="cc-retest-progress__text" id="retest-progress-text">Retesting...</span>
-      </div>
-
-      <!-- Filters -->
-      <div class="cc-issues-filters">
-        <div class="cc-issues-filter-group">
-          <button class="cc-issues-filter cc-issues-filter--active" data-filter="severity" data-val="all" onclick="setIssueFilter('severity','all')">All</button>
-          <button class="cc-issues-filter" data-filter="severity" data-val="P0" onclick="setIssueFilter('severity','P0')">P0</button>
-          <button class="cc-issues-filter" data-filter="severity" data-val="P1" onclick="setIssueFilter('severity','P1')">P1</button>
-        </div>
-        <div class="cc-issues-filter-group">
-          <button class="cc-issues-filter cc-issues-filter--active" data-filter="type" data-val="all" onclick="setIssueFilter('type','all')">All Types</button>
-          <button class="cc-issues-filter" data-filter="type" data-val="intent" onclick="setIssueFilter('type','intent')">Intent</button>
-          <button class="cc-issues-filter" data-filter="type" data-val="scoring" onclick="setIssueFilter('type','scoring')">Scoring</button>
-          <button class="cc-issues-filter" data-filter="type" data-val="relevance_ceiling" onclick="setIssueFilter('type','relevance_ceiling')">Ceiling</button>
-          <button class="cc-issues-filter" data-filter="type" data-val="grade_fit" onclick="setIssueFilter('type','grade_fit')">Fit Grade</button>
-          <button class="cc-issues-filter" data-filter="type" data-val="grade_blurb" onclick="setIssueFilter('type','grade_blurb')">Blurb Grade</button>
-        </div>
-        <div class="cc-issues-filter-group">
-          <button class="cc-issues-filter cc-issues-filter--active" data-filter="source" data-val="all" onclick="setIssueFilter('source','all')">All Sources</button>
-          <button class="cc-issues-filter" data-filter="source" data-val="test" onclick="setIssueFilter('source','test')">Test</button>
-          <button class="cc-issues-filter" data-filter="source" data-val="prod" onclick="setIssueFilter('source','prod')">Prod</button>
-        </div>
-        <div class="cc-issues-filter-group">
-          <button class="cc-issues-filter" data-filter="status" data-val="all" onclick="setIssueFilter('status','all')">All</button>
-          <button class="cc-issues-filter cc-issues-filter--active" data-filter="status" data-val="open" onclick="setIssueFilter('status','open')">Open</button>
-          <button class="cc-issues-filter" data-filter="status" data-val="fixed" onclick="setIssueFilter('status','fixed')">Fixed</button>
-          <button class="cc-issues-filter" data-filter="status" data-val="improved" onclick="setIssueFilter('status','improved')">Improved</button>
-        </div>
-      </div>
-
-      <!-- Quick Action Bar -->
-      <div class="cc-issues-action-bar" id="issues-action-bar">
-        <div class="cc-issues-action-bar__left">
-          <label class="cc-issues-select-all">
-            <input type="checkbox" id="issues-select-all" onchange="toggleSelectAllIssues(this.checked)">
-            <span id="issues-selected-count">0 selected</span>
-          </label>
-          <span class="cc-issues-action-bar__count" id="issues-visible-count"></span>
-        </div>
-        <div class="cc-issues-action-bar__right">
-          <button class="cc-btn cc-btn--sm cc-btn--danger" onclick="retestAllCritical()" id="retest-all-critical" title="Retest all P0 issues">Retest Critical</button>
-          <button class="cc-btn cc-btn--sm" onclick="copyAllFixPrompts()" title="Copy fix prompts for all open issues">Copy All Fixes</button>
-          <button class="cc-btn cc-btn--sm" onclick="exportIssues()" title="Export as CSV">Export</button>
-          <button class="cc-btn cc-btn--primary cc-btn--sm" id="issues-bulk-copy" onclick="copyBulkFixPrompt()" style="display:none">Copy Selected</button>
-          <button class="cc-btn cc-btn--accent cc-btn--sm" id="issues-bulk-retest" onclick="retestSelectedIssues()" style="display:none">Retest Selected</button>
-        </div>
-      </div>
-
-      <!-- Issue List -->
-      <div class="cc-issues-list" id="issues-list">
-        <div class="cc-empty-state">
-          <div class="cc-empty-state__icon">&#128269;</div>
-          <div class="cc-empty-state__text">Loading issues...</div>
-        </div>
-      </div>
-    </div>
+    </section>
 
   </main>
 
-  <!-- ═══ Terminal Panel ═══ -->
-  <div class="cc-terminal__backdrop" id="terminal-backdrop" onclick="closeTerminal()"></div>
-  <div class="cc-terminal" id="cc-terminal">
-    <div class="cc-terminal__header">
-      <span class="cc-terminal__dot"></span>
-      <span class="cc-terminal__title">Engine Activity</span>
-      <button class="cc-terminal__clear" onclick="clearTerminal()">Clear</button>
-      <button class="cc-terminal__close" onclick="closeTerminal()">&times;</button>
-    </div>
-    <div class="cc-terminal__body" id="terminal-output"></div>
-  </div>
+  <!-- ═══ Footer ═══ -->
+  <footer class="mc-footer" id="mc-footer">
+    <span id="mc-footer-engine">Engine V18</span>
+    <span class="mc-footer__sep">|</span>
+    <span id="mc-footer-cache">Cache --</span>
+    <span class="mc-footer__sep">|</span>
+    <span id="mc-footer-latency">-- avg</span>
+    <span class="mc-footer__sep">|</span>
+    <span>15 agents</span>
+  </footer>
 
-  <!-- ═══ Live Score Ticker ═══ -->
-  <div class="cc-ticker" id="cc-ticker">
-    <span class="cc-ticker__dot"></span>
-    <span class="cc-ticker__stat"><span class="cc-ticker__val" id="ticker-progress">0/0</span></span>
-    <span class="cc-ticker__stat">DM: <span class="cc-ticker__val" id="ticker-dm">--</span></span>
-    <span class="cc-ticker__stat">Gaps: <span class="cc-ticker__val" id="ticker-gaps">0</span></span>
-  </div>
+  <!-- Dark pulse flash animation -->
+  <div class="mc-dark-pulse" id="dark-pulse"></div>
 
-  <!-- ═══ Terminal FAB Toggle ═══ -->
-  <button class="cc-terminal-fab" id="terminal-fab" onclick="toggleTerminal()" title="Toggle Terminal (T)">
-    <svg class="cc-terminal-fab__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>
-    </svg>
-    <svg class="cc-terminal-fab__close" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-    </svg>
-    <span class="cc-terminal-fab__badge" id="terminal-badge"></span>
-  </button>
-
-  <!-- ═══ Dark Pulse Flash ═══ -->
-  <div class="cc-pulse-flash" id="dark-pulse" style="display:none"></div>
-
-  <!-- ═══ Deep Dive Overlay (Tier 3 Progressive Disclosure) ═══ -->
-  <div class="cc-overlay" id="deep-dive-overlay" style="display:none">
-    <div class="cc-overlay__backdrop" onclick="closeDeepDive()"></div>
-    <div class="cc-overlay__panel">
-      <div class="cc-overlay__header">
-        <span class="cc-overlay__title">Deep Dive</span>
-        <button class="cc-overlay__close" onclick="closeDeepDive()" title="Close">&times;</button>
-      </div>
-      <div class="cc-overlay__body"></div>
-    </div>
-  </div>
-
-  <!-- ═══ Quick Action Toolbar (#6) ═══ -->
-  <div class="cc-quick-actions" id="quick-actions-bar">
-    <button class="cc-quick-actions__btn" onclick="startTest('broad')" title="Run Broad Scan">
-      <span class="cc-quick-actions__icon">&#9654;</span>
-      <span class="cc-quick-actions__label">Scan</span>
-    </button>
-    <button class="cc-quick-actions__btn" onclick="refreshAllData()" title="Refresh Data">
-      <span class="cc-quick-actions__icon">&#8635;</span>
-      <span class="cc-quick-actions__label">Refresh</span>
-    </button>
-    <button class="cc-quick-actions__btn" onclick="exportCurrentView()" title="Export Report">
-      <span class="cc-quick-actions__icon">&#128190;</span>
-      <span class="cc-quick-actions__label">Export</span>
-    </button>
-    <button class="cc-quick-actions__btn" onclick="switchTab('issues')" title="View Issues">
-      <span class="cc-quick-actions__icon">&#9888;</span>
-      <span class="cc-quick-actions__label">Issues</span>
-    </button>
-  </div>
-
-  <!-- ═══ Command Palette (#10) ═══ -->
-  <div class="cc-cmd-palette" id="command-palette" style="display:none">
-    <div class="cc-cmd-palette__backdrop" onclick="closeCommandPalette()"></div>
-    <div class="cc-cmd-palette__modal">
-      <input class="cc-cmd-palette__input" id="cmd-palette-input" placeholder="Type a command..." autocomplete="off" oninput="filterCommands(this.value)">
-      <div class="cc-cmd-palette__results" id="cmd-palette-results"></div>
-    </div>
-  </div>
-
-  <!-- ═══ Keyboard Shortcuts Overlay ═══ -->
-  <div class="cc-modal-overlay" id="shortcuts-overlay" style="display:none" onclick="closeShortcuts(event)">
-    <div class="cc-modal cc-modal--shortcuts" onclick="event.stopPropagation()">
-      <div class="cc-modal__header">
-        <span class="cc-modal__title">Keyboard Shortcuts</span>
-        <button class="cc-modal__close" onclick="closeShortcuts()">&times;</button>
-      </div>
-      <div class="cc-shortcuts-grid">
-        <div class="cc-shortcut"><kbd>1</kbd><span>Test tab</span></div>
-        <div class="cc-shortcut"><kbd>2</kbd><span>Live tab</span></div>
-        <div class="cc-shortcut"><kbd>3</kbd><span>Data tab</span></div>
-        <div class="cc-shortcut"><kbd>4</kbd><span>Issues tab</span></div>
-        <div class="cc-shortcut"><kbd>t</kbd><span>Toggle terminal</span></div>
-        <div class="cc-shortcut"><kbd>r</kbd><span>Refresh data</span></div>
-        <div class="cc-shortcut"><kbd>e</kbd><span>Export current view</span></div>
-        <div class="cc-shortcut"><kbd>c</kbd><span>Compare runs</span></div>
-        <div class="cc-shortcut"><kbd>j / k</kbd><span>Navigate runs</span></div>
-        <div class="cc-shortcut"><kbd>Enter</kbd><span>Select run</span></div>
-        <div class="cc-shortcut"><kbd>s</kbd><span>Start / Stop broad</span></div>
-        <div class="cc-shortcut"><kbd>Esc</kbd><span>Close overlay</span></div>
-        <div class="cc-shortcut"><kbd>/</kbd><span>Command palette</span></div>
-        <div class="cc-shortcut"><kbd>?</kbd><span>This help</span></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ═══ Mobile Bottom Navigation ═══ -->
-  <nav class="cc-mobile-nav" id="mobile-nav">
-    <button class="cc-mobile-nav__tab cc-mobile-nav__tab--active" data-tab="test" onclick="switchTab('test')">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-      <span>Test</span>
-    </button>
-    <button class="cc-mobile-nav__tab" data-tab="live" onclick="switchTab('live')">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-      <span>Live</span>
-    </button>
-    <button class="cc-mobile-nav__tab" data-tab="data" onclick="switchTab('data')">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
-      <span>Data</span>
-    </button>
-    <button class="cc-mobile-nav__tab" data-tab="issues" onclick="switchTab('issues')">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-      <span>Issues</span>
-      <span class="cc-mobile-nav__badge" id="mobile-issues-badge"></span>
-    </button>
-  </nav>
-
-  <!-- SLA Panel Overlay -->
-  <div class="cc-sla-panel" id="sla-panel" style="display:none">
-    <div class="cc-sla-panel__header">
-      <span class="cc-sla-panel__title">SLA Monitor</span>
-      <button class="cc-sla-panel__close" onclick="toggleSlaPanel()">&times;</button>
-    </div>
-    <div class="cc-sla-panel__body" id="sla-panel-body"></div>
-  </div>
-
+  <!-- Scripts (order matters) -->
   <script src="js/cc-queries.js"></script>
   <script src="js/cc-config.js"></script>
   <script src="js/cc-grading.js"></script>
-  <script src="js/cc-generated-queries.js"></script>
+  <script src="js/cc-coo.js"></script>
   <script src="js/cc-tests.js"></script>
-  <script src="js/cc-compare.js"></script>
   <script src="js/cc-analytics.js"></script>
   <script src="js/cc-ui.js"></script>
+
 </body>
 </html>
