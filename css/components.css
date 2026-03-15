@@ -6117,6 +6117,7 @@
   z-index: 9990;
   background: var(--fg);
   opacity: 0.3;
+  pointer-events: none; /* F-001: let clicks pass through to CTA beneath */
 }
 
 .coach-mark {

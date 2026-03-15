@@ -58,8 +58,8 @@ function handleKeyboard(e) {
       return;
     }
     if (e.key === 't' || e.key === 'T') {
-      const colorBtn = document.querySelector('[data-action="toggle-color"]');
-      if (colorBtn) { colorBtn.click(); return; }
+      const modeBtn = document.querySelector('[data-action="toggle-mode"]');
+      if (modeBtn) { modeBtn.click(); return; }
     }
     if (e.key === 'f' || e.key === 'F') {
       const step = document.querySelector('.step[data-step="0"]:not([aria-hidden="true"])');
@@ -89,7 +89,7 @@ function handleKeyboard(e) {
     const colorPopover = document.getElementById('color-popover');
     if (colorPopover?.classList.contains('color-popover--open')) {
       colorPopover.classList.remove('color-popover--open');
-      document.querySelector('[data-action="toggle-color"]')?.focus();
+      document.querySelector('[data-action="toggle-mode"]')?.focus();
       return;
     }
 

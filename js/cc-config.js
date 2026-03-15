@@ -324,6 +324,7 @@ function fmtTime(ts) {
 // Canonical API Call
 // ═══════════════════════════════════════════════════════════════════
 
+// Canonical callAPI — cc-agents.js has a broken duplicate (missing auth headers). Do NOT load cc-agents.js.
 async function callAPI(specialRequest, params = {}, signal) {
   const body = { special_request: specialRequest, ...params };
   // Auto-add skip_claude unless forcing live or liveAPI is on
@@ -405,6 +406,7 @@ function updateLiveAPIUI() {
   const dot = document.getElementById('live-api-dot');
   const label = document.getElementById('live-api-label');
   if (!btn || !label) return;
+  btn.setAttribute('aria-pressed', state.liveAPI ? 'true' : 'false');
   if (state.liveAPI) {
     btn.classList.remove('cc-live-toggle__btn--off');
     btn.classList.add('cc-live-toggle__btn--on');

@@ -69,6 +69,7 @@ body {
   position: sticky;
   top: 0;
   z-index: 100;
+  overflow: hidden; /* F-003: prevent horizontal overflow on tablet */
 }
 
 .cc-header__left {
@@ -100,6 +101,9 @@ body {
   display: flex;
   align-items: center;
   gap: 16px;
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden; /* F-003: prevent overflow on narrow viewports */
 }
 
 .cc-header__status {
@@ -1916,6 +1920,9 @@ body {
 
 /* ─── Responsive ─── */
 @media (max-width: 768px) {
+  body { overflow-x: hidden; } /* F-003: prevent horizontal scroll on tablet */
+  .cc-header { flex-wrap: wrap; gap: 8px; }
+  .cc-header__right { display: none; } /* collapse header controls on tablet */
   .cc-pulse { grid-template-columns: 1fr; gap: 12px; }
   .cc-pulse__card {
     padding: 24px 20px;

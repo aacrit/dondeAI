@@ -208,6 +208,35 @@
   }
 }
 
+/* ---- F-007: Minimum touch targets (44x44px per WCAG 2.1 AA) ---- */
+button,
+[role="button"],
+[role="radio"],
+a[href],
+.header__btn,
+.chip,
+.filter-pill,
+.tell-more-btn,
+.skip-nav {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* ---- F-008: Minimum font size floor on mobile ---- */
+@media (max-width: 767px) {
+  .type-data--sm,
+  .type-structural,
+  .filter-section__title,
+  .craving-counter,
+  .badge__label,
+  .factor-bar__label,
+  .factor-bar__value,
+  .profile-fact__label,
+  .profile-fact__value {
+    font-size: max(12px, var(--text-xs, 0.75rem));
+  }
+}
+
 /* ---- Reduced Motion ---- */
 @media (prefers-reduced-motion: reduce) {
   *,

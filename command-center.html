@@ -24,32 +24,32 @@
         <span>Donde</span>
       </div>
       <div class="cc-greeting" id="ceo-greeting">
-        <div class="cc-greeting__line1" id="greeting-line1">Command Center</div>
+        <h1 class="cc-greeting__line1" id="greeting-line1">Command Center</h1>
         <div class="cc-greeting__line2" id="greeting-line2"></div>
       </div>
     </div>
     <div class="cc-header__right">
-      <button class="cc-calendar-toggle" id="calendar-toggle" onclick="toggleCalendarPanel()" title="Today's Calendar">&#128197; Today</button>
+      <button class="cc-calendar-toggle" id="calendar-toggle" onclick="toggleCalendarPanel()" title="Today's Calendar" aria-label="Toggle calendar panel">&#128197; Today</button>
       <div class="cc-auto-refresh">
-        <button class="cc-auto-refresh__toggle" id="auto-refresh-toggle" onclick="toggleAutoRefresh()" title="Auto-refresh data">
+        <button class="cc-auto-refresh__toggle" id="auto-refresh-toggle" onclick="toggleAutoRefresh()" title="Auto-refresh data" aria-label="Toggle auto-refresh">
           <svg viewBox="0 0 24 24" width="14" height="14"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="62.8" stroke-dashoffset="0" id="auto-refresh-ring"/></svg>
           Auto
         </button>
-        <select class="cc-auto-refresh__select" onchange="setAutoRefreshInterval(this.value)" title="Refresh interval">
+        <select class="cc-auto-refresh__select" onchange="setAutoRefreshInterval(this.value)" title="Refresh interval" aria-label="Auto-refresh interval">
           <option value="30">30s</option>
           <option value="60" selected>60s</option>
         </select>
         <span class="cc-auto-refresh__countdown" id="auto-refresh-countdown"></span>
       </div>
       <div class="cc-live-toggle">
-        <button class="cc-live-toggle__btn cc-live-toggle__btn--off" id="live-api-toggle" onclick="toggleLiveAPI()" title="Toggle Live Claude API (costs $)">
+        <button class="cc-live-toggle__btn cc-live-toggle__btn--off" id="live-api-toggle" onclick="toggleLiveAPI()" title="Toggle Live Claude API (costs $)" aria-label="Toggle Live API mode" aria-pressed="false">
           <span class="cc-live-toggle__dot" id="live-api-dot"></span>
           <span class="cc-live-toggle__label" id="live-api-label">Scoring Only</span>
         </button>
       </div>
-      <button class="cc-header__action cc-btn cc-btn--primary" id="header-action-btn" onclick="handleHeaderAction()">Run Scan</button>
-      <button class="cc-sla-indicator" id="sla-indicator" onclick="toggleSlaPanel()" title="SLA Status" style="display:none">
-        <span class="cc-sla-indicator__icon" id="sla-indicator-icon"></span>
+      <button class="cc-header__action cc-btn cc-btn--primary" id="header-action-btn" onclick="handleHeaderAction()" aria-label="Run scan">Run Scan</button>
+      <button class="cc-sla-indicator cc-sla-indicator--ok" id="sla-indicator" onclick="toggleSlaPanel()" title="SLA Status" aria-label="SLA status monitor">
+        <span class="cc-sla-indicator__icon" id="sla-indicator-icon">&#8212;</span>
         <span class="cc-sla-indicator__count" id="sla-indicator-count"></span>
       </button>
       <div class="cc-header__status">
@@ -108,7 +108,7 @@
   <main class="cc-main" id="main-content">
 
     <!-- ═══ Morning Brief ═══ -->
-    <section class="cc-morning-brief" id="morning-brief" style="display:none">
+    <section class="cc-morning-brief" id="morning-brief">
       <div class="cc-morning-brief__status">
         <span class="cc-morning-brief__grade" id="brief-grade">--</span>
         <span class="cc-morning-brief__sentence" id="brief-sentence">Loading engine status...</span>
@@ -132,7 +132,8 @@
     </section>
 
     <!-- ═══ Trend Timeline ═══ -->
-    <div class="cc-trend-chart" id="trend-chart" style="display:none">
+    <div class="cc-trend-chart" id="trend-chart">
+      <div class="cc-trend-chart__empty" id="trend-chart-empty">Loading trend data...</div>
       <div class="cc-trend-chart__tooltip" id="trend-tooltip"></div>
     </div>
 
@@ -219,17 +220,17 @@
 
     <!-- ═══ Tab Bar ═══ -->
     <nav class="cc-tabs" role="tablist">
-      <button class="cc-tab cc-tab--active" role="tab" aria-selected="true" data-tab="test" onclick="switchTab('test')">Test <span class="cc-tab__badge" id="tab-test-badge"></span></button>
-      <button class="cc-tab" role="tab" aria-selected="false" data-tab="live" onclick="switchTab('live')">Live <span class="cc-tab__badge" id="tab-live-badge"></span></button>
+      <button class="cc-tab cc-tab--active" role="tab" aria-selected="true" data-tab="test" onclick="switchTab('test')">Test <span class="cc-tab__badge" id="tab-test-badge" style="display:none"></span></button>
+      <button class="cc-tab" role="tab" aria-selected="false" data-tab="live" onclick="switchTab('live')">Live <span class="cc-tab__badge" id="tab-live-badge" style="display:none"></span></button>
       <button class="cc-tab" role="tab" aria-selected="false" data-tab="data" onclick="switchTab('data')">Data</button>
-      <button class="cc-tab" role="tab" aria-selected="false" data-tab="issues" onclick="switchTab('issues')" id="tab-issues-btn">Issues <span class="cc-tab__badge" id="tab-issues-badge"></span></button>
+      <button class="cc-tab" role="tab" aria-selected="false" data-tab="issues" onclick="switchTab('issues')" id="tab-issues-btn">Issues <span class="cc-tab__badge" id="tab-issues-badge" style="display:none"></span></button>
       <div class="cc-tab__indicator" id="tab-indicator"></div>
     </nav>
 
     <!-- ═══ Quick Query (Promoted) ═══ -->
     <div class="cc-quick-query cc-quick-query--promoted" id="quick-query-promoted">
       <div class="cc-quick-query__bar">
-        <input type="text" class="cc-quick-query__input" id="promoted-query-input" placeholder="Test a query..." autocomplete="off" onkeydown="if(event.key==='Enter')runPromotedQuery()" oninput="showQuerySuggestions(this.value)">
+        <input type="text" class="cc-quick-query__input" id="promoted-query-input" placeholder="Test a query..." autocomplete="off" onkeydown="if(event.key==='Enter')runPromotedQuery()" oninput="showQuerySuggestions(this.value)" aria-label="Test a query">
         <button class="cc-btn cc-btn--primary cc-btn--sm" onclick="runPromotedQuery()">Test</button>
       </div>
       <div class="cc-quick-query__suggestions" id="query-suggestions" style="display:none"></div>
@@ -241,21 +242,21 @@
 
       <!-- Test Type Cards -->
       <div class="cc-test-grid" id="test-grid">
-        <button class="cc-test-card" data-test="broad" onclick="startTest('broad')">
+        <button class="cc-test-card" data-test="broad" onclick="startTest('broad')" aria-label="Run Broad Scan test">
           <span class="cc-test-card__gear" onclick="event.stopPropagation();toggleConfig('broad')" title="Configure">&#9881;</span>
           <div class="cc-test-card__icon">&#9654;</div>
           <div class="cc-test-card__name">Broad Scan</div>
           <div class="cc-test-card__desc" id="broad-desc">20 random queries across all categories</div>
           <div class="cc-test-card__meta" id="broad-meta">$0.00 &middot; ~2 min</div>
         </button>
-        <button class="cc-test-card" data-test="category" onclick="startTest('category')">
+        <button class="cc-test-card" data-test="category" onclick="startTest('category')" aria-label="Run Category Focus test">
           <span class="cc-test-card__gear" onclick="event.stopPropagation();toggleConfig('category')" title="Configure">&#9881;</span>
           <div class="cc-test-card__icon">&#9632;</div>
           <div class="cc-test-card__name">Category Focus</div>
           <div class="cc-test-card__desc" id="category-desc">15 queries from selected categories</div>
           <div class="cc-test-card__meta" id="category-meta">$0.00 &middot; ~1 min</div>
         </button>
-        <button class="cc-test-card" data-test="regression" onclick="startTest('regression')">
+        <button class="cc-test-card" data-test="regression" onclick="startTest('regression')" aria-label="Run Regression Guard test">
           <span class="cc-test-card__gear" onclick="event.stopPropagation();toggleConfig('regression')" title="Configure">&#9881;</span>
           <div class="cc-test-card__icon">&#9888;</div>
           <div class="cc-test-card__name">Regression Guard</div>

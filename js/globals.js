@@ -35,8 +35,14 @@ export function _escHtml(s) {
 }
 
 /* ---- Haptic Feedback Library ---- */
+let _userGestureSeen = false;
+function _trackGesture() { _userGestureSeen = true; }
+if (typeof document !== 'undefined') {
+  document.addEventListener('pointerdown', _trackGesture, { once: true, passive: true });
+  document.addEventListener('keydown', _trackGesture, { once: true, passive: true });
+}
 export function haptic(pattern) {
-  if (navigator.vibrate) navigator.vibrate(pattern);
+  if (_userGestureSeen && navigator.vibrate) navigator.vibrate(pattern);
 }
 
 export const HAPTICS = {

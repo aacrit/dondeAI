@@ -142,7 +142,7 @@ function init() {
       }
       // SSO: Deferred auth — show popup after second successful result
       _resultCount++;
-      if (_resultCount >= 2 && !isAuthAuthenticated() && !hasGuestDismissed()) {
+      if (_resultCount >= 4 && !isAuthAuthenticated() && !hasGuestDismissed()) {
         setTimeout(() => openAuthSheet(), 600);
       }
     }
@@ -1603,10 +1603,14 @@ function wireCravingInput() {
     setState({ craving: $cravingInput.value });
     updateCtaState();
     clearEmptyState();
+    // F-005: Enforce 500-char limit via JS (defense-in-depth for maxlength bypass)
+    const max = 500;
+    if ($cravingInput.value.length > max) {
+      $cravingInput.value = $cravingInput.value.slice(0, max);
+    }
     // Character counter — visible at 80%+ of maxlength
     const $counter = document.getElementById('craving-counter');
     if ($counter) {
-      const max = 500;
       const len = $cravingInput.value.length;
       if (len >= max * 0.8) {
         $counter.textContent = `${len} / ${max}`;
@@ -4895,7 +4899,7 @@ function buildWhyExplainer(data, craving) {
 let coachMarkStep = 0;
 const COACH_STEPS = [
   {
-    targetSelector: '[data-action="toggle-color"]',
+    targetSelector: '[data-action="toggle-mode"]',
     textKey: 'theme',
     position: 'below',
   },
@@ -4906,9 +4910,33 @@ const COACH_STEPS = [
   },
 ];
 
+function dismissAllCoachMarks() {
+  // F-009: Dismiss all coach marks immediately
+  for (const step of COACH_STEPS) {
+    const target = document.querySelector(step.targetSelector);
+    if (target?._coachElevated) {
+      target.style.zIndex = '';
+      delete target._coachElevated;
+    }
+  }
+  coachMarkStep = COACH_STEPS.length;
+  const $mark = document.getElementById('coach-mark');
+  const $backdrop = document.getElementById('coach-mark-backdrop');
+  if ($mark) $mark.style.display = 'none';
+  if ($backdrop) $backdrop.style.display = 'none';
+  setOnboardingSeen();
+}
+
 function showCoachMarks() {
   coachMarkStep = 0;
   showCoachStep();
+  // F-009: Auto-dismiss coach marks on first user engagement
+  const autoDismiss = () => dismissAllCoachMarks();
+  $cravingInput?.addEventListener('input', autoDismiss, { once: true });
+  // Also auto-dismiss after 10 seconds
+  setTimeout(() => {
+    if (coachMarkStep < COACH_STEPS.length) dismissAllCoachMarks();
+  }, 10000);
 }
 
 function showCoachStep() {

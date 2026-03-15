@@ -1013,9 +1013,7 @@ function initKeyboardShortcuts() {
         }
         break;
       case '?':
-      case 'h':
-        if (e.key === 'h' && !e.shiftKey) break; // only ? and H
-        toggleShortcuts();
+        if (typeof toggleShortcuts === 'function') toggleShortcuts();
         break;
       case '/':
         e.preventDefault();
@@ -3685,7 +3683,6 @@ function evaluateSLAs() {
   });
 
   state.slaResults = results;
-  indicator.style.display = '';
   const iconEl = document.getElementById('sla-indicator-icon');
   const countEl = document.getElementById('sla-indicator-count');
   if (breaches > 0) {
@@ -3754,8 +3751,12 @@ function renderTrendChart() {
   const container = document.getElementById('trend-chart');
   if (!container) return;
   const trend = state.trendData || [];
-  if (trend.length < 2) { container.style.display = 'none'; return; }
-  container.style.display = '';
+  const emptyEl = document.getElementById('trend-chart-empty');
+  if (trend.length < 2) {
+    if (emptyEl) { emptyEl.style.display = ''; emptyEl.textContent = 'Not enough data for trend chart'; }
+    return;
+  }
+  if (emptyEl) emptyEl.style.display = 'none';
 
   const data = trend.slice().reverse(); // oldest first
   const w = container.clientWidth - 32;
