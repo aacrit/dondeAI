@@ -1,0 +1,541 @@
+/* ============================================
+   DondeAI — Modal Components
+   Color popover, share sheet, tile expand,
+   share preview, theme wash
+   ============================================ */
+
+/* ---- Color Mode Toggle Icon Visibility ---- */
+.color-icon--on,
+.color-icon--off { transition: opacity 200ms var(--ease-out); }
+.color-icon--off { display: none; }
+[data-color="off"] .color-icon--on { display: none; }
+[data-color="off"] .color-icon--off { display: block; }
+
+/* ---- Color Mode Popover ---- */
+.color-popover {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+
+.color-popover--open {
+  pointer-events: auto;
+  opacity: 1;
+}
+
+.color-popover__backdrop {
+  position: absolute;
+  inset: 0;
+}
+
+.color-popover__panel {
+  position: absolute;
+  top: 52px;
+  right: var(--space-sm);
+  width: 200px;
+  padding: var(--space-sm);
+  background: var(--glass);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  transform: scale(0.95) translateY(-4px);
+  opacity: 0;
+  transition: transform var(--dur-fast) var(--spring),
+              opacity var(--dur-fast) var(--ease-out);
+}
+
+.color-popover--open .color-popover__panel {
+  transform: scale(1) translateY(0);
+  opacity: 1;
+}
+
+/* Toggle row */
+.color-popover__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.color-popover__label {
+  color: var(--fg2);
+  font-family: var(--font-data);
+  font-size: var(--text-xs);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Toggle switch */
+.color-popover__switch {
+  position: relative;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+.color-popover__switch-track {
+  display: block;
+  width: 36px;
+  height: 20px;
+  border-radius: 10px;
+  background: var(--fg3);
+  opacity: 0.3;
+  transition: background var(--dur-fast) var(--ease-out),
+              opacity var(--dur-fast) var(--ease-out);
+  position: relative;
+}
+
+.color-popover__switch[aria-checked="true"] .color-popover__switch-track {
+  background: var(--ac, var(--fg));
+  opacity: 0.8;
+}
+
+.color-popover__switch-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--bg);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--dur-fast) var(--spring);
+}
+
+.color-popover__switch[aria-checked="true"] .color-popover__switch-knob {
+  transform: translateX(16px);
+}
+
+/* Culture dots row */
+.color-popover__cultures {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  flex-wrap: wrap;
+  padding-top: var(--space-2xs);
+  border-top: 1px solid var(--border);
+}
+
+.color-popover__dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform var(--dur-fast) var(--spring),
+              border-color var(--dur-fast) var(--ease-out),
+              opacity var(--dur-fast) var(--ease-out);
+}
+
+.color-popover__dot:hover {
+  transform: scale(1.15);
+}
+
+.color-popover__dot:active {
+  transform: scale(0.9);
+}
+
+.color-popover__dot--active {
+  border-color: var(--fg);
+  box-shadow: 0 0 0 2px var(--ac-soft);
+  transform: scale(1.1);
+}
+
+/* Greyed-out dots when color mode is off */
+[data-color="off"] .color-popover__dot {
+  opacity: 0.25;
+  pointer-events: none;
+}
+
+.color-popover__dot-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+/* ---- Share sheet grab handle (keep for share sheet, was shared) ---- */
+.share-sheet__panel::before {
+  content: '';
+  display: block;
+  width: 36px;
+  height: 4px;
+  margin: 0 auto var(--space-sm);
+  background: var(--fg3);
+  border-radius: 2px;
+  opacity: 0.4;
+}
+
+@media (min-width: 768px) {
+  .share-sheet__panel::before {
+    display: none;
+  }
+}
+
+/* ---- Share Sheet ---- */
+.share-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--dur-normal) var(--ease-out);
+}
+
+.share-sheet--open {
+  pointer-events: auto;
+  opacity: 1;
+}
+
+.share-sheet__backdrop {
+  position: absolute;
+  inset: 0;
+  background: hsl(0 0% 0% / 0.4);
+}
+
+.share-sheet__panel {
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+  background: var(--glass);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  padding: var(--space-lg);
+  transform: translateY(100%);
+  transition: transform var(--dur-step) var(--spring);
+}
+
+.share-sheet--open .share-sheet__panel {
+  transform: translateY(0);
+}
+
+.share-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-md);
+}
+
+.share-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm);
+  border-radius: var(--radius);
+  transition: background var(--dur-fast) var(--ease-out);
+}
+
+.share-btn:hover {
+  background: var(--bg3);
+}
+
+.share-btn__icon {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: var(--text-lg);
+}
+
+.share-btn__label {
+  font-size: var(--text-xs);
+  color: var(--fg2);
+}
+
+/* ---- Tile Expand Modal ---- */
+.tile-expand {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--dur-normal) var(--ease-out);
+}
+
+.tile-expand--open {
+  pointer-events: auto;
+  opacity: 1;
+}
+
+.tile-expand__backdrop {
+  position: absolute;
+  inset: 0;
+  background: hsl(0 0% 0% / 0.5);
+}
+
+.tile-expand__panel {
+  position: relative;
+  width: 90vw;
+  max-width: 360px;
+  max-height: 80vh;
+  overflow-y: auto;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+  transform: scale(0.9);
+  transition: transform var(--dur-step) var(--spring);
+}
+
+.tile-expand--open .tile-expand__panel {
+  transform: scale(1);
+}
+
+.tile-expand__close {
+  position: absolute;
+  top: var(--space-sm);
+  right: var(--space-sm);
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: var(--fg2);
+  background: none;
+  border: none;
+  cursor: pointer;
+  z-index: 1;
+  transition: background var(--dur-fast) var(--ease-out),
+              color var(--dur-fast) var(--ease-out);
+}
+
+.tile-expand__close:hover {
+  background: var(--bg3);
+  color: var(--fg);
+}
+
+.tile-expand__content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  text-align: center;
+}
+
+/* Expanded score ring — larger */
+.tile-expand__content .score-ring-wrap {
+  width: 160px;
+  height: 160px;
+}
+
+.tile-expand__content .score-verdict {
+  font-size: var(--text-lg);
+}
+
+
+/* ---- Expandable Tile Affordance ---- */
+.score-tile--expandable {
+  cursor: pointer;
+  transition: transform var(--dur-fast) var(--spring),
+              box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.score-tile--expandable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px var(--shadow);
+}
+
+.score-tile--expandable:active {
+  transform: scale(0.97);
+}
+
+/* ---- Result Navigation (after header) ---- */
+.result-nav {
+  width: 100%;
+}
+
+/* ---- Recommendation Wrap (collapsible) ---- */
+/* .result-rec-wrap and .result-rec-toggle replaced by .donde-blurb */
+
+/* ---- CTA Button with Icon ---- */
+.cta-btn--icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+}
+
+.cta-btn__icon {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.cta-btn__icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.cta-btn__text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+/* Ghost variant — borderless, subtle text */
+.cta-btn--ghost {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--fg2);
+  box-shadow: none;
+}
+
+.cta-btn--ghost:hover {
+  background: var(--bg2);
+  color: var(--fg);
+}
+
+.cta-btn--exhausted {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* ---- Particle Canvas ---- */
+.particle-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-particle, 500);
+  pointer-events: none;
+}
+
+/* ---- Loading Status/Skeleton: removed — replaced by .loading-word in unified overlay ---- */
+
+/* ---- (Food orbit removed — replaced by logo-driven animation) ---- */
+
+/* ---- Filter Utility Row (Clear + Randomize) ---- */
+.filter-utility-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin-top: var(--space-xs);
+}
+
+.filter-utility-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  padding: var(--space-xs) 0;
+  color: var(--fg3);
+  font-size: var(--text-sm);
+  border: none;
+  background: none;
+  cursor: pointer;
+  transition: color var(--dur-fast) var(--ease-out);
+}
+
+.filter-utility-link:hover {
+  color: var(--ac);
+}
+
+/* ---- Share Preview (Enhancement 10) ---- */
+.share-preview {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  max-width: 300px;
+  margin: 0 auto var(--space-md);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--bg3);
+}
+
+.share-preview canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.share-format-toggle {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+  position: relative;
+}
+
+.share-format-btn {
+  padding: var(--space-xs) var(--space-md);
+  font-size: var(--text-sm);
+  color: var(--fg3);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color var(--dur-fast) var(--ease-out);
+  position: relative;
+}
+
+.share-format-btn:focus-visible {
+  outline: 2px solid var(--ac);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.share-format-btn--active {
+  color: var(--ac);
+}
+
+.share-format-btn--active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--ac);
+  border-radius: 1px;
+}
+
+/* ---- Theme Wash (radial clip-path ink spread) ---- */
+.theme-wash {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-overlay);
+  pointer-events: none;
+  background: var(--bg);
+  --wash-x: 50vw;
+  --wash-y: 50vh;
+  clip-path: circle(0% at var(--wash-x) var(--wash-y));
+  transition: clip-path 400ms var(--ease-out);
+}
+
+.theme-wash--active {
+  clip-path: circle(150% at var(--wash-x) var(--wash-y));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-wash {
+    transition: none;
+    clip-path: none;
+    opacity: 0;
+  }
+  .theme-wash--active {
+    clip-path: none;
+    opacity: 1;
+  }
+}

@@ -104,3 +104,6 @@ export function setSwapInFlight(v) { _swapInFlight = v; }
 let _arrowBounceTimer = null;
 export function getArrowBounceTimer() { return _arrowBounceTimer; }
 export function setArrowBounceTimer(v) { _arrowBounceTimer = v; }
+
+/* ---- Reduced motion media query (shared across modules) ---- */
+export const REDUCED_MOTION = matchMedia('(prefers-reduced-motion: reduce)');

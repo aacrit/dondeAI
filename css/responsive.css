@@ -181,7 +181,7 @@
   }
 
   .craving-input {
-    font-size: var(--text-lg) !important;
+    font-size: var(--text-lg);
   }
 
   .smart-chips {
