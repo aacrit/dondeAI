@@ -63,18 +63,25 @@ const QUERY_CATEGORIES = {
   Conv:    { label: 'Conv',    color: '#22c55e', desc: 'Convenience & access' },
 };
 
-// Banned cliché patterns for Blurb QA
+// Banned cliché patterns for Blurb QA — synced with backend grading.ts
 const BANNED_PATTERNS = [
-  'culinary', 'gastronomic', 'delectable', 'exquisite', 'tantalizing',
-  'delightful', 'mouthwatering', 'nestled', 'tucked away', 'hidden gem',
-  'impeccable', 'unparalleled', 'masterfully', 'beautifully', 'stunningly',
-  'perfectly', 'artisan', 'artisanal', 'elevate', 'elevated', 'transcend',
-  'journey', 'tapestry', 'diverse menu', 'wide array', 'must-visit',
-  'not disappoint', 'fusion of', 'indulge', 'culinary journey',
-  'dining experience', 'food lovers', 'every bite', 'savor every',
-  'burst of flavor', 'symphony of flavors', 'palette', 'taste buds',
-  'beckons', 'invites you', 'promises', 'where tradition meets',
-  'crafted with', 'something for everyone',
+  'hidden gem', 'best-kept secret', 'culinary journey', 'taste buds', 'flavor explosion',
+  'mouthwatering', 'delectable', 'delightful', 'exquisite', 'impeccable', 'nestled',
+  'tucked away', 'foodie', 'gastronomic', 'epicurean', 'palate', 'tantalizing',
+  'sumptuous', 'delicacy', 'indulge', 'savor every', 'feast for', 'a cut above',
+  'second to none', 'worth every penny', 'not to be missed', 'a must-visit',
+  'you won\'t regret', 'look no further', 'stands out from', 'elevate your',
+  'take your taste', 'redefine', 'reimagine', 'transcend', 'next level',
+  'game changer', 'game-changer', 'blown away', 'pleasantly surprised',
+  'exceeded expectations', 'won\'t disappoint', 'never disappoints', 'consistently delivers',
+  'truly special', 'something special', 'one-of-a-kind', 'like no other',
+  'in the heart of', 'bustling', 'vibrant scene', 'warm and inviting',
+  'cozy atmosphere', 'welcoming ambiance', 'rustic charm', 'elegant setting',
+  'step into', 'transport you', 'whisk you away', 'escape to',
+  'perfect blend', 'harmonious', 'symphony of', 'dance of flavors',
+  'artfully crafted', 'lovingly prepared', 'passion for', 'dedication to',
+  'attention to detail', 'craft', 'artisan',
+  '\u2014',
 ];
 
 // Edge case probes for Edge Case tests
