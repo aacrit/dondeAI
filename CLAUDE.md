@@ -1,6 +1,6 @@
 # DondeAI Frontend
 
-Last updated: 2026-03-13
+Last updated: 2026-03-15
 
 > **Read this file first. Only read `docs/*.md` when task-relevant. Only open source files when modifying code.**
 
@@ -41,7 +41,44 @@ All skills in `.claude/skills/`. COO agent in `.claude/agents/donde-coo.md`. Fro
 
 ## Agent Hierarchy
 
-The COO agent (`donde-coo`) orchestrates all operations across both repos. Frontend skills (`/frontenddesign`, `/ceo-advisor`, `/donde-premium-advisor`, `/donde-ciso`, `/update-docs`) report through the COO for coordination. COO agent definition: `.claude/agents/donde-coo.md` (this repo, mirror) + `../dondeBackend/.claude/agents/donde-coo.md` (canonical). See backend CLAUDE.md for the full org chart, 4 divisions, and team expansion plan.
+The COO (`donde-coo`) orchestrates all agents across **5 divisions** in both repos. Every agent reports to the COO, and the COO reports directly to the CEO.
+
+```
+CEO (Aacrit)
+  └── COO (donde-coo)
+        ├── Quality ———— analytics-expert, bug-fixer, gen-test-queries, continuous-tester
+        ├── Infrastructure — perf-optimizer, db-reviewer, update-docs, prod-sentinel
+        ├── Frontend ———— frontend-builder, frontend-fixer, css-theme-specialist, uat-tester, frontenddesign
+        ├── Product ————— ceo-advisor, donde-premium-advisor
+        └── Security ———— donde-ciso
+```
+
+**15 agents total** across 5 divisions. All operate at $0 cost via `skip_claude`.
+
+| Agent | Division | Purpose | Repo |
+|-------|----------|---------|------|
+| `donde-coo` | Lead | Orchestrates all agents, runs quality cycles, reports to CEO | Backend (canonical) |
+| `analytics-expert` | Quality | Benchmarks engine, implements quick-wins | Backend |
+| `bug-fixer` | Quality | Post-test bug fixer — root-causes, groups, fixes code | Backend |
+| `gen-test-queries` | Quality | Generates diverse, persona-driven test queries | Backend |
+| `continuous-tester` | Quality | Automated test runner after deploys | Backend |
+| `perf-optimizer` | Infra | Response time optimizer, timeout prevention | Backend |
+| `db-reviewer` | Infra | Database quality audit — accuracy, freshness, consistency | Backend |
+| `update-docs` | Infra | Scans codebase, updates all MD files | Both |
+| `prod-sentinel` | Infra | Production monitoring — error rates, cache health | Backend |
+| `frontend-builder` | Frontend | Component engineering | **Frontend** |
+| `frontend-fixer` | Frontend | UI bug remediation | **Frontend** |
+| `css-theme-specialist` | Frontend | 10 theme variants | **Frontend** |
+| `uat-tester` | Frontend | UAT browser testing via Playwright | Backend |
+| `ceo-advisor` | Product | Strategic product advisor — Top 10 recommendations | Backend |
+| `donde-premium-advisor` | Product | Premium app audit ($50B caliber) | Backend |
+| `donde-ciso` | Security | Security audit across 10 domains | Backend |
+
+**Escalation:** CRITICAL findings auto-escalate to COO → CEO with "The Bottom Line" summary.
+
+**CEO task trigger:** All CEO tasks should trigger an agentic team response — spawn the COO (`donde-coo`) to orchestrate the appropriate division agents for the task. The COO triages, assigns agents, and reports back.
+
+**Canonical COO definition:** `../dondeBackend/.claude/agents/donde-coo.md`. Mirror in this repo: `.claude/agents/donde-coo.md`. Full team operations: `../dondeBackend/docs/TEAM-OPERATIONS.md`.
 
 ## Design Philosophy — "Ink & Momentum" (V10, Locked)
 
