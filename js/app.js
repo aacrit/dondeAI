@@ -18,7 +18,7 @@ import { initAccessibility } from './accessibility.js';
 import { initAuth, isAuthenticated as isAuthAuthenticated, getUser as getAuthUser } from './auth.js';
 import { loadRive } from './animations.js';
 import { getGreeting } from './utils.js';
-import { $dom, REDUCED_MOTION } from './globals.js';
+import { $dom, initDomRefs, REDUCED_MOTION } from './globals.js';
 
 // Module imports
 import {
@@ -37,6 +37,9 @@ import {
 
 /* ---- Initialize ---- */
 function init() {
+  // Initialize cached DOM references (must be first)
+  initDomRefs();
+
   // Load persisted state
   const savedTheme = loadTheme();
   const savedSound = loadSound();
