@@ -205,6 +205,87 @@ function highlightNarrativeKeywords($el, restaurantData) {
 /* ---- Score Hero (Confidence Ring — full circle gauge) ---- */
 
 let heroData = null;
+let _heroRingSpring = null;
+
+/* ---- V12: Particle Burst at Ring Settle ---- */
+/**
+ * Emit 5-8 small particles from the ring's settle position.
+ * Particles are absolutely positioned divs with spring-like outward motion.
+ * Subtle ink-droplet aesthetic — small dots in accent color.
+ */
+function _emitSettleParticles($hero, score) {
+  if (REDUCED.matches) return;
+  const ringWrap = $hero.querySelector('.score-hero__ring-wrap');
+  if (!ringWrap) return;
+
+  const count = 5 + Math.floor(Math.random() * 4); // 5-8 particles
+  const rect = ringWrap.getBoundingClientRect();
+  const centerX = rect.width / 2;
+  const centerY = rect.height / 2;
+  const ringRadius = rect.width / 2;
+
+  // Get the angle where the ring fill ends (score position on the arc)
+  const endAngle = -90 + (360 * (score / 100));
+  const endRad = endAngle * (Math.PI / 180);
+  const originX = centerX + ringRadius * 0.82 * Math.cos(endRad);
+  const originY = centerY + ringRadius * 0.82 * Math.sin(endRad);
+
+  const ac = getComputedStyle(document.documentElement).getPropertyValue('--ac').trim() || '#6c5ce7';
+
+  for (let i = 0; i < count; i++) {
+    const particle = document.createElement('div');
+    particle.className = 'score-ring-particle';
+    particle.setAttribute('aria-hidden', 'true');
+
+    // Randomize direction: spread in a ~120deg arc centered on the ring's tangent
+    const spreadAngle = endRad + (Math.random() - 0.5) * (Math.PI * 0.67);
+    const distance = 15 + Math.random() * 25; // 15-40px outward
+    const size = 3 + Math.random() * 3; // 3-6px
+
+    particle.style.width = size + 'px';
+    particle.style.height = size + 'px';
+    particle.style.background = ac;
+    particle.style.left = originX + 'px';
+    particle.style.top = originY + 'px';
+    particle.style.opacity = '0.8';
+
+    ringWrap.appendChild(particle);
+
+    // Animate outward with fast-out / slow-fade via CSS transitions
+    const tx = Math.cos(spreadAngle) * distance;
+    const ty = Math.sin(spreadAngle) * distance;
+    const delay = i * 30; // slight stagger
+
+    requestAnimationFrame(() => {
+      particle.style.transition = `transform 400ms cubic-bezier(0.2, 1, 0.4, 1) ${delay}ms, opacity 600ms ease-out ${delay + 200}ms`;
+      particle.style.transform = `translate(${tx}px, ${ty}px) scale(0.3)`;
+      particle.style.opacity = '0';
+    });
+
+    // Cleanup after animation
+    setTimeout(() => particle.remove(), 800 + delay);
+  }
+}
+
+/* ---- V12: Haptic Score Language ---- */
+/**
+ * Fire haptic feedback at ring settle based on score tier.
+ * 90+: double pulse [50, 30, 50]
+ * 80-89: single strong [40]
+ * 70-79: single light [20]
+ * <70: no haptic
+ */
+function _fireSettleHaptic(score) {
+  if (REDUCED.matches) return;
+  if (!navigator.vibrate) return;
+  if (score >= 90) {
+    navigator.vibrate([50, 30, 50]);
+  } else if (score >= 80) {
+    navigator.vibrate([40]);
+  } else if (score >= 70) {
+    navigator.vibrate([20]);
+  }
+}
 
 export function renderScoreHero(dondeMatch, scores, scoringData, sentiment, timers = [], matchNarrative = null) {
   const $hero = document.getElementById('score-hero');
@@ -222,12 +303,12 @@ export function renderScoreHero(dondeMatch, scores, scoringData, sentiment, time
   const circumference = 2 * Math.PI * 52; // ~326.7
   const target = circumference - (pct / 100) * circumference;
 
+  // Cancel any prior spring animation
+  if (_heroRingSpring) { _heroRingSpring.stop(); _heroRingSpring = null; }
+
   if ($ringFill) {
     $ringFill.style.transition = 'none';
     $ringFill.style.strokeDasharray = String(circumference);
-    // RAG color based on final score
-    const ringColor = getScoreThresholdColor(pct);
-    $ringFill.style.stroke = ringColor;
 
     // Ink trail dot — traces the leading edge of the arc
     const $inkDot = document.getElementById('score-hero-ink-dot');
@@ -235,50 +316,105 @@ export function renderScoreHero(dondeMatch, scores, scoringData, sentiment, time
     const ringCenter = 60; // SVG cx/cy
 
     if (REDUCED.matches) {
+      const ringColor = getScoreThresholdColor(pct);
+      $ringFill.style.stroke = ringColor;
       $ringFill.style.strokeDashoffset = String(target);
       if ($number) { $number.textContent = pct; $number.style.color = ringColor; }
       if ($inkDot) $inkDot.classList.remove('score-hero__ink-dot--active');
     } else {
       // Start empty
       $ringFill.style.strokeDashoffset = String(circumference);
+      $ringFill.style.stroke = getScoreThresholdColor(0);
       if ($inkDot) $inkDot.classList.add('score-hero__ink-dot--active');
 
-      const duration = 600;
+      // V12: Use bouncy preset for 90+ (more overshoot), score preset otherwise
+      const springPreset = pct >= 90 ? SPRINGS.bouncy : SPRINGS.score;
+
       timers.push(setTimeout(() => {
-        const startTime = performance.now();
-        function tick(now) {
-          const elapsed = now - startTime;
-          const progress = Math.min(elapsed / duration, 1);
-          const eased = 1 - Math.pow(1 - progress, 3);
+        // Spring-driven ring fill: value overshoots target, settles back
+        _heroRingSpring = springValue({
+          from: 0,
+          to: pct,
+          spring: springPreset,
+          onUpdate(v) {
+            // Clamp display to 0-100 range but allow spring physics to overshoot internally
+            const displayPct = Math.max(0, Math.min(100, Math.round(v)));
+            const clampedV = Math.max(0, Math.min(100, v));
+            const currentOffset = circumference - (clampedV / 100) * circumference;
 
-          const currentPct = Math.round(pct * eased);
-          const currentOffset = circumference - (currentPct / 100) * circumference;
+            $ringFill.style.strokeDashoffset = String(currentOffset);
 
-          $ringFill.style.strokeDashoffset = String(currentOffset);
-          if ($number) { $number.textContent = currentPct; $number.style.color = getScoreThresholdColor(currentPct); }
+            // Smooth RAG color transition as value crosses thresholds
+            $ringFill.style.stroke = getScoreThresholdColor(displayPct);
 
-          // Position ink dot at leading edge of arc
-          if ($inkDot) {
-            const angle = -90 + (360 * (currentPct / 100)); // Start at top (-90deg)
-            const rad = angle * (Math.PI / 180);
-            // Position relative to ring-wrap center (percentage-based)
-            const dotX = 50 + (ringRadius / (ringCenter * 2)) * 100 * Math.cos(rad);
-            const dotY = 50 + (ringRadius / (ringCenter * 2)) * 100 * Math.sin(rad);
-            $inkDot.style.left = dotX + '%';
-            $inkDot.style.top = dotY + '%';
-          }
+            if ($number) {
+              $number.textContent = displayPct;
+              $number.style.color = getScoreThresholdColor(displayPct);
+            }
 
-          if (progress < 1) {
-            requestAnimationFrame(tick);
-          } else {
+            // Position ink dot at leading edge of arc
+            if ($inkDot) {
+              const angle = -90 + (360 * (clampedV / 100));
+              const rad = angle * (Math.PI / 180);
+              const dotX = 50 + (ringRadius / (ringCenter * 2)) * 100 * Math.cos(rad);
+              const dotY = 50 + (ringRadius / (ringCenter * 2)) * 100 * Math.sin(rad);
+              $inkDot.style.left = dotX + '%';
+              $inkDot.style.top = dotY + '%';
+            }
+          },
+          onComplete() {
+            const ringColor = getScoreThresholdColor(pct);
+            $ringFill.style.strokeDashoffset = String(target);
+            $ringFill.style.stroke = ringColor;
             if ($number) { $number.textContent = pct; $number.style.color = ringColor; }
-            // Fade out ink dot on completion
+            _heroRingSpring = null;
+
+            // Fade out ink dot on settle
             if ($inkDot) {
               setTimeout(() => $inkDot.classList.remove('score-hero__ink-dot--active'), 200);
             }
+
+            // --- V12: Particle Burst at settle ---
+            _emitSettleParticles($hero, pct);
+
+            // --- V12: Haptic Score Language at settle ---
+            _fireSettleHaptic(pct);
+
+            // --- V12: 90+ Celebration Effects ---
+            if (pct >= 90) {
+              // Gold glow on score number
+              if ($number) {
+                $number.classList.add('score-number--gold-glow');
+                $number.addEventListener('animationend', () => {
+                  $number.classList.remove('score-number--gold-glow');
+                }, { once: true });
+              }
+
+              // Golden shimmer on restaurant name (one pass, 600ms)
+              const $name = document.getElementById('result-name');
+              if ($name) {
+                $name.classList.add('golden-shimmer');
+                $name.addEventListener('animationend', () => {
+                  $name.classList.remove('golden-shimmer');
+                }, { once: true });
+              }
+            }
+
+            // --- V12: 95+ Donde Gold ring flash ---
+            if (pct >= 95) {
+              const ringWrap = $hero.querySelector('.score-hero__ring-wrap');
+              if (ringWrap) {
+                const goldOverlay = document.createElement('div');
+                goldOverlay.className = 'donde-gold';
+                goldOverlay.setAttribute('aria-hidden', 'true');
+                ringWrap.appendChild(goldOverlay);
+                goldOverlay.addEventListener('animationend', () => {
+                  goldOverlay.remove();
+                }, { once: true });
+              }
+            }
           }
-        }
-        requestAnimationFrame(tick);
+        });
       }, 100));
     }
   }

@@ -30,28 +30,26 @@ let _scoreCountUpRaf = null;
 let edgeHintTimers = [];
 
 /* ---- Tiered Celebration Orchestrator ---- */
+/**
+ * V12: Settle haptic now fires from spring onComplete in renderScoreHero.
+ * This function handles chimes + confetti particle burst (tier 2+).
+ * Tier 3+4 celebration haptics kept here for the celebration moment.
+ */
 export function _fireTieredCelebration(score) {
   const tier = score >= 95 ? 4 : score >= 88 ? 3 : score >= 80 ? 2 : 1;
   fireCelebration(score);
 
+  // Tiered chime — settle haptic now fires from spring onComplete
   if (tier === 1) {
     playSettleChime();
-    haptic(HAPTICS.tick);
   } else if (tier === 2) {
     playGlowChime();
-    haptic(HAPTICS.doublePulse);
   } else if (tier === 3) {
     playCelebrationChime();
     haptic(HAPTICS.celebration);
   } else {
     playSpectacleChime();
     haptic(HAPTICS.spectacle);
-  }
-
-  if (tier >= 2) {
-    [300, 600, 900].forEach(delay => {
-      setTimeout(() => haptic(HAPTICS.tick), delay);
-    });
   }
 }
 
