@@ -1437,6 +1437,103 @@
 }
 
 /* ============================================
+   V12: Score Ring Spring Physics — Particle Burst
+   Small dots that burst outward from the ring on settle.
+   Absolutely positioned divs, GPU-composited.
+   ============================================ */
+.score-ring-particle {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--ac);
+  pointer-events: none;
+  z-index: 10;
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+/* ============================================
+   V12: Golden Shimmer — 90+ restaurant name highlight
+   Single left-to-right shimmer pass, 600ms.
+   ============================================ */
+@keyframes goldenShimmerPass {
+  0%   { background-position: -100% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.golden-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in srgb, #FFD700 35%, transparent) 40%,
+    color-mix(in srgb, #FFD700 60%, transparent) 50%,
+    color-mix(in srgb, #FFD700 35%, transparent) 60%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  animation: goldenShimmerPass 600ms ease-out forwards;
+}
+
+/* ============================================
+   V12: Score Number Gold Glow — 90+ brief gold tint
+   ============================================ */
+@keyframes scoreGoldGlow {
+  0%   { color: #FFD700; text-shadow: 0 0 8px rgba(255, 215, 0, 0.5); }
+  100% { color: inherit; text-shadow: none; }
+}
+
+.score-number--gold-glow {
+  animation: scoreGoldGlow 800ms ease-out forwards;
+}
+
+/* ============================================
+   V12: Donde Gold — 95+ ring flash gold before settling green
+   Radial gradient overlay that fades in/out over 800ms.
+   ============================================ */
+@keyframes dondeGoldFlash {
+  0%   { opacity: 0; }
+  25%  { opacity: 1; }
+  75%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.donde-gold {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at center,
+    rgba(255, 215, 0, 0.25) 0%,
+    rgba(255, 215, 0, 0.12) 40%,
+    transparent 70%
+  );
+  pointer-events: none;
+  z-index: 3;
+  opacity: 0;
+  animation: dondeGoldFlash 800ms ease-out forwards;
+}
+
+/* Reduced motion: no particles, shimmer, gold effects */
+@media (prefers-reduced-motion: reduce) {
+  .score-ring-particle {
+    display: none !important;
+  }
+  .golden-shimmer {
+    animation: none !important;
+    background: none !important;
+  }
+  .score-number--gold-glow {
+    animation: none !important;
+  }
+  .donde-gold {
+    display: none !important;
+  }
+}
+
+/* ============================================
    V11: View Transitions API
    ============================================ */
 ::view-transition-old(donde-photo),
