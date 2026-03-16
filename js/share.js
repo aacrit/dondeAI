@@ -1,12 +1,15 @@
 /* ============================================
    DondeAI — Share Sheet Logic
-   Native share + fallback bottom sheet.
+   Native share + Donde Card + fallback bottom sheet.
    ============================================ */
 
 import { getState } from './state.js';
 import { buildShareText } from './utils.js';
+import { generateDondeCard, downloadDondeCard, shareDondeCard } from './donde-card.js';
 
 let $sheet = null;
+let _cardBlob = null;
+let _cardResultId = null;
 
 export function initShare() {
   $sheet = document.getElementById('share-sheet');
@@ -16,32 +19,21 @@ export async function shareResult() {
   const { result } = getState();
   if (!result) return;
 
-  const text = buildShareText(result);
-  const title = `${result.restaurant?.name} — Donde Pick`;
+  const blob = await _getOrGenerateCard(result);
 
-  // Try native share first
-  if (navigator.share) {
-    try {
-      await navigator.share({ title, text });
-      return;
-    } catch {
-      // User cancelled or unsupported — fall through to sheet
-    }
+  if (blob) {
+    const shared = await shareDondeCard(blob, result.restaurant?.name);
+    if (shared) return;
   }
 
-  // Open fallback sheet
   openShareSheet();
 }
 
 export function openShareSheet() {
   if ($sheet) {
     $sheet.classList.add('share-sheet--open');
-    // Render share canvas preview
-    if (typeof window.renderShareCanvas === 'function') {
-      window.renderShareCanvas('post');
-    }
-    // Focus first button
-    const first = $sheet.querySelector('.share-btn');
+    _renderCardPreview();
+    const first = $sheet.querySelector('.share-btn, .share-card-btn');
     if (first) first.focus();
   }
 }
@@ -61,15 +53,14 @@ export function handleShareChannel(channel) {
   const name = result.restaurant?.name || 'Restaurant';
 
   switch (channel) {
+    case 'save-card':
+      _saveCard();
+      return;
+    case 'share-card':
+      _shareCard();
+      return;
     case 'clipboard':
-      copyShareImage().catch(() => {
-        // Fallback to text copy
-        navigator.clipboard?.writeText(text).then(() => {
-          showToast('Copied to clipboard!');
-        }).catch(() => {
-          showToast('Could not copy — try long-press.');
-        });
-      });
+      _copyCardOrText(text);
       break;
     case 'whatsapp':
       window.open(`https://wa.me/?text=${encoded}`, '_blank');
@@ -78,10 +69,10 @@ export function handleShareChannel(channel) {
       window.open(`sms:?body=${encoded}`, '_blank');
       break;
     case 'x':
-      window.open(`https://x.com/intent/tweet?text=${encodeURIComponent(`${name} — check this spot! via @DondeAI`)}`, '_blank');
+      window.open(`https://x.com/intent/tweet?text=${encodeURIComponent(`${name} \u2014 check this spot! via @DondeAI`)}`, '_blank');
       break;
     case 'email':
-      window.open(`mailto:?subject=${encodeURIComponent(`${name} — Donde Pick`)}&body=${encoded}`, '_blank');
+      window.open(`mailto:?subject=${encodeURIComponent(`${name} \u2014 Donde Pick`)}&body=${encoded}`, '_blank');
       break;
     case 'telegram':
       window.open(`https://t.me/share/url?url=&text=${encoded}`, '_blank');
@@ -97,32 +88,130 @@ export function handleShareChannel(channel) {
   closeShareSheet();
 }
 
-async function copyShareImage() {
-  const canvas = document.getElementById('share-canvas');
-  if (!canvas || !canvas.width) throw new Error('No canvas');
+async function _getOrGenerateCard(result) {
+  const resultId = result?.restaurant?.id;
+  if (_cardBlob && _cardResultId === resultId) return _cardBlob;
 
-  const blob = await new Promise((resolve, reject) => {
-    canvas.toBlob(b => b ? resolve(b) : reject(new Error('toBlob failed')), 'image/png');
-  });
-
-  if (navigator.clipboard?.write) {
-    await navigator.clipboard.write([
-      new ClipboardItem({ 'image/png': blob })
-    ]);
-    showToast('Image copied to clipboard!');
-  } else {
-    // Fallback: download
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'dondeai-share.png';
-    a.click();
-    URL.revokeObjectURL(url);
-    showToast('Image downloaded!');
+  try {
+    _cardBlob = await generateDondeCard(result);
+    _cardResultId = resultId;
+    return _cardBlob;
+  } catch (err) {
+    console.warn('[DondeCard] Generation failed:', err);
+    _cardBlob = null;
+    _cardResultId = null;
+    return null;
   }
 }
 
-function showToast(message) {
+async function _renderCardPreview() {
+  const { result } = getState();
+  if (!result) return;
+
+  const $preview = document.getElementById('share-preview');
+  const $canvas = document.getElementById('share-canvas');
+  if (!$preview) return;
+
+  $preview.classList.add('share-preview--loading');
+
+  try {
+    const blob = await _getOrGenerateCard(result);
+    if (!blob) {
+      if ($canvas) $canvas.style.display = '';
+      if (typeof window.renderShareCanvas === 'function') {
+        window.renderShareCanvas('story');
+      }
+      $preview.classList.remove('share-preview--loading');
+      return;
+    }
+
+    let $img = $preview.querySelector('.donde-card-preview');
+    if (!$img) {
+      $img = document.createElement('img');
+      $img.className = 'donde-card-preview';
+      $img.alt = `Donde Card for ${result.restaurant?.name || 'restaurant'}`;
+      if ($canvas) $canvas.style.display = 'none';
+      $preview.appendChild($img);
+    }
+
+    const url = URL.createObjectURL(blob);
+    $img.onload = () => URL.revokeObjectURL(url);
+    $img.src = url;
+  } catch (err) {
+    console.warn('[DondeCard] Preview failed:', err);
+    if ($canvas) $canvas.style.display = '';
+    if (typeof window.renderShareCanvas === 'function') {
+      window.renderShareCanvas('story');
+    }
+  }
+
+  $preview.classList.remove('share-preview--loading');
+}
+
+async function _saveCard() {
+  const { result } = getState();
+  if (!result) return;
+
+  try {
+    const blob = await _getOrGenerateCard(result);
+    if (blob) {
+      downloadDondeCard(blob, result.restaurant?.name);
+      _showToast('Card saved!');
+    } else {
+      _showToast('Could not generate card.');
+    }
+  } catch {
+    _showToast('Could not save card.');
+  }
+  closeShareSheet();
+}
+
+async function _shareCard() {
+  const { result } = getState();
+  if (!result) return;
+
+  try {
+    const blob = await _getOrGenerateCard(result);
+    if (blob) {
+      const shared = await shareDondeCard(blob, result.restaurant?.name);
+      if (!shared) {
+        downloadDondeCard(blob, result.restaurant?.name);
+        _showToast('Card downloaded!');
+      }
+    } else {
+      _showToast('Could not generate card.');
+    }
+  } catch {
+    _showToast('Could not share card.');
+  }
+  closeShareSheet();
+}
+
+async function _copyCardOrText(text) {
+  try {
+    const { result } = getState();
+    const blob = await _getOrGenerateCard(result);
+
+    if (blob && navigator.clipboard?.write) {
+      await navigator.clipboard.write([
+        new ClipboardItem({ 'image/png': blob })
+      ]);
+      _showToast('Card copied to clipboard!');
+      return;
+    }
+  } catch {
+    // fall through to text
+  }
+
+  try {
+    await navigator.clipboard?.writeText(text);
+    _showToast('Copied to clipboard!');
+  } catch {
+    _showToast('Could not copy \u2014 try long-press.');
+  }
+}
+
+function _showToast(message) {
   const toast = document.getElementById('toast');
   const text = document.getElementById('toast-text');
   if (!toast || !text) return;
