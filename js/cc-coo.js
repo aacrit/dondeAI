@@ -372,7 +372,7 @@ function cooBriefing() {
 // ═══════════════════════════════════════════════════════════════════
 
 /**
- * Render the 5-division agent status panel with health dots and metrics.
+ * Render the 5-division agent status as inline chips.
  */
 function renderAgentStatus() {
   const el = document.getElementById('mc-agents');
@@ -422,11 +422,10 @@ function renderAgentStatus() {
 
   el.innerHTML = divisions
     .map(
-      (d) => `
-    <div class="mc-div-row mc-clickable" onclick="processCOOInput('${divActions[d.name]}')" title="Click to run ${divActions[d.name]}">
-      <span class="mc-div-dot mc-div-dot--${d.health}${d.active ? ' mc-div-dot--active' : ''}"></span>
-      <span class="mc-div-name">${d.name}</span>
-      <span class="mc-div-metric">${d.metric}</span>
+      (d) => `<div class="mc-div-chip" onclick="processCOOInput('${divActions[d.name]}')" title="Click to run ${divActions[d.name]}">
+      <span class="mc-div-chip__dot mc-div-chip__dot--${d.health}${d.active ? ' mc-div-chip__dot--active' : ''}"></span>
+      <span class="mc-div-chip__label">${d.name}</span>
+      <span class="mc-div-chip__metric">${d.metric}</span>
     </div>`
     )
     .join('');

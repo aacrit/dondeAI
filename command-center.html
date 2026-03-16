@@ -59,6 +59,13 @@
   <!-- Main Dashboard (full-width scrollable) -->
   <main class="mc-dashboard" id="main-content" style="display:none">
 
+    <!-- Morning Brief Banner -->
+    <div class="mc-brief" id="mc-brief" style="display:none">
+      <div class="mc-brief__icon" id="mc-brief-icon"></div>
+      <div class="mc-brief__text" id="mc-brief-text"></div>
+      <div class="mc-smart-action" id="mc-smart-action"></div>
+    </div>
+
     <!-- Hero: Pulse Cards (clickable) + Engine Grade (clickable) -->
     <div class="mc-hero">
       <div class="mc-pulse">
@@ -84,36 +91,39 @@
       </button>
     </div>
 
+    <!-- Division Status — Inline Chips -->
+    <div class="mc-divisions-inline" id="mc-agents"></div>
+
     <!-- Action Buttons Grid -->
     <div class="mc-section">
       <div class="mc-section__title">Actions</div>
       <div class="mc-actions" role="toolbar" aria-label="Quick actions">
-        <button class="mc-action-btn" onclick="processCOOInput('scan')">
+        <button class="mc-action-btn" id="action-scan" onclick="processCOOInput('scan')">
           <span class="mc-action-btn__icon">&#9654;</span>
           <span class="mc-action-btn__label">Run Scan</span>
           <span class="mc-action-btn__meta">20 queries &middot; $0</span>
         </button>
-        <button class="mc-action-btn" onclick="processCOOInput('regression')">
+        <button class="mc-action-btn" id="action-regression" onclick="processCOOInput('regression')">
           <span class="mc-action-btn__icon">&#9878;</span>
           <span class="mc-action-btn__label">Regression</span>
           <span class="mc-action-btn__meta">23 golden &middot; $0</span>
         </button>
-        <button class="mc-action-btn" onclick="processCOOInput('fix bugs')">
+        <button class="mc-action-btn" id="action-fix" onclick="processCOOInput('fix bugs')">
           <span class="mc-action-btn__icon">&#128295;</span>
           <span class="mc-action-btn__label">Fix Bugs</span>
           <span class="mc-action-btn__meta">CLI command</span>
         </button>
-        <button class="mc-action-btn" onclick="processCOOInput('db health')">
+        <button class="mc-action-btn" id="action-db" onclick="processCOOInput('db health')">
           <span class="mc-action-btn__icon">&#128202;</span>
           <span class="mc-action-btn__label">DB Health</span>
           <span class="mc-action-btn__meta">Coverage check</span>
         </button>
-        <button class="mc-action-btn" onclick="processCOOInput('security audit')">
+        <button class="mc-action-btn" id="action-security" onclick="processCOOInput('security audit')">
           <span class="mc-action-btn__icon">&#128274;</span>
           <span class="mc-action-btn__label">Security</span>
           <span class="mc-action-btn__meta">CLI command</span>
         </button>
-        <button class="mc-action-btn" onclick="processCOOInput('cache status')">
+        <button class="mc-action-btn" id="action-cache" onclick="processCOOInput('cache status')">
           <span class="mc-action-btn__icon">&#9889;</span>
           <span class="mc-action-btn__label">Cache</span>
           <span class="mc-action-btn__meta">Hit rate &middot; savings</span>
@@ -129,27 +139,22 @@
         <button class="mc-quick-test__btn" id="quick-test-btn" onclick="runQuickTest()">Test</button>
       </div>
       <div class="mc-quick-test__result" id="quick-test-result"></div>
+      <div id="quick-test-card"></div>
     </div>
 
-    <!-- 2-column: Divisions + Recent Runs -->
+    <!-- Recent Runs + Live Feed side by side -->
     <div class="mc-columns">
-      <div class="mc-section">
-        <div class="mc-section__title">Divisions</div>
-        <div id="mc-agents"></div>
-      </div>
       <div class="mc-section">
         <div class="mc-section__title">Recent Runs</div>
         <div class="mc-runs" id="mc-runs">
           <div class="mc-empty">No runs yet</div>
         </div>
       </div>
-    </div>
-
-    <!-- Live Feed -->
-    <div class="mc-section">
-      <div class="mc-section__title">Live Feed</div>
-      <div class="mc-feed" id="mc-feed">
-        <div class="mc-empty">No recent queries</div>
+      <div class="mc-section">
+        <div class="mc-section__title">Live Feed</div>
+        <div class="mc-feed" id="mc-feed">
+          <div class="mc-empty">No recent queries</div>
+        </div>
       </div>
     </div>
 
@@ -181,7 +186,7 @@
     <div class="mc-detail__body" id="mc-detail-body"></div>
   </aside>
 
-  <!-- COO Terminal Drawer (collapsible bottom) -->
+  <!-- COO Terminal Drawer (collapsible left) -->
   <div class="mc-drawer" id="mc-drawer" role="region" aria-label="COO Terminal">
     <button class="mc-drawer__toggle" id="mc-drawer-toggle" onclick="toggleDrawer()" aria-expanded="false">
       <span class="mc-drawer__chevron" id="mc-drawer-chevron">&#9650;</span>
