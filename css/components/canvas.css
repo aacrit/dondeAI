@@ -1159,6 +1159,200 @@ html .theme-crossfading * {
 [data-sound="off"] .sound-icon--on { display: none; }
 [data-sound="off"] .sound-icon--off { display: block; }
 
+/* ---- Neighborhood Pulse Card ---- */
+.pulse-container {
+  width: 100%;
+  margin-top: var(--space-xs);
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 500ms var(--ease-out), transform 500ms var(--ease-out);
+}
+
+.pulse-container--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.pulse-container--exiting {
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: opacity 300ms var(--ease-out), transform 300ms var(--ease-out);
+}
+
+.pulse-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  background: var(--glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid color-mix(in srgb, var(--ac) 20%, var(--border));
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color 300ms var(--ease-out),
+              box-shadow 300ms var(--ease-out),
+              transform 200ms var(--ease-out);
+  animation: pulseGlow 4s ease-in-out infinite;
+}
+
+.pulse-card:hover {
+  border-color: color-mix(in srgb, var(--ac) 40%, var(--border));
+  box-shadow: 0 4px 24px -8px color-mix(in srgb, var(--ac) 15%, transparent);
+  transform: translateY(-1px);
+}
+
+.pulse-card:active {
+  transform: scale(0.98);
+  transition: transform 80ms var(--ease-out);
+}
+
+.pulse-card:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* Ambient glow layer behind card */
+.pulse-card__glow {
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--ac) 8%, transparent) 0%,
+    transparent 50%,
+    color-mix(in srgb, var(--ac) 4%, transparent) 100%
+  );
+  pointer-events: none;
+  animation: pulseGlowShift 6s ease-in-out infinite;
+}
+
+.pulse-card__content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+}
+
+.pulse-card__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.pulse-card__badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px var(--space-xs);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ac);
+  background: var(--ac-soft);
+  border-radius: var(--radius-pill);
+}
+
+.pulse-card__rating {
+  color: var(--fg3);
+  font-size: var(--text-2xs);
+}
+
+.pulse-card__rating::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: var(--star-gold, hsl(44 90% 48%));
+  border-radius: 50%;
+  margin-right: 3px;
+  vertical-align: middle;
+}
+
+.pulse-card__neighborhood {
+  font-family: var(--font-emotional);
+  font-size: var(--text-md);
+  color: var(--fg);
+  line-height: 1.3;
+  margin: 0;
+}
+
+.pulse-card__context {
+  font-family: var(--font-structural);
+  font-size: var(--text-sm);
+  color: var(--fg2);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.pulse-card__meta {
+  display: flex;
+  gap: var(--space-2xs);
+  flex-wrap: wrap;
+  margin-top: var(--space-2xs);
+}
+
+.pulse-card__tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px var(--space-xs);
+  font-size: var(--text-2xs);
+  color: var(--fg3);
+  background: color-mix(in srgb, var(--fg) 5%, transparent);
+  border-radius: var(--radius-pill);
+}
+
+.pulse-card__arrow {
+  flex-shrink: 0;
+  color: var(--fg3);
+  opacity: 0.4;
+  transition: opacity 200ms var(--ease-out), transform 200ms var(--ease-out);
+}
+
+.pulse-card:hover .pulse-card__arrow {
+  opacity: 0.8;
+  transform: translateX(2px);
+}
+
+/* Pulsing glow animation on card border */
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--ac) 0%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 16px -4px color-mix(in srgb, var(--ac) 12%, transparent);
+  }
+}
+
+@keyframes pulseGlowShift {
+  0%, 100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .pulse-card {
+    animation: none;
+  }
+  .pulse-card__glow {
+    animation: none;
+    opacity: 0.8;
+  }
+  .pulse-container {
+    transition: none;
+  }
+  .pulse-container--exiting {
+    transition: none;
+  }
+}
+
 /* ---- SVG Icon Styling in Chips ---- */
 .chip__icon svg,
 .filter-pill svg,
