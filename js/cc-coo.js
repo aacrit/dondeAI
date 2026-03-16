@@ -378,59 +378,24 @@ function renderAgentStatus() {
   const el = document.getElementById('mc-agents');
   if (!el) return;
 
-  const run = state.latestRun;
-  const issues = (state.issues || []).filter(
-    (i) => !i.status || i.status === 'open'
-  );
-  const p0 = issues.filter((i) => i.gap_severity === 'P0').length;
-
-  // Infra: check pipeline statuses
-  let infraHealth = 'green', infraMetric = 'OK', infraActive = false;
-  const pipelines = state.pipelineStatuses || {};
-  for (const op of Object.keys(pipelines)) {
-    const ps = pipelines[op];
-    if (ps && ps.status === 'failed') { infraHealth = 'red'; infraMetric = 'Failed'; break; }
-    if (ps && ps.status === 'running') { infraHealth = 'amber'; infraMetric = 'Running'; infraActive = true; }
-  }
-
-  // Frontend: check active test
-  let frontendHealth = 'green', frontendMetric = 'OK', frontendActive = false;
-  if (state.activeTest) { frontendHealth = 'amber'; frontendMetric = 'Testing'; frontendActive = true; }
-
-  // Security: check issues for security category
-  let securityHealth = 'green', securityMetric = 'OK';
-  const secIssues = (state.issues || []).filter(
-    (i) => (!i.status || i.status === 'open') && i.category && i.category.toLowerCase().includes('security')
-  );
-  if (secIssues.length > 0) { securityHealth = 'amber'; securityMetric = `${secIssues.length} issue${secIssues.length > 1 ? 's' : ''}`; }
-
-  const divisions = [
-    {
-      name: 'Quality',
-      health:
-        p0 > 0 ? 'red' : run && Number(run.avg_dm) >= 75 ? 'green' : 'amber',
-      metric: run ? `DM ${Math.round(run.avg_dm)}` : '--',
-      active: false,
-    },
-    { name: 'Infra', health: infraHealth, metric: infraMetric, active: infraActive },
-    { name: 'Frontend', health: frontendHealth, metric: frontendMetric, active: frontendActive },
-    { name: 'Product', health: 'green', metric: 'Idle', active: false },
-    { name: 'Security', health: securityHealth, metric: securityMetric, active: false },
+  // Real CLI agents (spawned via claude --agent <name>)
+  const agents = [
+    { name: 'COO', icon: '\u{1F3AF}', cmd: 'coo briefing', desc: 'Orchestrates all agents, quality cycles' },
+    { name: 'Bug Fixer', icon: '\u{1F41B}', cmd: 'fix bugs', desc: 'Root-causes and fixes scoring/blurb issues' },
+    { name: 'Analytics', icon: '\u{1F4CA}', cmd: 'scan', desc: 'Benchmarks engine, implements quick-wins' },
+    { name: 'DB Review', icon: '\u{1F5C4}', cmd: 'db health', desc: 'Audits restaurant data accuracy' },
+    { name: 'CISO', icon: '\u{1F6E1}', cmd: 'security audit', desc: 'Security audit across 10 domains' },
+    { name: 'Perf', icon: '\u26A1', cmd: 'cache status', desc: 'Response time optimizer' },
+    { name: 'Sentinel', icon: '\u{1F4E1}', cmd: 'live', desc: 'Production monitoring, error rates' },
+    { name: 'Docs', icon: '\u{1F4DD}', cmd: 'help', desc: 'Updates all documentation' },
   ];
 
-  const divActions = { Quality: 'scan', Infra: 'db health', Frontend: 'edge', Product: 'coo briefing', Security: 'security audit' };
-  const divIcons = { Quality: '\u2699', Infra: '\u26C1', Frontend: '\u25A3', Product: '\u2605', Security: '\u26E8' };
-
-  el.innerHTML = divisions
-    .map(
-      (d) => `<div class="mc-div-chip" onclick="processCOOInput('${divActions[d.name]}')" title="Click to run ${divActions[d.name]}">
-      <span class="mc-div-chip__dot mc-div-chip__dot--${d.health}${d.active ? ' mc-div-chip__dot--active' : ''}"></span>
-      <span class="mc-div-chip__icon">${divIcons[d.name] || ''}</span>
-      <span class="mc-div-chip__label">${d.name}</span>
-      <span class="mc-div-chip__metric">${d.metric}</span>
-    </div>`
-    )
-    .join('');
+  el.innerHTML = agents.map(function(a) {
+    return '<div class="mc-div-chip" onclick="processCOOInput(\'' + a.cmd + '\')" title="' + a.desc + '">' +
+      '<span class="mc-div-chip__icon">' + a.icon + '</span>' +
+      '<span class="mc-div-chip__label">' + a.name + '</span>' +
+    '</div>';
+  }).join('');
 }
 
 // ═══════════════════════════════════════════════════════════════════
