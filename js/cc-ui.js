@@ -615,14 +615,9 @@ function toggleDrawer() {
 }
 
 function renderAgentsInDrawer() {
-  var drawerAgents = document.getElementById('mc-drawer-agents');
-  if (!drawerAgents) return;
-  // Reuse the same renderAgentStatus but target the drawer container
+  // renderAgentStatus now targets mc-drawer-agents directly
   if (typeof renderAgentStatus === 'function') {
-    // Temporarily swap target, render, swap back
-    var mainEl = document.getElementById('mc-agents');
     renderAgentStatus();
-    if (mainEl) drawerAgents.innerHTML = mainEl.innerHTML;
   }
 }
 

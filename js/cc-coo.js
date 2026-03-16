@@ -376,7 +376,7 @@ function cooBriefing() {
  * Each agent card is clickable and opens a detail panel with skills, prompt, and CLI command.
  */
 function renderAgentStatus() {
-  var el = document.getElementById('mc-agents');
+  var el = document.getElementById('mc-drawer-agents') || document.getElementById('mc-agents');
   if (!el) return;
 
   // SVG icon factory — 14x14 inline SVGs for crisp rendering
