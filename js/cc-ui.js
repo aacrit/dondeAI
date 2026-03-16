@@ -559,7 +559,10 @@ function appendResultRow(result) {
   var fitGrade = result.scoreFitGrade || result._fitGrade || '';
   var blurbGrade = result.blurbGrade || result._blurbGrade || '';
   var type = result.pass === true ? 'success' : result.pass === false ? (dm < 50 ? 'error' : 'warn') : (dm >= 70 ? 'success' : dm >= 50 ? 'warn' : 'error');
-  cooLog(type, '"' + query.slice(0, 35) + '" \u2192 ' + name + ' DM ' + dm + ' | Fit: ' + fitGrade + ' | Blurb: ' + blurbGrade);
+  // Append Google API cost badge if present in response
+  var googleCost = result.googleApiCost;
+  var costBadge = googleCost ? ' | $' + googleCost.toFixed(2) + ' Google' : '';
+  cooLog(type, '"' + query.slice(0, 35) + '" \u2192 ' + name + ' DM ' + dm + ' | Fit: ' + fitGrade + ' | Blurb: ' + blurbGrade + costBadge);
 }
 
 function appendSummaryRow(name, total, passed, avgDm, elapsed, celebrate, testType) {
@@ -568,6 +571,10 @@ function appendSummaryRow(name, total, passed, avgDm, elapsed, celebrate, testTy
   cooLog('info', '\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500');
   cooLog(pct >= 80 ? 'success' : 'warn',
     name + ': ' + passed + '/' + total + ' passed (' + pct + '%), avg DM ' + avgDm + ', ' + elapsed);
+  // Show API cost summary — scoring-only mode uses skip_google + skip_claude = $0
+  var isLive = state && state.liveAPI;
+  var costLabel = isLive ? 'Google: ~$' + (total * 0.04).toFixed(2) + ' | Claude: active' : '$0.00 Google + $0.00 Claude';
+  cooLog('info', 'API cost: ' + costLabel);
 
   // Remove testing animation
   var board = document.querySelector('.mc-dashboard');

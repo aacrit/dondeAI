@@ -369,6 +369,8 @@ async function callAPI(specialRequest, params = {}, signal) {
   const body = { special_request: specialRequest, ...params };
   // Auto-add skip_claude unless forcing live or liveAPI is on
   if (!params._forceLive && !state.liveAPI) body.skip_claude = true;
+  // Auto-add skip_google for scoring-only mode (same condition as skip_claude)
+  if (!params._forceLive && !state.liveAPI) body.skip_google = true;
   // Clean internal flag from body
   delete body._forceLive;
   const resp = await fetch(API_BASE, {
