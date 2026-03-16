@@ -541,10 +541,23 @@
   align-items: center;
 }
 
+/* Mobile: horizontal scroll instead of wrap to avoid tall chip walls */
+@media (max-width: 479px) {
+  .cuisine-chips__row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+  }
+  .cuisine-chips__row::-webkit-scrollbar { display: none; }
+}
+
 /* ---- Individual Chip ---- */
 .cuisine-chips__chip {
   display: inline-flex;
   align-items: center;
+  flex-shrink: 0;
   gap: 4px;
   padding: 4px 10px;
   font-family: var(--font-structural);

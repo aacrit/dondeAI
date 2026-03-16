@@ -315,11 +315,15 @@ function renderGlanceContext(data) {
   } else if (r.best_times?.length) {
     const pill = document.createElement('span');
     pill.className = 'glance-context__pill glance-context__pill--static type-data--sm';
-    const times = r.best_times.slice(0, 2).map(t =>
-      t.charAt(0).toUpperCase() + t.slice(1).toLowerCase()
-    ).join(' · ');
-    pill.innerHTML = `${svgIcon('clock', 11)} ${times}`;
-    $ctx.appendChild(pill);
+    // Handle string ("lunch.dinner") or array (["lunch","dinner"])
+    const raw = Array.isArray(r.best_times) ? r.best_times : String(r.best_times).split(/[.,;/]+/);
+    const times = raw.slice(0, 2).map(t =>
+      t.trim().charAt(0).toUpperCase() + t.trim().slice(1).toLowerCase()
+    ).filter(Boolean).join(' · ');
+    if (times) {
+      pill.innerHTML = `${svgIcon('clock', 11)} ${times}`;
+      $ctx.appendChild(pill);
+    }
   }
 }
 
@@ -1354,7 +1358,7 @@ function renderCuisineDetails(data) {
   const chipDefs = [];
   const r = data.restaurant || {};
 
-  // Must Try: blend signature dishes (with why) + popular items (as pills)
+  // --- Must Try: blend signature dishes (with why) + popular items ---
   const sigDishes = dp.signature_dishes?.slice(0, 3) || [];
   const highlights = (dp.menu_highlights || []).filter(h =>
     !sigDishes.some(d => d.dish.toLowerCase() === h.toLowerCase())
@@ -1375,6 +1379,27 @@ function renderCuisineDetails(data) {
     chipDefs.push({ label: 'Must Try', icon: 'forkKnife', body: dishHTML + pillHTML });
   }
 
+  // --- Standout: wow factors ---
+  if (dp.wow_factors?.length) {
+    const bodyHTML = `<div class="cuisine-chips__items">${
+      dp.wow_factors.slice(0, 5).map((w, i) =>
+        `<span class="cuisine-chips__item" style="animation-delay:${i * 30}ms">${_escHtml(_toSentenceCase(w))}</span>`
+      ).join('')
+    }</div>`;
+    chipDefs.push({ label: 'Standout', icon: 'bolt', body: bodyHTML });
+  }
+
+  // --- Best For: scenarios ---
+  if (dp.best_for_scenarios?.length) {
+    const bodyHTML = `<div class="cuisine-chips__items">${
+      dp.best_for_scenarios.slice(0, 5).map((s, i) =>
+        `<span class="cuisine-chips__item" style="animation-delay:${i * 30}ms">${_escHtml(_toTitleCase(s))}</span>`
+      ).join('')
+    }</div>`;
+    chipDefs.push({ label: 'Best For', icon: 'calendar', body: bodyHTML });
+  }
+
+  // --- Flavors ---
   if (dp.flavor_profiles?.length) {
     const bodyHTML = `<div class="cuisine-chips__items">${
       dp.flavor_profiles.slice(0, 5).map((f, i) =>
@@ -1384,7 +1409,17 @@ function renderCuisineDetails(data) {
     chipDefs.push({ label: 'Flavors', icon: 'wine', body: bodyHTML });
   }
 
-  // Hours: weekly schedule from opening_hours
+  // --- Crowd ---
+  if (dp.crowd_profile?.length) {
+    const bodyHTML = `<div class="cuisine-chips__items">${
+      dp.crowd_profile.slice(0, 4).map((c, i) =>
+        `<span class="cuisine-chips__item" style="animation-delay:${i * 30}ms">${_escHtml(_toTitleCase(c))}</span>`
+      ).join('')
+    }</div>`;
+    chipDefs.push({ label: 'Crowd', icon: 'usersThree', body: bodyHTML });
+  }
+
+  // --- Hours: weekly schedule ---
   const oh = r.opening_hours;
   if (oh?.weekday_text?.length) {
     const todayName = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
@@ -1403,6 +1438,26 @@ function renderCuisineDetails(data) {
       </div>`;
     }).join('');
     chipDefs.push({ label: 'Hours', icon: 'clock', body: `<div class="cuisine-chips__hours">${rows}</div>` });
+  }
+
+  // --- Awards ---
+  if (dp.awards_recognition?.length) {
+    const bodyHTML = `<div class="cuisine-chips__items">${
+      dp.awards_recognition.slice(0, 4).map((a, i) =>
+        `<span class="cuisine-chips__item" style="animation-delay:${i * 30}ms">${_escHtml(a)}</span>`
+      ).join('')
+    }</div>`;
+    chipDefs.push({ label: 'Awards', icon: 'starFull', body: bodyHTML });
+  }
+
+  // --- Similar ---
+  if (dp.comparable_restaurants?.length) {
+    const bodyHTML = `<div class="cuisine-chips__items">${
+      dp.comparable_restaurants.slice(0, 4).map((c, i) =>
+        `<span class="cuisine-chips__item" style="animation-delay:${i * 30}ms">${_escHtml(c)}</span>`
+      ).join('')
+    }</div>`;
+    chipDefs.push({ label: 'Similar', icon: 'heart', body: bodyHTML });
   }
 
   if (chipDefs.length === 0) {
