@@ -203,8 +203,8 @@ function init() {
     if (state.error !== prev.error && state.error) {
       showToast(state.error, true);
     }
-    if (state.isAuthenticated && !prev.isAuthenticated) {
-      initTasteDna(); // Re-fetch taste profile on sign-in
+    if (state.isAuthenticated !== prev.isAuthenticated) {
+      initTasteDna(); // Update header feature buttons + re-fetch taste profile on sign-in
     }
     if (state.theme.culture !== prev.theme.culture) {
       renderSmartChips();

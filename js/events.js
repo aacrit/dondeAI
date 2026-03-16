@@ -1471,7 +1471,23 @@ export function wireEvents(appCallbacks) {
         closeUserMenu();
         break;
 
-      /* ---- Taste DNA / Blend actions ---- */
+      /* ---- Header Feature Buttons (Taste DNA / Vibe Check) ---- */
+      case 'header-taste-dna':
+        if (!isAuthAuthenticated()) {
+          showToast('Sign in to unlock your Taste DNA');
+        } else {
+          import('./taste-dna.js').then(function(m) { m.openTasteDnaModal(); });
+        }
+        break;
+      case 'header-taste-blend':
+        if (!isAuthAuthenticated()) {
+          showToast('Sign in to check your group vibe');
+        } else {
+          import('./taste-dna.js').then(function(m) { m.openBlendModal(); });
+        }
+        break;
+
+      /* ---- Taste DNA / Blend actions (from modals) ---- */
       case 'open-taste-dna':
         closeUserMenu();
         import('./taste-dna.js').then(function(m) { m.openTasteDnaModal(); });

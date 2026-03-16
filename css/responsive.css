@@ -21,6 +21,25 @@
   .match-mini__score {
     font-size: 1.35rem;
   }
+
+  /* Tighten header on very narrow screens */
+  .header__actions {
+    gap: var(--space-2xs);
+  }
+
+  .header__feature-btn {
+    width: 30px;
+    height: 30px;
+  }
+
+  .header__feature-icon {
+    width: 18px;
+    height: 18px;
+  }
+
+  .header__divider {
+    height: 16px;
+  }
 }
 
 /* ---- 375px: Primary mobile target ---- */

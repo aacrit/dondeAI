@@ -867,29 +867,50 @@ export async function shareTasteDna() {
 /**
  * Initialize Taste DNA module. Call after auth is initialized.
  * If user is authenticated, pre-fetch Taste DNA in the background.
+ * Also manages header feature button states (dimmed when logged out).
  */
 export async function initTasteDna() {
+  // Update header feature button states
+  updateHeaderFeatureButtons();
+
   if (!isAuthenticated()) return;
 
   // Background fetch — don't block anything
   fetchTasteDna().then(dna => {
     if (dna && dna.has_data) {
-      // Inject archetype badge into header
-      const $headerName = document.getElementById('header-user-name');
-      if ($headerName && !document.querySelector('.dna-badge')) {
+      // Inject archetype badge near the DNA header button
+      const $dnaBtn = document.getElementById('header-dna-btn');
+      if ($dnaBtn && !document.querySelector('.dna-badge')) {
         const badgeHtml = renderArchetypeBadge(dna);
         if (badgeHtml) {
-          $headerName.insertAdjacentHTML('afterend', badgeHtml);
+          $dnaBtn.insertAdjacentHTML('afterend', badgeHtml);
           // Spring-pop animation
           const badge = document.querySelector('.dna-badge');
           if (badge) {
             badge.classList.add('dna-badge--enter');
+            badge.setAttribute('data-action', 'header-taste-dna');
             setTimeout(() => badge.classList.remove('dna-badge--enter'), 500);
           }
         }
       }
     }
   }).catch(() => { /* silent */ });
+}
+
+/**
+ * Update header feature button dimmed/active states based on auth.
+ */
+function updateHeaderFeatureButtons() {
+  const $dnaBtn = document.getElementById('header-dna-btn');
+  const $vibeBtn = document.getElementById('header-vibe-btn');
+  const authenticated = isAuthenticated();
+
+  if ($dnaBtn) {
+    $dnaBtn.classList.toggle('header__feature-btn--dimmed', !authenticated);
+  }
+  if ($vibeBtn) {
+    $vibeBtn.classList.toggle('header__feature-btn--dimmed', !authenticated);
+  }
 }
 
 /* ---- Utility ---- */

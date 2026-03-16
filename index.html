@@ -86,6 +86,34 @@
       </button>
       <span class="header__hood type-data--sm" id="header-hood" style="display: none;" aria-label="Neighborhood"></span>
       <nav class="header__actions" aria-label="App controls">
+        <!-- Feature buttons: Taste DNA + Group Vibe Check -->
+        <button class="header__feature-btn header__feature-btn--dna" id="header-dna-btn" data-action="header-taste-dna" aria-label="My Taste DNA" title="My Taste DNA">
+          <svg class="header__feature-icon header__feature-icon--dna" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <!-- DNA double helix: two intertwined strands with cross-links -->
+            <path class="dna-strand dna-strand--left" d="M8 2 C8 2, 4 6, 4 8 C4 10, 8 12, 8 12 C8 12, 4 14, 4 16 C4 18, 8 22, 8 22"/>
+            <path class="dna-strand dna-strand--right" d="M16 2 C16 2, 20 6, 20 8 C20 10, 16 12, 16 12 C16 12, 20 14, 20 16 C20 18, 16 22, 16 22"/>
+            <!-- Cross-links between strands -->
+            <line class="dna-rung" x1="7" y1="5" x2="17" y2="5"/>
+            <line class="dna-rung" x1="5" y1="9" x2="19" y2="9"/>
+            <line class="dna-rung" x1="7" y1="12" x2="17" y2="12"/>
+            <line class="dna-rung" x1="5" y1="15.5" x2="19" y2="15.5"/>
+            <line class="dna-rung" x1="7" y1="19" x2="17" y2="19"/>
+          </svg>
+          <span class="header__feature-label type-structural">Taste DNA</span>
+        </button>
+        <button class="header__feature-btn header__feature-btn--vibe" id="header-vibe-btn" data-action="header-taste-blend" aria-label="Group Vibe Check" title="Group Vibe Check">
+          <svg class="header__feature-icon header__feature-icon--vibe" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <!-- Group silhouettes -->
+            <circle class="vibe-head vibe-head--1" cx="7" cy="7" r="2.5"/>
+            <path class="vibe-body vibe-body--1" d="M2.5 18 C2.5 14.5, 4.5 13, 7 13 C9.5 13, 11.5 14.5, 11.5 18"/>
+            <circle class="vibe-head vibe-head--2" cx="17" cy="7" r="2.5"/>
+            <path class="vibe-body vibe-body--2" d="M12.5 18 C12.5 14.5, 14.5 13, 17 13 C19.5 13, 21.5 14.5, 21.5 18"/>
+            <!-- Pulse wave connecting the two -->
+            <path class="vibe-pulse" d="M7 20 Q9.5 16, 12 20 Q14.5 24, 17 20" stroke-dasharray="20" stroke-dashoffset="0"/>
+          </svg>
+          <span class="header__feature-label type-structural">Vibe Check</span>
+        </button>
+        <span class="header__divider" aria-hidden="true"></span>
         <button class="header__btn" data-action="toggle-sound" aria-label="Unmute sound" title="Sound">
           <!-- Speaker with waves (shown when sound ON) -->
           <svg class="sound-icon sound-icon--on" viewBox="0 0 256 256" width="20" height="20">
@@ -131,8 +159,6 @@
           </div>
         </div>
         <div class="user-menu__actions">
-          <button class="user-menu__btn type-structural" data-action="open-taste-dna">My Taste DNA</button>
-          <button class="user-menu__btn type-structural" data-action="open-taste-blend">Dining with friends?</button>
           <a id="admin-gauntlet-link" href="command-center.html" class="user-menu__btn type-structural" style="display:none;text-decoration:none;text-align:center;">Command Center</a>
           <button class="user-menu__btn type-structural" data-action="sign-out">Sign Out</button>
         </div>

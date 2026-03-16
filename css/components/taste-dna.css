@@ -398,7 +398,7 @@
   margin-top: var(--space-xs);
 }
 
-/* ---- Archetype Badge (Header) ---- */
+/* ---- Archetype Badge (Header, next to DNA button) ---- */
 .dna-badge {
   display: inline-flex;
   align-items: center;
@@ -410,7 +410,7 @@
   transition: transform var(--dur-fast) var(--spring),
               background var(--dur-fast) var(--ease-out);
   vertical-align: middle;
-  margin-left: var(--space-xs);
+  pointer-events: auto;
 }
 
 .dna-badge:hover {
