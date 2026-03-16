@@ -337,11 +337,17 @@ function renderQuickActions(data) {
   $actions.innerHTML = '';
   const items = [];
 
-  const reserveUrl = r.google_place_id
-    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.name)}&query_place_id=${r.google_place_id}`
-    : r.website;
+  // Reservation link: prefer platform deep link > Google Maps > website
+  const rl = data.reservation_links;
+  const reserveUrl = rl?.primary?.url
+    || (r.google_place_id
+      ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.name)}&query_place_id=${r.google_place_id}`
+      : r.website);
+  const reserveLabel = rl?.primary?.platform
+    ? rl.primary.platform.charAt(0).toUpperCase() + rl.primary.platform.slice(1)
+    : 'Reserve';
   if (reserveUrl) {
-    items.push({ icon: 'calendar', label: 'Reserve', href: reserveUrl });
+    items.push({ icon: 'calendar', label: reserveLabel, href: reserveUrl });
   }
 
   // Share is now an elevated CTA below the blurb — no longer in utility pills
@@ -1401,6 +1407,46 @@ function renderCuisineDetails(data) {
       ).join('')
     }</div>`;
     chipDefs.push({ label: 'Best For', icon: 'calendar', body: bodyHTML });
+  }
+
+  // --- Reserve: booking links + difficulty + tip ---
+  const rl = data.reservation_links;
+  if (rl && (rl.primary || rl.fallback)) {
+    let idx = 0;
+    let bodyHTML = '';
+
+    // Primary booking link
+    if (rl.primary) {
+      bodyHTML += `<a class="cuisine-chips__reserve-link" href="${_escHtml(rl.primary.url)}" target="_blank" rel="noopener noreferrer" style="animation-delay:${(idx++) * 40}ms">
+        <span class="cuisine-chips__reserve-platform">${_escHtml(rl.primary.display_name)}</span>
+      </a>`;
+    }
+
+    // Alternative platforms (compact)
+    if (rl.alternatives?.length) {
+      bodyHTML += `<div class="cuisine-chips__items" style="margin-top:4px">`;
+      rl.alternatives.forEach(alt => {
+        bodyHTML += `<a class="cuisine-chips__item cuisine-chips__reserve-alt" href="${_escHtml(alt.url)}" target="_blank" rel="noopener noreferrer" style="animation-delay:${(idx++) * 30}ms">${_escHtml(alt.display_name.replace('Reserve on ', ''))}</a>`;
+      });
+      bodyHTML += `</div>`;
+    }
+
+    // Reservation difficulty + booking tip
+    const diffLabel = { 'walk-in': 'Walk-ins welcome', 'walk_in_friendly': 'Walk-ins welcome', 'walk-in friendly': 'Walk-ins welcome', 'recommended': 'Reservations recommended', 'required': 'Reservations required', 'hard': 'Hard to book', 'hard_to_get': 'Hard to book' };
+    const diff = rl.reservation_difficulty;
+    if (diff && diffLabel[diff]) {
+      bodyHTML += `<div class="cuisine-chips__reserve-meta" style="animation-delay:${(idx++) * 30}ms">${_escHtml(diffLabel[diff])}</div>`;
+    }
+    if (rl.booking_tip) {
+      bodyHTML += `<div class="cuisine-chips__reserve-tip" style="animation-delay:${(idx++) * 30}ms">${_escHtml(rl.booking_tip)}</div>`;
+    }
+
+    // Phone/walk-in fallback
+    if (rl.fallback && rl.fallback.type === 'phone' && rl.fallback.value) {
+      bodyHTML += `<a class="cuisine-chips__reserve-phone" href="tel:${_escHtml(rl.fallback.value)}" style="animation-delay:${(idx++) * 30}ms">${svgIcon('phone', 12)} ${_escHtml(rl.fallback.value)}</a>`;
+    }
+
+    chipDefs.push({ label: 'Reserve', icon: 'calendar', body: bodyHTML });
   }
 
   // --- Flavors ---
