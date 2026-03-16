@@ -842,7 +842,7 @@ function initKeyboardShortcuts() {}
 // ═══════════════════════════════════════════════════════════════════
 
 function togglePulseExpand(metric) {
-  var metrics = ['health', 'dm', 'issues', 'grade', 'db', 'cache'];
+  var metrics = ['health', 'dm', 'issues', 'grade', 'db', 'cache', 'live-blurb', 'live-fit', 'live-rt', 'live-cache', 'live-dm', 'live-pass'];
   var isExpanded = state.expandedPulse === metric;
 
   // Helper to get card element by metric name
@@ -964,6 +964,38 @@ function renderPulseExpandContent(metric) {
       '<div class="mc-expand__row"><span class="mc-expand__key">Cached Queries</span><span class="mc-expand__val">' + cacheSize + '</span></div>' +
       '<div class="mc-expand__row"><span class="mc-expand__key">24h Savings</span><span class="mc-expand__val rag-green">$' + savings + '</span></div>' +
       '<div class="mc-expand__row"><span class="mc-expand__key">Avg TTL Left</span><span class="mc-expand__val">' + avgTtl + '</span></div>';
+
+  } else if (metric === 'live-blurb' || metric === 'live-fit') {
+    var kpis = state.liveKPIs || {};
+    var label = metric === 'live-blurb' ? 'Blurb Quality' : 'Score Fit';
+    var val = metric === 'live-blurb' ? (kpis.blurbQuality || 0) : (kpis.scoreFit || 0);
+    expand.innerHTML =
+      '<div class="mc-expand__row"><span class="mc-expand__key">' + label + '</span><span class="mc-expand__val ' + ragClass(val) + '">' + val + '</span></div>' +
+      '<div class="mc-expand__row"><span class="mc-expand__key">24h Queries</span><span class="mc-expand__val">' + (kpis.queryCount || 0) + '</span></div>' +
+      '<div class="mc-expand__row"><span class="mc-expand__key">Threshold</span><span class="mc-expand__val">B- (80)</span></div>' +
+      '<div class="mc-expand__row"><span class="mc-expand__key">Status</span><span class="mc-expand__val ' + (val >= 80 ? 'rag-green' : 'rag-amber') + '">' + (val >= 80 ? 'Passing' : 'Below target') + '</span></div>';
+
+  } else if (metric === 'live-rt') {
+    var kpis = state.liveKPIs || {};
+    var rt = kpis.responseTime || 0;
+    expand.innerHTML =
+      '<div class="mc-expand__row"><span class="mc-expand__key">p50 Response</span><span class="mc-expand__val">' + rt + 'ms</span></div>' +
+      '<div class="mc-expand__row"><span class="mc-expand__key">Target</span><span class="mc-expand__val">&lt; 3000ms</span></div>' +
+      '<div class="mc-expand__row"><span class="mc-expand__key">Cache Hits</span><span class="mc-expand__val">' + (kpis.cacheHitRate || 0) + '%</span></div>';
+
+  } else if (metric === 'live-cache') {
+    var kpis = state.liveKPIs || {};
+    expand.innerHTML =
+      '<div class="mc-expand__row"><span class="mc-expand__key">Hit Rate</span><span class="mc-expand__val ' + (kpis.cacheHitRate >= 50 ? 'rag-green' : 'rag-amber') + '">' + (kpis.cacheHitRate || 0) + '%</span></div>' +
+      '<div class="mc-expand__row"><span class="mc-expand__key">24h Queries</span><span class="mc-expand__val">' + (kpis.queryCount || 0) + '</span></div>' +
+      '<div class="mc-expand__row"><span class="mc-expand__key">Impact</span><span class="mc-expand__val">Faster + cheaper</span></div>';
+
+  } else if (metric === 'live-dm' || metric === 'live-pass') {
+    var kpis = state.liveKPIs || {};
+    expand.innerHTML =
+      '<div class="mc-expand__row"><span class="mc-expand__key">Avg DM</span><span class="mc-expand__val ' + ragClass(kpis.avgDm || 0) + '">' + (kpis.avgDm || 0) + '</span></div>' +
+      '<div class="mc-expand__row"><span class="mc-expand__key">Pass Rate (DM\u226570)</span><span class="mc-expand__val ' + (kpis.passRate >= 85 ? 'rag-green' : 'rag-amber') + '">' + (kpis.passRate || 0) + '%</span></div>' +
+      '<div class="mc-expand__row"><span class="mc-expand__key">Queries Today</span><span class="mc-expand__val">' + (kpis.queryCount || 0) + '</span></div>';
   }
 }
 
@@ -1668,6 +1700,253 @@ function executeConfirmedTest() {
   } else {
     startTest(type);
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Dashboard Mode Toggle (TEST / LIVE)
+// ═══════════════════════════════════════════════════════════════════
+
+function switchDashboardMode(mode) {
+  if (mode === state.dashboardMode) return;
+  state.dashboardMode = mode;
+  if (typeof saveSession === 'function') saveSession();
+
+  // Body class swap
+  document.body.classList.toggle('mc-mode--live', mode === 'live');
+
+  // Toggle pill visual
+  var toggle = document.getElementById('mode-toggle');
+  if (toggle) {
+    toggle.classList.toggle('mc-mode-toggle--test', mode === 'test');
+    toggle.classList.toggle('mc-mode-toggle--live', mode === 'live');
+    toggle.querySelectorAll('.mc-mode-toggle__option').forEach(function(btn) {
+      btn.classList.toggle('mc-mode-toggle__option--active', btn.dataset.modeBtn === mode);
+    });
+  }
+
+  // Load data for the target mode
+  if (mode === 'live') {
+    if (typeof loadLiveKPIs === 'function') loadLiveKPIs();
+    if (typeof renderLiveFeedFull === 'function' && state.liveFeed) {
+      renderLiveFeedFull(state.liveFeed);
+    }
+    // Update live morning brief
+    renderLiveBrief();
+  }
+
+  // Close any open pulse expansion from the other mode
+  state.expandedPulse = null;
+  closeDetail();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Live Morning Brief
+// ═══════════════════════════════════════════════════════════════════
+
+function renderLiveBrief() {
+  var $brief = document.getElementById('mc-brief-live');
+  var $icon = document.getElementById('mc-brief-live-icon');
+  var $text = document.getElementById('mc-brief-live-text');
+  if (!$brief || !$text) return;
+  $brief.style.display = '';
+
+  var hour = new Date().getHours();
+  var greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  var kpis = state.liveKPIs;
+
+  if (!kpis) {
+    $brief.className = 'mc-brief mc-brief--amber';
+    if ($icon) $icon.textContent = '\u26A0';
+    $text.innerHTML = '<strong>' + greeting + ', Aacrit.</strong> Loading live production data...';
+    return;
+  }
+
+  var dm = kpis.avgDm || 0;
+  var passRate = kpis.passRate || 0;
+  var count = kpis.queryCount || 0;
+
+  if (passRate >= 85 && dm >= 75) {
+    $brief.className = 'mc-brief mc-brief--green';
+    if ($icon) $icon.textContent = '\u2713';
+    $text.innerHTML = '<strong>' + greeting + ', Aacrit.</strong> Production healthy \u2014 ' + count + ' queries today, DM ' + dm + ', ' + passRate + '% passing.';
+  } else if (passRate < 70 || dm < 60) {
+    $brief.className = 'mc-brief mc-brief--red';
+    if ($icon) $icon.textContent = '\u2717';
+    $text.innerHTML = '<strong>' + greeting + ', Aacrit.</strong> Production needs attention \u2014 DM ' + dm + ', ' + passRate + '% passing. Check low-score queries.';
+  } else {
+    $brief.className = 'mc-brief mc-brief--amber';
+    if ($icon) $icon.textContent = '\u26A0';
+    $text.innerHTML = '<strong>' + greeting + ', Aacrit.</strong> Production running \u2014 ' + count + ' queries, DM ' + dm + ', ' + passRate + '% passing.';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Live Pulse Cards
+// ═══════════════════════════════════════════════════════════════════
+
+function updateLivePulseCards(kpis) {
+  // P1: Response Quality
+  var $blurb = document.getElementById('pulse-live-blurb-val');
+  if ($blurb) {
+    $blurb.textContent = kpis.blurbQuality || '--';
+    $blurb.className = 'mc-pulse-card__value ' + ragClass(kpis.blurbQuality || 0);
+  }
+  var $fit = document.getElementById('pulse-live-fit-val');
+  if ($fit) {
+    $fit.textContent = kpis.scoreFit || '--';
+    $fit.className = 'mc-pulse-card__value ' + ragClass(kpis.scoreFit || 0);
+  }
+
+  // P2: Operational
+  var $rt = document.getElementById('pulse-live-rt-val');
+  if ($rt) {
+    var rtMs = kpis.responseTime || 0;
+    var rtDisplay = rtMs > 1000 ? (rtMs / 1000).toFixed(1) + 's' : rtMs + 'ms';
+    $rt.textContent = rtDisplay;
+    $rt.className = 'mc-pulse-card__value ' + (rtMs <= 3000 ? 'rag-green' : rtMs <= 5000 ? 'rag-amber' : 'rag-red');
+  }
+  var $cache = document.getElementById('pulse-live-cache-val');
+  if ($cache) {
+    $cache.textContent = (kpis.cacheHitRate || 0) + '%';
+    $cache.className = 'mc-pulse-card__value ' + (kpis.cacheHitRate >= 50 ? 'rag-green' : kpis.cacheHitRate >= 20 ? 'rag-amber' : 'rag-red');
+  }
+
+  // P3: User Satisfaction
+  var $dm = document.getElementById('pulse-live-dm-val');
+  if ($dm) {
+    $dm.textContent = kpis.avgDm || '--';
+    $dm.className = 'mc-pulse-card__value ' + ragClass(kpis.avgDm || 0);
+  }
+  var $pass = document.getElementById('pulse-live-pass-val');
+  if ($pass) {
+    $pass.textContent = (kpis.passRate || 0) + '%';
+    $pass.className = 'mc-pulse-card__value ' + (kpis.passRate >= 85 ? 'rag-green' : kpis.passRate >= 70 ? 'rag-amber' : 'rag-red');
+  }
+
+  // P4: Business (query count in feed section title)
+  var $count = document.getElementById('mc-live-query-count');
+  if ($count) $count.textContent = '(' + (kpis.queryCount || 0) + ' today)';
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Live Feed (full rendering for LIVE mode)
+// ═══════════════════════════════════════════════════════════════════
+
+function renderLiveFeedFull(queries) {
+  var $el = document.getElementById('mc-live-feed-full');
+  if (!$el) return;
+
+  var filtered = (queries || []).filter(function(q) { return q.source !== 'command-center'; });
+  if (!filtered.length) {
+    $el.innerHTML = '<div class="mc-empty">No production queries in the last 24h</div>';
+    return;
+  }
+
+  $el.innerHTML = filtered.slice(0, 20).map(function(q) {
+    var dm = q.donde_match || 0;
+    var rt = q.response_time_ms ? q.response_time_ms + 'ms' : '--';
+    var fitG = q.score_fit_grade || '--';
+    var blurbG = q.blurb_quality_grade || '--';
+    var query = q.special_request || '(empty)';
+    var name = (q.restaurants && q.restaurants.name) ? q.restaurants.name : '';
+    var cacheTag = q.cache_hit ? '<span class="mc-feed-tag mc-feed-tag--cache">cached</span>' : '';
+
+    return '<div class="mc-feed-item mc-feed-item--live mc-clickable" onclick="testAndShowDetail(\'' + escapeHtml(query.replace(/'/g, "\\'")) + '\')" title="' + escapeHtml(query) + '">' +
+      '<span class="mc-feed-item__query">"' + escapeHtml(query.slice(0, 35)) + '"</span>' +
+      '<span class="mc-feed-item__meta">' + escapeHtml((name || '').slice(0, 20)) + '</span>' +
+      '<span class="mc-feed-item__rt">' + rt + '</span>' +
+      '<span class="mc-feed-item__grades">F:' + fitG + ' B:' + blurbG + '</span>' +
+      cacheTag +
+      '<span class="mc-feed-item__time">' + (q.created_at ? timeAgo(q.created_at) : '') + '</span>' +
+      '<span class="mc-feed-item__score ' + ragClass(dm) + '">' + dm + '</span>' +
+    '</div>';
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Live Action Handlers
+// ═══════════════════════════════════════════════════════════════════
+
+function viewSlowQueries() {
+  var slow = (state.liveFeed || []).filter(function(q) { return q.response_time_ms > 5000 && q.source !== 'command-center'; });
+  var html = '<div class="mc-viz__metric" style="margin-bottom:var(--space-md)"><div class="mc-viz__metric-val ' + (slow.length === 0 ? 'rag-green' : 'rag-red') + '">' + slow.length + '</div><div class="mc-viz__metric-label">Queries &gt; 5s</div></div>';
+  if (slow.length === 0) {
+    html += '<div class="mc-viz__insight mc-viz__insight--success"><span class="mc-viz__insight-icon">\u2713</span> No slow queries. All responses under 5s.</div>';
+  } else {
+    html += slow.slice(0, 10).map(function(q) {
+      return '<div class="mc-run-expand__item" onclick="testAndShowDetail(\'' + escapeHtml((q.special_request || '').replace(/'/g, "\\'")) + '\')">' +
+        '<span class="mc-run-expand__query">"' + escapeHtml((q.special_request || '').slice(0, 30)) + '"</span>' +
+        '<span class="mc-run-expand__grades">' + q.response_time_ms + 'ms</span>' +
+        '<span class="mc-run-expand__score ' + ragClass(q.donde_match || 0) + '">' + (q.donde_match || 0) + '</span></div>';
+    }).join('');
+  }
+  openDetail('Slow Queries (>5s)', html);
+}
+
+function viewLowScoreQueries() {
+  var low = (state.liveFeed || []).filter(function(q) { return (q.donde_match || 0) < 60 && q.source !== 'command-center'; });
+  var html = '<div class="mc-viz__metric" style="margin-bottom:var(--space-md)"><div class="mc-viz__metric-val ' + (low.length === 0 ? 'rag-green' : 'rag-red') + '">' + low.length + '</div><div class="mc-viz__metric-label">Queries DM &lt; 60</div></div>';
+  if (low.length === 0) {
+    html += '<div class="mc-viz__insight mc-viz__insight--success"><span class="mc-viz__insight-icon">\u2713</span> No low-score queries. All production queries above 60.</div>';
+  } else {
+    html += low.slice(0, 10).map(function(q) {
+      return '<div class="mc-run-expand__item" onclick="testAndShowDetail(\'' + escapeHtml((q.special_request || '').replace(/'/g, "\\'")) + '\')">' +
+        '<span class="mc-run-expand__query">"' + escapeHtml((q.special_request || '').slice(0, 30)) + '"</span>' +
+        '<span class="mc-run-expand__grades">' + (q.score_fit_grade || '--') + '</span>' +
+        '<span class="mc-run-expand__score rag-red">' + (q.donde_match || 0) + '</span></div>';
+    }).join('');
+  }
+  openDetail('Low Score Queries (DM < 60)', html);
+}
+
+function viewFallbacks() {
+  var fb = (state.liveFeed || []).filter(function(q) { return q.was_fallback && q.source !== 'command-center'; });
+  var html = '<div class="mc-viz__metric" style="margin-bottom:var(--space-md)"><div class="mc-viz__metric-val ' + (fb.length === 0 ? 'rag-green' : 'rag-amber') + '">' + fb.length + '</div><div class="mc-viz__metric-label">Fallback Responses</div></div>';
+  if (fb.length === 0) {
+    html += '<div class="mc-viz__insight mc-viz__insight--success"><span class="mc-viz__insight-icon">\u2713</span> No fallbacks. All queries received full engine responses.</div>';
+  } else {
+    html += fb.slice(0, 10).map(function(q) {
+      return '<div class="mc-run-expand__item" onclick="testAndShowDetail(\'' + escapeHtml((q.special_request || '').replace(/'/g, "\\'")) + '\')">' +
+        '<span class="mc-run-expand__query">"' + escapeHtml((q.special_request || '').slice(0, 30)) + '"</span>' +
+        '<span class="mc-run-expand__grades">fallback</span>' +
+        '<span class="mc-run-expand__score rag-amber">' + (q.donde_match || 0) + '</span></div>';
+    }).join('');
+  }
+  openDetail('Fallback Responses', html);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Time Period Toggle (Live mode)
+// ═══════════════════════════════════════════════════════════════════
+
+function setLivePeriod(period) {
+  state.livePeriod = period;
+
+  // Update toggle buttons
+  var btns = document.querySelectorAll('.mc-time-toggle__btn');
+  btns.forEach(function(b) {
+    b.classList.toggle('mc-time-toggle__btn--active', b.dataset.period === period);
+  });
+
+  // Reload live KPIs with new period
+  if (typeof loadLiveKPIs === 'function') loadLiveKPIs(period);
+  if (state.liveFeed) {
+    var filtered = filterByPeriod(state.liveFeed, period);
+    renderLiveFeedFull(filtered);
+  }
+}
+
+function filterByPeriod(queries, period) {
+  var now = Date.now();
+  var cutoffs = { '24h': 24*60*60*1000, '7d': 7*24*60*60*1000, '30d': 30*24*60*60*1000, 'ytd': null };
+  var ms = cutoffs[period];
+  if (!ms) {
+    // YTD: from Jan 1 of current year
+    var jan1 = new Date(new Date().getFullYear(), 0, 1).getTime();
+    return queries.filter(function(q) { return new Date(q.created_at).getTime() >= jan1; });
+  }
+  var cutoff = now - ms;
+  return queries.filter(function(q) { return new Date(q.created_at).getTime() >= cutoff; });
 }
 
 // ═══════════════════════════════════════════════════════════════════

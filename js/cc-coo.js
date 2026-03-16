@@ -419,11 +419,13 @@ function renderAgentStatus() {
   ];
 
   const divActions = { Quality: 'scan', Infra: 'db health', Frontend: 'edge', Product: 'coo briefing', Security: 'security audit' };
+  const divIcons = { Quality: '\u2699', Infra: '\u26C1', Frontend: '\u25A3', Product: '\u2605', Security: '\u26E8' };
 
   el.innerHTML = divisions
     .map(
       (d) => `<div class="mc-div-chip" onclick="processCOOInput('${divActions[d.name]}')" title="Click to run ${divActions[d.name]}">
       <span class="mc-div-chip__dot mc-div-chip__dot--${d.health}${d.active ? ' mc-div-chip__dot--active' : ''}"></span>
+      <span class="mc-div-chip__icon">${divIcons[d.name] || ''}</span>
       <span class="mc-div-chip__label">${d.name}</span>
       <span class="mc-div-chip__metric">${d.metric}</span>
     </div>`

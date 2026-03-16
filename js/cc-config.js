@@ -239,10 +239,12 @@ let state = {
   lastScrollY: 0,             // for quick actions show/hide
   quickActionsVisible: true,  // quick actions bar visibility
   liveAPI: false,             // Live API toggle — default OFF (scoring only, $0)
+  dashboardMode: 'test',      // 'test' | 'live' — dual-mode dashboard toggle
+  liveKPIs: null,             // live production KPIs { blurbQuality, scoreFit, responseTime, cacheHitRate, avgDm, passRate, queryCount }
 };
 
 // Session persistence keys
-const SESSION_KEYS = ['activeTab', 'liveFilter', 'liveFilters', 'pulseMode', 'blurbMode', 'autoRefresh', 'autoRefreshSecs', 'testConfig', 'expandedPulse', 'selectedRunId', 'liveAPI'];
+const SESSION_KEYS = ['activeTab', 'liveFilter', 'liveFilters', 'pulseMode', 'blurbMode', 'autoRefresh', 'autoRefreshSecs', 'testConfig', 'expandedPulse', 'selectedRunId', 'liveAPI', 'dashboardMode'];
 
 function saveSession() {
   try {
