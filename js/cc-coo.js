@@ -202,6 +202,9 @@ function processCOOInput(raw) {
   const input = raw.trim();
   if (!input) return;
 
+  // Auto-open terminal so output is visible
+  if (typeof openDrawerForTest === 'function') openDrawerForTest();
+
   // Maintain command history
   if (!state.cooHistory) state.cooHistory = [];
   state.cooHistory.push(input);
