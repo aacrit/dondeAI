@@ -828,7 +828,7 @@
 .utility-pills {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
+  justify-content: flex-start;
   gap: var(--space-2xs);
   padding-top: var(--space-xs);
 }
@@ -988,7 +988,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: var(--space-sm);
   width: 100%;
 }
