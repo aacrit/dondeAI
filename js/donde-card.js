@@ -111,11 +111,11 @@ const THEME_PALETTES = {
   },
 };
 
-/* ---- Cultural Theme Pattern Drawers (enhanced opacity) ---- */
+/* ---- Cultural Theme Pattern Drawers (bold visibility) ---- */
 const THEME_PATTERNS = {
   neutral(ctx, w, h, p) {
-    ctx.save(); ctx.globalAlpha = 0.05; ctx.strokeStyle = p.ac; ctx.lineWidth = 1.2;
-    for (let x = 0; x < w; x += 80) for (let y = 0; y < h; y += 80) {
+    ctx.save(); ctx.globalAlpha = 0.09; ctx.strokeStyle = p.ac; ctx.lineWidth = 1.4;
+    for (let x = 0; x < w; x += 70) for (let y = 0; y < h; y += 70) {
       ctx.beginPath();
       ctx.moveTo(x + 10, y + 8); ctx.quadraticCurveTo(x + 15, y + 12, x + 20, y + 16); ctx.stroke();
       ctx.beginPath();
@@ -124,19 +124,19 @@ const THEME_PATTERNS = {
     ctx.restore();
   },
   indian(ctx, w, h, p) {
-    ctx.save(); ctx.globalAlpha = 0.06; ctx.strokeStyle = p.ac; ctx.lineWidth = 1;
-    for (let x = 30; x < w; x += 90) for (let y = 30; y < h; y += 90) {
+    ctx.save(); ctx.globalAlpha = 0.10; ctx.strokeStyle = p.ac; ctx.lineWidth = 1.2;
+    for (let x = 30; x < w; x += 80) for (let y = 30; y < h; y += 80) {
       ctx.beginPath();
-      ctx.moveTo(x, y - 8); ctx.quadraticCurveTo(x + 8, y, x, y + 8);
-      ctx.quadraticCurveTo(x - 8, y, x, y - 8); ctx.stroke();
-      ctx.beginPath(); ctx.arc(x, y, 1.5, 0, Math.PI * 2);
+      ctx.moveTo(x, y - 10); ctx.quadraticCurveTo(x + 10, y, x, y + 10);
+      ctx.quadraticCurveTo(x - 10, y, x, y - 10); ctx.stroke();
+      ctx.beginPath(); ctx.arc(x, y, 2, 0, Math.PI * 2);
       ctx.fillStyle = p.ac; ctx.fill();
     }
     ctx.restore();
   },
   japanese(ctx, w, h, p) {
-    ctx.save(); ctx.globalAlpha = 0.05; ctx.strokeStyle = p.ac; ctx.lineWidth = 0.8;
-    const r = 28;
+    ctx.save(); ctx.globalAlpha = 0.08; ctx.strokeStyle = p.ac; ctx.lineWidth = 1;
+    const r = 32;
     for (let row = 0; row < Math.ceil(h / (r * 2)) + 1; row++) {
       const yy = row * r * 2; const xShift = (row % 2) * r;
       for (let col = -1; col < Math.ceil(w / (r * 2)) + 1; col++) {
@@ -148,24 +148,24 @@ const THEME_PATTERNS = {
     ctx.restore();
   },
   middleeastern(ctx, w, h, p) {
-    ctx.save(); ctx.globalAlpha = 0.06; ctx.strokeStyle = p.ac; ctx.lineWidth = 0.8;
-    for (let x = 0; x < w; x += 56) for (let y = 0; y < h; y += 56) {
-      const cx = x + 28, cy = y + 28;
+    ctx.save(); ctx.globalAlpha = 0.10; ctx.strokeStyle = p.ac; ctx.lineWidth = 1;
+    for (let x = 0; x < w; x += 50) for (let y = 0; y < h; y += 50) {
+      const cx = x + 25, cy = y + 25;
       ctx.beginPath();
-      ctx.moveTo(cx, cy - 11); ctx.lineTo(cx + 11, cy);
-      ctx.lineTo(cx, cy + 11); ctx.lineTo(cx - 11, cy); ctx.closePath(); ctx.stroke();
+      ctx.moveTo(cx, cy - 13); ctx.lineTo(cx + 13, cy);
+      ctx.lineTo(cx, cy + 13); ctx.lineTo(cx - 13, cy); ctx.closePath(); ctx.stroke();
     }
     ctx.restore();
   },
   southamerican(ctx, w, h, p) {
-    ctx.save(); ctx.globalAlpha = 0.05; ctx.strokeStyle = p.ac; ctx.lineWidth = 0.8;
-    for (let x = 25; x < w; x += 70) for (let y = 25; y < h; y += 70) {
+    ctx.save(); ctx.globalAlpha = 0.09; ctx.strokeStyle = p.ac; ctx.lineWidth = 1;
+    for (let x = 25; x < w; x += 60) for (let y = 25; y < h; y += 60) {
       for (let a = 0; a < Math.PI * 2; a += Math.PI / 4) {
         ctx.beginPath();
-        ctx.moveTo(x + Math.cos(a) * 4, y + Math.sin(a) * 4);
-        ctx.lineTo(x + Math.cos(a) * 11, y + Math.sin(a) * 11); ctx.stroke();
+        ctx.moveTo(x + Math.cos(a) * 5, y + Math.sin(a) * 5);
+        ctx.lineTo(x + Math.cos(a) * 14, y + Math.sin(a) * 14); ctx.stroke();
       }
-      ctx.beginPath(); ctx.arc(x, y, 2.5, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2); ctx.stroke();
     }
     ctx.restore();
   },
@@ -293,26 +293,62 @@ function drawScoreRing(ctx, cx, cy, radius, score, p, opts = {}) {
   }
 }
 
-/* ---- Donde Logo (Location Pin) ---- */
+/* ---- Donde Question-Pin Logo (actual brand mark from app header) ---- */
 function drawDondeLogo(ctx, cx, cy, size, color) {
-  const s = size / 48;
+  // SVG viewBox 0 0 32 44 — scale to requested size
+  const s = size / 44;
   ctx.save();
-  ctx.translate(cx, cy);
+  ctx.translate(cx - 16 * s, cy - 22 * s);
   ctx.scale(s, s);
-  ctx.beginPath();
-  ctx.moveTo(0, 22);
-  ctx.bezierCurveTo(-5, 14, -18, 3, -18, -8);
-  ctx.bezierCurveTo(-18, -19, -10, -26, 0, -26);
-  ctx.bezierCurveTo(10, -26, 18, -19, 18, -8);
-  ctx.bezierCurveTo(18, 3, 5, 14, 0, 22);
-  ctx.closePath();
+  ctx.strokeStyle = color;
   ctx.fillStyle = color;
-  ctx.fill();
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  // Left tine
+  ctx.lineWidth = 2.5;
   ctx.beginPath();
-  ctx.arc(0, -8, 7, 0, Math.PI * 2);
-  ctx.fillStyle = '#ffffff';
+  ctx.moveTo(10.5, 1);
+  ctx.bezierCurveTo(10.5, 1, 10, 8.5, 12.5, 11.5);
+  ctx.quadraticCurveTo(14, 13, 14.5, 13.5);
+  ctx.stroke();
+  // Right tine
+  ctx.beginPath();
+  ctx.moveTo(21.5, 1);
+  ctx.bezierCurveTo(21.5, 1, 22, 8.5, 19.5, 11.5);
+  ctx.quadraticCurveTo(18, 13, 17.5, 13.5);
+  ctx.stroke();
+  // Question-mark curve
+  ctx.lineWidth = 2.8;
+  ctx.beginPath();
+  ctx.moveTo(16, 13.5);
+  ctx.bezierCurveTo(22, 11, 29, 14, 28, 21);
+  ctx.bezierCurveTo(27, 27, 19, 29, 16, 31);
+  ctx.lineTo(16, 34);
+  ctx.stroke();
+  // Pin dot
+  ctx.beginPath();
+  ctx.arc(16, 40, 2.8, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
+}
+
+/* ---- Centered Pills Row ---- */
+function drawCenteredPills(ctx, y, parts, p) {
+  const fontSize = 22, pillH = 42, pillPad = 22, pillGap = 14;
+  ctx.font = `500 ${fontSize}px "Inter", system-ui, sans-serif`;
+  const widths = parts.map(text => ctx.measureText(text).width + pillPad * 2);
+  const totalW = widths.reduce((sum, w) => sum + w + pillGap, -pillGap);
+  let px = (CW - totalW) / 2;
+  for (let i = 0; i < parts.length; i++) {
+    const pw = widths[i];
+    ctx.fillStyle = p.acSoft; roundRect(ctx, px, y, pw, pillH, pillH / 2); ctx.fill();
+    ctx.strokeStyle = p.ac + '35'; ctx.lineWidth = 1.5;
+    roundRect(ctx, px, y, pw, pillH, pillH / 2); ctx.stroke();
+    ctx.fillStyle = p.ac; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(parts[i], px + pw / 2, y + pillH / 2 + 1);
+    px += pw + pillGap;
+  }
+  return y + pillH;
 }
 
 /* ---- Reel Background ---- */
@@ -320,16 +356,16 @@ function drawReelBackground(ctx, p, culture) {
   ctx.fillStyle = p.bg;
   ctx.fillRect(0, 0, CW, CH);
   (THEME_PATTERNS[culture] || THEME_PATTERNS.neutral)(ctx, CW, CH, p);
-  const topGrad = ctx.createLinearGradient(0, 0, 0, 360);
-  topGrad.addColorStop(0, p.gradStart + '32');
-  topGrad.addColorStop(0.45, p.gradEnd + '1a');
+  const topGrad = ctx.createLinearGradient(0, 0, 0, 420);
+  topGrad.addColorStop(0, p.gradStart + '48');
+  topGrad.addColorStop(0.4, p.gradEnd + '28');
   topGrad.addColorStop(1, 'transparent');
   ctx.fillStyle = topGrad;
-  ctx.fillRect(0, 0, CW, 360);
-  const botGrad = ctx.createLinearGradient(0, CH - 280, 0, CH);
+  ctx.fillRect(0, 0, CW, 420);
+  const botGrad = ctx.createLinearGradient(0, CH - 340, 0, CH);
   botGrad.addColorStop(0, 'transparent');
-  botGrad.addColorStop(0.5, p.gradEnd + '0e');
-  botGrad.addColorStop(1, p.gradStart + '28');
+  botGrad.addColorStop(0.4, p.gradEnd + '18');
+  botGrad.addColorStop(1, p.gradStart + '3a');
   ctx.fillStyle = botGrad;
   ctx.fillRect(0, CH - 280, CW, 280);
   const rg1 = ctx.createRadialGradient(CW * 0.82, CH * 0.04, 0, CW * 0.82, CH * 0.04, CW * 0.5);
@@ -355,34 +391,46 @@ function drawReelBackground(ctx, p, culture) {
 /* ---- Branded Footer (bottom-anchored) ---- */
 function drawBrandedFooter(ctx, p) {
   const dark = isDarkMode();
-  const sepY = CH - 480;
+  const sepY = CH - 440;
   drawSeparator(ctx, sepY, p);
-  const logoY = sepY + 56;
-  drawDondeLogo(ctx, CW / 2, logoY, 60, p.ac);
-  const nameY = logoY + 44;
-  ctx.font = '700 48px "Playfair Display", Georgia, serif';
+
+  // Logo mark (actual Question Pin) + wordmark side by side
+  const brandY = sepY + 36;
+  drawDondeLogo(ctx, CW / 2 - 70, brandY + 24, 44, p.ac);
+
+  // "Donde" wordmark next to logo
+  ctx.font = '700 44px "Playfair Display", Georgia, serif';
   ctx.fillStyle = p.fg;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'top';
-  ctx.fillText('Donde', CW / 2, nameY);
-  const tagY = nameY + 60;
-  ctx.font = '400 21px "Inter", system-ui, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('Donde', CW / 2 - 38, brandY + 24);
+
+  // Tagline
+  const tagY = brandY + 54;
+  ctx.font = '400 19px "Inter", system-ui, sans-serif';
   ctx.fillStyle = p.fg3;
+  ctx.textAlign = 'center';
   ctx.fillText(TAGLINE, CW / 2, tagY);
-  const qrSize = 150;
+
+  // QR Code
+  const qrSize = 140;
   const qrX = (CW - qrSize) / 2;
-  const qrY = tagY + 48;
+  const qrY = tagY + 36;
   const matrix = generateQRMatrix('https://aacrit.github.io/dondeAI');
   drawQRCode(ctx, qrX, qrY, qrSize, matrix, dark ? p.fg : p.fg, dark ? p.bg2 : '#ffffff');
+
+  // Logo inside QR center
   const qrCX = qrX + qrSize / 2;
   const qrCY = qrY + qrSize / 2;
   ctx.beginPath();
-  ctx.arc(qrCX, qrCY, 24, 0, Math.PI * 2);
+  ctx.arc(qrCX, qrCY, 20, 0, Math.PI * 2);
   ctx.fillStyle = dark ? p.bg2 : '#ffffff';
   ctx.fill();
-  drawDondeLogo(ctx, qrCX, qrCY, 34, p.ac);
-  const ctaY = qrY + qrSize + 28;
-  ctx.font = '600 19px "Inter", system-ui, sans-serif';
+  drawDondeLogo(ctx, qrCX, qrCY, 28, p.ac);
+
+  // CTA
+  const ctaY = qrY + qrSize + 24;
+  ctx.font = '600 18px "Inter", system-ui, sans-serif';
   ctx.fillStyle = p.ac;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
@@ -402,15 +450,15 @@ async function buildReelCard(resultData, p, culture) {
 
   drawReelBackground(ctx, p, culture);
 
-  // Score ring
-  let y = 280;
+  // ── SCORE RING ──
+  let y = 260;
   const ringR = 80;
   drawScoreRing(ctx, CW / 2, y, ringR, score, p, {
     showLabel: true, numSize: 56, labelSize: 15, lineWidth: 11,
   });
-  y += ringR + 48;
+  y += ringR + 40;
 
-  // Restaurant name
+  // ── RESTAURANT NAME ──
   ctx.font = '700 56px "Playfair Display", Georgia, serif';
   ctx.fillStyle = p.fg;
   ctx.textAlign = 'center';
@@ -420,35 +468,94 @@ async function buildReelCard(resultData, p, culture) {
     ctx.fillText(line, CW / 2, y);
     y += 68;
   }
-  y += 28;
+  y += 12;
+
+  // ── META PILLS (neighborhood, cuisine, price) ──
+  const metaParts = [];
+  const hood = r.neighborhood_name || '';
+  if (hood && !/^chicago$/i.test(hood.trim())) metaParts.push(hood);
+  if (r.cuisine_type) metaParts.push(r.cuisine_type);
+  if (r.price_level) metaParts.push(r.price_level);
+  if (metaParts.length > 0) {
+    y = drawCenteredPills(ctx, y, metaParts, p) + 24;
+  }
 
   // Separator
   drawSeparator(ctx, y, p);
-  y += 48;
+  y += 40;
 
-  // Recommendation blurb — full, no truncation
+  // ── RECOMMENDATION BLURB — full, no truncation ──
   if (recText) {
-    ctx.font = '300 80px "Playfair Display", Georgia, serif';
+    ctx.font = '300 72px "Playfair Display", Georgia, serif';
     ctx.fillStyle = p.ac + '40';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
-    ctx.fillText('\u201C', CW / 2, y - 16);
-    y += 56;
+    ctx.fillText('\u201C', CW / 2, y - 14);
+    y += 50;
 
-    ctx.font = 'italic 400 28px "Playfair Display", Georgia, serif';
+    ctx.font = 'italic 400 27px "Playfair Display", Georgia, serif';
     ctx.fillStyle = p.fg2;
     const blurbLines = wrapText(ctx, recText, CONTENT_W - 80);
     for (const line of blurbLines) {
       ctx.fillText(line, CW / 2, y);
-      y += 40;
+      y += 38;
     }
-    y += 12;
+    y += 8;
 
-    ctx.font = '300 80px "Playfair Display", Georgia, serif';
+    ctx.font = '300 72px "Playfair Display", Georgia, serif';
     ctx.fillStyle = p.ac + '40';
-    ctx.fillText('\u201D', CW / 2, y - 22);
+    ctx.fillText('\u201D', CW / 2, y - 18);
+    y += 36;
   }
 
+  // ── MATCH NARRATIVE (strongest factor summary) ──
+  const narrative = resultData.match_narrative?.summary || '';
+  if (narrative) {
+    drawSeparator(ctx, y, p);
+    y += 36;
+    ctx.font = '400 21px "Inter", system-ui, sans-serif';
+    ctx.fillStyle = p.fg3;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    const narLines = wrapText(ctx, narrative, CONTENT_W - 60);
+    for (const line of narLines.slice(0, 3)) {
+      ctx.fillText(line, CW / 2, y);
+      y += 30;
+    }
+    y += 16;
+  }
+
+  // ── KEY SIGNALS (pill tags) ──
+  const signals = resultData.match_narrative?.key_signals || [];
+  if (signals.length > 0) {
+    y = drawCenteredPills(ctx, y, signals.slice(0, 3), p) + 20;
+  }
+
+  // ── INSIDER TIP ──
+  const tip = (resultData.insider_tip || '').replace(/\u2014/g, ', ');
+  if (tip) {
+    y += 8;
+    const tipLines = wrapText(ctx, tip, CONTENT_W - 80);
+    const tipBoxH = 32 + Math.min(tipLines.length, 3) * 28 + 16;
+    ctx.fillStyle = p.ac + '0c';
+    roundRect(ctx, PAD + 20, y, CONTENT_W - 40, tipBoxH, 16);
+    ctx.fill();
+    ctx.fillStyle = p.ac;
+    roundRect(ctx, PAD + 20, y, 4, tipBoxH, 2);
+    ctx.fill();
+    ctx.font = '600 14px "Inter", system-ui, sans-serif';
+    ctx.fillStyle = p.ac;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText('INSIDER TIP', PAD + 40, y + 12);
+    ctx.font = '400 19px "Inter", system-ui, sans-serif';
+    ctx.fillStyle = p.fg2;
+    let tipY = y + 34;
+    for (const line of tipLines.slice(0, 3)) { ctx.fillText(line, PAD + 40, tipY); tipY += 28; }
+    y += tipBoxH + 16;
+  }
+
+  // ── BRANDED FOOTER ──
   drawBrandedFooter(ctx, p);
   return canvas;
 }
