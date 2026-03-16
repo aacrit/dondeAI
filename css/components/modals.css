@@ -455,86 +455,24 @@
 }
 
 /* ---- Card Size Toggle ---- */
-.card-size-toggle {
-  display: flex;
-  justify-content: center;
-  gap: var(--space-2xs);
-  margin-bottom: var(--space-md);
-  background: var(--bg3);
-  border-radius: var(--radius-pill);
-  padding: 3px;
-}
-
-.card-size-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2xs);
-  padding: var(--space-2xs) var(--space-md);
-  border-radius: var(--radius-pill);
-  border: none;
-  background: none;
-  color: var(--fg3);
-  font-weight: 600;
-  cursor: pointer;
-  transition: background var(--dur-fast) var(--ease-out),
-              color var(--dur-fast) var(--ease-out);
-}
-
-.card-size-btn:hover {
-  color: var(--fg2);
-}
-
-.card-size-btn--active {
-  background: var(--bg2);
-  color: var(--ac);
-  box-shadow: 0 1px 4px var(--shadow);
-}
-
-.card-size-btn svg {
-  flex-shrink: 0;
-  opacity: 0.7;
-}
-
-.card-size-btn--active svg {
-  opacity: 1;
-}
-
-/* ---- Share Preview ---- */
+/* ---- Share Preview (9:16 reel format) ---- */
 .share-preview {
   width: 100%;
-  aspect-ratio: 1 / 1;
-  max-width: 300px;
+  aspect-ratio: 9 / 16;
+  max-width: 200px;
+  max-height: 360px;
   margin: 0 auto var(--space-md);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   overflow: hidden;
   background: var(--bg3);
-}
-
-/* Donde Card preview — dynamic aspect ratio based on card size */
-.share-preview--card {
-  aspect-ratio: auto;
-  max-width: 240px;
-  max-height: 420px;
-  border-radius: var(--radius-lg);
   box-shadow: 0 8px 32px hsl(0 0% 0% / 0.15);
   position: relative;
+}
+
+.share-preview--card {
   overflow-y: auto;
   overflow-x: hidden;
   scrollbar-width: none;
-}
-
-.share-preview--card::-webkit-scrollbar { display: none; }
-
-/* Small card: 4:5 aspect */
-.share-preview--small {
-  aspect-ratio: 4 / 5;
-  max-height: 380px;
-}
-
-/* Large card: taller, scrollable */
-.share-preview--large {
-  aspect-ratio: 9 / 16;
-  max-height: 420px;
 }
 
 .share-preview--card.share-preview--loading::after {
