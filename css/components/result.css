@@ -2928,3 +2928,57 @@
 .cta-btn--link:hover {
   color: var(--fg);
 }
+
+/* ── Share CTA — personified, subtle call-to-action ── */
+.share-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  align-self: center;
+  padding: var(--space-sm) var(--space-lg);
+  background: color-mix(in srgb, var(--ac) 10%, var(--bg2));
+  border: 1.5px solid color-mix(in srgb, var(--ac) 25%, var(--border));
+  border-radius: var(--radius-pill);
+  color: var(--ac);
+  font-family: var(--font-structural);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out),
+              border-color var(--dur-fast) var(--ease-out),
+              color var(--dur-fast) var(--ease-out),
+              transform var(--dur-fast) var(--spring),
+              box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.share-cta:hover {
+  background: color-mix(in srgb, var(--ac) 18%, var(--bg2));
+  border-color: color-mix(in srgb, var(--ac) 45%, var(--border));
+  box-shadow: 0 2px 12px color-mix(in srgb, var(--ac) 12%, transparent);
+}
+
+.share-cta:active {
+  transform: scale(0.96);
+}
+
+.share-cta__icon {
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
+.share-cta__icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.share-cta__text {
+  white-space: nowrap;
+}
+
+/* Dark mode: slightly brighter background */
+[data-mode="dark"] .share-cta {
+  background: color-mix(in srgb, var(--ac) 8%, var(--bg3));
+  border-color: color-mix(in srgb, var(--ac) 20%, var(--border));
+}

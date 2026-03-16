@@ -1,6 +1,6 @@
 /* ============================================
    DondeAI — Share Sheet Logic
-   Native share + Donde Card + fallback bottom sheet.
+   Native share + Donde Card (Small/Large) + fallback bottom sheet.
    ============================================ */
 
 import { getState } from './state.js';
@@ -10,9 +10,31 @@ import { generateDondeCard, downloadDondeCard, shareDondeCard } from './donde-ca
 let $sheet = null;
 let _cardBlob = null;
 let _cardResultId = null;
+let _cardSize = 'small';
 
 export function initShare() {
   $sheet = document.getElementById('share-sheet');
+
+  // Bind size toggle buttons
+  if ($sheet) {
+    $sheet.addEventListener('click', (e) => {
+      const sizeBtn = e.target.closest('[data-card-size]');
+      if (sizeBtn) {
+        const newSize = sizeBtn.dataset.cardSize;
+        if (newSize !== _cardSize) {
+          _cardSize = newSize;
+          // Update toggle UI
+          $sheet.querySelectorAll('[data-card-size]').forEach(btn => {
+            btn.classList.toggle('card-size-btn--active', btn.dataset.cardSize === _cardSize);
+          });
+          // Invalidate cached blob and regenerate
+          _cardBlob = null;
+          _cardResultId = null;
+          _renderCardPreview();
+        }
+      }
+    });
+  }
 }
 
 export async function shareResult() {
@@ -32,6 +54,13 @@ export async function shareResult() {
 export function openShareSheet() {
   if ($sheet) {
     $sheet.classList.add('share-sheet--open');
+    // Reset to small card on open
+    _cardSize = 'small';
+    $sheet.querySelectorAll('[data-card-size]').forEach(btn => {
+      btn.classList.toggle('card-size-btn--active', btn.dataset.cardSize === 'small');
+    });
+    _cardBlob = null;
+    _cardResultId = null;
     _renderCardPreview();
     const first = $sheet.querySelector('.share-btn, .share-card-btn');
     if (first) first.focus();
@@ -93,7 +122,7 @@ async function _getOrGenerateCard(result) {
   if (_cardBlob && _cardResultId === resultId) return _cardBlob;
 
   try {
-    _cardBlob = await generateDondeCard(result);
+    _cardBlob = await generateDondeCard(result, _cardSize);
     _cardResultId = resultId;
     return _cardBlob;
   } catch (err) {
@@ -113,6 +142,10 @@ async function _renderCardPreview() {
   if (!$preview) return;
 
   $preview.classList.add('share-preview--loading');
+
+  // Update aspect ratio class based on card size
+  $preview.classList.toggle('share-preview--small', _cardSize === 'small');
+  $preview.classList.toggle('share-preview--large', _cardSize === 'large');
 
   try {
     const blob = await _getOrGenerateCard(result);

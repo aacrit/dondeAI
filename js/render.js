@@ -342,7 +342,7 @@ function renderQuickActions(data) {
     items.push({ icon: 'calendar', label: 'Reserve', href: reserveUrl });
   }
 
-  items.push({ icon: 'shareNetwork', label: 'Share', action: 'share' });
+  // Share is now an elevated CTA below the blurb — no longer in utility pills
 
   if (r.website) {
     let hostname = 'Website';
