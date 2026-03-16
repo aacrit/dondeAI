@@ -233,23 +233,72 @@ function renderGlanceContext(data) {
 
   const r = data.restaurant || {};
 
-  // Reserve pill — links to primary booking platform (Resy/OpenTable)
+  // Reserve pill with dropdown — mini version of Reserve tab
   const rl = data.reservation_links;
   if (rl?.primary) {
-    const pill = document.createElement('a');
-    pill.className = 'glance-context__pill glance-context__pill--reserve type-data--sm';
-    pill.href = rl.primary.url;
-    pill.target = '_blank';
-    pill.rel = 'noopener noreferrer';
-    const platformName = rl.primary.platform.charAt(0).toUpperCase() + rl.primary.platform.slice(1);
-    pill.innerHTML = `${svgIcon('calendar', 11)} Reserve · ${platformName}`;
-    $ctx.appendChild(pill);
-  }
-
-  if (r.cuisine_type) {
     const pill = document.createElement('span');
-    pill.className = 'glance-context__pill glance-context__pill--static type-data--sm';
-    pill.innerHTML = `${svgIcon('plate', 11)} ${r.cuisine_type}`;
+    pill.className = 'glance-context__pill glance-context__pill--reserve type-data--sm';
+    pill.setAttribute('role', 'button');
+    pill.setAttribute('tabindex', '0');
+    pill.setAttribute('aria-expanded', 'false');
+    pill.setAttribute('aria-haspopup', 'true');
+    pill.setAttribute('data-action', 'toggle-badge-popout');
+    const platformName = rl.primary.platform.charAt(0).toUpperCase() + rl.primary.platform.slice(1);
+    pill.innerHTML = `${svgIcon('calendar', 11)} Reserve`;
+
+    // Build popout
+    const popout = document.createElement('div');
+    popout.className = 'badge-popout badge-popout--reserve';
+    popout.setAttribute('role', 'tooltip');
+
+    // Primary booking link
+    const link = document.createElement('a');
+    link.className = 'reserve-popout__link';
+    link.href = rl.primary.url;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.textContent = rl.primary.display_name;
+    popout.appendChild(link);
+
+    // Availability slots
+    if (rl.availability?.length) {
+      const avail = document.createElement('div');
+      avail.className = 'reserve-popout__avail';
+      avail.innerHTML = `<span class="reserve-popout__label">Tonight</span>` +
+        rl.availability.map(s =>
+          `<span class="reserve-popout__slot">${_escHtml(s.time)}</span>`
+        ).join('');
+      popout.appendChild(avail);
+    }
+
+    // Reservation difficulty
+    const diffLabels = { 'walk-in': 'Walk-ins welcome', 'walk_in_friendly': 'Walk-ins welcome', 'walk-in friendly': 'Walk-ins welcome', 'recommended': 'Reservations recommended', 'required': 'Reservations required', 'hard': 'Hard to book', 'hard_to_get': 'Hard to book' };
+    const diff = rl.reservation_difficulty;
+    if (diff && diffLabels[diff]) {
+      const meta = document.createElement('span');
+      meta.className = 'reserve-popout__meta';
+      meta.textContent = diffLabels[diff];
+      popout.appendChild(meta);
+    }
+
+    // Booking tip
+    if (rl.booking_tip) {
+      const tip = document.createElement('span');
+      tip.className = 'reserve-popout__tip';
+      tip.textContent = rl.booking_tip;
+      popout.appendChild(tip);
+    }
+
+    // Phone fallback
+    if (rl.fallback?.type === 'phone' && rl.fallback.value) {
+      const phone = document.createElement('a');
+      phone.className = 'reserve-popout__phone';
+      phone.href = `tel:${rl.fallback.value}`;
+      phone.innerHTML = `${svgIcon('phone', 11)} ${_escHtml(rl.fallback.value)}`;
+      popout.appendChild(phone);
+    }
+
+    pill.appendChild(popout);
     $ctx.appendChild(pill);
   }
 
@@ -340,6 +389,14 @@ function renderGlanceContext(data) {
       $ctx.appendChild(pill);
     }
   }
+
+  // Share pill — accented CTA
+  const sharePill = document.createElement('button');
+  sharePill.className = 'glance-context__pill glance-context__pill--share type-data--sm';
+  sharePill.setAttribute('data-action', 'share');
+  sharePill.setAttribute('aria-label', 'Share this find');
+  sharePill.innerHTML = `${svgIcon('shareNetwork', 11)} Share`;
+  $ctx.appendChild(sharePill);
 }
 
 /* ---- Quick Actions ---- */
@@ -350,20 +407,7 @@ function renderQuickActions(data) {
   $actions.innerHTML = '';
   const items = [];
 
-  // Reservation link: prefer platform deep link > Google Maps > website
-  const rl = data.reservation_links;
-  const reserveUrl = rl?.primary?.url
-    || (r.google_place_id
-      ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.name)}&query_place_id=${r.google_place_id}`
-      : r.website);
-  const reserveLabel = rl?.primary?.platform
-    ? rl.primary.platform.charAt(0).toUpperCase() + rl.primary.platform.slice(1)
-    : 'Reserve';
-  if (reserveUrl) {
-    items.push({ icon: 'calendar', label: reserveLabel, href: reserveUrl });
-  }
-
-  // Share is now an elevated CTA below the blurb — no longer in utility pills
+  // Reserve moved to glance context pill with dropdown — no longer in quick actions
 
   if (r.website) {
     let hostname = 'Website';
