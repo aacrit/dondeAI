@@ -1352,24 +1352,27 @@ function renderCuisineDetails(data) {
   if (!$container) return;
 
   const chipDefs = [];
+  const r = data.restaurant || {};
 
-  if (dp.signature_dishes?.length) {
-    const bodyHTML = dp.signature_dishes.slice(0, 4).map((d, i) =>
-      `<div class="cuisine-chips__dish" style="animation-delay:${i * 40}ms">
+  // Must Try: blend signature dishes (with why) + popular items (as pills)
+  const sigDishes = dp.signature_dishes?.slice(0, 3) || [];
+  const highlights = (dp.menu_highlights || []).filter(h =>
+    !sigDishes.some(d => d.dish.toLowerCase() === h.toLowerCase())
+  ).slice(0, 4);
+  if (sigDishes.length || highlights.length) {
+    let idx = 0;
+    const dishHTML = sigDishes.map(d =>
+      `<div class="cuisine-chips__dish" style="animation-delay:${(idx++) * 40}ms">
         <span class="cuisine-chips__dish-name">${_escHtml(_toTitleCase(d.dish))}</span>
         ${d.why ? `<span class="cuisine-chips__dish-why">${_escHtml(_toSentenceCase(d.why))}</span>` : ''}
       </div>`
     ).join('');
-    chipDefs.push({ label: 'Must Try', icon: 'forkKnife', body: bodyHTML });
-  }
-
-  if (dp.menu_highlights?.length) {
-    const bodyHTML = `<div class="cuisine-chips__items">${
-      dp.menu_highlights.slice(0, 6).map((item, i) =>
-        `<span class="cuisine-chips__item" style="animation-delay:${i * 30}ms">${_escHtml(_toTitleCase(item))}</span>`
+    const pillHTML = highlights.length ? `<div class="cuisine-chips__items">${
+      highlights.map(h =>
+        `<span class="cuisine-chips__item" style="animation-delay:${(idx++) * 30}ms">${_escHtml(_toTitleCase(h))}</span>`
       ).join('')
-    }</div>`;
-    chipDefs.push({ label: 'Popular', icon: 'fire', body: bodyHTML });
+    }</div>` : '';
+    chipDefs.push({ label: 'Must Try', icon: 'forkKnife', body: dishHTML + pillHTML });
   }
 
   if (dp.flavor_profiles?.length) {
@@ -1379,6 +1382,27 @@ function renderCuisineDetails(data) {
       ).join('')
     }</div>`;
     chipDefs.push({ label: 'Flavors', icon: 'wine', body: bodyHTML });
+  }
+
+  // Hours: weekly schedule from opening_hours
+  const oh = r.opening_hours;
+  if (oh?.weekday_text?.length) {
+    const todayName = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+    const rows = oh.weekday_text.map((line, i) => {
+      const ci = line.indexOf(':');
+      if (ci < 0) return '';
+      const day = line.slice(0, ci).trim();
+      const time = line.slice(ci + 1).trim()
+        .replace(/(\d{1,2}):00\s*(AM|PM)/gi, (_, h, ap) => `${h}${ap[0].toLowerCase()}`)
+        .replace(/(\d{1,2}:\d{2})\s*(AM|PM)/gi, (_, t, ap) => `${t}${ap[0].toLowerCase()}`)
+        .replace(/\s*[–—-]\s*/g, ' – ');
+      const isToday = day.toLowerCase() === todayName;
+      return `<div class="cuisine-chips__hours-row${isToday ? ' cuisine-chips__hours-row--today' : ''}" style="animation-delay:${i * 30}ms">
+        <span class="cuisine-chips__hours-day">${_escHtml(day.slice(0, 3))}</span>
+        <span class="cuisine-chips__hours-time">${_escHtml(time)}</span>
+      </div>`;
+    }).join('');
+    chipDefs.push({ label: 'Hours', icon: 'clock', body: `<div class="cuisine-chips__hours">${rows}</div>` });
   }
 
   if (chipDefs.length === 0) {

@@ -685,12 +685,54 @@
   animation: popoutItemIn 200ms var(--ease-out) forwards;
 }
 
+/* ---- Hours rows (Hours panel) ---- */
+.cuisine-chips__hours {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.cuisine-chips__hours-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+  padding: 2px 0;
+  opacity: 0;
+  transform: translateY(3px);
+  animation: popoutItemIn 200ms var(--ease-out) forwards;
+}
+
+.cuisine-chips__hours-row--today {
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.cuisine-chips__hours-day {
+  font-family: var(--font-structural);
+  font-size: var(--text-2xs);
+  font-weight: 500;
+  color: var(--fg3);
+  width: 2.2em;
+  flex-shrink: 0;
+}
+
+.cuisine-chips__hours-row--today .cuisine-chips__hours-day {
+  color: var(--fg);
+}
+
+.cuisine-chips__hours-time {
+  font-family: var(--font-data);
+  font-size: var(--text-2xs);
+  color: var(--fg2);
+}
+
 /* ---- Reduced Motion ---- */
 @media (prefers-reduced-motion: reduce) {
   .cuisine-chips__chip { transition: none; }
   .cuisine-chips__panel { transition: none; }
   .cuisine-chips__dish,
-  .cuisine-chips__item {
+  .cuisine-chips__item,
+  .cuisine-chips__hours-row {
     animation: none;
     opacity: 1;
     transform: none;
