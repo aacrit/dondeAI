@@ -34,10 +34,14 @@ const THEME_LABELS = {
     feedbackSubtitle: 'Help us make Donde better for everyone.',
     loadingPhrases: ['Sizzling', 'Crafting', 'Plating', 'Pouring', 'Tasting', 'Savoring', 'Searing', 'Mixing'],
     placeholders: [
-      'cozy ramen with killer sake...',
-      'somewhere with a great patio...',
-      'best tacos in the city...',
-      'a hidden gem worth the trip...',
+      'cozy Italian in Lincoln Park for a date...',
+      'best tacos near Wrigley Field',
+      'quiet spot for a business lunch, West Loop',
+      'late night ramen, not too expensive',
+      'romantic dinner with great cocktails',
+      'family brunch with outdoor seating',
+      'BYOB sushi in Logan Square',
+      'where should I take my parents?',
     ],
     toasts: {
       feedbackLike: 'Noted \u2014 glad you like it!',
