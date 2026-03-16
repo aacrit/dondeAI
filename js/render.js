@@ -1587,6 +1587,7 @@ function renderCuisineDetails(data) {
             aria-controls="cuisine-panel-${i}" data-action="toggle-cuisine-chip" data-index="${i}">
       ${svgIcon(c.icon, 14)}
       <span class="cuisine-chips__label">${c.label}</span>
+      <svg class="cuisine-chips__arrow" viewBox="0 0 256 256" width="12" height="12" aria-hidden="true"><path fill="currentColor" d="M216.49,104.49l-80,80a12,12,0,0,1-17,0l-80-80a12,12,0,0,1,17-17L128,159l71.51-71.52a12,12,0,0,1,17,17Z"/></svg>
     </button>`
   ).join('');
 
