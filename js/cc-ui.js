@@ -671,6 +671,24 @@ function closeDetail() {
   updateDashboardMargins();
 }
 
+function toggleDetail() {
+  var panel = document.getElementById('mc-detail');
+  if (!panel) return;
+  if (panel.classList.contains('mc-detail--open')) {
+    closeDetail();
+  } else {
+    // Open with last content or a default summary
+    if (!document.getElementById('mc-detail-body').innerHTML.trim()) {
+      var run = state.latestRun;
+      if (run) {
+        openDetail('Dashboard Summary', buildHealthViz(run, state.trendData || []));
+      }
+    }
+    panel.classList.add('mc-detail--open');
+    updateDashboardMargins();
+  }
+}
+
 function showQueryDetail(query, dm, restaurantName, sv9, recommendation, fitGrade, blurbGrade) {
   var factors = sv9 || {};
 

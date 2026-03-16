@@ -47,9 +47,6 @@
         <button class="mc-mode-toggle__option mc-mode-toggle__option--active" data-mode-btn="test" onclick="switchDashboardMode('test')">TEST</button>
         <button class="mc-mode-toggle__option" data-mode-btn="live" onclick="switchDashboardMode('live')">LIVE</button>
       </div>
-      <button class="mc-header__terminal-btn" onclick="toggleDrawer()" title="Toggle Agent Team" aria-label="Toggle agent panel">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="4" r="2.5"/><path d="M3 14c0-2.8 2.2-5 5-5s5 2.2 5 5"/><circle cx="13" cy="6" r="1.5" opacity=".5"/><circle cx="3" cy="6" r="1.5" opacity=".5"/></svg>
-      </button>
       <span class="mc-health-dot" id="mc-health-dot" title="System health" role="status" aria-label="System health indicator"></span>
       <a href="index.html" class="mc-header__back" title="Back to DondeAI">Back</a>
     </div>
@@ -159,21 +156,15 @@
       <div id="quick-test-card"></div>
     </div>
 
-    <!-- Recent Runs + Live Feed side by side -->
-    <div class="mc-columns" data-mode="test">
-      <div class="mc-section mc-section--test">
-        <div class="mc-section__title"><span class="mc-section__dot mc-section__dot--test"></span> Test Runs</div>
-        <div class="mc-runs" id="mc-runs">
-          <div class="mc-empty">No runs yet</div>
-        </div>
-      </div>
-      <div class="mc-section mc-section--live">
-        <div class="mc-section__title"><span class="mc-section__dot mc-section__dot--live"></span> Live Feed</div>
-        <div class="mc-feed" id="mc-feed">
-          <div class="mc-empty">No recent queries</div>
-        </div>
+    <!-- Test Runs (test mode only — live feed is in LIVE mode) -->
+    <div class="mc-section mc-section--test" data-mode="test">
+      <div class="mc-section__title"><span class="mc-section__dot mc-section__dot--test"></span> Test Runs</div>
+      <div class="mc-runs" id="mc-runs">
+        <div class="mc-empty">No runs yet</div>
       </div>
     </div>
+    <!-- Hidden feed container for data loading (used by live mode) -->
+    <div id="mc-feed" style="display:none"></div>
 
     <!-- LIVE MODE: Morning Brief -->
     <div class="mc-brief mc-brief--live" id="mc-brief-live" data-mode="live" style="display:none">
@@ -300,24 +291,33 @@
     </div>
   </div>
 
-  <!-- Detail Panel (slides in from right) -->
-  <aside class="mc-detail" id="mc-detail" aria-label="Query detail">
+  <!-- Edge Tab: Agents (left side) -->
+  <button class="mc-edge-tab mc-edge-tab--left" id="mc-edge-left" onclick="toggleDrawer()" title="Agent Team">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="4" r="2.5"/><path d="M3 14c0-2.8 2.2-5 5-5s5 2.2 5 5"/></svg>
+  </button>
+
+  <!-- Edge Tab: Analysis (right side) -->
+  <button class="mc-edge-tab mc-edge-tab--right" id="mc-edge-right" onclick="toggleDetail()" title="Analysis">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 12h3M2 8h5M2 4h9"/><circle cx="13" cy="4" r="1.5" fill="currentColor"/></svg>
+  </button>
+
+  <!-- Analysis Panel (slides in from right) -->
+  <aside class="mc-detail" id="mc-detail" aria-label="Analysis panel">
     <div class="mc-detail__header">
-      <span class="mc-detail__title" id="mc-detail-title">Detail</span>
-      <button class="mc-detail__close" onclick="closeDetail()" aria-label="Close detail panel">&times;</button>
+      <span class="mc-detail__title" id="mc-detail-title">Analysis</span>
+      <button class="mc-detail__close" onclick="closeDetail()" aria-label="Close">&times;</button>
     </div>
     <div class="mc-detail__body" id="mc-detail-body"></div>
   </aside>
 
-  <!-- Agent Team Drawer (left panel) -->
+  <!-- Agent Team Panel (slides in from left) -->
   <div class="mc-drawer" id="mc-drawer" role="region" aria-label="Agent Team">
-    <button class="mc-drawer__toggle" id="mc-drawer-toggle" onclick="toggleDrawer()" aria-expanded="false">
-      <span class="mc-drawer__chevron" id="mc-drawer-chevron">&#9650;</span>
+    <div class="mc-drawer__header">
       <span class="mc-drawer__label">Agent Team</span>
-      <span class="mc-drawer__badge" id="mc-drawer-badge" style="display:none">0</span>
+      <span class="mc-drawer__agent-count" id="mc-drawer-agent-count">26</span>
       <span class="mc-drawer__spacer"></span>
-      <span class="mc-drawer__agent-count" id="mc-drawer-agent-count">26 agents</span>
-    </button>
+      <button class="mc-detail__close" onclick="toggleDrawer()" aria-label="Close">&times;</button>
+    </div>
     <div class="mc-drawer__body" id="mc-drawer-body">
       <!-- Agent Hierarchy (primary content) -->
       <div class="mc-drawer__agents" id="mc-drawer-agents"></div>

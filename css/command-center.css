@@ -1949,6 +1949,67 @@ body.mc-mode--live .mc-detail__header {
 .mc-agent-card__icon { font-size: var(--text-sm); }
 .mc-agent-card__name { font-weight: 500; color: var(--cc-text2); }
 
+/* ─── Edge Tab Toggles ─── */
+.mc-edge-tab {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 26;
+  width: 28px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--cc-surface);
+  border: 1px solid var(--cc-border);
+  color: var(--cc-text3);
+  cursor: pointer;
+  transition: all var(--dur-normal) var(--ease-out);
+}
+.mc-edge-tab:hover {
+  color: var(--cc-text);
+  background: var(--cc-surface2);
+  width: 32px;
+}
+.mc-edge-tab--left {
+  left: 0;
+  border-radius: 0 var(--radius) var(--radius) 0;
+  border-left: none;
+}
+.mc-edge-tab--right {
+  right: 0;
+  border-radius: var(--radius) 0 0 var(--radius);
+  border-right: none;
+}
+/* Hide edge tabs when their panel is open */
+.mc-drawer--open ~ .mc-edge-tab--left { opacity: 0; pointer-events: none; }
+.mc-detail--open ~ .mc-edge-tab--right { opacity: 0; pointer-events: none; }
+
+/* ─── Drawer Header (replaces toggle bar) ─── */
+.mc-drawer__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-lg);
+  border-bottom: 1px solid var(--cc-border);
+  background: var(--cc-surface);
+  flex-shrink: 0;
+  min-width: 420px;
+}
+.mc-drawer__header .mc-drawer__label {
+  font-weight: 700;
+  font-size: var(--text-sm);
+  color: var(--cc-text);
+}
+.mc-drawer__header .mc-drawer__agent-count {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--cc-text3);
+  background: var(--cc-surface2);
+  padding: 1px 6px;
+  border-radius: var(--radius-pill);
+}
+
 /* ─── Agent Drawer Layout ─── */
 .mc-drawer__agents {
   flex: 1;
