@@ -94,11 +94,18 @@
         <div class="mc-pulse-expand" id="pulse-expand-grade"></div>
       </div>
       <div class="mc-pulse-col">
-        <button class="mc-pulse-card" id="pulse-infra" role="status" onclick="togglePulseExpand('infra')" title="Expand DB and cache health">
-          <div class="mc-pulse-card__value" id="pulse-infra-val">--</div>
-          <div class="mc-pulse-card__label">DB &amp; Cache</div>
+        <button class="mc-pulse-card" id="pulse-db" role="status" onclick="togglePulseExpand('db')" title="Database health">
+          <div class="mc-pulse-card__value" id="pulse-db-val">--</div>
+          <div class="mc-pulse-card__label">DB Health</div>
         </button>
-        <div class="mc-pulse-expand" id="pulse-expand-infra"></div>
+        <div class="mc-pulse-expand" id="pulse-expand-db"></div>
+      </div>
+      <div class="mc-pulse-col">
+        <button class="mc-pulse-card" id="pulse-cache" role="status" onclick="togglePulseExpand('cache')" title="Cache performance">
+          <div class="mc-pulse-card__value" id="pulse-cache-val">--</div>
+          <div class="mc-pulse-card__label">Cache</div>
+        </button>
+        <div class="mc-pulse-expand" id="pulse-expand-cache"></div>
       </div>
     </div>
 

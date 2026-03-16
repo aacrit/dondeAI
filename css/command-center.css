@@ -395,21 +395,25 @@ a {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: var(--space-sm);
+  align-items: stretch;
 }
 .mc-pulse--5 {
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
 }
 .mc-pulse-col {
-  min-width: 0; /* prevent grid blowout */
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .mc-pulse-card {
   width: 100%;
-  height: 80px;
+  min-height: 72px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  overflow: visible;
   background: rgba(19, 19, 26, 0.7);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
