@@ -1324,6 +1324,19 @@
 .glance-context__pill--static {
   cursor: default;
 }
+.glance-context__pill--reserve {
+  color: var(--ac);
+  border-color: color-mix(in srgb, var(--ac) 50%, transparent);
+  text-decoration: none;
+  font-weight: 600;
+}
+.glance-context__pill--reserve::after {
+  display: none;
+}
+.glance-context__pill--reserve:hover {
+  background: var(--ac-soft);
+  border-color: var(--ac);
+}
 .glance-context__pill--static::after {
   display: none;
 }

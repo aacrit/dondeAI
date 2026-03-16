@@ -233,6 +233,19 @@ function renderGlanceContext(data) {
 
   const r = data.restaurant || {};
 
+  // Reserve pill — links to primary booking platform (Resy/OpenTable)
+  const rl = data.reservation_links;
+  if (rl?.primary) {
+    const pill = document.createElement('a');
+    pill.className = 'glance-context__pill glance-context__pill--reserve type-data--sm';
+    pill.href = rl.primary.url;
+    pill.target = '_blank';
+    pill.rel = 'noopener noreferrer';
+    const platformName = rl.primary.platform.charAt(0).toUpperCase() + rl.primary.platform.slice(1);
+    pill.innerHTML = `${svgIcon('calendar', 11)} Reserve · ${platformName}`;
+    $ctx.appendChild(pill);
+  }
+
   if (r.cuisine_type) {
     const pill = document.createElement('span');
     pill.className = 'glance-context__pill glance-context__pill--static type-data--sm';
