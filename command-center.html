@@ -11,7 +11,7 @@
 </head>
 <body>
 
-  <!-- ═══ Auth Gate ═══ -->
+  <!-- Auth Gate -->
   <div class="mc-auth-gate" id="auth-gate">
     <div class="mc-auth-card">
       <div class="mc-auth-logo">
@@ -28,7 +28,7 @@
     </div>
   </div>
 
-  <!-- ═══ Header ═══ -->
+  <!-- Header -->
   <header class="mc-header" role="banner">
     <div class="mc-header__left">
       <div class="mc-header__logo">
@@ -53,89 +53,124 @@
     </div>
   </header>
 
-  <!-- ═══ Main Content (2-panel) ═══ -->
-  <main class="mc-layout" id="main-content" style="display:none">
+  <!-- Main Dashboard (full-width scrollable) -->
+  <main class="mc-dashboard" id="main-content" style="display:none">
 
-    <!-- ─── Left Panel: Mission Board ─── -->
-    <aside class="mc-board" role="complementary" aria-label="Mission Board">
-
-      <!-- Pulse Cards -->
+    <!-- Hero: Pulse Cards (clickable) + Engine Grade (clickable) -->
+    <div class="mc-hero">
       <div class="mc-pulse">
-        <div class="mc-pulse-card" id="pulse-health" role="status">
+        <button class="mc-pulse-card" id="pulse-health" role="status" onclick="processCOOInput('scan')" title="Run quality scan">
           <div class="mc-pulse-card__value rag-green" id="pulse-health-val">--</div>
           <div class="mc-pulse-card__label">Pass Rate</div>
-        </div>
-        <div class="mc-pulse-card" id="pulse-dm" role="status">
+        </button>
+        <button class="mc-pulse-card" id="pulse-dm" role="status" onclick="processCOOInput('status')" title="View full status">
           <div class="mc-pulse-card__value" id="pulse-dm-val">--</div>
           <div class="mc-pulse-card__label">Avg DM</div>
-        </div>
-        <div class="mc-pulse-card" id="pulse-issues" role="status">
+        </button>
+        <button class="mc-pulse-card" id="pulse-issues" role="status" onclick="processCOOInput('issues')" title="View open issues">
           <div class="mc-pulse-card__value" id="pulse-issues-val">--</div>
           <div class="mc-pulse-card__label">Issues</div>
-        </div>
+        </button>
       </div>
-
-      <!-- Engine Grade -->
-      <div class="mc-grade" id="mc-grade">
+      <button class="mc-grade" id="mc-grade" onclick="processCOOInput('status')" title="View full status">
         <span class="mc-grade__letter" id="mc-grade-letter">--</span>
-        <span class="mc-grade__sub" id="mc-grade-sub">Engine Grade</span>
-        <div class="mc-grade__dist" id="mc-grade-dist"></div>
-      </div>
+        <div class="mc-grade__info">
+          <span class="mc-grade__sub" id="mc-grade-sub">Engine Grade</span>
+          <div class="mc-grade__dist" id="mc-grade-dist"></div>
+        </div>
+      </button>
+    </div>
 
-      <!-- Agent Divisions -->
+    <!-- Action Buttons Grid -->
+    <div class="mc-section">
+      <div class="mc-section__title">Actions</div>
+      <div class="mc-actions" role="toolbar" aria-label="Quick actions">
+        <button class="mc-action-btn" onclick="processCOOInput('scan')">
+          <span class="mc-action-btn__icon">&#9654;</span>
+          <span class="mc-action-btn__label">Run Scan</span>
+          <span class="mc-action-btn__meta">20 queries &middot; $0</span>
+        </button>
+        <button class="mc-action-btn" onclick="processCOOInput('regression')">
+          <span class="mc-action-btn__icon">&#9878;</span>
+          <span class="mc-action-btn__label">Regression</span>
+          <span class="mc-action-btn__meta">23 golden &middot; $0</span>
+        </button>
+        <button class="mc-action-btn" onclick="processCOOInput('fix bugs')">
+          <span class="mc-action-btn__icon">&#128295;</span>
+          <span class="mc-action-btn__label">Fix Bugs</span>
+          <span class="mc-action-btn__meta">CLI command</span>
+        </button>
+        <button class="mc-action-btn" onclick="processCOOInput('db health')">
+          <span class="mc-action-btn__icon">&#128202;</span>
+          <span class="mc-action-btn__label">DB Health</span>
+          <span class="mc-action-btn__meta">Coverage check</span>
+        </button>
+        <button class="mc-action-btn" onclick="processCOOInput('security audit')">
+          <span class="mc-action-btn__icon">&#128274;</span>
+          <span class="mc-action-btn__label">Security</span>
+          <span class="mc-action-btn__meta">CLI command</span>
+        </button>
+        <button class="mc-action-btn" onclick="processCOOInput('cache status')">
+          <span class="mc-action-btn__icon">&#9889;</span>
+          <span class="mc-action-btn__label">Cache</span>
+          <span class="mc-action-btn__meta">Hit rate &middot; savings</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Quick Test -->
+    <div class="mc-section">
+      <div class="mc-section__title">Quick Test</div>
+      <div class="mc-quick-test">
+        <input type="text" class="mc-quick-test__input" id="quick-test-input" placeholder="Enter a query to test... e.g. romantic Italian dinner" autocomplete="off" spellcheck="false">
+        <button class="mc-quick-test__btn" id="quick-test-btn" onclick="runQuickTest()">Test</button>
+      </div>
+      <div class="mc-quick-test__result" id="quick-test-result"></div>
+    </div>
+
+    <!-- 2-column: Divisions + Recent Runs -->
+    <div class="mc-columns">
       <div class="mc-section">
         <div class="mc-section__title">Divisions</div>
         <div id="mc-agents"></div>
       </div>
-
-      <!-- Run History -->
       <div class="mc-section">
         <div class="mc-section__title">Recent Runs</div>
         <div class="mc-runs" id="mc-runs">
           <div class="mc-empty">No runs yet</div>
         </div>
       </div>
+    </div>
 
-      <!-- Live Feed -->
-      <div class="mc-section">
-        <div class="mc-section__title">Live Feed</div>
-        <div class="mc-feed" id="mc-feed">
-          <div class="mc-empty">No recent queries</div>
-        </div>
+    <!-- Live Feed -->
+    <div class="mc-section">
+      <div class="mc-section__title">Live Feed</div>
+      <div class="mc-feed" id="mc-feed">
+        <div class="mc-empty">No recent queries</div>
       </div>
+    </div>
 
-    </aside>
+  </main>
 
-    <!-- ─── Right Panel: COO Terminal ─── -->
-    <section class="mc-terminal" role="region" aria-label="COO Terminal">
-      <div class="mc-terminal__header">
-        <span class="mc-terminal__title">COO Terminal</span>
-        <button class="mc-terminal__clear" onclick="cmdClear()" title="Clear">Clear</button>
-      </div>
-
-      <div class="mc-terminal__output" id="coo-output" role="log" aria-live="polite" aria-label="Terminal output">
-      </div>
-
-      <!-- Quick Action Chips -->
-      <div class="mc-chips" role="toolbar" aria-label="Quick actions">
-        <button class="mc-chip" data-coo-cmd="scan">Scan</button>
-        <button class="mc-chip" data-coo-cmd="regression">Regression</button>
-        <button class="mc-chip" data-coo-cmd="fix bugs">Fix Bugs</button>
-        <button class="mc-chip" data-coo-cmd="db health">DB Health</button>
-        <button class="mc-chip" data-coo-cmd="security audit">Security</button>
-        <button class="mc-chip" data-coo-cmd="cache status">Cache</button>
-      </div>
-
-      <!-- Input -->
+  <!-- COO Terminal Drawer (collapsible bottom) -->
+  <div class="mc-drawer" id="mc-drawer" role="region" aria-label="COO Terminal">
+    <button class="mc-drawer__toggle" id="mc-drawer-toggle" onclick="toggleDrawer()" aria-expanded="false">
+      <span class="mc-drawer__chevron" id="mc-drawer-chevron">&#9650;</span>
+      <span class="mc-drawer__label">COO Terminal</span>
+      <span class="mc-drawer__badge" id="mc-drawer-badge" style="display:none">0</span>
+      <span class="mc-drawer__spacer"></span>
+      <span class="mc-terminal__clear" onclick="event.stopPropagation();cmdClear()" title="Clear">Clear</span>
+    </button>
+    <div class="mc-drawer__body" id="mc-drawer-body">
+      <div class="mc-terminal__output" id="coo-output" role="log" aria-live="polite" aria-label="Terminal output"></div>
       <div class="mc-terminal__input-row">
         <span class="mc-terminal__prompt">$</span>
         <input type="text" class="mc-terminal__input" id="coo-input" placeholder="Type a command... (/ to focus)" autocomplete="off" spellcheck="false">
       </div>
-    </section>
+    </div>
+  </div>
 
-  </main>
-
-  <!-- ═══ Footer ═══ -->
+  <!-- Footer -->
   <footer class="mc-footer" id="mc-footer" role="contentinfo">
     <span id="mc-footer-engine">Engine V18</span>
     <span class="mc-footer__sep">|</span>
@@ -146,10 +181,8 @@
     <span>16 agents</span>
   </footer>
 
-  <!-- Dark pulse flash animation -->
   <div class="mc-dark-pulse" id="dark-pulse"></div>
 
-  <!-- Scripts (order matters) -->
   <script src="js/cc-queries.js"></script>
   <script src="js/cc-config.js"></script>
   <script src="js/cc-grading.js"></script>

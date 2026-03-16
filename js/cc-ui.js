@@ -1,6 +1,6 @@
 /**
  * DondeAI Mission Control — UI Rendering
- * Simplified 2-panel layout: Mission Board + COO Terminal
+ * Full-width dashboard with collapsible terminal drawer
  */
 
 // ═══════════════════════════════════════════════════════════════════
@@ -14,6 +14,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Show loading state on pulse cards
   document.querySelectorAll('.mc-pulse-card').forEach(c => c.classList.add('mc-pulse-card--loading'));
+
+  // Quick test Enter key
+  const $qt = document.getElementById('quick-test-input');
+  if ($qt) $qt.addEventListener('keydown', (e) => { if (e.key === 'Enter') runQuickTest(); });
 });
 
 // ═══════════════════════════════════════════════════════════════════
@@ -72,11 +76,11 @@ function updatePulseFromRun(run) {
     $dot.className = 'mc-health-dot' + (passRate >= 80 ? '' : passRate >= 60 ? ' mc-health-dot--amber' : ' mc-health-dot--red');
   }
 
-  // Ambient glow on Mission Board
-  const $board = document.querySelector('.mc-board');
+  // Ambient glow on Dashboard
+  const $board = document.querySelector('.mc-dashboard');
   if ($board) {
-    $board.classList.remove('mc-board--green', 'mc-board--amber', 'mc-board--red');
-    $board.classList.add(passRate >= 80 ? 'mc-board--green' : passRate >= 60 ? 'mc-board--amber' : 'mc-board--red');
+    $board.classList.remove('mc-dashboard--green', 'mc-dashboard--amber', 'mc-dashboard--red');
+    $board.classList.add(passRate >= 80 ? 'mc-dashboard--green' : passRate >= 60 ? 'mc-dashboard--amber' : 'mc-dashboard--red');
   }
 
   // Grade distribution bar
@@ -153,7 +157,7 @@ function renderRunHistory(runs) {
     const grade = computeEngineGrade(run);
     const date = new Date(run.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
-    return `<div class="mc-run-row">
+    return `<div class="mc-run-row mc-clickable" onclick="processCOOInput('compare')" title="Click to compare runs">
       <span class="mc-run-row__date">${date}</span>
       <span class="mc-run-row__grade ${ragClass(avgDm)}">${grade}</span>
       <span class="mc-run-row__dm">DM ${avgDm}</span>
@@ -180,7 +184,7 @@ function renderLiveFeed(queries) {
   $el.innerHTML = queries.slice(0, 10).map(q => {
     const dm = q.donde_match || 0;
     const query = q.special_request || '(empty)';
-    return `<div class="mc-feed-item">
+    return `<div class="mc-feed-item mc-clickable" onclick="document.getElementById('quick-test-input').value='${escapeHtml(query.replace(/'/g, ''))}';runQuickTest()" title="Click to re-test this query">
       <span class="mc-feed-item__query" title="${escapeHtml(query)}">"${escapeHtml(query.slice(0, 40))}"</span>
       <span class="mc-feed-item__score ${ragClass(dm)}">${dm}</span>
     </div>`;
@@ -240,17 +244,17 @@ function appendSummaryRow(name, total, passed, avgDm, elapsed, celebrate, testTy
     `${name}: ${passed}/${total} passed (${pct}%), avg DM ${avgDm}, ${elapsed}`);
 
   // Remove testing animation
-  const board = document.querySelector('.mc-board');
-  if (board) board.classList.remove('mc-board--testing');
+  const board = document.querySelector('.mc-dashboard');
+  if (board) board.classList.remove('mc-dashboard--testing');
 }
 
 function showTestProgress(name, current, total, avgDm) {
-  // Minimal progress update in terminal
   if (typeof cooLog !== 'function') return;
   if (current === 1) {
-    cooLog('action', `${name}: running... (${total} queries)`);
-    const board = document.querySelector('.mc-board');
-    if (board) board.classList.add('mc-board--testing');
+    cooLog('action', name + ': running... (' + total + ' queries)');
+    if (typeof openDrawerForTest === 'function') openDrawerForTest();
+    const board = document.querySelector('.mc-dashboard');
+    if (board) board.classList.add('mc-dashboard--testing');
   }
 }
 
@@ -263,6 +267,58 @@ function triggerDarkPulse() {
   if (!dp) return;
   dp.classList.add('mc-dark-pulse--flash');
   setTimeout(() => dp.classList.remove('mc-dark-pulse--flash'), 200);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Terminal Drawer
+// ═══════════════════════════════════════════════════════════════════
+
+function toggleDrawer() {
+  const drawer = document.getElementById('mc-drawer');
+  if (!drawer) return;
+  const isOpen = drawer.classList.toggle('mc-drawer--open');
+  const toggle = document.getElementById('mc-drawer-toggle');
+  if (toggle) toggle.setAttribute('aria-expanded', isOpen);
+  if (isOpen) {
+    const badge = document.getElementById('mc-drawer-badge');
+    if (badge) { badge.style.display = 'none'; badge.textContent = '0'; }
+  }
+}
+
+function openDrawerForTest() {
+  const drawer = document.getElementById('mc-drawer');
+  if (drawer && !drawer.classList.contains('mc-drawer--open')) {
+    drawer.classList.add('mc-drawer--open');
+    const toggle = document.getElementById('mc-drawer-toggle');
+    if (toggle) toggle.setAttribute('aria-expanded', 'true');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Quick Test
+// ═══════════════════════════════════════════════════════════════════
+
+async function runQuickTest() {
+  const $input = document.getElementById('quick-test-input');
+  const $result = document.getElementById('quick-test-result');
+  if (!$input || !$result) return;
+  const query = $input.value.trim();
+  if (!query) return;
+  $result.innerHTML = '<span style="color:var(--cc-blue)">Testing...</span>';
+  try {
+    const resp = await callAPI(query);
+    if (!resp.success) { $result.innerHTML = '<span class="rag-red">Error: ' + escapeHtml(resp.recommendation || 'unknown') + '</span>'; return; }
+    const dm = resp.donde_match || 0;
+    const name = resp.restaurant?.name || '?';
+    const sv9 = resp.scoring_v9 || {};
+    const fit = typeof computeScoreFitGrade === 'function' ? computeScoreFitGrade(query, resp) : null;
+    const blurb = typeof computeBlurbQualityGrade === 'function' ? computeBlurbQualityGrade(query, resp) : null;
+    $result.innerHTML = '<span class="' + ragClass(dm) + '">' + escapeHtml(name) + '</span> — DM <strong class="' + ragClass(dm) + '">' + dm + '</strong>' +
+      (fit ? ' · Fit: <strong>' + fit.grade + '</strong>' : '') +
+      (blurb ? ' · Blurb: <strong>' + blurb.grade + '</strong>' : '') +
+      ' · Type: ' + (sv9.relevance_type || '-') +
+      ' · F:' + r1(sv9.food||0) + ' V:' + r1(sv9.vibe||0) + ' S:' + r1(sv9.service||0) + ' R:' + r1(sv9.reputation||0) + ' C:' + r1(sv9.convenience||0);
+  } catch (e) { $result.innerHTML = '<span class="rag-red">' + escapeHtml(e.message) + '</span>'; }
 }
 
 // ═══════════════════════════════════════════════════════════════════

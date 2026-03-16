@@ -181,6 +181,17 @@ function cooLog(type, msg) {
   }
 
   $out.scrollTop = $out.scrollHeight;
+
+  // Increment badge if drawer is closed
+  const drawer = document.getElementById('mc-drawer');
+  if (drawer && !drawer.classList.contains('mc-drawer--open')) {
+    const badge = document.getElementById('mc-drawer-badge');
+    if (badge) {
+      const count = (parseInt(badge.textContent) || 0) + 1;
+      badge.textContent = count;
+      badge.style.display = '';
+    }
+  }
 }
 
 /**
@@ -404,10 +415,12 @@ function renderAgentStatus() {
     { name: 'Security', health: securityHealth, metric: securityMetric, active: false },
   ];
 
+  const divActions = { Quality: 'scan', Infra: 'db health', Frontend: 'edge', Product: 'coo briefing', Security: 'security audit' };
+
   el.innerHTML = divisions
     .map(
       (d) => `
-    <div class="mc-div-row">
+    <div class="mc-div-row mc-clickable" onclick="processCOOInput('${divActions[d.name]}')" title="Click to run ${divActions[d.name]}">
       <span class="mc-div-dot mc-div-dot--${d.health}${d.active ? ' mc-div-dot--active' : ''}"></span>
       <span class="mc-div-name">${d.name}</span>
       <span class="mc-div-metric">${d.metric}</span>
