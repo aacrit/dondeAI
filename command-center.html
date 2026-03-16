@@ -160,7 +160,10 @@
       <span class="mc-confirm__title" id="mc-confirm-title">Confirm Test</span>
     </div>
     <div class="mc-confirm__body" id="mc-confirm-body"></div>
+    <div class="mc-confirm__customize" id="mc-confirm-customize" style="display:none"></div>
     <div class="mc-confirm__actions">
+      <button class="mc-confirm__tweak" id="mc-confirm-tweak" onclick="toggleTestCustomize()">Customize</button>
+      <span style="flex:1"></span>
       <button class="mc-confirm__cancel" onclick="cancelTestConfirm()">Cancel</button>
       <button class="mc-confirm__run" id="mc-confirm-run" onclick="executeConfirmedTest()">Run Test</button>
     </div>

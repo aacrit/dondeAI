@@ -730,10 +730,61 @@ a {
   background: var(--cc-bg); border-radius: var(--radius);
   font-size: var(--text-xs); color: var(--cc-text2); line-height: 1.6;
 }
+/* Customize panel (inline expandable) */
+.mc-confirm__customize {
+  padding: var(--space-md) var(--space-xl);
+  border-top: 1px solid var(--cc-border);
+  background: var(--cc-bg);
+  animation: fadeIn 150ms ease-out;
+}
+.mc-confirm__field {
+  display: flex; align-items: center; gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+.mc-confirm__field-label {
+  font-size: var(--text-xs); color: var(--cc-text3);
+  min-width: 80px; flex-shrink: 0;
+}
+.mc-confirm__field-input {
+  flex: 1; padding: var(--space-xs) var(--space-sm);
+  background: var(--cc-surface); border: 1px solid var(--cc-border);
+  border-radius: var(--radius-sm); color: var(--cc-text);
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  outline: none; transition: border-color 0.15s;
+}
+.mc-confirm__field-input:focus { border-color: var(--cc-accent); }
+.mc-confirm__field-select {
+  flex: 1; padding: var(--space-xs) var(--space-sm);
+  background: var(--cc-surface); border: 1px solid var(--cc-border);
+  border-radius: var(--radius-sm); color: var(--cc-text);
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  outline: none; cursor: pointer;
+}
+.mc-confirm__pills {
+  display: flex; flex-wrap: wrap; gap: var(--space-xs); flex: 1;
+}
+.mc-confirm__pill {
+  padding: 2px 10px; border-radius: var(--radius-pill);
+  border: 1px solid var(--cc-border); font-size: 10px;
+  font-family: var(--font-mono); color: var(--cc-text3);
+  cursor: pointer; transition: all 0.15s;
+}
+.mc-confirm__pill:hover { border-color: var(--cc-accent); color: var(--cc-accent); }
+.mc-confirm__pill--active {
+  background: var(--cc-accent-soft); border-color: var(--cc-accent);
+  color: var(--cc-accent); font-weight: 600;
+}
 .mc-confirm__actions {
-  display: flex; justify-content: flex-end; gap: var(--space-sm);
+  display: flex; align-items: center; gap: var(--space-sm);
   padding: var(--space-md) var(--space-xl); border-top: 1px solid var(--cc-border);
 }
+.mc-confirm__tweak {
+  padding: var(--space-xs) var(--space-md); border-radius: var(--radius-sm);
+  border: 1px solid var(--cc-border); font-size: var(--text-xs);
+  color: var(--cc-text3); transition: all 0.15s;
+}
+.mc-confirm__tweak:hover { border-color: var(--cc-accent); color: var(--cc-accent); }
+.mc-confirm__tweak--active { background: var(--cc-accent-soft); border-color: var(--cc-accent); color: var(--cc-accent); }
 .mc-confirm__cancel {
   padding: var(--space-sm) var(--space-xl); border-radius: var(--radius);
   border: 1px solid var(--cc-border); font-size: var(--text-sm);

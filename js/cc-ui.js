@@ -575,18 +575,126 @@ function showTestConfirm(type, args) {
   if ($title) $title.textContent = info.title;
 
   let html = '';
-  html += '<div class="mc-confirm__row"><span class="mc-confirm__key">Queries</span><span class="mc-confirm__val">' + count + '</span></div>';
+  html += '<div class="mc-confirm__row"><span class="mc-confirm__key">Queries</span><span class="mc-confirm__val" id="mc-confirm-count">' + count + '</span></div>';
   html += '<div class="mc-confirm__row"><span class="mc-confirm__key">Est. Time</span><span class="mc-confirm__val">' + time + '</span></div>';
-  html += '<div class="mc-confirm__row"><span class="mc-confirm__key">API Mode</span><span class="mc-confirm__val ' + (isLive ? 'mc-confirm__val--red' : 'mc-confirm__val--green') + '">' + (isLive ? 'LIVE API' : 'Scoring Only') + '</span></div>';
-  html += '<div class="mc-confirm__row"><span class="mc-confirm__key">Cost</span><span class="mc-confirm__val ' + (cost === '$0.00' ? 'mc-confirm__val--green' : 'mc-confirm__val--amber') + '">' + cost + '</span></div>';
-  if (args) html += '<div class="mc-confirm__row"><span class="mc-confirm__key">Filter</span><span class="mc-confirm__val">' + escapeHtml(String(args)) + '</span></div>';
+  html += '<div class="mc-confirm__row"><span class="mc-confirm__key">API Mode</span><span class="mc-confirm__val ' + (isLive ? 'mc-confirm__val--red' : 'mc-confirm__val--green') + '" id="mc-confirm-mode">' + (isLive ? 'LIVE API' : 'Scoring Only') + '</span></div>';
+  html += '<div class="mc-confirm__row"><span class="mc-confirm__key">Cost</span><span class="mc-confirm__val ' + (cost === '$0.00' ? 'mc-confirm__val--green' : 'mc-confirm__val--amber') + '" id="mc-confirm-cost">' + cost + '</span></div>';
+  if (args) html += '<div class="mc-confirm__row"><span class="mc-confirm__key">Category</span><span class="mc-confirm__val">' + escapeHtml(String(args)) + '</span></div>';
   html += '<div class="mc-confirm__row"><span class="mc-confirm__key">Data</span><span class="mc-confirm__val" style="text-align:right;max-width:220px;font-weight:400;font-size:10px">' + info.data + '</span></div>';
   html += '<div class="mc-confirm__desc">' + info.desc + '</div>';
 
   if ($body) $body.innerHTML = html;
 
+  // Reset customize panel
+  const $cust = document.getElementById('mc-confirm-customize');
+  if ($cust) $cust.style.display = 'none';
+  const $tweak = document.getElementById('mc-confirm-tweak');
+  if ($tweak) $tweak.classList.remove('mc-confirm__tweak--active');
+
   document.getElementById('mc-confirm-backdrop').style.display = '';
   document.getElementById('mc-confirm').style.display = '';
+}
+
+function toggleTestCustomize() {
+  const $cust = document.getElementById('mc-confirm-customize');
+  const $tweak = document.getElementById('mc-confirm-tweak');
+  if (!$cust) return;
+
+  const isOpen = $cust.style.display !== 'none';
+  if (isOpen) {
+    $cust.style.display = 'none';
+    if ($tweak) $tweak.classList.remove('mc-confirm__tweak--active');
+    return;
+  }
+
+  if ($tweak) $tweak.classList.add('mc-confirm__tweak--active');
+
+  const type = _pendingTestType;
+  const testDef = typeof TEST_TYPES !== 'undefined' ? TEST_TYPES[type] : null;
+  const count = testDef?.count || 20;
+  const cats = ['Food', 'Vibe', 'Service', 'Rep', 'Conv'];
+  const activeCats = _pendingTestArgs ? [_pendingTestArgs] : cats;
+
+  let html = '';
+
+  // Query count slider
+  if (type === 'broad' || type === 'category') {
+    html += '<div class="mc-confirm__field">';
+    html += '<span class="mc-confirm__field-label">Queries</span>';
+    html += '<input type="range" class="mc-confirm__field-input" id="mc-cust-count" min="5" max="50" step="5" value="' + count + '" oninput="updateTestCustomCount(this.value)" style="accent-color:var(--cc-accent)">';
+    html += '<span id="mc-cust-count-val" style="font-family:var(--font-mono);font-size:var(--text-xs);min-width:24px;text-align:right">' + count + '</span>';
+    html += '</div>';
+  }
+
+  // Category pills (for broad + category)
+  if (type === 'broad' || type === 'category') {
+    html += '<div class="mc-confirm__field">';
+    html += '<span class="mc-confirm__field-label">Categories</span>';
+    html += '<div class="mc-confirm__pills" id="mc-cust-cats">';
+    cats.forEach(c => {
+      const active = activeCats.map(a => a.toLowerCase()).includes(c.toLowerCase());
+      html += '<button class="mc-confirm__pill' + (active ? ' mc-confirm__pill--active' : '') + '" onclick="toggleTestCat(this,\'' + c + '\')">' + c + '</button>';
+    });
+    html += '</div></div>';
+  }
+
+  // API mode toggle
+  html += '<div class="mc-confirm__field">';
+  html += '<span class="mc-confirm__field-label">API Mode</span>';
+  html += '<select class="mc-confirm__field-select" id="mc-cust-mode" onchange="updateTestCustomMode(this.value)">';
+  html += '<option value="scoring"' + (!state.liveAPI ? ' selected' : '') + '>Scoring Only ($0)</option>';
+  html += '<option value="live"' + (state.liveAPI ? ' selected' : '') + '>LIVE API ($$$)</option>';
+  html += '</select></div>';
+
+  // Threshold
+  if (type === 'broad' || type === 'category' || type === 'regression') {
+    html += '<div class="mc-confirm__field">';
+    html += '<span class="mc-confirm__field-label">Pass DM</span>';
+    html += '<input type="number" class="mc-confirm__field-input" id="mc-cust-threshold" value="60" min="30" max="90" step="5" style="max-width:80px">';
+    html += '<span style="font-size:var(--text-xs);color:var(--cc-text3)">min DondeMatch to pass</span>';
+    html += '</div>';
+  }
+
+  $cust.innerHTML = html;
+  $cust.style.display = '';
+}
+
+function toggleTestCat(btn, cat) {
+  btn.classList.toggle('mc-confirm__pill--active');
+  // Update pending args with active categories
+  const active = Array.from(document.querySelectorAll('#mc-cust-cats .mc-confirm__pill--active')).map(b => b.textContent.toLowerCase());
+  if (active.length > 0) _pendingTestArgs = active;
+}
+
+function updateTestCustomCount(val) {
+  const label = document.getElementById('mc-cust-count-val');
+  if (label) label.textContent = val;
+  const countEl = document.getElementById('mc-confirm-count');
+  if (countEl) countEl.textContent = val;
+  // Update test config
+  if (state.testConfig && _pendingTestType) {
+    if (!state.testConfig[_pendingTestType]) state.testConfig[_pendingTestType] = {};
+    state.testConfig[_pendingTestType].count = parseInt(val);
+  }
+}
+
+function updateTestCustomMode(val) {
+  const isLive = val === 'live';
+  state.liveAPI = isLive;
+  if (typeof saveSession === 'function') saveSession();
+  if (typeof updateLiveAPIUI === 'function') updateLiveAPIUI();
+  // Refresh cost display
+  const costEl = document.getElementById('mc-confirm-cost');
+  const modeEl = document.getElementById('mc-confirm-mode');
+  if (costEl) {
+    const cost = typeof getTestCost === 'function' ? getTestCost(_pendingTestType) : '$0.00';
+    costEl.textContent = cost;
+    costEl.className = 'mc-confirm__val ' + (cost === '$0.00' ? 'mc-confirm__val--green' : 'mc-confirm__val--amber');
+  }
+  if (modeEl) {
+    modeEl.textContent = isLive ? 'LIVE API' : 'Scoring Only';
+    modeEl.className = 'mc-confirm__val ' + (isLive ? 'mc-confirm__val--red' : 'mc-confirm__val--green');
+  }
 }
 
 function cancelTestConfirm() {
@@ -598,19 +706,51 @@ function cancelTestConfirm() {
 
 function executeConfirmedTest() {
   const type = _pendingTestType;
-  const args = _pendingTestArgs;
+  let args = _pendingTestArgs;
   cancelTestConfirm();
 
   if (!type) return;
   if (typeof startTest !== 'function') { cooLog('error', 'Test runner not available.'); return; }
 
-  if (type === 'category' && args) {
-    state.selectedCategories = Array.isArray(args) ? args : [args];
+  // Read custom count if set
+  const custCount = document.getElementById('mc-cust-count');
+  if (custCount && state.testConfig) {
+    const count = parseInt(custCount.value);
+    if (!state.testConfig[type]) state.testConfig[type] = {};
+    state.testConfig[type].count = count;
+  }
+
+  // Read custom threshold if set
+  const custThreshold = document.getElementById('mc-cust-threshold');
+  if (custThreshold && state.testConfig) {
+    if (!state.testConfig[type]) state.testConfig[type] = {};
+    state.testConfig[type].threshold = parseInt(custThreshold.value);
+  }
+
+  if (type === 'category') {
+    // Use selected categories from pills or original args
+    const selectedCats = args ? (Array.isArray(args) ? args : [args]) : ['food', 'vibe', 'service', 'rep', 'conv'];
+    state.selectedCategories = selectedCats;
     if (typeof runCategoryFocus === 'function') {
-      openTerminal(); showTicker(); triggerDarkPulse();
-      termLog('system', 'Starting Category Focus: ' + state.selectedCategories.join(', ') + '...');
-      runCategoryFocus(state.selectedCategories);
+      triggerDarkPulse();
+      termLog('system', 'Starting Category Focus: ' + selectedCats.join(', ') + '...');
+      runCategoryFocus(selectedCats);
     }
+  } else if (type === 'broad') {
+    // Check if specific categories were selected
+    const custCats = document.getElementById('mc-cust-cats');
+    if (custCats) {
+      const active = Array.from(custCats.querySelectorAll('.mc-confirm__pill--active')).map(b => b.textContent.toLowerCase());
+      if (active.length > 0 && active.length < 5) {
+        // Run as category focus with selected cats
+        state.selectedCategories = active;
+        triggerDarkPulse();
+        termLog('system', 'Starting focused scan: ' + active.join(', ') + '...');
+        if (typeof runCategoryFocus === 'function') runCategoryFocus(active);
+        return;
+      }
+    }
+    startTest('broad');
   } else {
     startTest(type);
   }
