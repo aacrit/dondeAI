@@ -184,9 +184,14 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-2xs);
-  padding: 0 var(--space-md);
+  padding: var(--space-sm) 0 0;
   margin-top: var(--space-xs);
-  opacity: 0.65;
+  opacity: 0.45;
+  transition: opacity 200ms var(--ease-out);
+}
+
+.cs-followups:hover {
+  opacity: 0.75;
 }
 
 .cs-followups--entering {
@@ -223,12 +228,12 @@
 .cs-followup-chip {
   display: inline-flex;
   align-items: center;
-  padding: var(--space-2xs) var(--space-sm);
+  padding: 2px var(--space-xs);
   font-family: var(--font-structural);
-  font-size: var(--text-sm);
-  color: var(--fg2);
+  font-size: var(--text-xs);
+  color: var(--fg3);
   background: transparent;
-  border: 1px dashed var(--border);
+  border: 1px dashed color-mix(in srgb, var(--border) 60%, transparent);
   border-radius: var(--radius-pill);
   cursor: pointer;
   transition: background 200ms var(--ease-out),

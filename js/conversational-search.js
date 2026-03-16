@@ -501,12 +501,15 @@ export function renderFollowups(result) {
 
   container.appendChild(chipWrap);
 
-  // Insert just before the card footer (near Start Over)
-  const footer = resultCard.querySelector('.card-footer');
-  if (footer) {
-    footer.parentNode.insertBefore(container, footer);
+  // Insert at end of Tier 2 (lean-in details section) for subtle placement
+  const tier2 = document.getElementById('tier-leanin');
+  if (tier2) {
+    tier2.appendChild(container);
   } else {
-    resultCard.appendChild(container);
+    // Fallback: before card footer
+    const footer = resultCard.querySelector('.card-footer');
+    if (footer) footer.parentNode.insertBefore(container, footer);
+    else resultCard.appendChild(container);
   }
 
   if (!REDUCED_MOTION.matches) {
