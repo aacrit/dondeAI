@@ -203,6 +203,13 @@ function updatePulseFromRun(run) {
       return Math.round(p / t * 100);
     }));
     renderMiniSparkline('pulse-dm', state.trendData.map(r => Math.round(Number(r.avg_dm) || 0)));
+    renderMiniSparkline('pulse-issues', state.trendData.map(r => r.gap_count || 0));
+    renderMiniSparkline('mc-grade', state.trendData.map(r => {
+      var dm = Number(r.avg_dm) || 0;
+      var fit = Number(r.avg_score_fit) || 0;
+      var blurb = Number(r.avg_blurb_quality) || 0;
+      return Math.round(dm * 0.4 + fit * 0.3 + blurb * 0.3);
+    }));
   }
 
   // Morning brief banner
