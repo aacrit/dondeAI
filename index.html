@@ -498,6 +498,14 @@
                 </div>
               </div>
 
+              <!-- Share CTA — personified, subtle invitation -->
+              <button class="share-cta type-structural" data-action="share" aria-label="Share this find">
+                <svg class="share-cta__icon" viewBox="0 0 256 256" width="16" height="16" aria-hidden="true">
+                  <path fill="currentColor" d="M176,164a36,36,0,0,0-27.92,13.3L96.25,144a35.92,35.92,0,0,0,0-32L148.08,78.7A35.93,35.93,0,1,0,143.75,72L91.92,105.3a36,36,0,1,0,0,45.4L143.75,184A36,36,0,1,0,176,164Zm0-136a28,28,0,1,1-28,28A28,28,0,0,1,176,28ZM64,156a28,28,0,1,1,28-28A28,28,0,0,1,64,156Zm112,72a28,28,0,1,1,28-28A28,28,0,0,1,176,228Z"/>
+                </svg>
+                <span class="share-cta__text">Share this find</span>
+              </button>
+
               <!-- ══════ TIER 2: LEAN-IN — "Tell me more / Should I go?" ══════ -->
               <div class="tier tier--leanin" id="tier-leanin" aria-hidden="true">
 
@@ -682,9 +690,20 @@
     <div class="share-sheet" id="share-sheet" role="dialog" aria-label="Share recommendation" aria-modal="true">
       <div class="share-sheet__backdrop" data-action="close-share"></div>
       <div class="share-sheet__panel">
-        <h3 class="type-structural" style="margin-bottom: var(--space-md);">Share This Spot</h3>
+        <h3 class="type-structural" style="margin-bottom: var(--space-sm);">Share This Spot</h3>
+        <!-- Card Size Toggle -->
+        <div class="card-size-toggle" role="radiogroup" aria-label="Card size">
+          <button class="card-size-btn card-size-btn--active type-data--sm" data-card-size="small" role="radio" aria-checked="true">
+            <svg viewBox="0 0 256 256" width="14" height="14"><path fill="currentColor" d="M200,32H56A16,16,0,0,0,40,48V208a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V48A16,16,0,0,0,200,32Zm0,176H56V48H200Z"/></svg>
+            Compact
+          </button>
+          <button class="card-size-btn type-data--sm" data-card-size="large" role="radio" aria-checked="false">
+            <svg viewBox="0 0 256 256" width="14" height="14"><path fill="currentColor" d="M200,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V40A16,16,0,0,0,200,24Zm0,192H56V40H200Z"/></svg>
+            Full Details
+          </button>
+        </div>
         <!-- Donde Card Preview -->
-        <div class="share-preview share-preview--card" id="share-preview">
+        <div class="share-preview share-preview--card share-preview--small" id="share-preview">
           <canvas id="share-canvas" style="display:none;"></canvas>
         </div>
         <!-- Primary Card Actions -->
