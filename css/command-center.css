@@ -692,6 +692,160 @@ a {
 .mc-drawer--open .mc-drawer__body { display: flex; }
 .mc-drawer__body .mc-terminal__output { flex: 1; overflow-y: auto; padding: var(--space-sm) var(--space-lg); }
 
+/* ─── Detail Panel (right side sheet) ─── */
+.mc-detail {
+  position: fixed;
+  top: var(--header-h);
+  right: 0;
+  bottom: var(--footer-h);
+  width: 380px;
+  background: var(--cc-surface);
+  border-left: 1px solid var(--cc-border);
+  z-index: 25;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 450ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.mc-detail--open {
+  transform: translateX(0);
+}
+.mc-detail__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid var(--cc-border);
+  flex-shrink: 0;
+}
+.mc-detail__title {
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+.mc-detail__close {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: var(--text-lg);
+  color: var(--cc-text3);
+  transition: background 150ms, color 150ms;
+}
+.mc-detail__close:hover {
+  background: var(--cc-surface2);
+  color: var(--cc-text);
+}
+.mc-detail__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-lg);
+  font-size: var(--text-xs);
+  line-height: 1.7;
+}
+.mc-detail__body::-webkit-scrollbar { width: 4px; }
+.mc-detail__body::-webkit-scrollbar-thumb { background: var(--cc-border); border-radius: 2px; }
+
+/* Detail content elements */
+.mc-detail__row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(42, 42, 56, 0.3);
+}
+.mc-detail__row:last-child { border-bottom: none; }
+.mc-detail__key { color: var(--cc-text3); }
+.mc-detail__val { font-family: var(--font-mono); font-weight: 600; }
+
+.mc-detail__factors {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-xs);
+  margin-top: var(--space-sm);
+}
+.mc-detail__factor {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--cc-bg);
+  border-radius: var(--radius-sm);
+}
+.mc-detail__factor-bar {
+  height: 4px;
+  border-radius: 2px;
+  flex: 1;
+  background: var(--cc-border);
+  overflow: hidden;
+}
+.mc-detail__factor-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 450ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.mc-detail__blurb {
+  margin-top: var(--space-md);
+  padding: var(--space-md);
+  background: var(--cc-bg);
+  border-radius: var(--radius);
+  border-left: 3px solid var(--cc-accent);
+  font-size: var(--text-xs);
+  line-height: 1.6;
+  color: var(--cc-text2);
+}
+
+/* Dashboard shrinks when detail panel is open */
+.mc-dashboard--detail-open {
+  margin-right: 380px;
+  transition: margin-right 450ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ─── Terminal Maximized (left panel mode) ─── */
+.mc-drawer__maximize {
+  font-size: var(--text-sm);
+  color: var(--cc-text3);
+  cursor: pointer;
+  padding: 0 var(--space-sm);
+  transition: color 150ms;
+}
+.mc-drawer__maximize:hover { color: var(--cc-accent); }
+
+.mc-drawer--maximized {
+  position: fixed;
+  top: var(--header-h);
+  left: 0;
+  bottom: var(--footer-h);
+  right: auto;
+  width: 420px;
+  border-top: none;
+  border-right: 1px solid var(--cc-border);
+  transition: all 450ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.mc-drawer--maximized .mc-drawer__body {
+  display: flex;
+  height: auto;
+  flex: 1;
+}
+.mc-drawer--maximized .mc-drawer__toggle {
+  border-bottom: 1px solid var(--cc-border);
+}
+.mc-drawer--maximized .mc-drawer__chevron {
+  transform: rotate(90deg);
+}
+
+/* Dashboard shrinks when terminal is maximized */
+.mc-dashboard--terminal-max {
+  margin-left: 420px;
+  transition: margin-left 450ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Both panels open: dashboard in center */
+.mc-dashboard--both-panels {
+  margin-left: 420px;
+  margin-right: 380px;
+}
+
 /* ─── 17. Footer ─── */
 .mc-footer {
   height: var(--footer-h);
@@ -791,6 +945,11 @@ a {
   .mc-header__back { display: none; }
   .mc-feed-item__query { max-width: 60%; }
   .mc-drawer__body { height: 220px; }
+  .mc-detail { width: 100%; top: var(--header-h); }
+  .mc-dashboard--detail-open { margin-right: 0; }
+  .mc-drawer--maximized { width: 100%; }
+  .mc-dashboard--terminal-max { margin-left: 0; }
+  .mc-dashboard--both-panels { margin-left: 0; margin-right: 0; }
 }
 
 @media (max-width: 480px) {

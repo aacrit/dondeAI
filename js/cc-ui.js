@@ -18,6 +18,14 @@ document.addEventListener('DOMContentLoaded', () => {
   // Quick test Enter key
   const $qt = document.getElementById('quick-test-input');
   if ($qt) $qt.addEventListener('keydown', (e) => { if (e.key === 'Enter') runQuickTest(); });
+
+  // Escape key closes detail panel
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      const detail = document.getElementById('mc-detail');
+      if (detail?.classList.contains('mc-detail--open')) { closeDetail(); e.preventDefault(); }
+    }
+  });
 });
 
 // ═══════════════════════════════════════════════════════════════════
@@ -184,7 +192,7 @@ function renderLiveFeed(queries) {
   $el.innerHTML = queries.slice(0, 10).map(q => {
     const dm = q.donde_match || 0;
     const query = q.special_request || '(empty)';
-    return `<div class="mc-feed-item mc-clickable" onclick="document.getElementById('quick-test-input').value='${escapeHtml(query.replace(/'/g, ''))}';runQuickTest()" title="Click to re-test this query">
+    return `<div class="mc-feed-item mc-clickable" onclick="testAndShowDetail('${escapeHtml(query.replace(/'/g, "\\'"))}')" title="Click to view details">
       <span class="mc-feed-item__query" title="${escapeHtml(query)}">"${escapeHtml(query.slice(0, 40))}"</span>
       <span class="mc-feed-item__score ${ragClass(dm)}">${dm}</span>
     </div>`;
@@ -295,6 +303,107 @@ function openDrawerForTest() {
 }
 
 // ═══════════════════════════════════════════════════════════════════
+// Detail Panel (right side sheet)
+// ═══════════════════════════════════════════════════════════════════
+
+function openDetail(title, html) {
+  const panel = document.getElementById('mc-detail');
+  const titleEl = document.getElementById('mc-detail-title');
+  const body = document.getElementById('mc-detail-body');
+  if (!panel || !body) return;
+
+  if (titleEl) titleEl.textContent = title;
+  body.innerHTML = html;
+
+  panel.classList.add('mc-detail--open');
+  updateDashboardMargins();
+}
+
+function closeDetail() {
+  const panel = document.getElementById('mc-detail');
+  if (panel) panel.classList.remove('mc-detail--open');
+  updateDashboardMargins();
+}
+
+function showQueryDetail(query, dm, restaurantName, sv9, recommendation, fitGrade, blurbGrade) {
+  const factors = sv9 || {};
+
+  function bar(label, val) {
+    const pct = Math.round((val / 10) * 100);
+    const color = val >= 7 ? 'var(--cc-green)' : val >= 5 ? 'var(--cc-amber)' : 'var(--cc-red)';
+    return '<div class="mc-detail__factor"><span class="mc-detail__key" style="width:28px">' + label + '</span>' +
+      '<div class="mc-detail__factor-bar"><div class="mc-detail__factor-fill" style="width:' + pct + '%;background:' + color + '"></div></div>' +
+      '<span class="mc-detail__val">' + (Math.round(val * 10) / 10) + '</span></div>';
+  }
+
+  let html = '<div class="mc-detail__row"><span class="mc-detail__key">Restaurant</span><span class="mc-detail__val">' + escapeHtml(restaurantName || '?') + '</span></div>';
+  html += '<div class="mc-detail__row"><span class="mc-detail__key">DondeMatch</span><span class="mc-detail__val ' + ragClass(dm) + '">' + dm + '</span></div>';
+  html += '<div class="mc-detail__row"><span class="mc-detail__key">Relevance</span><span class="mc-detail__val">' + (factors.relevance_type || '-') + '</span></div>';
+  if (fitGrade) html += '<div class="mc-detail__row"><span class="mc-detail__key">Score Fit</span><span class="mc-detail__val">' + fitGrade + '</span></div>';
+  if (blurbGrade) html += '<div class="mc-detail__row"><span class="mc-detail__key">Blurb Quality</span><span class="mc-detail__val">' + blurbGrade + '</span></div>';
+
+  html += '<div class="mc-section__title" style="margin-top:var(--space-lg)">Factors</div>';
+  html += '<div class="mc-detail__factors">';
+  html += bar('F', factors.food || 0);
+  html += bar('V', factors.vibe || 0);
+  html += bar('S', factors.service || 0);
+  html += bar('R', factors.reputation || 0);
+  html += bar('C', factors.convenience || 0);
+  html += '</div>';
+
+  if (recommendation) {
+    html += '<div class="mc-section__title" style="margin-top:var(--space-lg)">Recommendation</div>';
+    html += '<div class="mc-detail__blurb">' + escapeHtml(recommendation) + '</div>';
+  }
+
+  openDetail('"' + escapeHtml(query.slice(0, 30)) + '"', html);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Terminal Maximize (left panel mode)
+// ═══════════════════════════════════════════════════════════════════
+
+function toggleTerminalMax() {
+  const drawer = document.getElementById('mc-drawer');
+  if (!drawer) return;
+
+  const isMax = drawer.classList.toggle('mc-drawer--maximized');
+
+  // Ensure drawer body is visible when maximized
+  if (isMax) {
+    drawer.classList.add('mc-drawer--open');
+    const toggle = document.getElementById('mc-drawer-toggle');
+    if (toggle) toggle.setAttribute('aria-expanded', 'true');
+    const badge = document.getElementById('mc-drawer-badge');
+    if (badge) { badge.style.display = 'none'; badge.textContent = '0'; }
+  }
+
+  updateDashboardMargins();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Dashboard Margin Management
+// ═══════════════════════════════════════════════════════════════════
+
+function updateDashboardMargins() {
+  const dashboard = document.querySelector('.mc-dashboard');
+  if (!dashboard) return;
+
+  const detailOpen = document.getElementById('mc-detail')?.classList.contains('mc-detail--open');
+  const terminalMax = document.getElementById('mc-drawer')?.classList.contains('mc-drawer--maximized');
+
+  dashboard.classList.remove('mc-dashboard--detail-open', 'mc-dashboard--terminal-max', 'mc-dashboard--both-panels');
+
+  if (detailOpen && terminalMax) {
+    dashboard.classList.add('mc-dashboard--both-panels');
+  } else if (detailOpen) {
+    dashboard.classList.add('mc-dashboard--detail-open');
+  } else if (terminalMax) {
+    dashboard.classList.add('mc-dashboard--terminal-max');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
 // Quick Test
 // ═══════════════════════════════════════════════════════════════════
 
@@ -318,7 +427,38 @@ async function runQuickTest() {
       (blurb ? ' · Blurb: <strong>' + blurb.grade + '</strong>' : '') +
       ' · Type: ' + (sv9.relevance_type || '-') +
       ' · F:' + r1(sv9.food||0) + ' V:' + r1(sv9.vibe||0) + ' S:' + r1(sv9.service||0) + ' R:' + r1(sv9.reputation||0) + ' C:' + r1(sv9.convenience||0);
+    // Show detail panel
+    showQueryDetail(query, dm, name, sv9, resp.recommendation, fit?.grade, blurb?.grade);
   } catch (e) { $result.innerHTML = '<span class="rag-red">' + escapeHtml(e.message) + '</span>'; }
+}
+
+async function testAndShowDetail(query) {
+  // Populate quick test input for visibility
+  const $input = document.getElementById('quick-test-input');
+  if ($input) $input.value = query;
+
+  const $result = document.getElementById('quick-test-result');
+  if ($result) $result.innerHTML = '<span style="color:var(--cc-blue)">Loading details...</span>';
+
+  try {
+    const resp = await callAPI(query);
+    if (!resp.success) { if ($result) $result.innerHTML = '<span class="rag-red">Error</span>'; return; }
+    const dm = resp.donde_match || 0;
+    const name = resp.restaurant?.name || '?';
+    const sv9 = resp.scoring_v9 || {};
+    const fit = typeof computeScoreFitGrade === 'function' ? computeScoreFitGrade(query, resp) : null;
+    const blurb = typeof computeBlurbQualityGrade === 'function' ? computeBlurbQualityGrade(query, resp) : null;
+
+    if ($result) {
+      $result.innerHTML = '<span class="' + ragClass(dm) + '">' + escapeHtml(name) + '</span> — DM <strong class="' + ragClass(dm) + '">' + dm + '</strong>' +
+        (fit ? ' · Fit: <strong>' + fit.grade + '</strong>' : '') +
+        (blurb ? ' · Blurb: <strong>' + blurb.grade + '</strong>' : '');
+    }
+
+    showQueryDetail(query, dm, name, sv9, resp.recommendation, fit?.grade, blurb?.grade);
+  } catch (e) {
+    if ($result) $result.innerHTML = '<span class="rag-red">' + escapeHtml(e.message) + '</span>';
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════
