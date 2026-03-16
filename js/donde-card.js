@@ -1,8 +1,8 @@
 /* ============================================
-   DondeAI — Donde Card Generator V2
-   Screen-replica shareable infographic cards.
-   Dynamic height driven by content.
-   Cultural theme backgrounds + QR code + branding.
+   DondeAI — Donde Card Generator V3
+   Reel-format (9:16) shareable card — 1080×1920.
+   Single card format for Instagram/TikTok/Facebook.
+   Bold cultural theme backgrounds + branded QR footer.
    ============================================ */
 
 import { getState } from './state.js';
@@ -111,10 +111,10 @@ const THEME_PALETTES = {
   },
 };
 
-/* ---- Cultural Theme Pattern Drawers ---- */
+/* ---- Cultural Theme Pattern Drawers (enhanced opacity for bold identity) ---- */
 const THEME_PATTERNS = {
   neutral(ctx, w, h, p) {
-    ctx.save(); ctx.globalAlpha = 0.035; ctx.strokeStyle = p.ac; ctx.lineWidth = 1.2;
+    ctx.save(); ctx.globalAlpha = 0.05; ctx.strokeStyle = p.ac; ctx.lineWidth = 1.2;
     for (let x = 0; x < w; x += 80) for (let y = 0; y < h; y += 80) {
       ctx.beginPath();
       ctx.moveTo(x + 10, y + 8); ctx.quadraticCurveTo(x + 15, y + 12, x + 20, y + 16); ctx.stroke();
@@ -124,7 +124,7 @@ const THEME_PATTERNS = {
     ctx.restore();
   },
   indian(ctx, w, h, p) {
-    ctx.save(); ctx.globalAlpha = 0.035; ctx.strokeStyle = p.ac; ctx.lineWidth = 1;
+    ctx.save(); ctx.globalAlpha = 0.06; ctx.strokeStyle = p.ac; ctx.lineWidth = 1;
     for (let x = 30; x < w; x += 90) for (let y = 30; y < h; y += 90) {
       ctx.beginPath();
       ctx.moveTo(x, y - 8); ctx.quadraticCurveTo(x + 8, y, x, y + 8);
@@ -135,7 +135,7 @@ const THEME_PATTERNS = {
     ctx.restore();
   },
   japanese(ctx, w, h, p) {
-    ctx.save(); ctx.globalAlpha = 0.03; ctx.strokeStyle = p.ac; ctx.lineWidth = 0.8;
+    ctx.save(); ctx.globalAlpha = 0.05; ctx.strokeStyle = p.ac; ctx.lineWidth = 0.8;
     const r = 28;
     for (let row = 0; row < Math.ceil(h / (r * 2)) + 1; row++) {
       const yy = row * r * 2; const xShift = (row % 2) * r;
@@ -148,7 +148,7 @@ const THEME_PATTERNS = {
     ctx.restore();
   },
   middleeastern(ctx, w, h, p) {
-    ctx.save(); ctx.globalAlpha = 0.035; ctx.strokeStyle = p.ac; ctx.lineWidth = 0.8;
+    ctx.save(); ctx.globalAlpha = 0.06; ctx.strokeStyle = p.ac; ctx.lineWidth = 0.8;
     for (let x = 0; x < w; x += 56) for (let y = 0; y < h; y += 56) {
       const cx = x + 28, cy = y + 28;
       ctx.beginPath();
@@ -158,7 +158,7 @@ const THEME_PATTERNS = {
     ctx.restore();
   },
   southamerican(ctx, w, h, p) {
-    ctx.save(); ctx.globalAlpha = 0.03; ctx.strokeStyle = p.ac; ctx.lineWidth = 0.8;
+    ctx.save(); ctx.globalAlpha = 0.05; ctx.strokeStyle = p.ac; ctx.lineWidth = 0.8;
     for (let x = 25; x < w; x += 70) for (let y = 25; y < h; y += 70) {
       for (let a = 0; a < Math.PI * 2; a += Math.PI / 4) {
         ctx.beginPath();
@@ -173,15 +173,10 @@ const THEME_PATTERNS = {
 
 /* ---- Constants ---- */
 const CW = 1080;
-const PAD = 64;
+const CH = 1920;
+const PAD = 72;
 const CONTENT_W = CW - PAD * 2;
-const TAGLINES = [
-  'Your next favorite spot in Chicago',
-  'AI-powered restaurant discovery',
-  'Found something worth sharing',
-  'Chicago dining, curated by AI',
-  'One pick. Zero stress.',
-];
+const TAGLINE = 'Your next favorite spot in Chicago';
 
 /* ======== HELPERS ======== */
 
@@ -230,17 +225,6 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.arcTo(x, y, x + r, y, r); ctx.closePath();
 }
 
-function loadImage(url) {
-  return new Promise(resolve => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onerror = () => resolve(null);
-    const t = setTimeout(() => resolve(null), 5000);
-    img.onload = () => { clearTimeout(t); resolve(img); };
-    img.src = url;
-  });
-}
-
 function getScoreColor(score, p) {
   if (score >= 80) return p.ragGreen;
   if (score >= 60) return p.ragAmber;
@@ -257,22 +241,23 @@ function getScoreTier(score) {
 /* ---- Decorative Separators ---- */
 function drawSeparator(ctx, y, p, style = 'accent') {
   if (style === 'accent') {
-    const w = 140;
+    const w = 200;
     const grad = ctx.createLinearGradient((CW - w) / 2, 0, (CW + w) / 2, 0);
     grad.addColorStop(0, 'transparent'); grad.addColorStop(0.15, p.ac + '50');
     grad.addColorStop(0.5, p.ac); grad.addColorStop(0.85, p.ac + '50');
     grad.addColorStop(1, 'transparent');
     ctx.fillStyle = grad; ctx.fillRect((CW - w) / 2, y, w, 2.5);
+    // Diamond centerpiece
+    ctx.fillStyle = p.ac + '70';
+    ctx.save(); ctx.translate(CW / 2, y + 1);
+    ctx.rotate(Math.PI / 4);
+    ctx.fillRect(-4, -4, 8, 8);
+    ctx.restore();
   } else if (style === 'dots') {
-    ctx.fillStyle = p.fg3 + '40';
-    const spacing = 18, count = 5, totalW = (count - 1) * spacing;
+    ctx.fillStyle = p.ac + '45';
+    const spacing = 20, count = 5, totalW = (count - 1) * spacing;
     const startX = (CW - totalW) / 2;
-    for (let i = 0; i < count; i++) { ctx.beginPath(); ctx.arc(startX + i * spacing, y, 2, 0, Math.PI * 2); ctx.fill(); }
-  } else if (style === 'fade') {
-    const grad = ctx.createLinearGradient(PAD, 0, PAD + CONTENT_W, 0);
-    grad.addColorStop(0, 'transparent'); grad.addColorStop(0.1, p.border);
-    grad.addColorStop(0.9, p.border); grad.addColorStop(1, 'transparent');
-    ctx.fillStyle = grad; ctx.fillRect(PAD, y, CONTENT_W, 1);
+    for (let i = 0; i < count; i++) { ctx.beginPath(); ctx.arc(startX + i * spacing, y, 2.5, 0, Math.PI * 2); ctx.fill(); }
   }
 }
 
@@ -313,7 +298,7 @@ function generateQRMatrix(text) {
 
 function drawQRCode(ctx, x, y, size, matrix, fg, bg) {
   const modules = matrix.length, moduleSize = size / modules;
-  ctx.fillStyle = bg; roundRect(ctx, x - 6, y - 6, size + 12, size + 12, 8); ctx.fill();
+  ctx.fillStyle = bg; roundRect(ctx, x - 8, y - 8, size + 16, size + 16, 12); ctx.fill();
   ctx.fillStyle = fg;
   for (let r = 0; r < modules; r++) for (let c = 0; c < modules; c++)
     if (matrix[r][c]) ctx.fillRect(x + c * moduleSize, y + r * moduleSize, moduleSize + 0.5, moduleSize + 0.5);
@@ -339,345 +324,286 @@ function drawScoreRing(ctx, cx, cy, radius, score, p, opts = {}) {
   }
 }
 
-/* ---- Factor Bar ---- */
-function drawFactorBar(ctx, x, y, w, label, value, p) {
-  const barH = 10;
-  ctx.font = '500 20px "Inter", system-ui, sans-serif';
-  ctx.fillStyle = p.fg2; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
-  ctx.fillText(label, x, y);
-  ctx.textAlign = 'right'; ctx.fillStyle = p.fg3;
-  ctx.fillText(typeof value === 'number' ? value.toFixed(1) : String(value), x + w, y);
-  const barY = y + 28;
-  ctx.fillStyle = p.bg3; roundRect(ctx, x, barY, w, barH, barH / 2); ctx.fill();
-  const fillW = Math.max(barH, (parseFloat(value) / 10) * w);
-  const grad = ctx.createLinearGradient(x, barY, x + fillW, barY);
-  grad.addColorStop(0, p.gradStart); grad.addColorStop(1, p.gradEnd);
-  ctx.fillStyle = grad; roundRect(ctx, x, barY, fillW, barH, barH / 2); ctx.fill();
-  return barY + barH;
-}
-
-/* ---- Photo ---- */
-function drawCoverPhoto(ctx, img, x, y, w, h, radius) {
-  ctx.save(); roundRect(ctx, x, y, w, h, radius); ctx.clip();
-  const iA = img.width / img.height, bA = w / h;
-  let sx = 0, sy = 0, sw = img.width, sh = img.height;
-  if (iA > bA) { sw = img.height * bA; sx = (img.width - sw) / 2; }
-  else { sh = img.width / bA; sy = (img.height - sh) / 2; }
-  ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
-  const vig = ctx.createLinearGradient(x, y + h * 0.6, x, y + h);
-  vig.addColorStop(0, 'rgba(0,0,0,0)'); vig.addColorStop(1, 'rgba(0,0,0,0.22)');
-  ctx.fillStyle = vig; ctx.fillRect(x, y, w, h); ctx.restore();
-}
-
-function drawFallbackVisual(ctx, x, y, w, h, radius, p) {
-  const grad = ctx.createLinearGradient(x, y, x + w, y + h);
-  grad.addColorStop(0, p.gradStart); grad.addColorStop(0.5, p.gradEnd); grad.addColorStop(1, p.ac);
-  ctx.fillStyle = grad; roundRect(ctx, x, y, w, h, radius); ctx.fill();
-  ctx.globalAlpha = 0.06; ctx.fillStyle = '#fff';
-  for (let px = x + 36; px < x + w; px += 36) for (let py = y + 36; py < y + h; py += 36)
-    { ctx.beginPath(); ctx.arc(px, py, 2, 0, Math.PI * 2); ctx.fill(); }
-  ctx.globalAlpha = 1;
-}
-
-/* ---- Background ---- */
-function drawBackground(ctx, H, p, culture) {
-  ctx.fillStyle = p.bg; ctx.fillRect(0, 0, CW, H);
-  const bg = ctx.createLinearGradient(0, 0, 0, H);
-  bg.addColorStop(0, p.gradStart + '10'); bg.addColorStop(0.25, 'transparent');
-  bg.addColorStop(0.8, 'transparent'); bg.addColorStop(1, p.gradEnd + '08');
-  ctx.fillStyle = bg; ctx.fillRect(0, 0, CW, H);
-  const rg = ctx.createRadialGradient(CW * 0.85, H * 0.06, 0, CW * 0.85, H * 0.06, CW * 0.45);
-  rg.addColorStop(0, p.ac + '0d'); rg.addColorStop(1, 'transparent');
-  ctx.fillStyle = rg; ctx.fillRect(0, 0, CW, H);
-  (THEME_PATTERNS[culture] || THEME_PATTERNS.neutral)(ctx, CW, H, p);
-}
-
-/* ---- Footer ---- */
-function drawFooter(ctx, y, p) {
-  drawSeparator(ctx, y, p, 'accent'); y += 24;
-  const qrSize = 72, qrX = CW - PAD - qrSize, qrY = y;
-  const dark = isDarkMode();
-  drawQRCode(ctx, qrX, qrY, qrSize, generateQRMatrix('https://donde.ai'), dark ? p.fg : p.fg, dark ? p.bg2 : '#ffffff');
-  const textCy = qrY + qrSize / 2;
-  ctx.font = '700 34px "Playfair Display", Georgia, serif';
-  ctx.fillStyle = p.fg; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-  ctx.fillText('Donde', PAD, textCy - 16);
-  ctx.font = '400 17px "Inter", system-ui, sans-serif'; ctx.fillStyle = p.fg3;
-  ctx.fillText(TAGLINES[Math.floor(Date.now() / 86400000) % TAGLINES.length], PAD, textCy + 14);
-  return qrY + qrSize + 16;
-}
-
-/* ---- Pills Row Helper ---- */
-function drawPills(ctx, y, parts, p, fontSize = 20, pillH = 36) {
+/* ---- Centered Pills Row ---- */
+function drawCenteredPills(ctx, y, parts, p) {
+  const fontSize = 22, pillH = 42, pillPad = 22, pillGap = 14;
   ctx.font = `500 ${fontSize}px "Inter", system-ui, sans-serif`;
-  let px = PAD; const pillPad = 18, pillGap = 10;
-  for (const text of parts) {
-    const tw = ctx.measureText(text).width, pw = tw + pillPad * 2;
-    if (px + pw > CW - PAD) break;
+  const widths = parts.map(text => ctx.measureText(text).width + pillPad * 2);
+  const totalW = widths.reduce((sum, w) => sum + w + pillGap, -pillGap);
+  let px = (CW - totalW) / 2;
+  for (let i = 0; i < parts.length; i++) {
+    const pw = widths[i];
     ctx.fillStyle = p.acSoft; roundRect(ctx, px, y, pw, pillH, pillH / 2); ctx.fill();
-    ctx.strokeStyle = p.ac + '30'; ctx.lineWidth = 1;
+    ctx.strokeStyle = p.ac + '35'; ctx.lineWidth = 1.5;
     roundRect(ctx, px, y, pw, pillH, pillH / 2); ctx.stroke();
-    ctx.fillStyle = p.ac; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-    ctx.fillText(text, px + pillPad, y + pillH / 2);
+    ctx.fillStyle = p.ac; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(parts[i], px + pw / 2, y + pillH / 2 + 1);
     px += pw + pillGap;
   }
   return y + pillH;
 }
 
-/* ======================================================================
-   SMALL CARD — Tier 1 replica (compact infographic)
-   ====================================================================== */
-async function buildSmallCard(resultData, p, culture) {
-  const r = resultData.restaurant;
-  const score = Math.round(parseFloat(resultData.donde_match) || 0);
-  const img = r.photo_urls?.[0] ? await loadImage(r.photo_urls[0]) : null;
+/* ---- Donde Logo (Location Pin Icon) ---- */
+function drawDondeLogo(ctx, cx, cy, size, color) {
+  const s = size / 48;
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.scale(s, s);
+  // Teardrop pin body
+  ctx.beginPath();
+  ctx.moveTo(0, 22);
+  ctx.bezierCurveTo(-5, 14, -18, 3, -18, -8);
+  ctx.bezierCurveTo(-18, -19, -10, -26, 0, -26);
+  ctx.bezierCurveTo(10, -26, 18, -19, 18, -8);
+  ctx.bezierCurveTo(18, 3, 5, 14, 0, 22);
+  ctx.closePath();
+  ctx.fillStyle = color;
+  ctx.fill();
+  // Inner white dot
+  ctx.beginPath();
+  ctx.arc(0, -8, 7, 0, Math.PI * 2);
+  ctx.fillStyle = '#ffffff';
+  ctx.fill();
+  ctx.restore();
+}
 
-  // Measure pass for dynamic height
-  const mc = document.createElement('canvas'); mc.width = CW; mc.height = 100;
-  const m = mc.getContext('2d');
-  let totalH = PAD;
-  const photoH = 280; totalH += photoH + 36;
-  m.font = '700 52px "Playfair Display", Georgia, serif';
-  const nameLines = wrapText(m, r.name || 'Restaurant', CONTENT_W);
-  totalH += nameLines.length * 62 + 12;
-  const metaParts = [];
-  const hood = r.neighborhood_name || '';
-  if (hood && !/^chicago$/i.test(hood.trim())) metaParts.push(hood);
-  if (r.cuisine_type) metaParts.push(r.cuisine_type);
-  if (r.price_level) metaParts.push(r.price_level);
-  if (metaParts.length > 0) totalH += 40 + 20;
-  const oneliner = r.best_for_oneliner || '';
-  if (oneliner) { m.font = 'italic 400 26px "Playfair Display", Georgia, serif'; totalH += Math.min(wrapText(m, oneliner, CONTENT_W - 20).length, 3) * 36 + 16; }
-  const matchSig = resultData.match_narrative?.summary || '';
-  if (matchSig) { m.font = '400 20px "Inter", system-ui, sans-serif'; totalH += Math.min(wrapText(m, matchSig, CONTENT_W - 40).length, 2) * 28 + 28; }
-  totalH += 24 + 24 + 72 + 16 + PAD; // separator + footer
+/* ---- Reel Background (Bold Cultural Identity) ---- */
+function drawReelBackground(ctx, p, culture) {
+  // Base fill
+  ctx.fillStyle = p.bg;
+  ctx.fillRect(0, 0, CW, CH);
 
-  const canvas = document.createElement('canvas'); canvas.width = CW; canvas.height = totalH;
-  const ctx = canvas.getContext('2d');
-  drawBackground(ctx, totalH, p, culture);
-  let y = PAD;
+  // Cultural pattern (enhanced visibility)
+  (THEME_PATTERNS[culture] || THEME_PATTERNS.neutral)(ctx, CW, CH, p);
 
-  // Photo
-  if (img) drawCoverPhoto(ctx, img, PAD, y, CONTENT_W, photoH, 28);
-  else drawFallbackVisual(ctx, PAD, y, CONTENT_W, photoH, 28, p);
-  // Score badge overlay
-  const bS = 76, bX = PAD + 16, bY = y + photoH - bS - 16;
-  ctx.fillStyle = p.bg2 + 'e6'; roundRect(ctx, bX, bY, bS, bS, 16); ctx.fill();
-  ctx.strokeStyle = p.border; ctx.lineWidth = 1.5; roundRect(ctx, bX, bY, bS, bS, 16); ctx.stroke();
-  drawScoreRing(ctx, bX + bS / 2, bY + bS / 2, 26, score, p, { showLabel: true, labelSize: 10, numSize: 26 });
-  y += photoH + 36;
+  // Top accent gradient band (bold, 340px)
+  const topGrad = ctx.createLinearGradient(0, 0, 0, 360);
+  topGrad.addColorStop(0, p.gradStart + '32');
+  topGrad.addColorStop(0.45, p.gradEnd + '1a');
+  topGrad.addColorStop(1, 'transparent');
+  ctx.fillStyle = topGrad;
+  ctx.fillRect(0, 0, CW, 360);
 
-  // Name
-  ctx.fillStyle = p.fg; ctx.font = '700 52px "Playfair Display", Georgia, serif';
-  ctx.textAlign = 'left'; ctx.textBaseline = 'top';
-  for (const line of nameLines.slice(0, 2)) { ctx.fillText(line, PAD, y); y += 62; }
-  y += 12;
+  // Bottom accent gradient band (240px)
+  const botGrad = ctx.createLinearGradient(0, CH - 280, 0, CH);
+  botGrad.addColorStop(0, 'transparent');
+  botGrad.addColorStop(0.5, p.gradEnd + '0e');
+  botGrad.addColorStop(1, p.gradStart + '28');
+  ctx.fillStyle = botGrad;
+  ctx.fillRect(0, CH - 280, CW, 280);
 
-  // Pills
-  if (metaParts.length > 0) { y = drawPills(ctx, y, metaParts, p) + 20; }
+  // Radial accent glow — top right
+  const rg1 = ctx.createRadialGradient(CW * 0.82, CH * 0.04, 0, CW * 0.82, CH * 0.04, CW * 0.5);
+  rg1.addColorStop(0, p.ac + '1a');
+  rg1.addColorStop(1, 'transparent');
+  ctx.fillStyle = rg1;
+  ctx.fillRect(0, 0, CW, CH);
 
-  // One-liner
-  if (oneliner) {
-    ctx.font = '300 44px "Playfair Display", Georgia, serif'; ctx.fillStyle = p.ac + '35';
-    ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText('\u201C', PAD, y - 6);
-    ctx.font = 'italic 400 26px "Playfair Display", Georgia, serif'; ctx.fillStyle = p.fg2;
-    for (const line of wrapText(ctx, oneliner, CONTENT_W - 20).slice(0, 3)) { ctx.fillText(line, PAD + 14, y + 16); y += 36; }
-    y += 16;
+  // Radial accent glow — bottom left
+  const rg2 = ctx.createRadialGradient(CW * 0.18, CH * 0.88, 0, CW * 0.18, CH * 0.88, CW * 0.4);
+  rg2.addColorStop(0, p.ac + '10');
+  rg2.addColorStop(1, 'transparent');
+  ctx.fillStyle = rg2;
+  ctx.fillRect(0, 0, CW, CH);
+
+  // Double accent border frame
+  ctx.strokeStyle = p.ac + '2a';
+  ctx.lineWidth = 3;
+  roundRect(ctx, 12, 12, CW - 24, CH - 24, 36);
+  ctx.stroke();
+  ctx.strokeStyle = p.ac + '10';
+  ctx.lineWidth = 1;
+  roundRect(ctx, 22, 22, CW - 44, CH - 44, 30);
+  ctx.stroke();
+}
+
+/* ---- Score Ring Decorative Halo ---- */
+function drawScoreHalo(ctx, cx, cy, ringR, p) {
+  // Dashed outer ring
+  ctx.beginPath();
+  ctx.arc(cx, cy, ringR + 22, 0, Math.PI * 2);
+  ctx.strokeStyle = p.ac + '20';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([8, 8]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  // Dotted halo ring
+  ctx.beginPath();
+  ctx.arc(cx, cy, ringR + 34, 0, Math.PI * 2);
+  ctx.strokeStyle = p.ac + '0d';
+  ctx.lineWidth = 0.8;
+  ctx.setLineDash([3, 12]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  // Cardinal accent dots
+  for (let i = 0; i < 4; i++) {
+    const angle = (i * Math.PI / 2) - Math.PI / 2;
+    const dotR = ringR + 28;
+    ctx.beginPath();
+    ctx.arc(cx + Math.cos(angle) * dotR, cy + Math.sin(angle) * dotR, 3, 0, Math.PI * 2);
+    ctx.fillStyle = p.ac + '40';
+    ctx.fill();
   }
+}
 
-  // Match signal
-  if (matchSig) {
-    drawSeparator(ctx, y, p, 'dots'); y += 20;
-    ctx.font = '400 20px "Inter", system-ui, sans-serif'; ctx.fillStyle = p.fg3;
-    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-    for (const line of wrapText(ctx, matchSig, CONTENT_W - 40).slice(0, 2)) { ctx.fillText(line, CW / 2, y); y += 28; }
-    y += 8;
-  }
+/* ---- Branded Footer (bottom-anchored) ---- */
+function drawBrandedFooter(ctx, p) {
+  const dark = isDarkMode();
 
-  y += 16; drawFooter(ctx, y, p);
-  return canvas;
+  // Accent separator
+  const sepY = CH - 480;
+  drawSeparator(ctx, sepY, p, 'accent');
+
+  // Donde pin logo (centered)
+  const logoY = sepY + 56;
+  drawDondeLogo(ctx, CW / 2, logoY, 60, p.ac);
+
+  // "Donde" brand name
+  const nameY = logoY + 44;
+  ctx.font = '700 48px "Playfair Display", Georgia, serif';
+  ctx.fillStyle = p.fg;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  ctx.fillText('Donde', CW / 2, nameY);
+
+  // Tagline
+  const tagY = nameY + 60;
+  ctx.font = '400 21px "Inter", system-ui, sans-serif';
+  ctx.fillStyle = p.fg3;
+  ctx.fillText(TAGLINE, CW / 2, tagY);
+
+  // QR Code (centered, prominent)
+  const qrSize = 150;
+  const qrX = (CW - qrSize) / 2;
+  const qrY = tagY + 48;
+  const matrix = generateQRMatrix('https://donde.ai');
+  drawQRCode(ctx, qrX, qrY, qrSize, matrix, dark ? p.fg : p.fg, dark ? p.bg2 : '#ffffff');
+
+  // Donde pin logo inside QR center
+  const qrCX = qrX + qrSize / 2;
+  const qrCY = qrY + qrSize / 2;
+  ctx.beginPath();
+  ctx.arc(qrCX, qrCY, 24, 0, Math.PI * 2);
+  ctx.fillStyle = dark ? p.bg2 : '#ffffff';
+  ctx.fill();
+  drawDondeLogo(ctx, qrCX, qrCY, 34, p.ac);
+
+  // CTA text
+  const ctaY = qrY + qrSize + 28;
+  ctx.font = '600 19px "Inter", system-ui, sans-serif';
+  ctx.fillStyle = p.ac;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  ctx.fillText('Scan to discover on Donde \u2192', CW / 2, ctaY);
 }
 
 /* ======================================================================
-   LARGE CARD — Tier 1 + Tier 2 rich infographic
+   REEL CARD — 1080×1920 (9:16) single-format shareable card
    ====================================================================== */
-async function buildLargeCard(resultData, p, culture) {
+async function buildReelCard(resultData, p, culture) {
   const r = resultData.restaurant;
   const score = Math.round(parseFloat(resultData.donde_match) || 0);
-  const scoring = resultData.scoring_v9 || resultData.scoring || {};
-  const img = r.photo_urls?.[0] ? await loadImage(r.photo_urls[0]) : null;
+  const recText = (resultData.recommendation || '').replace(/\u2014/g, ', ').replace(/ , /g, ', ');
 
-  const mc = document.createElement('canvas'); mc.width = CW; mc.height = 100;
-  const m = mc.getContext('2d');
-  let totalH = PAD;
-  const photoH = 260; totalH += photoH + 36;
-  m.font = '700 48px "Playfair Display", Georgia, serif';
-  const nameLines = wrapText(m, r.name || 'Restaurant', CONTENT_W);
-  totalH += nameLines.length * 58 + 8;
+  const canvas = document.createElement('canvas');
+  canvas.width = CW;
+  canvas.height = CH;
+  const ctx = canvas.getContext('2d');
+
+  // ── BACKGROUND ──
+  drawReelBackground(ctx, p, culture);
+
+  // ── SCORE RING (centered hero) ──
+  let y = 280;
+  const ringR = 80;
+  const ringCX = CW / 2;
+  drawScoreHalo(ctx, ringCX, y, ringR, p);
+  drawScoreRing(ctx, ringCX, y, ringR, score, p, {
+    showLabel: true, numSize: 56, labelSize: 15, lineWidth: 11,
+  });
+  y += ringR + 30;
+
+  // Score tier text
+  ctx.font = '700 30px "Playfair Display", Georgia, serif';
+  ctx.fillStyle = getScoreColor(score, p);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  ctx.fillText(getScoreTier(score), CW / 2, y);
+  y += 60;
+
+  // Accent separator
+  drawSeparator(ctx, y, p, 'accent');
+  y += 56;
+
+  // ── RESTAURANT NAME (centered, prominent) ──
+  ctx.font = '700 56px "Playfair Display", Georgia, serif';
+  ctx.fillStyle = p.fg;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  const nameLines = wrapText(ctx, r.name || 'Restaurant', CONTENT_W - 40);
+  for (const line of nameLines.slice(0, 2)) {
+    ctx.fillText(line, CW / 2, y);
+    y += 68;
+  }
+  y += 20;
+
+  // ── META PILLS (centered) ──
   const metaParts = [];
   const hood = r.neighborhood_name || '';
   if (hood && !/^chicago$/i.test(hood.trim())) metaParts.push(hood);
   if (r.cuisine_type) metaParts.push(r.cuisine_type);
   if (r.price_level) metaParts.push(r.price_level);
-  if (metaParts.length > 0) totalH += 36 + 24;
-  const oneliner = r.best_for_oneliner || '';
-  if (oneliner) { m.font = 'italic 400 24px "Playfair Display", Georgia, serif'; totalH += Math.min(wrapText(m, oneliner, CONTENT_W - 20).length, 2) * 34 + 16; }
-  totalH += 16 + 220 + 24; // separator + hero + gap
-  const factors = [
-    { label: 'Food', value: scoring.food }, { label: 'Vibe', value: scoring.vibe },
-    { label: 'Service', value: scoring.service }, { label: 'Reputation', value: scoring.reputation },
-    { label: 'Convenience', value: scoring.convenience },
-  ].filter(f => f.value != null);
-  if (factors.length > 0) totalH += factors.length * 48 + 24;
-  const recText = (resultData.recommendation || '').replace(/\u2014/g, ', ').replace(/ , /g, ', ');
-  if (recText) { m.font = 'italic 400 24px "Playfair Display", Georgia, serif'; totalH += 16 + Math.min(wrapText(m, recText, CONTENT_W - 40).length, 6) * 34 + 24; }
-  const tip = (resultData.insider_tip || '').replace(/\u2014/g, ', ');
-  if (tip) { m.font = '400 19px "Inter", system-ui, sans-serif'; totalH += Math.min(wrapText(m, tip, CONTENT_W - 48).length, 3) * 26 + 56; }
-  const dc = resultData.deep_context || {};
-  const highlights = [];
-  if (dc.signature_dishes?.length) highlights.push({ label: 'Signature Dishes', text: dc.signature_dishes.slice(0, 3).join(', ') });
-  if (dc.service_style) highlights.push({ label: 'Service', text: dc.service_style });
-  if (dc.reservation_difficulty) highlights.push({ label: 'Reservations', text: dc.reservation_difficulty });
-  if (highlights.length > 0) totalH += highlights.length * 50 + 32;
-  totalH += 40 + 72 + 16 + PAD; // footer
-
-  const canvas = document.createElement('canvas'); canvas.width = CW; canvas.height = totalH;
-  const ctx = canvas.getContext('2d');
-  drawBackground(ctx, totalH, p, culture);
-  let y = PAD;
-
-  // Photo
-  if (img) drawCoverPhoto(ctx, img, PAD, y, CONTENT_W, photoH, 28);
-  else drawFallbackVisual(ctx, PAD, y, CONTENT_W, photoH, 28, p);
-  const bS = 72, bX = PAD + 16, bY = y + photoH - bS - 14;
-  ctx.fillStyle = p.bg2 + 'e6'; roundRect(ctx, bX, bY, bS, bS, 14); ctx.fill();
-  ctx.strokeStyle = p.border; ctx.lineWidth = 1.5; roundRect(ctx, bX, bY, bS, bS, 14); ctx.stroke();
-  drawScoreRing(ctx, bX + bS / 2, bY + bS / 2, 24, score, p, { numSize: 24 });
-  y += photoH + 36;
-
-  // Name
-  ctx.fillStyle = p.fg; ctx.font = '700 48px "Playfair Display", Georgia, serif';
-  ctx.textAlign = 'left'; ctx.textBaseline = 'top';
-  for (const line of nameLines.slice(0, 2)) { ctx.fillText(line, PAD, y); y += 58; }
-  y += 8;
-
-  // Pills
-  if (metaParts.length > 0) { y = drawPills(ctx, y, metaParts, p, 19, 34) + 24; }
-
-  // One-liner
-  if (oneliner) {
-    ctx.font = 'italic 400 24px "Playfair Display", Georgia, serif'; ctx.fillStyle = p.fg2;
-    ctx.textAlign = 'left'; ctx.textBaseline = 'top';
-    for (const line of wrapText(ctx, oneliner, CONTENT_W - 20).slice(0, 2)) { ctx.fillText(line, PAD + 8, y); y += 34; }
-    y += 16;
+  if (metaParts.length > 0) {
+    y = drawCenteredPills(ctx, y, metaParts, p) + 32;
   }
 
-  // Separator
-  drawSeparator(ctx, y, p, 'accent'); y += 16;
+  // Dot separator
+  drawSeparator(ctx, y, p, 'dots');
+  y += 56;
 
-  // Score Hero (glass card)
-  const heroH = 220, heroX = PAD, heroW = CONTENT_W;
-  ctx.save();
-  ctx.fillStyle = p.glass; roundRect(ctx, heroX, y, heroW, heroH, 24); ctx.fill();
-  ctx.strokeStyle = p.border; ctx.lineWidth = 1;
-  roundRect(ctx, heroX, y, heroW, heroH, 24); ctx.stroke();
-  // Top accent glow
-  const hg = ctx.createLinearGradient(heroX, y, heroX + heroW, y);
-  hg.addColorStop(0, p.ac + '0a'); hg.addColorStop(0.5, p.ac + '18'); hg.addColorStop(1, p.ac + '0a');
-  ctx.fillStyle = hg; ctx.fillRect(heroX + 1, y + 1, heroW - 2, 3);
-  ctx.restore();
-
-  drawScoreRing(ctx, heroX + 90, y + heroH / 2, 52, score, p, { showLabel: true, numSize: 44, labelSize: 13, lineWidth: 9 });
-
-  const tX = heroX + 170, tW = heroW - 190;
-  ctx.font = '700 26px "Playfair Display", Georgia, serif';
-  ctx.fillStyle = getScoreColor(score, p); ctx.textAlign = 'left'; ctx.textBaseline = 'top';
-  ctx.fillText(getScoreTier(score), tX, y + 28);
-
-  const narrative = resultData.match_narrative?.summary || '';
-  if (narrative) {
-    ctx.font = '400 19px "Inter", system-ui, sans-serif'; ctx.fillStyle = p.fg2;
-    let ny = y + 62;
-    for (const line of wrapText(ctx, narrative, tW).slice(0, 3)) { ctx.fillText(line, tX, ny); ny += 26; }
-  }
-
-  const signals = resultData.match_narrative?.key_signals || [];
-  if (signals.length > 0) {
-    ctx.font = '500 15px "Inter", system-ui, sans-serif';
-    let sx = tX; const sigY = y + heroH - 44;
-    for (const sig of signals.slice(0, 3)) {
-      const tw = ctx.measureText(sig).width, pw = tw + 20;
-      if (sx + pw > heroX + heroW - 16) break;
-      ctx.fillStyle = p.acSoft; roundRect(ctx, sx, sigY, pw, 26, 13); ctx.fill();
-      ctx.fillStyle = p.ac; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-      ctx.fillText(sig, sx + 10, sigY + 13); sx += pw + 8;
-    }
-  }
-  y += heroH + 24;
-
-  // Factor Bars
-  if (factors.length > 0) {
-    for (const f of factors) y = drawFactorBar(ctx, PAD, y, CONTENT_W, f.label, f.value, p) + 16;
-    y += 8;
-  }
-
-  // Blurb
+  // ── RECOMMENDATION BLURB (in elegant quotes) ──
   if (recText) {
-    drawSeparator(ctx, y, p, 'fade'); y += 16;
-    ctx.font = '300 46px "Playfair Display", Georgia, serif'; ctx.fillStyle = p.ac + '30';
-    ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText('\u201C', PAD, y - 8);
-    ctx.font = 'italic 400 24px "Playfair Display", Georgia, serif'; ctx.fillStyle = p.fg2;
-    y += 20;
-    for (const line of wrapText(ctx, recText, CONTENT_W - 40).slice(0, 6)) { ctx.fillText(line, PAD + 16, y); y += 34; }
-    y += 24;
-  }
+    // Opening quote mark
+    ctx.font = '300 80px "Playfair Display", Georgia, serif';
+    ctx.fillStyle = p.ac + '40';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillText('\u201C', CW / 2, y - 16);
+    y += 56;
 
-  // Insider Tip
-  if (tip) {
-    const tipLines = wrapText(ctx, tip, CONTENT_W - 48);
-    const tipBoxH = 36 + Math.min(tipLines.length, 3) * 26 + 16;
-    ctx.fillStyle = p.ac + '0a'; roundRect(ctx, PAD, y, CONTENT_W, tipBoxH, 16); ctx.fill();
-    ctx.fillStyle = p.ac; roundRect(ctx, PAD, y, 4, tipBoxH, 2); ctx.fill();
-    ctx.font = '600 14px "Inter", system-ui, sans-serif'; ctx.fillStyle = p.ac;
-    ctx.textAlign = 'left'; ctx.textBaseline = 'top';
-    drawSpacedText(ctx, 'INSIDER TIP', PAD + 20, y + 14, 1.5);
-    ctx.font = '400 19px "Inter", system-ui, sans-serif'; ctx.fillStyle = p.fg2;
-    let tipY = y + 38;
-    for (const line of tipLines.slice(0, 3)) { ctx.fillText(line, PAD + 20, tipY); tipY += 26; }
-    y += tipBoxH + 20;
-  }
-
-  // Deep Context
-  if (highlights.length > 0) {
-    drawSeparator(ctx, y, p, 'dots'); y += 20;
-    for (const h of highlights) {
-      ctx.font = '600 15px "Inter", system-ui, sans-serif'; ctx.fillStyle = p.fg3;
-      ctx.textAlign = 'left'; ctx.textBaseline = 'top';
-      drawSpacedText(ctx, h.label.toUpperCase(), PAD, y, 1); y += 22;
-      ctx.font = '400 20px "Inter", system-ui, sans-serif'; ctx.fillStyle = p.fg2;
-      ctx.fillText(h.text, PAD, y); y += 28;
+    // Blurb text
+    ctx.font = 'italic 400 28px "Playfair Display", Georgia, serif';
+    ctx.fillStyle = p.fg2;
+    const blurbLines = wrapText(ctx, recText, CONTENT_W - 80);
+    for (const line of blurbLines.slice(0, 8)) {
+      ctx.fillText(line, CW / 2, y);
+      y += 40;
     }
     y += 12;
+
+    // Closing quote mark
+    ctx.font = '300 80px "Playfair Display", Georgia, serif';
+    ctx.fillStyle = p.ac + '40';
+    ctx.fillText('\u201D', CW / 2, y - 22);
   }
 
-  y += 16; drawFooter(ctx, y, p);
+  // ── BRANDED FOOTER ──
+  drawBrandedFooter(ctx, p);
+
   return canvas;
 }
 
 /* ======== PUBLIC API ======== */
 
 /**
- * Generate a Donde Card as a Blob.
+ * Generate a Donde Card as a PNG Blob (1080×1920 reel format).
  * @param {Object} resultData - the full result object from state
- * @param {'small'|'large'} size - card variant
  * @returns {Promise<Blob>} PNG blob
  */
-export async function generateDondeCard(resultData, size = 'small') {
+export async function generateDondeCard(resultData) {
   if (!resultData?.restaurant) throw new Error('No restaurant data provided');
   const p = getPalette(), culture = getCulture();
-  const canvas = size === 'large'
-    ? await buildLargeCard(resultData, p, culture)
-    : await buildSmallCard(resultData, p, culture);
+  const canvas = await buildReelCard(resultData, p, culture);
   return new Promise((resolve, reject) => {
     canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Canvas toBlob failed')), 'image/png', 1.0);
   });
