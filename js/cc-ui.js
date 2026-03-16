@@ -1061,12 +1061,12 @@ function buildHealthViz(run, trend) {
   var avgFit = Math.round(Number(run.avg_score_fit) || 0);
   var avgBlurb = Math.round(Number(run.avg_blurb_quality) || 0);
 
-  // Metric tiles
+  // Metric tiles — clickable for deeper dives
   html += '<div class="mc-viz__metrics">';
-  html += '<div class="mc-viz__metric"><div class="mc-viz__metric-val ' + ragClass(passRate) + '">' + passRate + '%</div><div class="mc-viz__metric-label">Pass Rate</div></div>';
-  html += '<div class="mc-viz__metric"><div class="mc-viz__metric-val">' + avgFit + '</div><div class="mc-viz__metric-label">Avg Score Fit</div></div>';
-  html += '<div class="mc-viz__metric"><div class="mc-viz__metric-val">' + avgBlurb + '</div><div class="mc-viz__metric-label">Avg Blurb Quality</div></div>';
-  html += '<div class="mc-viz__metric"><div class="mc-viz__metric-val">' + total + '</div><div class="mc-viz__metric-label">Total Checks</div></div>';
+  html += '<div class="mc-viz__metric mc-clickable" onclick="togglePulseExpand(\'health\')" title="Click for pass rate details"><div class="mc-viz__metric-val ' + ragClass(passRate) + '">' + passRate + '%</div><div class="mc-viz__metric-label">Pass Rate</div></div>';
+  html += '<div class="mc-viz__metric mc-clickable" onclick="togglePulseExpand(\'dm\')" title="Click for score fit details"><div class="mc-viz__metric-val">' + avgFit + '</div><div class="mc-viz__metric-label">Avg Score Fit</div></div>';
+  html += '<div class="mc-viz__metric mc-clickable" onclick="togglePulseExpand(\'dm\')" title="Click for blurb quality details"><div class="mc-viz__metric-val">' + avgBlurb + '</div><div class="mc-viz__metric-label">Avg Blurb Quality</div></div>';
+  html += '<div class="mc-viz__metric mc-clickable" onclick="togglePulseExpand(\'grade\')" title="Click for grade breakdown"><div class="mc-viz__metric-val">' + total + '</div><div class="mc-viz__metric-label">Total Checks</div></div>';
   html += '</div>';
 
   // Trend line
@@ -1086,17 +1086,17 @@ function buildHealthViz(run, trend) {
     html += renderGradeDonut(run.grade_distribution, total);
   }
 
-  // Next steps
-  html += '<div class="mc-viz__title">Insights</div>';
+  // Insights with CTA buttons
+  html += '<div class="mc-viz__title">Insights & Actions</div>';
   if (passRate === 100) {
-    html += '<div class="mc-viz__insight mc-viz__insight--success"><span class="mc-viz__insight-icon">\u2713</span> Perfect score. All ' + total + ' checks passed. Run a regression guard to confirm stability.</div>';
+    html += '<div class="mc-viz__insight mc-viz__insight--success"><span class="mc-viz__insight-icon">\u2713</span> Perfect score. All ' + total + ' checks passed.<br><button class="mc-viz__cta mc-viz__cta--success" onclick="processCOOInput(\'regression\')">Run Regression Guard</button></div>';
   } else if (passRate >= 85) {
-    html += '<div class="mc-viz__insight mc-viz__insight--success"><span class="mc-viz__insight-icon">\u2713</span> Engine healthy at ' + passRate + '%. Focus on the ' + (total - passCount) + ' remaining gaps.</div>';
+    html += '<div class="mc-viz__insight mc-viz__insight--success"><span class="mc-viz__insight-icon">\u2713</span> Engine healthy at ' + passRate + '%. ' + (total - passCount) + ' gaps remain.<br><button class="mc-viz__cta mc-viz__cta--primary" onclick="processCOOInput(\'fix bugs\')">Fix Gaps</button> <button class="mc-viz__cta mc-viz__cta--success" onclick="processCOOInput(\'scan\')">Rescan</button></div>';
   } else {
-    html += '<div class="mc-viz__insight mc-viz__insight--warn"><span class="mc-viz__insight-icon">\u26A0</span> Pass rate at ' + passRate + '%. Run bug-fixer to address ' + (run.gap_count || 0) + ' issues.</div>';
+    html += '<div class="mc-viz__insight mc-viz__insight--warn"><span class="mc-viz__insight-icon">\u26A0</span> Pass rate at ' + passRate + '%. ' + (run.gap_count || 0) + ' issues need fixes.<br><button class="mc-viz__cta mc-viz__cta--warn" onclick="processCOOInput(\'fix bugs\')">Fix ' + (run.gap_count || 0) + ' Issues</button> <button class="mc-viz__cta mc-viz__cta--primary" onclick="processCOOInput(\'scan\')">Run Fresh Scan</button></div>';
   }
   if (avgBlurb < avgFit) {
-    html += '<div class="mc-viz__insight mc-viz__insight--action"><span class="mc-viz__insight-icon">\u25B6</span> Blurb quality (' + avgBlurb + ') trailing score fit (' + avgFit + '). Focus on voice compliance and slop reduction.</div>';
+    html += '<div class="mc-viz__insight mc-viz__insight--action"><span class="mc-viz__insight-icon">\u25B6</span> Blurb quality (' + avgBlurb + ') trails score fit (' + avgFit + ').<br><button class="mc-viz__cta mc-viz__cta--primary" onclick="processCOOInput(\'blurb\')">Run Blurb Audit</button></div>';
   }
 
   return html;
@@ -1143,21 +1143,21 @@ function buildDmViz(run, trend) {
       '<span class="mc-viz__hbar-val">' + tierPcts[i] + '%</span></div>';
   });
 
-  // Insights
-  html += '<div class="mc-viz__title">Insights</div>';
+  // Insights with CTA buttons
+  html += '<div class="mc-viz__title">Insights & Actions</div>';
   if (avgDm >= 80) {
-    html += '<div class="mc-viz__insight mc-viz__insight--success"><span class="mc-viz__insight-icon">\u2713</span> Strong engine performance. DM ' + avgDm + ' puts quality in the top tier.</div>';
+    html += '<div class="mc-viz__insight mc-viz__insight--success"><span class="mc-viz__insight-icon">\u2713</span> Strong performance at DM ' + avgDm + '.<br><button class="mc-viz__cta mc-viz__cta--success" onclick="processCOOInput(\'regression\')">Verify with Regression</button></div>';
   } else if (avgDm >= 70) {
-    html += '<div class="mc-viz__insight mc-viz__insight--action"><span class="mc-viz__insight-icon">\u25B6</span> Solid at DM ' + avgDm + '. Target 80+ by improving dish/cuisine relevance for niche queries.</div>';
+    html += '<div class="mc-viz__insight mc-viz__insight--action"><span class="mc-viz__insight-icon">\u25B6</span> DM ' + avgDm + ' \u2014 target 80+ via niche cuisine/dish relevance.<br><button class="mc-viz__cta mc-viz__cta--primary" onclick="processCOOInput(\'category food\')">Test Food Queries</button> <button class="mc-viz__cta mc-viz__cta--primary" onclick="processCOOInput(\'fix bugs\')">Fix Scoring</button></div>';
   } else {
-    html += '<div class="mc-viz__insight mc-viz__insight--warn"><span class="mc-viz__insight-icon">\u26A0</span> DM ' + avgDm + ' below target. Review scoring weights and relevance thresholds.</div>';
+    html += '<div class="mc-viz__insight mc-viz__insight--warn"><span class="mc-viz__insight-icon">\u26A0</span> DM ' + avgDm + ' below target.<br><button class="mc-viz__cta mc-viz__cta--warn" onclick="processCOOInput(\'fix bugs\')">Fix Scoring Gaps</button> <button class="mc-viz__cta mc-viz__cta--primary" onclick="processCOOInput(\'scan\')">Run Diagnostic</button></div>';
   }
 
   if (trend.length >= 2) {
     var prevDm = Math.round(Number(trend[1].avg_dm) || 0);
     var delta = avgDm - prevDm;
-    if (delta > 0) html += '<div class="mc-viz__insight mc-viz__insight--success"><span class="mc-viz__insight-icon">\u2191</span> Up ' + delta + ' points from previous run. Momentum is positive.</div>';
-    else if (delta < 0) html += '<div class="mc-viz__insight mc-viz__insight--warn"><span class="mc-viz__insight-icon">\u2193</span> Down ' + Math.abs(delta) + ' points. Check recent code changes for regressions.</div>';
+    if (delta > 0) html += '<div class="mc-viz__insight mc-viz__insight--success"><span class="mc-viz__insight-icon">\u2191</span> Up ' + delta + ' points from previous run.</div>';
+    else if (delta < 0) html += '<div class="mc-viz__insight mc-viz__insight--warn"><span class="mc-viz__insight-icon">\u2193</span> Down ' + Math.abs(delta) + ' points.<br><button class="mc-viz__cta mc-viz__cta--warn" onclick="processCOOInput(\'regression\')">Run Regression Guard</button></div>';
   }
 
   return html;
@@ -1202,16 +1202,16 @@ function buildIssuesViz(run, trend) {
     html += renderSvgTrendLine(gapTrend, 340, 60, '', 'Gap count over time');
   }
 
-  // Insights
-  html += '<div class="mc-viz__title">Next Steps</div>';
+  // Insights with CTA buttons
+  html += '<div class="mc-viz__title">Actions</div>';
   if (issues.length === 0) {
-    html += '<div class="mc-viz__insight mc-viz__insight--success"><span class="mc-viz__insight-icon">\u2713</span> Zero issues. Engine is clean. Run a broad scan to verify.</div>';
+    html += '<div class="mc-viz__insight mc-viz__insight--success"><span class="mc-viz__insight-icon">\u2713</span> Zero issues. Engine is clean.<br><button class="mc-viz__cta mc-viz__cta--success" onclick="processCOOInput(\'scan\')">Run Broad Scan</button> <button class="mc-viz__cta mc-viz__cta--success" onclick="processCOOInput(\'edge\')">Stress Test</button></div>';
   } else {
     if (liveIssues.length > 0) {
-      html += '<div class="mc-viz__insight mc-viz__insight--warn"><span class="mc-viz__insight-icon">\u26A0</span> ' + liveIssues.length + ' live production issue' + (liveIssues.length > 1 ? 's' : '') + '. These affect real users \u2014 prioritize fixes.</div>';
+      html += '<div class="mc-viz__insight mc-viz__insight--warn"><span class="mc-viz__insight-icon">\u26A0</span> ' + liveIssues.length + ' live issue' + (liveIssues.length > 1 ? 's' : '') + ' affecting real users.<br><button class="mc-viz__cta mc-viz__cta--warn" onclick="processCOOInput(\'fix bugs\')">Fix Live Issues</button></div>';
     }
     if (testIssues.length > 0) {
-      html += '<div class="mc-viz__insight mc-viz__insight--action"><span class="mc-viz__insight-icon">\u25B6</span> ' + testIssues.length + ' test issue' + (testIssues.length > 1 ? 's' : '') + ' from quality scans. Run bug-fixer to address.</div>';
+      html += '<div class="mc-viz__insight mc-viz__insight--action"><span class="mc-viz__insight-icon">\u25B6</span> ' + testIssues.length + ' test issue' + (testIssues.length > 1 ? 's' : '') + ' from scans.<br><button class="mc-viz__cta mc-viz__cta--primary" onclick="processCOOInput(\'fix bugs\')">Fix Test Issues</button> <button class="mc-viz__cta mc-viz__cta--primary" onclick="processCOOInput(\'scan\')">Rescan</button></div>';
     }
   }
 
@@ -1359,7 +1359,29 @@ function buildInfraViz() {
 
 function selectRun() {}
 function updatePulseFromProd() {}
-function updateDbOverview() {}
+function updateDbOverview(totalCount, enrichedCount, tagCount, occasionCount) {
+  var $val = document.getElementById('pulse-infra-val');
+  if (!$val) return;
+  var pct = totalCount > 0 ? Math.round(enrichedCount / totalCount * 100) : 0;
+  $val.textContent = pct + '%';
+  $val.className = 'mc-pulse-card__value ' + (pct >= 90 ? 'rag-green' : pct >= 70 ? 'rag-amber' : 'rag-red');
+  // Store for expand/viz use
+  state._dbStats = { total: totalCount, enriched: enrichedCount, tags: tagCount, occasions: occasionCount };
+  // Also try to load cache data silently
+  if (typeof sbClient !== 'undefined' && sbClient) {
+    sbClient.rpc('get_cache_dashboard').then(function(res) {
+      if (res.data) {
+        state._cacheStats = res.data;
+        var hitRate = Math.round((res.data.hit_rate_24h || 0) * 100);
+        var $sub = document.getElementById('pulse-infra');
+        if ($sub) {
+          var label = $sub.querySelector('.mc-pulse-card__label');
+          if (label) label.textContent = pct + '% enriched \u00B7 ' + hitRate + '% cache';
+        }
+      }
+    }).catch(function() {});
+  }
+}
 function updatePipelineStatus() {}
 function renderPipelineHistory() {}
 function updateLiveKPIs() {}

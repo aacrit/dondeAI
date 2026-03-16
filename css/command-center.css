@@ -399,8 +399,17 @@ a {
 .mc-pulse--5 {
   grid-template-columns: repeat(5, 1fr);
 }
+.mc-pulse-col {
+  min-width: 0; /* prevent grid blowout */
+}
 
 .mc-pulse-card {
+  width: 100%;
+  min-height: 72px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   background: rgba(19, 19, 26, 0.7);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -1658,6 +1667,25 @@ a {
 .mc-viz__insight--warn { border-left-color: var(--cc-amber); }
 .mc-viz__insight--action { border-left-color: var(--cc-blue); }
 .mc-viz__insight-icon { flex-shrink: 0; }
+.mc-viz__cta {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 3px 10px;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  border: 1px solid;
+  transition: all var(--dur-fast) var(--ease-out);
+  background: transparent;
+}
+.mc-viz__cta--primary { color: var(--cc-accent); border-color: var(--cc-accent); }
+.mc-viz__cta--primary:hover { background: var(--cc-accent-soft); }
+.mc-viz__cta--success { color: var(--cc-green); border-color: var(--cc-green); }
+.mc-viz__cta--success:hover { background: var(--cc-green-soft); }
+.mc-viz__cta--warn { color: var(--cc-amber); border-color: var(--cc-amber); }
+.mc-viz__cta--warn:hover { background: var(--cc-amber-soft); }
 
 /* ─── 27. Mobile Responsive ─── */
 @media (max-width: 768px) {
