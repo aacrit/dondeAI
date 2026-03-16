@@ -176,7 +176,7 @@ const CW = 1080;
 const CH = 1920;
 const PAD = 72;
 const CONTENT_W = CW - PAD * 2;
-const TAGLINE = 'Your next favorite spot in Chicago';
+const TAGLINE = 'One Pick. Zero Stress.';
 
 /* ======== HELPERS ======== */
 
