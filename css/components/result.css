@@ -46,42 +46,30 @@
   border-color: transparent;
 }
 
+/* Premium border: static subtle accent glow (no rotation) */
 .result-card--premium-border::after {
   content: '';
   position: absolute;
   inset: -1px;
   border-radius: calc(var(--radius-lg) + 1px);
-  background: conic-gradient(
-    from var(--border-angle, 0deg),
-    transparent 0%,
-    color-mix(in srgb, var(--ac) 20%, transparent) 25%,
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--ac) 15%, transparent),
     transparent 50%,
-    color-mix(in srgb, var(--ac) 15%, transparent) 75%,
-    transparent 100%
+    color-mix(in srgb, var(--ac) 10%, transparent)
   );
   z-index: -1;
-  animation: rotateBorder 8s linear infinite;
   pointer-events: none;
 }
 
-/* 90+ scores: stronger glow */
+/* 90+ scores: slightly stronger static glow */
 .result-card--premium-border-strong::after {
-  background: conic-gradient(
-    from var(--border-angle, 0deg),
-    transparent 0%,
-    color-mix(in srgb, var(--ac) 30%, transparent) 25%,
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--ac) 25%, transparent),
     transparent 50%,
-    color-mix(in srgb, var(--ac) 25%, transparent) 75%,
-    transparent 100%
+    color-mix(in srgb, var(--ac) 20%, transparent)
   );
-}
-
-@keyframes rotateBorder {
-  to { --border-angle: 360deg; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .result-card--premium-border::after { animation: none; }
 }
 
 /* ---- 3-Tier Progressive Disclosure System ---- */

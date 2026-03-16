@@ -601,9 +601,34 @@ function toggleDrawer() {
   if (isOpen) {
     var badge = document.getElementById('mc-drawer-badge');
     if (badge) { badge.style.display = 'none'; badge.textContent = '0'; }
-    setTimeout(function() { var $i = document.getElementById('coo-input'); if ($i) $i.focus(); }, 100);
+    // Render agent team into the drawer
+    renderAgentsInDrawer();
   }
   updateDashboardMargins();
+}
+
+function renderAgentsInDrawer() {
+  var drawerAgents = document.getElementById('mc-drawer-agents');
+  if (!drawerAgents) return;
+  // Reuse the same renderAgentStatus but target the drawer container
+  if (typeof renderAgentStatus === 'function') {
+    // Temporarily swap target, render, swap back
+    var mainEl = document.getElementById('mc-agents');
+    renderAgentStatus();
+    if (mainEl) drawerAgents.innerHTML = mainEl.innerHTML;
+  }
+}
+
+function toggleTerminalInDrawer() {
+  var body = document.getElementById('mc-terminal-body');
+  var chevron = document.getElementById('mc-terminal-chevron');
+  if (!body) return;
+  var isOpen = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : 'flex';
+  if (chevron) chevron.classList.toggle('mc-drawer__terminal-chevron--open', !isOpen);
+  if (!isOpen) {
+    setTimeout(function() { var $i = document.getElementById('coo-input'); if ($i) $i.focus(); }, 100);
+  }
 }
 
 function openDrawerForTest() {
@@ -1960,3 +1985,96 @@ function termLog(type, msg) {
 function openTerminal() {}
 function closeTerminal() {}
 function updateTicker() {}
+
+// ═══════════════════════════════════════════════════════════════════
+// Agent Team Detail Panel
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * Open the right detail panel with full agent profile, skills, and CLI prompt.
+ * @param {string} agentId - The agent ID (e.g. 'donde-coo', 'bug-fixer')
+ */
+function showAgentDetail(agentId) {
+  // Find agent in team data
+  var agent = null;
+  var divName = '';
+  var divColor = '';
+  if (window._agentTeam) {
+    for (var div in window._agentTeam) {
+      var team = window._agentTeam[div];
+      for (var i = 0; i < team.agents.length; i++) {
+        if (team.agents[i].id === agentId) {
+          agent = team.agents[i];
+          divName = div;
+          divColor = team.color;
+          break;
+        }
+      }
+      if (agent) break;
+    }
+  }
+  if (!agent) return;
+
+  var html = '';
+
+  // Agent header
+  html += '<div style="text-align:center;padding:var(--space-md) 0;border-bottom:1px solid var(--cc-border);margin-bottom:var(--space-md)">';
+  html += '<div style="font-size:2rem;margin-bottom:var(--space-xs)">' + agent.icon + '</div>';
+  html += '<div style="font-size:var(--text-sm);font-weight:700">' + agent.name + '</div>';
+  html += '<div style="font-size:var(--text-xs);color:var(--cc-text3)">' + agent.role + '</div>';
+  html += '<div style="margin-top:var(--space-xs)"><span style="font-size:9px;padding:2px 8px;border-radius:var(--radius-pill);background:' + divColor + ';color:white;font-weight:600">' + divName + '</span></div>';
+  html += '</div>';
+
+  // Agent ID
+  html += '<div class="mc-detail__row"><span class="mc-detail__key">Agent ID</span><span class="mc-detail__val" style="font-size:10px">' + agent.id + '</span></div>';
+  html += '<div class="mc-detail__row"><span class="mc-detail__key">Trigger</span><span class="mc-detail__val" style="font-size:10px">' + agent.trigger + '</span></div>';
+
+  // Skills
+  html += '<div class="mc-viz__title">Skills & Expertise</div>';
+  html += '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:var(--space-md)">';
+  agent.skills.forEach(function(s) {
+    html += '<span style="font-size:10px;padding:3px 8px;background:var(--cc-surface2);border:1px solid var(--cc-border);border-radius:var(--radius-pill);color:var(--cc-text2)">' + s + '</span>';
+  });
+  html += '</div>';
+
+  // CLI Command
+  html += '<div class="mc-viz__title">Run This Agent</div>';
+  html += '<div class="mc-cli-block" style="margin-bottom:var(--space-sm)">';
+  html += '<code style="color:var(--cc-accent)">claude --agent ' + agent.id + '</code>';
+  html += '</div>';
+
+  // Customizable prompt
+  html += '<div class="mc-viz__title">Prompt</div>';
+  html += '<div style="position:relative">';
+  html += '<textarea id="mc-agent-prompt" style="width:100%;min-height:80px;padding:var(--space-sm);background:var(--cc-bg);border:1px solid var(--cc-border);border-radius:var(--radius-sm);color:var(--cc-text);font-family:var(--font-sans);font-size:var(--text-xs);resize:vertical;line-height:1.5;box-sizing:border-box">' + agent.defaultPrompt + '</textarea>';
+  html += '</div>';
+
+  // Copy full command button
+  html += '<div style="margin-top:var(--space-sm);display:flex;gap:var(--space-sm)">';
+  html += '<button class="mc-viz__cta mc-viz__cta--primary" onclick="copyAgentCommand(\'' + agent.id + '\')" style="flex:1">Copy Full Command</button>';
+  html += '<button class="mc-viz__cta mc-viz__cta--success" onclick="processCOOInput(\'' + agent.id.replace('donde-', '').replace(/-/g, ' ') + '\')" style="flex:1">Run in Terminal</button>';
+  html += '</div>';
+
+  openDetail(agent.icon + ' ' + agent.name, html);
+}
+
+/**
+ * Copy the full CLI command (agent + prompt) to the clipboard.
+ * @param {string} agentId - The agent ID
+ */
+function copyAgentCommand(agentId) {
+  var textarea = document.getElementById('mc-agent-prompt');
+  var prompt = textarea ? textarea.value : '';
+  var cmd = 'claude --agent ' + agentId + ' --prompt "' + prompt.replace(/"/g, '\\"') + '"';
+
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(cmd).then(function() {
+      var btn = document.querySelector('.mc-viz__cta--primary');
+      if (btn) {
+        var orig = btn.textContent;
+        btn.textContent = 'Copied!';
+        setTimeout(function() { btn.textContent = orig; }, 1500);
+      }
+    });
+  }
+}
