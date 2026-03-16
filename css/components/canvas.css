@@ -141,6 +141,17 @@
   border-top: none;
 }
 
+/* Ink pulse on keystroke — brief width overshoot for tactile feedback */
+.craving-wrap--pulse::after {
+  animation: inkKeystrokePulse 200ms var(--spring);
+}
+
+@keyframes inkKeystrokePulse {
+  0%   { transform: scaleX(1); }
+  50%  { transform: scaleX(1.02); }
+  100% { transform: scaleX(1); }
+}
+
 .craving-wrap:focus-within::after {
   width: 100%;
 }
@@ -167,7 +178,13 @@
   font-family: var(--font-emotional);
   font-style: italic;
   color: var(--fg3);
-  transition: opacity 120ms ease-out;
+  transition: opacity 300ms var(--ease-out), transform 300ms var(--ease-out);
+}
+
+/* Living placeholder crossfade */
+.craving-input--placeholder-exit::placeholder {
+  opacity: 0;
+  transform: translateY(-4px);
 }
 
 /* Character counter — appears at 80%+ of maxlength */
@@ -338,11 +355,44 @@
   border: 1.5px solid var(--ac);
   border-radius: var(--radius-pill);
   overflow: hidden;
+  perspective: 800px;
+  transform-style: preserve-3d;
   transition: background 200ms cubic-bezier(0.2, 0, 0, 1),
               color 200ms cubic-bezier(0.2, 0, 0, 1),
               border-color 200ms cubic-bezier(0.2, 0, 0, 1),
               box-shadow 200ms var(--ease-out),
               transform 300ms var(--spring);
+}
+
+/* Radial glow that follows cursor position */
+.cta-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    circle at var(--mx, 50%) var(--my, 50%),
+    rgba(255,255,255,0.15) 0%,
+    transparent 70%
+  );
+  opacity: 0;
+  transition: opacity 200ms var(--ease-out);
+  pointer-events: none;
+}
+
+@media (hover: hover) {
+  .cta-btn:not(:disabled):hover::after { opacity: 1; }
+}
+
+/* Enable glow — pulse on disabled→enabled transition */
+.cta-btn--glow-pulse {
+  animation: ctaGlowPulse 600ms var(--ease-out);
+}
+
+@keyframes ctaGlowPulse {
+  0%   { box-shadow: 0 0 0 0 var(--ac); }
+  50%  { box-shadow: 0 0 20px 4px color-mix(in srgb, var(--ac) 30%, transparent); }
+  100% { box-shadow: 0 0 0 0 var(--ac); }
 }
 
 .cta-btn:not(:disabled):hover {
@@ -389,7 +439,7 @@
   pointer-events: none;
 }
 
-.cta-btn--loading::after {
+.cta-btn--loading::before {
   content: '';
   position: absolute;
   bottom: 0;

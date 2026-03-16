@@ -11,10 +11,13 @@ import { loadTheme, loadSound, loadHistory, hasGuestDismissed, hasSeenOnboarding
 import { initTheme, getLabels } from './theme.js';
 import { initAudio } from './audio.js';
 import { initSpring } from './spring.js';
+import { magneticHover } from './motion.js';
 import { initVoice } from './voice.js';
 import { initShare } from './share.js';
 import { initOffline } from './offline.js';
 import { initAccessibility } from './accessibility.js';
+import { initScrollHeader } from './scroll-header.js';
+import { initSwipeCards } from './swipe-cards.js';
 import { initAuth, isAuthenticated as isAuthAuthenticated, getUser as getAuthUser } from './auth.js';
 import { loadRive } from './animations.js';
 import { getGreeting } from './utils.js';
@@ -64,6 +67,7 @@ function init() {
   initShare();
   initOffline();
   initAccessibility();
+  initScrollHeader();
   initAuth();
 
   // Set up greeting
@@ -87,6 +91,9 @@ function init() {
 
   // Wire craving input
   wireCravingInput();
+
+  // Living placeholder rotation on canvas input
+  initLivingPlaceholder();
 
   // Render dynamic smart chips
   renderSmartChips();
@@ -113,6 +120,36 @@ function init() {
 
   // Wire swipe gestures
   wireSwipe();
+
+  // Wire swipe card navigation on result card
+  initSwipeCards({
+    onSwipeLeft: () => {
+      const tryAgainBtn = document.querySelector('[data-action="try-again"]');
+      if (tryAgainBtn) tryAgainBtn.click();
+    },
+    onSwipeRight: () => {
+      // Swipe right = go back to canvas
+      const backBtn = document.querySelector('.back-btn');
+      if (backBtn) backBtn.click();
+    },
+  });
+
+  // Magnetic hover on CTA (desktop only)
+  const $cta = document.querySelector('.cta-btn[data-action="submit"]');
+  if ($cta) magneticHover($cta, { strength: 5 });
+
+  // Glow pulse when CTA transitions from disabled → enabled
+  if ($cta) {
+    const ctaObs = new MutationObserver((mutations) => {
+      for (const m of mutations) {
+        if (m.attributeName === 'disabled' && !$cta.disabled) {
+          $cta.classList.add('cta-btn--glow-pulse');
+          $cta.addEventListener('animationend', () => $cta.classList.remove('cta-btn--glow-pulse'), { once: true });
+        }
+      }
+    });
+    ctaObs.observe($cta, { attributes: true, attributeFilter: ['disabled'] });
+  }
 
   // Wire disabled CTA nudge
   document.addEventListener('pointerdown', (e) => {
@@ -534,6 +571,54 @@ subscribe((state, prev) => {
     }
   }
 });
+
+/* ---- Living Placeholder ---- */
+let _placeholderTimer = null;
+let _placeholderIdx = 0;
+
+function initLivingPlaceholder() {
+  if (REDUCED_MOTION.matches) return;
+  const $input = $dom.cravingInput;
+  if (!$input) return;
+
+  const cycle = () => {
+    const state = getState();
+    if (state.step !== 0 || state.loading || $input.value.trim()) return;
+    const labels = getLabels(state.theme.culture);
+    const placeholders = labels.placeholders || [labels.placeholder];
+    _placeholderIdx = (_placeholderIdx + 1) % placeholders.length;
+    // Crossfade: fade out, swap, fade in
+    $input.classList.add('craving-input--placeholder-exit');
+    setTimeout(() => {
+      $input.placeholder = placeholders[_placeholderIdx];
+      $input.classList.remove('craving-input--placeholder-exit');
+    }, 300);
+  };
+
+  _placeholderTimer = setInterval(cycle, 4000);
+
+  // Stop cycling on focus, resume on blur
+  $input.addEventListener('focus', () => {
+    if (_placeholderTimer) { clearInterval(_placeholderTimer); _placeholderTimer = null; }
+  });
+  $input.addEventListener('blur', () => {
+    if (!_placeholderTimer) _placeholderTimer = setInterval(cycle, 4000);
+  });
+}
+
+/* ---- Ink Pulse on Keystroke ---- */
+if (typeof document !== 'undefined') {
+  document.addEventListener('DOMContentLoaded', () => {
+    const $wrap = document.querySelector('.craving-wrap');
+    const $input = document.getElementById('craving-input');
+    if ($wrap && $input && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      $input.addEventListener('input', () => {
+        $wrap.classList.add('craving-wrap--pulse');
+        $wrap.addEventListener('animationend', () => $wrap.classList.remove('craving-wrap--pulse'), { once: true });
+      });
+    }
+  });
+}
 
 /* ---- Boot ---- */
 init();

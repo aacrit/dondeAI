@@ -63,6 +63,16 @@ export const HAPTICS = {
   nameReveal:  [5, 50, 8],            // V11: restaurant name entrance
   tierPop:     [8, 20, 12],           // V11: tier expand pop
   photoSnap:   [3],                   // V11: photo lightbox snap
+  /* Premium UI haptics */
+  filterSelect:   [8],                // filter pill selection — light tick
+  chipSelect:     [12],               // chip selection — medium tick
+  occasionSelect: [18],               // occasion selection — soft bump
+  swipeNotch:     [25],               // swipe threshold reached — detent feel
+  viewTransition: [15, 8],            // view change — soft thud
+  scoreThreshold: [6],                // count-up passing 60/70/80/90 — rapid tick
+  validationShake:[12, 8, 12, 8, 12], // error shake — triple buzz
+  disabledTap:    [30],               // disabled CTA tap — single heavy
+  cardSwipe:      [8, 15],            // card swap during swipe
 };
 
 /* ---- AbortController for fetch cancellation ---- */

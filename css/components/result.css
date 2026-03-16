@@ -34,6 +34,56 @@
   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
 }
 
+/* ---- Ambient Gradient Border (80+ scores) ---- */
+@property --border-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.result-card--premium-border {
+  position: relative;
+  border-color: transparent;
+}
+
+.result-card--premium-border::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: calc(var(--radius-lg) + 1px);
+  background: conic-gradient(
+    from var(--border-angle, 0deg),
+    transparent 0%,
+    color-mix(in srgb, var(--ac) 20%, transparent) 25%,
+    transparent 50%,
+    color-mix(in srgb, var(--ac) 15%, transparent) 75%,
+    transparent 100%
+  );
+  z-index: -1;
+  animation: rotateBorder 8s linear infinite;
+  pointer-events: none;
+}
+
+/* 90+ scores: stronger glow */
+.result-card--premium-border-strong::after {
+  background: conic-gradient(
+    from var(--border-angle, 0deg),
+    transparent 0%,
+    color-mix(in srgb, var(--ac) 30%, transparent) 25%,
+    transparent 50%,
+    color-mix(in srgb, var(--ac) 25%, transparent) 75%,
+    transparent 100%
+  );
+}
+
+@keyframes rotateBorder {
+  to { --border-angle: 360deg; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .result-card--premium-border::after { animation: none; }
+}
+
 /* ---- 3-Tier Progressive Disclosure System ---- */
 .tier {
   display: flex;
@@ -145,6 +195,11 @@
   animation: ringPulse 500ms var(--ease-out);
 }
 
+/* Persistent warm glow for 80+ scores — subtle ambient life */
+.match-mini__score-wrap--warm-glow {
+  filter: drop-shadow(0 0 8px var(--rag-green-soft));
+}
+
 /* Tap feedback — micro-scale spring */
 .match-mini:active .match-mini__score-wrap {
   transform: scale(0.92);
@@ -152,6 +207,10 @@
 }
 .match-mini__score-wrap {
   transition: transform 200ms var(--spring);
+}
+/* Score number settle — spring scale on count-up completion */
+.match-mini__score--settling {
+  animation: scoreSettle 400ms var(--spring);
 }
 
 /* Score-tier RAG coloring */
@@ -242,7 +301,7 @@
   max-width: 260px;
   white-space: normal;
   pointer-events: none;
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--glass-e2-shadow);
 }
 .badge-popout--open {
   display: flex;
@@ -250,6 +309,11 @@
   transform: scale(1);
   pointer-events: auto;
   border-top: 2px solid var(--ac);
+}
+/* Dark mode depth — inner highlight for perceived elevation */
+[data-mode="dark"] .badge-popout--open {
+  box-shadow: inset 0 0.5px 0 0 rgba(255,255,255,0.08),
+              var(--glass-e2-shadow);
 }
 /* Tiny uppercase section label — only place we use the data font */
 .badge-popout__title {

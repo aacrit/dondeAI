@@ -1513,3 +1513,44 @@
     letter-spacing: 0;
   }
 }
+
+/* ============================================
+   View Transitions API — Shared-Element Morphing
+   Canvas → Result hero transition
+   ============================================ */
+
+/* Shared-element anchor: craving input morphs to result name */
+.craving-input  { view-transition-name: donde-query; }
+.result-name    { view-transition-name: donde-query; }
+
+/* Match score ring grows from CTA position */
+.cta-btn        { view-transition-name: donde-cta; }
+.match-mini     { view-transition-name: donde-cta; }
+
+::view-transition-group(donde-query) {
+  animation-duration: 500ms;
+  animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+::view-transition-group(donde-cta) {
+  animation-duration: 600ms;
+  animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Crossfade the old/new views */
+::view-transition-old(donde-query),
+::view-transition-new(donde-query),
+::view-transition-old(donde-cta),
+::view-transition-new(donde-cta) {
+  animation-duration: 400ms;
+}
+
+/* Only apply when both views exist — prevent naming conflict when on same step */
+.step[aria-hidden="true"] .craving-input { view-transition-name: none; }
+.step[aria-hidden="true"] .result-name   { view-transition-name: none; }
+.step[aria-hidden="true"] .cta-btn       { view-transition-name: none; }
+.step[aria-hidden="true"] .match-mini    { view-transition-name: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*) { animation-duration: 0ms; }
+}

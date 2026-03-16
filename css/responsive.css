@@ -152,6 +152,88 @@
   }
 }
 
+/* ---- 1280px: Desktop Split-View ---- */
+@media (min-width: 1280px) {
+  :root {
+    --content-max: 100%;
+  }
+
+  /* Side-by-side cockpit: Canvas (40%) | Result (60%) */
+  .step-track {
+    transform: none !important;
+    transition: none;
+  }
+
+  .step {
+    flex: 0 0 auto;
+    width: auto;
+    height: 100%;
+  }
+
+  .step[data-step="0"] {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 40%;
+    border-right: 1px solid var(--border);
+    z-index: 2;
+    filter: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+
+  .step[data-step="0"].step--defocused {
+    filter: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+
+  .step[data-step="1"] {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 60%;
+    z-index: 1;
+  }
+
+  /* Both steps always visible in split view */
+  .step[aria-hidden="true"] {
+    visibility: visible;
+  }
+
+  /* Back button hidden in split view — canvas always visible */
+  .back-btn {
+    display: none;
+  }
+
+  /* Edge hint not needed in split view */
+  .step[data-step="1"]::before {
+    display: none;
+  }
+
+  /* Canvas layout — center vertically in its panel */
+  .canvas-layout {
+    max-width: 520px;
+    margin: 0 auto;
+  }
+
+  /* Result card gets more breathing room */
+  .result-card {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  /* Wider photos in split view */
+  .result-photos__img {
+    max-width: 440px;
+    height: 260px;
+  }
+}
+
 /* ---- 2560px: Large displays ---- */
 @media (min-width: 2560px) {
   :root {

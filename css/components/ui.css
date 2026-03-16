@@ -609,13 +609,15 @@
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  scroll-padding: var(--space-sm);
   padding: 0 0 var(--space-sm);
   border-radius: var(--radius) var(--radius) 0 0;
   margin: calc(-1 * var(--space-md)) calc(-1 * var(--space-md)) var(--space-sm);
   position: relative;
   /* Edge fade gradients to hint at scrollable content */
-  mask-image: linear-gradient(to right, transparent 0, black 16px, black calc(100% - 16px), transparent 100%);
-  -webkit-mask-image: linear-gradient(to right, transparent 0, black 16px, black calc(100% - 16px), transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0, black 16px, black calc(100% - 48px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, transparent 0, black 16px, black calc(100% - 48px), transparent 100%);
 }
 
 .result-photos::-webkit-scrollbar { display: none; }
@@ -2149,12 +2151,14 @@ html .craving-input.craving-input--surprising {
   opacity: 0;
 }
 
-/* Progressive reveal: elements paper-land in sequence when card enters */
-/* Blurb + Tell More omitted — blurb starts collapsed, Tell More hidden until blurb arrives */
-.result-card--revealing .result-photos    { opacity: 0; animation: paperLand 400ms var(--ease-out) 0ms forwards; }
-.result-card--revealing .glance-hero      { opacity: 0; animation: paperLand 400ms var(--ease-out) 120ms forwards; }
-.result-card--revealing .glance-nav       { opacity: 0; animation: paperLand 350ms var(--ease-out) 280ms forwards; }
-.result-card--revealing .card-footer      { opacity: 0; animation: paperLand 350ms var(--ease-out) 400ms forwards; }
+/* Progressive reveal: staggered cascade — each section lands independently for depth */
+/* Photos first, score+name second, blurb third, actions fourth, footer last */
+.result-card--revealing .result-photos    { opacity: 0; animation: resultSectionIn 450ms var(--ease-out) 0ms forwards; }
+.result-card--revealing .glance-hero      { opacity: 0; animation: resultSectionIn 400ms var(--spring) 80ms forwards; }
+.result-card--revealing .donde-blurb      { opacity: 0; animation: resultSectionIn 400ms var(--ease-out) 180ms forwards; }
+.result-card--revealing .glance-nav       { opacity: 0; animation: resultSectionIn 350ms var(--ease-out) 280ms forwards; }
+.result-card--revealing .info-stream      { opacity: 0; animation: resultSectionIn 350ms var(--ease-out) 320ms forwards; }
+.result-card--revealing .card-footer      { opacity: 0; animation: resultSectionIn 350ms var(--ease-out) 380ms forwards; }
 
 /* (V10: Scaffold, progress ink, ghost headline, oscillation removed — instant loading) */
 

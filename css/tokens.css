@@ -91,6 +91,28 @@
   --glass-tip:      var(--glass);
   --glass-score:    var(--glass);
 
+  /* ---- Elevation Depth System (4-layer) ---- */
+  /* E0: Surface (result card, canvas) — opaque */
+  --glass-e0:        var(--bg2);
+  --glass-e0-border: var(--border);
+
+  /* E1: Floating (header, footer, toast) */
+  --glass-e1-blur:   16px;
+  --glass-e1-border: color-mix(in srgb, var(--fg) 8%, transparent);
+  --glass-e1-shadow: 0 4px 24px -8px var(--shadow);
+
+  /* E2: Popout (badge popout, color popover, suggestions) */
+  --glass-e2-blur:   24px;
+  --glass-e2-border: color-mix(in srgb, var(--fg) 12%, transparent);
+  --glass-e2-shadow: 0 8px 32px -4px var(--shadow),
+                     0 0 0 0.5px color-mix(in srgb, var(--fg) 6%, transparent);
+
+  /* E3: Modal (share sheet, lightbox, tile expand) */
+  --glass-e3-blur:   32px;
+  --glass-e3-border: color-mix(in srgb, var(--fg) 16%, transparent);
+  --glass-e3-shadow: 0 16px 48px -8px var(--shadow),
+                     0 0 0 0.5px color-mix(in srgb, var(--fg) 10%, transparent);
+
   /* ---- Border Radius ---- */
   --radius-sm:   8px;
   --radius-md:   12px;

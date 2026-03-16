@@ -229,6 +229,37 @@ export function countUp(el, target, opts = {}) {
   });
 }
 
+/* ---- Magnetic Hover: 3D tilt toward cursor ---- */
+
+/**
+ * Apply magnetic hover to an element — subtle 3D tilt toward cursor.
+ * Also tracks cursor position for radial glow (--mx, --my CSS vars).
+ * Desktop only, respects reduced-motion.
+ *
+ * @param {HTMLElement} el
+ * @param {object} [opts]
+ * @param {number} [opts.strength=6] - Maximum rotation degrees
+ */
+export function magneticHover(el, opts = {}) {
+  if (!el || REDUCED.matches || matchMedia('(hover: none)').matches) return;
+  const strength = opts.strength ?? 6;
+
+  el.addEventListener('mousemove', (e) => {
+    const rect = el.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width - 0.5;
+    const y = (e.clientY - rect.top) / rect.height - 0.5;
+    el.style.transform = `perspective(800px) rotateY(${x * strength}deg) rotateX(${-y * strength}deg)`;
+    el.style.setProperty('--mx', `${(x + 0.5) * 100}%`);
+    el.style.setProperty('--my', `${(y + 0.5) * 100}%`);
+  }, { passive: true });
+
+  el.addEventListener('mouseleave', () => {
+    el.style.transform = '';
+    el.style.transition = `transform 400ms var(--spring)`;
+    setTimeout(() => { el.style.transition = ''; }, 400);
+  }, { passive: true });
+}
+
 /* ---- Utility: Check reduced motion ---- */
 export function isReducedMotion() {
   return REDUCED.matches;

@@ -76,6 +76,21 @@ export function beginCanvasFold() {
     $loadingState.style.display = '';
     $loadingState.classList.remove('loading-state--fading');
     $loadingState.style.opacity = '';
+    /* Branded loading: show the user's craving in the loading state */
+    const craving = getState().craving?.trim();
+    const $loadingText = $loadingState.querySelector('.loading-state__text');
+    if ($loadingText && craving) {
+      $loadingText.innerHTML = `Finding your <em class="loading-state__craving">${craving}</em>...`;
+    }
+    /* Progress confidence bar */
+    const $progressBar = $loadingState.querySelector('.loading-state__progress');
+    if ($progressBar) {
+      $progressBar.style.width = '0%';
+      requestAnimationFrame(() => {
+        $progressBar.style.transition = 'width 2.5s cubic-bezier(0.1, 0.7, 0.3, 0.9)';
+        $progressBar.style.width = '72%';
+      });
+    }
     try {
       if (!REDUCED_MOTION.matches) {
         const $particleCanvas = document.getElementById('particle-canvas');
@@ -93,6 +108,13 @@ export function beginCanvasFold() {
 
   if (REDUCED_MOTION.matches) {
     goToStepInstant(1);
+  } else if (document.startViewTransition) {
+    /* Shared-element hero transition: morph canvas → result */
+    _scaffoldTimers.push(setTimeout(() => {
+      document.startViewTransition(() => {
+        goToStep(1);
+      });
+    }, 400));
   } else {
     _scaffoldTimers.push(setTimeout(() => {
       goToStep(1);
@@ -158,6 +180,16 @@ export async function manifestResult(data) {
   haptic(HAPTICS.reveal);
 
   const dondeScore = Math.round(parseFloat(data.donde_match) || 0);
+
+  /* Ambient gradient border for high scores */
+  if ($dom.resultCard && !REDUCED_MOTION.matches) {
+    $dom.resultCard.classList.remove('result-card--premium-border', 'result-card--premium-border-strong');
+    if (dondeScore >= 90) {
+      $dom.resultCard.classList.add('result-card--premium-border', 'result-card--premium-border-strong');
+    } else if (dondeScore >= 80) {
+      $dom.resultCard.classList.add('result-card--premium-border');
+    }
+  }
   const scoreDuration = getSessionResultCount() > 2 ? 600 : undefined;
   _scaffoldTimers.push(setTimeout(() => {
     animateScoreCountUp(
@@ -175,10 +207,18 @@ export async function manifestResult(data) {
 
   if (!REDUCED_MOTION.matches) {
     _scaffoldTimers.push(setTimeout(() => {
-      const $photos = document.querySelector('.result-photos__scroll');
+      const $photos = document.querySelector('.result-photos__scroll') || document.querySelector('.result-photos');
       if ($photos && $photos.scrollWidth > $photos.clientWidth) {
         $photos.scrollTo({ left: 60, behavior: 'smooth' });
         setTimeout(() => $photos.scrollTo({ left: 0, behavior: 'smooth' }), 600);
+      }
+      /* Ken Burns drift — apply --active class to visible photo via IntersectionObserver */
+      const $photoImgs = document.querySelectorAll('.result-photos__img');
+      if ($photoImgs.length > 0 && $photos) {
+        const photoObs = new IntersectionObserver((entries) => {
+          entries.forEach(e => e.target.classList.toggle('result-photos__img--active', e.isIntersecting));
+        }, { root: $photos, threshold: 0.6 });
+        $photoImgs.forEach(img => photoObs.observe(img));
       }
     }, 1400));
   }
@@ -329,6 +369,7 @@ export function animateScoreCountUp($el, targetScore, customDuration) {
   if (!REDUCED_MQ.matches) {
     const duration = customDuration || 1200;
     const start = performance.now();
+    const _thresholdsFired = new Set();
     const animate = (now) => {
       const elapsed = now - start;
       const progress = Math.min(elapsed / duration, 1);
@@ -337,7 +378,14 @@ export function animateScoreCountUp($el, targetScore, customDuration) {
       $el.textContent = current;
       const thresholdColor = getScoreThresholdColor(current);
       $el.style.color = thresholdColor;
-      $el.style.fontWeight = String(Math.round(400 + progress * 200));
+      /* Score threshold haptic detents at 60, 70, 80, 90 */
+      for (const t of [60, 70, 80, 90]) {
+        if (current >= t && targetScore >= t && !_thresholdsFired.has(t)) {
+          _thresholdsFired.add(t);
+          haptic(HAPTICS.scoreThreshold);
+        }
+      }
+      $el.style.fontVariationSettings = `'wght' ${Math.round(300 + progress * 400)}`;
       if ($arcFill) {
         $arcFill.style.strokeDashoffset = String(arcLength - (current / 100) * arcLength);
         $arcFill.style.stroke = thresholdColor;
@@ -346,11 +394,22 @@ export function animateScoreCountUp($el, targetScore, customDuration) {
         _scoreCountUpRaf = requestAnimationFrame(animate);
       } else {
         _scoreCountUpRaf = null;
+        /* Score settle: number does a spring scale pulse */
+        $el.classList.add('match-mini__score--settling');
+        $el.addEventListener('animationend',
+          () => $el.classList.remove('match-mini__score--settling'), { once: true });
+        /* Ring glow pulse */
         const $scoreWrap = document.querySelector('.match-mini__score-wrap');
         if ($scoreWrap) {
           $scoreWrap.classList.add('match-mini__score-wrap--pulsing');
           $scoreWrap.addEventListener('animationend',
             () => $scoreWrap.classList.remove('match-mini__score-wrap--pulsing'), { once: true });
+        }
+        /* Persistent warm glow for high scores */
+        const $arcFillEl = document.getElementById('match-pill-arc-fill');
+        if (targetScore >= 80 && $arcFillEl) {
+          const $ring = $arcFillEl.closest('.match-mini__score-wrap');
+          if ($ring) $ring.classList.add('match-mini__score-wrap--warm-glow');
         }
       }
     };
