@@ -485,11 +485,6 @@ export function renderFollowups(result) {
   const container = document.createElement('div');
   container.className = 'cs-followups';
 
-  const heading = document.createElement('p');
-  heading.className = 'cs-followups__heading';
-  heading.textContent = 'Keep exploring';
-  container.appendChild(heading);
-
   const chipWrap = document.createElement('div');
   chipWrap.className = 'cs-followups__chips';
 
@@ -506,10 +501,10 @@ export function renderFollowups(result) {
 
   container.appendChild(chipWrap);
 
-  // Insert after blurb or at end
-  const blurb = resultCard.querySelector('.donde-blurb') || resultCard.querySelector('.result-actions');
-  if (blurb?.nextSibling) {
-    blurb.parentNode.insertBefore(container, blurb.nextSibling);
+  // Insert just before the card footer (near Start Over)
+  const footer = resultCard.querySelector('.card-footer');
+  if (footer) {
+    footer.parentNode.insertBefore(container, footer);
   } else {
     resultCard.appendChild(container);
   }

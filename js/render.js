@@ -471,6 +471,7 @@ export function renderPhotos(data) {
     $photos.style.display = 'none';
     return;
   }
+  $photos.style.display = '';
   $photos.innerHTML = '';
   document.getElementById('photo-dots')?.remove();
   const urls = photoUrls.slice(0, 5);
