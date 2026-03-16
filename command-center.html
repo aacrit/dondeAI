@@ -66,38 +66,44 @@
       <div class="mc-smart-action" id="mc-smart-action"></div>
     </div>
 
-    <!-- Hero: Pulse Cards (clickable) + Engine Grade (clickable) -->
-    <div class="mc-hero">
-      <div class="mc-pulse">
-        <div class="mc-pulse-col" id="pulse-col-health">
-          <button class="mc-pulse-card" id="pulse-health" role="status" onclick="togglePulseExpand('health')" title="Expand health details">
-            <div class="mc-pulse-card__value rag-green" id="pulse-health-val">--</div>
-            <div class="mc-pulse-card__label">Pass Rate</div>
-          </button>
-          <div class="mc-pulse-expand" id="pulse-expand-health"></div>
-        </div>
-        <div class="mc-pulse-col" id="pulse-col-dm">
-          <button class="mc-pulse-card" id="pulse-dm" role="status" onclick="togglePulseExpand('dm')" title="Expand score details">
-            <div class="mc-pulse-card__value" id="pulse-dm-val">--</div>
-            <div class="mc-pulse-card__label">Avg DM</div>
-          </button>
-          <div class="mc-pulse-expand" id="pulse-expand-dm"></div>
-        </div>
-        <div class="mc-pulse-col" id="pulse-col-issues">
-          <button class="mc-pulse-card" id="pulse-issues" role="status" onclick="togglePulseExpand('issues')" title="Expand issue details">
-            <div class="mc-pulse-card__value" id="pulse-issues-val">--</div>
-            <div class="mc-pulse-card__label">Issues</div>
-          </button>
-          <div class="mc-pulse-expand" id="pulse-expand-issues"></div>
-        </div>
+    <!-- Hero: 5 Pulse Cards — unified grid, all expand on click -->
+    <div class="mc-pulse mc-pulse--5">
+      <div class="mc-pulse-col">
+        <button class="mc-pulse-card" id="pulse-health" role="status" onclick="togglePulseExpand('health')" title="Expand health details">
+          <div class="mc-pulse-card__value rag-green" id="pulse-health-val">--</div>
+          <div class="mc-pulse-card__label">Pass Rate</div>
+        </button>
+        <div class="mc-pulse-expand" id="pulse-expand-health"></div>
       </div>
-      <button class="mc-grade" id="mc-grade" onclick="processCOOInput('status')" title="View full status">
-        <span class="mc-grade__letter" id="mc-grade-letter">--</span>
-        <div class="mc-grade__info">
-          <span class="mc-grade__sub" id="mc-grade-sub">Engine Grade</span>
+      <div class="mc-pulse-col">
+        <button class="mc-pulse-card" id="pulse-dm" role="status" onclick="togglePulseExpand('dm')" title="Expand score details">
+          <div class="mc-pulse-card__value" id="pulse-dm-val">--</div>
+          <div class="mc-pulse-card__label">Avg DM</div>
+        </button>
+        <div class="mc-pulse-expand" id="pulse-expand-dm"></div>
+      </div>
+      <div class="mc-pulse-col">
+        <button class="mc-pulse-card" id="pulse-issues" role="status" onclick="togglePulseExpand('issues')" title="Expand issue details">
+          <div class="mc-pulse-card__value" id="pulse-issues-val">--</div>
+          <div class="mc-pulse-card__label">Issues</div>
+        </button>
+        <div class="mc-pulse-expand" id="pulse-expand-issues"></div>
+      </div>
+      <div class="mc-pulse-col">
+        <button class="mc-pulse-card mc-pulse-card--grade" id="mc-grade" role="status" onclick="togglePulseExpand('grade')" title="Expand engine grade">
+          <div class="mc-pulse-card__value" id="mc-grade-letter">--</div>
+          <div class="mc-pulse-card__label" id="mc-grade-sub">Engine Grade</div>
           <div class="mc-grade__dist" id="mc-grade-dist"></div>
-        </div>
-      </button>
+        </button>
+        <div class="mc-pulse-expand" id="pulse-expand-grade"></div>
+      </div>
+      <div class="mc-pulse-col">
+        <button class="mc-pulse-card" id="pulse-infra" role="status" onclick="togglePulseExpand('infra')" title="Expand DB and cache health">
+          <div class="mc-pulse-card__value" id="pulse-infra-val">--</div>
+          <div class="mc-pulse-card__label">DB &amp; Cache</div>
+        </button>
+        <div class="mc-pulse-expand" id="pulse-expand-infra"></div>
+      </div>
     </div>
 
     <!-- Division Status — Inline Chips -->

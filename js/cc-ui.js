@@ -842,13 +842,19 @@ function initKeyboardShortcuts() {}
 // ═══════════════════════════════════════════════════════════════════
 
 function togglePulseExpand(metric) {
-  var metrics = ['health', 'dm', 'issues'];
+  var metrics = ['health', 'dm', 'issues', 'grade', 'infra'];
   var isExpanded = state.expandedPulse === metric;
+
+  // Helper to get card element by metric name
+  function getPulseCard(m) {
+    if (m === 'grade') return document.getElementById('mc-grade');
+    return document.getElementById('pulse-' + m);
+  }
 
   // Collapse all
   metrics.forEach(function(m) {
     var expand = document.getElementById('pulse-expand-' + m);
-    var card = document.getElementById('pulse-' + m);
+    var card = getPulseCard(m);
     if (expand) expand.classList.remove('mc-pulse-expand--open');
     if (card) card.classList.remove('mc-pulse-card--expanded');
   });
@@ -862,7 +868,7 @@ function togglePulseExpand(metric) {
 
   state.expandedPulse = metric;
   var expand = document.getElementById('pulse-expand-' + metric);
-  var card = document.getElementById('pulse-' + metric);
+  var card = getPulseCard(metric);
   if (expand) expand.classList.add('mc-pulse-expand--open');
   if (card) card.classList.add('mc-pulse-card--expanded');
 
@@ -926,6 +932,28 @@ function renderPulseExpandContent(metric) {
       '<div class="mc-expand__row"><span class="mc-expand__key">Total Issues</span><span class="mc-expand__val">' + issues.length + '</span></div>' +
       '<div class="mc-expand__row"><span class="mc-expand__key"><span class="mc-section__dot mc-section__dot--live"></span>Live</span><span class="mc-expand__val">' + liveIssues + '</span></div>' +
       '<div class="mc-expand__row"><span class="mc-expand__key"><span class="mc-section__dot mc-section__dot--test"></span>Test</span><span class="mc-expand__val">' + testIssues + '</span></div>';
+
+  } else if (metric === 'grade') {
+    var grade = typeof computeEngineGrade === 'function' ? computeEngineGrade(run) : '-';
+    expand.innerHTML =
+      '<div class="mc-expand__row"><span class="mc-expand__key">Engine Grade</span><span class="mc-expand__val" style="font-weight:700;font-size:16px">' + grade + '</span></div>' +
+      '<div class="mc-expand__row"><span class="mc-expand__key">Avg DM</span><span class="mc-expand__val ' + ragClass(avgDm) + '">' + avgDm + '</span></div>' +
+      '<div class="mc-expand__row"><span class="mc-expand__key">Avg Score Fit</span><span class="mc-expand__val">' + avgFit + '</span></div>' +
+      '<div class="mc-expand__row"><span class="mc-expand__key">Avg Blurb Quality</span><span class="mc-expand__val">' + avgBlurb + '</span></div>';
+
+  } else if (metric === 'infra') {
+    var restaurantCount = state.restaurantCount || 2720;
+    var enrichmentPct = state.enrichmentPct || 99;
+    var cacheHitRate = state.cacheHitRate || 0;
+    var cacheEl = document.getElementById('mc-footer-cache');
+    if (cacheEl) {
+      var cacheMatch = cacheEl.textContent.match(/(\d+)/);
+      if (cacheMatch) cacheHitRate = parseInt(cacheMatch[1]);
+    }
+    expand.innerHTML =
+      '<div class="mc-expand__row"><span class="mc-expand__key">Restaurants</span><span class="mc-expand__val">' + restaurantCount + '</span></div>' +
+      '<div class="mc-expand__row"><span class="mc-expand__key">Enrichment</span><span class="mc-expand__val">' + enrichmentPct + '%</span></div>' +
+      '<div class="mc-expand__row"><span class="mc-expand__key">Cache Hit Rate</span><span class="mc-expand__val">' + cacheHitRate + '%</span></div>';
   }
 }
 
@@ -947,6 +975,10 @@ function renderPulseVisualization(metric) {
     openDetail('Score Analysis', buildDmViz(run, trend));
   } else if (metric === 'issues') {
     openDetail('Issue Analysis', buildIssuesViz(run, trend));
+  } else if (metric === 'grade') {
+    openDetail('Grade Analysis', buildGradeViz(run, trend));
+  } else if (metric === 'infra') {
+    openDetail('Infrastructure', buildInfraViz());
   }
 }
 
@@ -1185,6 +1217,146 @@ function buildIssuesViz(run, trend) {
 
   return html;
 }
+
+function buildGradeViz(run, trend) {
+  if (!run) return '<div class="mc-empty">No data</div>';
+  var html = '';
+  var avgDm = Math.round(Number(run.avg_dm) || 0);
+  var avgFit = Math.round(Number(run.avg_score_fit) || 0);
+  var avgBlurb = Math.round(Number(run.avg_blurb_quality) || 0);
+  var total = run.total || 1;
+  var grade = typeof computeEngineGrade === 'function' ? computeEngineGrade(run) : '-';
+
+  // Grade donut
+  if (run.grade_distribution) {
+    html += '<div class="mc-viz__title">Grade Distribution</div>';
+    html += renderGradeDonut(run.grade_distribution, total);
+  }
+
+  // Factor breakdown bars
+  html += '<div class="mc-viz__title">Factor Breakdown</div>';
+  var factors = [
+    { label: 'DondeMatch', val: avgDm, weight: '40%' },
+    { label: 'Score Fit', val: avgFit, weight: '30%' },
+    { label: 'Blurb Quality', val: avgBlurb, weight: '30%' }
+  ];
+  factors.forEach(function(f) {
+    var color = f.val >= 80 ? 'var(--cc-green)' : f.val >= 60 ? 'var(--cc-amber)' : 'var(--cc-red)';
+    html += '<div class="mc-viz__hbar">' +
+      '<span class="mc-viz__hbar-label">' + f.label + ' (' + f.weight + ')</span>' +
+      '<div class="mc-viz__hbar-track"><div class="mc-viz__hbar-fill" style="width:' + f.val + '%;background:' + color + '"></div></div>' +
+      '<span class="mc-viz__hbar-val">' + f.val + '</span></div>';
+  });
+
+  // Grade trend
+  if (trend && trend.length >= 3) {
+    html += '<div class="mc-viz__title">Composite Score Trend</div>';
+    var scores = trend.slice(0, 20).reverse().map(function(r) {
+      var dm = Number(r.avg_dm) || 0;
+      var fit = Number(r.avg_score_fit) || 0;
+      var blurb = Number(r.avg_blurb_quality) || 0;
+      return Math.round(dm * 0.4 + fit * 0.3 + blurb * 0.3);
+    });
+    html += renderSvgTrendLine(scores, 340, 80, '', 'Weighted composite');
+  }
+
+  // Metric tiles
+  html += '<div class="mc-viz__metrics">';
+  html += '<div class="mc-viz__metric"><div class="mc-viz__metric-val" style="font-size:24px;font-weight:700">' + grade + '</div><div class="mc-viz__metric-label">Engine Grade</div></div>';
+  html += '<div class="mc-viz__metric"><div class="mc-viz__metric-val ' + ragClass(avgDm) + '">' + avgDm + '</div><div class="mc-viz__metric-label">Avg DM</div></div>';
+  html += '<div class="mc-viz__metric"><div class="mc-viz__metric-val">' + avgFit + '</div><div class="mc-viz__metric-label">Avg Fit</div></div>';
+  html += '<div class="mc-viz__metric"><div class="mc-viz__metric-val">' + avgBlurb + '</div><div class="mc-viz__metric-label">Avg Blurb</div></div>';
+  html += '</div>';
+
+  // Insights
+  html += '<div class="mc-viz__title">Insights</div>';
+  var composite = Math.round(avgDm * 0.4 + avgFit * 0.3 + avgBlurb * 0.3);
+  if (grade.startsWith('A')) {
+    html += '<div class="mc-viz__insight mc-viz__insight--success"><span class="mc-viz__insight-icon">\u2713</span> Engine grade ' + grade + ' (composite ' + composite + '). Outstanding quality across all factors.</div>';
+  } else if (grade.startsWith('B')) {
+    html += '<div class="mc-viz__insight mc-viz__insight--action"><span class="mc-viz__insight-icon">\u25B6</span> Engine grade ' + grade + ' (composite ' + composite + '). ';
+    if (avgBlurb < avgFit) html += 'Blurb quality is the weakest factor \u2014 focus on voice compliance.';
+    else if (avgFit < avgDm) html += 'Score fit trailing DM \u2014 review relevance calibration.';
+    else html += 'Push for A grade by improving the weakest factor.';
+    html += '</div>';
+  } else {
+    html += '<div class="mc-viz__insight mc-viz__insight--warn"><span class="mc-viz__insight-icon">\u26A0</span> Engine grade ' + grade + ' (composite ' + composite + '). Significant improvement needed. Run bug-fixer to address gaps.</div>';
+  }
+
+  return html;
+}
+
+function buildInfraViz() {
+  var html = '';
+  var restaurantCount = state.restaurantCount || 2720;
+  var enrichmentPct = state.enrichmentPct || 99;
+  var riPct = state.riPct || 99;
+  var cacheHitRate = state.cacheHitRate || 0;
+  var cacheEl = document.getElementById('mc-footer-cache');
+  if (cacheEl) {
+    var cacheMatch = cacheEl.textContent.match(/(\d+)/);
+    if (cacheMatch) cacheHitRate = parseInt(cacheMatch[1]);
+  }
+
+  // Metric tiles
+  html += '<div class="mc-viz__metrics">';
+  html += '<div class="mc-viz__metric"><div class="mc-viz__metric-val">' + restaurantCount + '</div><div class="mc-viz__metric-label">Restaurants</div></div>';
+  html += '<div class="mc-viz__metric"><div class="mc-viz__metric-val ' + (enrichmentPct >= 95 ? 'rag-green' : 'rag-amber') + '">' + enrichmentPct + '%</div><div class="mc-viz__metric-label">Enriched</div></div>';
+  html += '<div class="mc-viz__metric"><div class="mc-viz__metric-val ' + (riPct >= 95 ? 'rag-green' : 'rag-amber') + '">' + riPct + '%</div><div class="mc-viz__metric-label">Review Intel</div></div>';
+  html += '<div class="mc-viz__metric"><div class="mc-viz__metric-val ' + (cacheHitRate >= 30 ? 'rag-green' : cacheHitRate >= 10 ? 'rag-amber' : 'rag-red') + '">' + cacheHitRate + '%</div><div class="mc-viz__metric-label">Cache Hit Rate</div></div>';
+  html += '</div>';
+
+  // DB coverage bars
+  html += '<div class="mc-viz__title">Database Coverage</div>';
+  var coverageItems = [
+    { label: 'Deep Profiles', val: enrichmentPct },
+    { label: 'Review Intelligence', val: riPct },
+    { label: 'Cuisine Classified', val: state.cuisinePct || 99 },
+    { label: 'Neighborhoods', val: state.neighborhoodPct || 100 },
+    { label: 'Google Ratings', val: state.ratingPct || 100 }
+  ];
+  coverageItems.forEach(function(item) {
+    var color = item.val >= 95 ? 'var(--cc-green)' : item.val >= 80 ? 'var(--cc-amber)' : 'var(--cc-red)';
+    html += '<div class="mc-viz__hbar">' +
+      '<span class="mc-viz__hbar-label">' + item.label + '</span>' +
+      '<div class="mc-viz__hbar-track"><div class="mc-viz__hbar-fill" style="width:' + item.val + '%;background:' + color + '"></div></div>' +
+      '<span class="mc-viz__hbar-val">' + item.val + '%</span></div>';
+  });
+
+  // Cache metrics
+  html += '<div class="mc-viz__title">DondeCache</div>';
+  var cacheItems = [
+    { label: 'Hit Rate', val: cacheHitRate },
+    { label: 'L1 (Exact)', val: state.cacheL1Pct || 0 },
+    { label: 'L2 (Intent)', val: state.cacheL2Pct || 0 },
+    { label: 'L3 (Canonical)', val: state.cacheL3Pct || 0 }
+  ];
+  cacheItems.forEach(function(item) {
+    var color = item.val >= 30 ? 'var(--cc-green)' : item.val >= 10 ? 'var(--cc-amber)' : 'var(--cc-text3)';
+    html += '<div class="mc-viz__hbar">' +
+      '<span class="mc-viz__hbar-label">' + item.label + '</span>' +
+      '<div class="mc-viz__hbar-track"><div class="mc-viz__hbar-fill" style="width:' + Math.min(item.val, 100) + '%;background:' + color + '"></div></div>' +
+      '<span class="mc-viz__hbar-val">' + item.val + '%</span></div>';
+  });
+
+  // Optimization suggestions
+  html += '<div class="mc-viz__title">Optimization Suggestions</div>';
+  if (cacheHitRate < 20) {
+    html += '<div class="mc-viz__insight mc-viz__insight--action"><span class="mc-viz__insight-icon">\u25B6</span> Cache hit rate is low (' + cacheHitRate + '%). Run cache-warmer to pre-warm popular queries.</div>';
+  } else if (cacheHitRate < 50) {
+    html += '<div class="mc-viz__insight mc-viz__insight--action"><span class="mc-viz__insight-icon">\u25B6</span> Cache performing at ' + cacheHitRate + '%. Consider warming golden dataset queries for higher coverage.</div>';
+  } else {
+    html += '<div class="mc-viz__insight mc-viz__insight--success"><span class="mc-viz__insight-icon">\u2713</span> Cache healthy at ' + cacheHitRate + '% hit rate. Good query coverage.</div>';
+  }
+  if (enrichmentPct < 99) {
+    html += '<div class="mc-viz__insight mc-viz__insight--warn"><span class="mc-viz__insight-icon">\u26A0</span> ' + (100 - enrichmentPct) + '% of restaurants lack deep profiles. Run enrichment pipeline to fill gaps.</div>';
+  } else {
+    html += '<div class="mc-viz__insight mc-viz__insight--success"><span class="mc-viz__insight-icon">\u2713</span> ' + enrichmentPct + '% enrichment coverage. Database is comprehensive.</div>';
+  }
+
+  return html;
+}
+
 function selectRun() {}
 function updatePulseFromProd() {}
 function updateDbOverview() {}
