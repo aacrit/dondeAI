@@ -1391,19 +1391,32 @@ export function wireEvents(appCallbacks) {
         break;
       }
 
-      case 'toggle-cuisine-pill': {
+      case 'toggle-cuisine-chip': {
+        haptic(HAPTICS.tick);
         const idx = btn.dataset.index;
-        const expanded = btn.getAttribute('aria-expanded') === 'true';
-        const $body = document.querySelector(`[data-pill-body="${idx}"]`);
-        if ($body) {
-          if (expanded) {
-            btn.setAttribute('aria-expanded', 'false');
-            $body.style.maxHeight = '0';
-            $body.classList.remove('cuisine-pill-group__body--open');
-          } else {
-            btn.setAttribute('aria-expanded', 'true');
-            $body.classList.add('cuisine-pill-group__body--open');
-            $body.style.maxHeight = $body.scrollHeight + 'px';
+        const wasSelected = btn.getAttribute('aria-selected') === 'true';
+        const $container = document.getElementById('cuisine-pills');
+        if (!$container) break;
+
+        // Close all chips + panels (accordion)
+        $container.querySelectorAll('.cuisine-chips__chip').forEach(chip => {
+          chip.setAttribute('aria-selected', 'false');
+          chip.classList.remove('cuisine-chips__chip--active');
+        });
+        $container.querySelectorAll('.cuisine-chips__panel').forEach(panel => {
+          panel.classList.remove('cuisine-chips__panel--open');
+          panel.setAttribute('aria-hidden', 'true');
+        });
+
+        // If wasn't selected, open this one
+        if (!wasSelected) {
+          btn.setAttribute('aria-selected', 'true');
+          btn.classList.add('cuisine-chips__chip--active');
+          const $panel = document.getElementById(`cuisine-panel-${idx}`);
+          if ($panel) {
+            $panel.setAttribute('aria-hidden', 'false');
+            void $panel.offsetHeight; // reflow for transition
+            $panel.classList.add('cuisine-chips__panel--open');
           }
         }
         break;
@@ -1632,6 +1645,18 @@ export function wireEvents(appCallbacks) {
         badge.focus();
       }
     }
+  });
+
+  // Cuisine chips: arrow key navigation within tablist
+  document.addEventListener('keydown', (e) => {
+    if (e.target.dataset?.action !== 'toggle-cuisine-chip') return;
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    e.preventDefault();
+    const chips = Array.from(e.target.closest('.cuisine-chips__row')?.querySelectorAll('.cuisine-chips__chip') || []);
+    const idx = chips.indexOf(e.target);
+    if (idx < 0) return;
+    const next = e.key === 'ArrowRight' ? (idx + 1) % chips.length : (idx - 1 + chips.length) % chips.length;
+    chips[next]?.focus();
   });
 }
 

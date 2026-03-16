@@ -1335,55 +1335,71 @@ function renderDeepContextExtras(data) {
   }
 }
 
-/* ---- Cuisine Pills ---- */
+/* ---- Cuisine Chips (compact icon chips) ---- */
+function _toTitleCase(s) {
+  if (!s) return '';
+  return s.replace(/\w\S*/g, t => t.charAt(0).toUpperCase() + t.slice(1).toLowerCase());
+}
+
+function _toSentenceCase(s) {
+  if (!s) return '';
+  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+}
+
 function renderCuisineDetails(data) {
   const dp = data.deep_context || {};
   const $container = document.getElementById('cuisine-pills');
   if (!$container) return;
 
-  const groups = [];
+  const chipDefs = [];
 
   if (dp.signature_dishes?.length) {
-    const bodyHTML = dp.signature_dishes.slice(0, 4).map(d =>
-      `<div class="cuisine-pill-group__dish">
-        <span class="cuisine-pill-group__dish-name">${d.dish}</span>
-        <span class="cuisine-pill-group__dish-why">${d.why || ''}</span>
+    const bodyHTML = dp.signature_dishes.slice(0, 4).map((d, i) =>
+      `<div class="cuisine-chips__dish" style="animation-delay:${i * 40}ms">
+        <span class="cuisine-chips__dish-name">${_escHtml(_toTitleCase(d.dish))}</span>
+        ${d.why ? `<span class="cuisine-chips__dish-why">${_escHtml(_toSentenceCase(d.why))}</span>` : ''}
       </div>`
     ).join('');
-    groups.push({ label: 'What to Order', body: bodyHTML });
+    chipDefs.push({ label: 'Must Try', icon: 'forkKnife', body: bodyHTML });
   }
 
   if (dp.menu_highlights?.length) {
-    const bodyHTML = `<div class="cuisine-pill-group__items">${
-      dp.menu_highlights.slice(0, 6).map(item =>
-        `<span class="cuisine-pill-group__item">${item}</span>`
+    const bodyHTML = `<div class="cuisine-chips__items">${
+      dp.menu_highlights.slice(0, 6).map((item, i) =>
+        `<span class="cuisine-chips__item" style="animation-delay:${i * 30}ms">${_escHtml(_toTitleCase(item))}</span>`
       ).join('')
     }</div>`;
-    groups.push({ label: 'Popular Items', body: bodyHTML });
+    chipDefs.push({ label: 'Popular', icon: 'fire', body: bodyHTML });
   }
 
   if (dp.flavor_profiles?.length) {
-    const bodyHTML = `<div class="cuisine-pill-group__items">${
-      dp.flavor_profiles.slice(0, 5).map(f =>
-        `<span class="cuisine-pill-group__item">${f}</span>`
+    const bodyHTML = `<div class="cuisine-chips__items">${
+      dp.flavor_profiles.slice(0, 5).map((f, i) =>
+        `<span class="cuisine-chips__item" style="animation-delay:${i * 30}ms">${_escHtml(_toTitleCase(f))}</span>`
       ).join('')
     }</div>`;
-    groups.push({ label: 'Flavor Profile', body: bodyHTML });
+    chipDefs.push({ label: 'Flavors', icon: 'wine', body: bodyHTML });
   }
 
-  if (groups.length === 0) {
+  if (chipDefs.length === 0) {
     $container.style.display = 'none';
     return;
   }
 
-  $container.innerHTML = groups.map((g, i) =>
-    `<div class="cuisine-pill-group">
-      <button class="cuisine-pill-group__toggle type-data--sm" aria-expanded="false" data-action="toggle-cuisine-pill" data-index="${i}">
-        ${g.label} <span class="cuisine-pill-group__chevron"></span>
-      </button>
-      <div class="cuisine-pill-group__body" data-pill-body="${i}">${g.body}</div>
-    </div>`
+  const chipsRow = chipDefs.map((c, i) =>
+    `<button class="cuisine-chips__chip" role="tab" aria-selected="false"
+            aria-controls="cuisine-panel-${i}" data-action="toggle-cuisine-chip" data-index="${i}">
+      ${svgIcon(c.icon, 14)}
+      <span class="cuisine-chips__label">${c.label}</span>
+    </button>`
   ).join('');
+
+  const panels = chipDefs.map((c, i) =>
+    `<div class="cuisine-chips__panel" id="cuisine-panel-${i}" role="tabpanel" aria-hidden="true">${c.body}</div>`
+  ).join('');
+
+  $container.innerHTML =
+    `<div class="cuisine-chips__row" role="tablist" aria-label="Menu details">${chipsRow}</div>${panels}`;
   $container.style.display = '';
 }
 
