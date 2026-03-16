@@ -290,7 +290,10 @@ function toggleDrawer() {
   if (isOpen) {
     const badge = document.getElementById('mc-drawer-badge');
     if (badge) { badge.style.display = 'none'; badge.textContent = '0'; }
+    // Focus the terminal input
+    setTimeout(() => { const $i = document.getElementById('coo-input'); if ($i) $i.focus(); }, 100);
   }
+  updateDashboardMargins();
 }
 
 function openDrawerForTest() {
@@ -299,6 +302,7 @@ function openDrawerForTest() {
     drawer.classList.add('mc-drawer--open');
     const toggle = document.getElementById('mc-drawer-toggle');
     if (toggle) toggle.setAttribute('aria-expanded', 'true');
+    updateDashboardMargins();
   }
 }
 
@@ -360,28 +364,6 @@ function showQueryDetail(query, dm, restaurantName, sv9, recommendation, fitGrad
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// Terminal Maximize (left panel mode)
-// ═══════════════════════════════════════════════════════════════════
-
-function toggleTerminalMax() {
-  const drawer = document.getElementById('mc-drawer');
-  if (!drawer) return;
-
-  const isMax = drawer.classList.toggle('mc-drawer--maximized');
-
-  // Ensure drawer body is visible when maximized
-  if (isMax) {
-    drawer.classList.add('mc-drawer--open');
-    const toggle = document.getElementById('mc-drawer-toggle');
-    if (toggle) toggle.setAttribute('aria-expanded', 'true');
-    const badge = document.getElementById('mc-drawer-badge');
-    if (badge) { badge.style.display = 'none'; badge.textContent = '0'; }
-  }
-
-  updateDashboardMargins();
-}
-
-// ═══════════════════════════════════════════════════════════════════
 // Dashboard Margin Management
 // ═══════════════════════════════════════════════════════════════════
 
@@ -390,16 +372,16 @@ function updateDashboardMargins() {
   if (!dashboard) return;
 
   const detailOpen = document.getElementById('mc-detail')?.classList.contains('mc-detail--open');
-  const terminalMax = document.getElementById('mc-drawer')?.classList.contains('mc-drawer--maximized');
+  const terminalOpen = document.getElementById('mc-drawer')?.classList.contains('mc-drawer--open');
 
-  dashboard.classList.remove('mc-dashboard--detail-open', 'mc-dashboard--terminal-max', 'mc-dashboard--both-panels');
+  dashboard.classList.remove('mc-dashboard--detail-open', 'mc-dashboard--terminal-open', 'mc-dashboard--both-panels');
 
-  if (detailOpen && terminalMax) {
+  if (detailOpen && terminalOpen) {
     dashboard.classList.add('mc-dashboard--both-panels');
   } else if (detailOpen) {
     dashboard.classList.add('mc-dashboard--detail-open');
-  } else if (terminalMax) {
-    dashboard.classList.add('mc-dashboard--terminal-max');
+  } else if (terminalOpen) {
+    dashboard.classList.add('mc-dashboard--terminal-open');
   }
 }
 

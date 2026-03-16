@@ -48,6 +48,9 @@
           <span class="mc-live-toggle__label" id="live-api-label">Scoring Only</span>
         </button>
       </div>
+      <button class="mc-header__terminal-btn" onclick="toggleDrawer()" title="Toggle COO Terminal" aria-label="Toggle terminal">
+        <span style="font-family:var(--font-mono);font-size:var(--text-xs)">$_</span>
+      </button>
       <span class="mc-health-dot" id="mc-health-dot" title="System health" role="status" aria-label="System health indicator"></span>
       <a href="index.html" class="mc-header__back" title="Back to DondeAI">Back</a>
     </div>
@@ -185,7 +188,6 @@
       <span class="mc-drawer__label">COO Terminal</span>
       <span class="mc-drawer__badge" id="mc-drawer-badge" style="display:none">0</span>
       <span class="mc-drawer__spacer"></span>
-      <span class="mc-drawer__maximize" onclick="event.stopPropagation();toggleTerminalMax()" title="Maximize terminal" aria-label="Maximize terminal">&#9634;</span>
       <span class="mc-terminal__clear" onclick="event.stopPropagation();cmdClear()" title="Clear">Clear</span>
     </button>
     <div class="mc-drawer__body" id="mc-drawer-body">
