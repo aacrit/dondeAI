@@ -476,7 +476,7 @@ function drawBrandedFooter(ctx, p) {
   const qrSize = 150;
   const qrX = (CW - qrSize) / 2;
   const qrY = tagY + 48;
-  const matrix = generateQRMatrix('https://donde.ai');
+  const matrix = generateQRMatrix('https://aacrit.github.io/dondeAI');
   drawQRCode(ctx, qrX, qrY, qrSize, matrix, dark ? p.fg : p.fg, dark ? p.bg2 : '#ffffff');
 
   // Donde pin logo inside QR center
