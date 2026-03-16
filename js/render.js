@@ -1342,12 +1342,13 @@ function renderDeepContextExtras(data) {
 /* ---- Cuisine Chips (compact icon chips) ---- */
 function _toTitleCase(s) {
   if (!s) return '';
-  return s.replace(/\w\S*/g, t => t.charAt(0).toUpperCase() + t.slice(1).toLowerCase());
+  return s.replace(/_/g, ' ').replace(/\w\S*/g, t => t.charAt(0).toUpperCase() + t.slice(1).toLowerCase());
 }
 
 function _toSentenceCase(s) {
   if (!s) return '';
-  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+  const clean = s.replace(/_/g, ' ');
+  return clean.charAt(0).toUpperCase() + clean.slice(1).toLowerCase();
 }
 
 function renderCuisineDetails(data) {
