@@ -731,6 +731,10 @@ a {
 .mc-div-chip__dot--red { background: var(--cc-red); }
 .mc-div-chip__dot--active { animation: mc-dot-pulse 1.5s ease-in-out infinite; }
 
+.mc-div-chip__icon {
+  font-size: var(--text-sm);
+  opacity: 0.7;
+}
 .mc-div-chip__label {
   color: var(--cc-text2);
   font-weight: 500;
@@ -1687,12 +1691,208 @@ a {
 .mc-viz__cta--warn { color: var(--cc-amber); border-color: var(--cc-amber); }
 .mc-viz__cta--warn:hover { background: var(--cc-amber-soft); }
 
+/* ─── Mode-Aware Custom Properties ─── */
+:root {
+  --cc-mode-accent: var(--cc-test);
+  --cc-mode-accent-soft: var(--cc-test-soft);
+  --cc-mode-bg-tint: rgba(99, 102, 241, 0.015);
+}
+
+body.mc-mode--live {
+  --cc-mode-accent: var(--cc-live);
+  --cc-mode-accent-soft: var(--cc-live-soft);
+  --cc-mode-bg-tint: rgba(6, 182, 212, 0.025);
+}
+
+/* Background tint overlay */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: var(--cc-mode-bg-tint);
+  transition: background 600ms var(--ease-out);
+  pointer-events: none;
+}
+
+/* Mode section visibility */
+[data-mode="test"] { display: block; }
+[data-mode="live"] { display: none !important; }
+body.mc-mode--live [data-mode="test"] { display: none !important; }
+body.mc-mode--live [data-mode="live"] { display: block !important; }
+/* Grid sections need display:grid not block */
+body.mc-mode--live .mc-pulse[data-mode="live"] { display: grid !important; }
+body.mc-mode--live .mc-columns[data-mode="live"] { display: grid !important; }
+.mc-pulse[data-mode="test"] { display: grid; }
+.mc-columns[data-mode="test"] { display: grid; }
+body.mc-mode--live .mc-pulse[data-mode="test"] { display: none !important; }
+
+/* Crossfade animation for mode switch */
+@keyframes mc-mode-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+body.mc-mode--live [data-mode="live"],
+body:not(.mc-mode--live) [data-mode="test"] {
+  animation: mc-mode-in var(--dur-step) var(--ease-out) forwards;
+}
+
+/* ─── Mode Toggle Pill ─── */
+.mc-mode-toggle {
+  display: inline-flex;
+  align-items: center;
+  background: var(--cc-surface2);
+  border: 1px solid var(--cc-border);
+  border-radius: var(--radius-pill);
+  padding: 2px;
+  position: relative;
+  height: 28px;
+}
+.mc-mode-toggle__option {
+  padding: 3px 14px;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  font-family: var(--font-mono);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: color var(--dur-normal) var(--ease-out);
+  color: var(--cc-text3);
+  z-index: 1;
+  position: relative;
+  background: none;
+  border: none;
+  letter-spacing: 0.05em;
+}
+.mc-mode-toggle__option--active {
+  color: white;
+}
+.mc-mode-toggle__slider {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  border-radius: var(--radius-pill);
+  transition: all var(--dur-step) var(--spring);
+  z-index: 0;
+}
+.mc-mode-toggle--test .mc-mode-toggle__slider {
+  left: 2px;
+  width: calc(50% - 2px);
+  background: var(--cc-test);
+}
+.mc-mode-toggle--live .mc-mode-toggle__slider {
+  left: 50%;
+  width: calc(50% - 2px);
+  background: var(--cc-live);
+}
+
+/* ─── Live Pulse Cards ─── */
+.mc-pulse--6 { grid-template-columns: repeat(6, 1fr); }
+.mc-pulse-card--live { border-color: rgba(6, 182, 212, 0.15); }
+.mc-pulse-card--live:hover {
+  border-color: rgba(6, 182, 212, 0.3);
+  box-shadow: 0 8px 24px rgba(6, 182, 212, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+.mc-pulse-card--live.mc-pulse-card--expanded {
+  border-color: rgba(6, 182, 212, 0.3);
+  box-shadow: 0 8px 24px rgba(6, 182, 212, 0.15);
+}
+
+/* Live expand uses teal accent */
+body.mc-mode--live .mc-pulse-expand {
+  border-color: rgba(6, 182, 212, 0.1);
+}
+
+/* ─── Live Feed Extended Layout ─── */
+.mc-feed--full .mc-feed-item {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto auto auto;
+  gap: var(--space-sm);
+  align-items: center;
+  padding: 6px 8px;
+}
+.mc-feed-item--live:hover {
+  background: var(--cc-live-soft);
+}
+.mc-feed-item__meta {
+  font-size: 10px;
+  color: var(--cc-text3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 120px;
+}
+.mc-feed-item__rt {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--cc-text3);
+}
+.mc-feed-item__grades {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--cc-text2);
+}
+.mc-feed-tag {
+  font-size: 9px;
+  padding: 1px 6px;
+  border-radius: var(--radius-pill);
+  font-weight: 600;
+}
+.mc-feed-tag--cache {
+  background: var(--cc-live-soft);
+  color: var(--cc-live);
+}
+
+/* ─── Time Period Toggle ─── */
+.mc-time-toggle {
+  display: inline-flex;
+  gap: 2px;
+  background: var(--cc-surface2);
+  border: 1px solid var(--cc-border);
+  border-radius: var(--radius-pill);
+  padding: 2px;
+}
+.mc-time-toggle__btn {
+  padding: 2px 10px;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  border: none;
+  background: none;
+  color: var(--cc-text3);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: all var(--dur-fast) var(--ease-out);
+}
+.mc-time-toggle__btn:hover { color: var(--cc-text); }
+.mc-time-toggle__btn--active {
+  background: var(--cc-live);
+  color: white;
+}
+
+/* Mode-aware hover accents */
+body.mc-mode--live .mc-pulse-card:hover {
+  border-color: rgba(6, 182, 212, 0.3);
+  box-shadow: 0 8px 24px rgba(6, 182, 212, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+body.mc-mode--live .mc-action-btn:hover {
+  border-color: rgba(6, 182, 212, 0.3);
+  background: var(--cc-live-soft);
+}
+
+/* Live mode detail panel header */
+body.mc-mode--live .mc-detail__header {
+  border-bottom-color: var(--cc-live);
+}
+
 /* ─── 27. Mobile Responsive ─── */
 @media (max-width: 768px) {
   body { overflow-y: auto; }
   .mc-dashboard { padding: var(--space-md); gap: var(--space-lg); height: auto; min-height: calc(100vh - var(--header-h) - var(--footer-h)); }
   .mc-pulse--5 { grid-template-columns: repeat(3, 1fr); }
+  .mc-pulse--6 { grid-template-columns: repeat(3, 1fr); }
   .mc-columns { grid-template-columns: 1fr; }
+  .mc-feed--full .mc-feed-item { grid-template-columns: 1fr auto auto; }
+  .mc-feed-item__meta, .mc-feed-item__rt { display: none; }
   .mc-actions { grid-template-columns: repeat(3, 1fr); }
   .mc-header__back { display: none; }
   .mc-feed-item__query { max-width: 60%; }

@@ -138,6 +138,11 @@ async function initDashboard() {
   if (typeof renderImpactSimulator === 'function') renderImpactSimulator();
   if (typeof evaluateSLAs === 'function') evaluateSLAs();
   if (typeof renderTrendChart === 'function') renderTrendChart();
+
+  // Restore dashboard mode from session
+  if (state.dashboardMode === 'live' && typeof switchDashboardMode === 'function') {
+    switchDashboardMode('live');
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -508,6 +513,11 @@ async function pollLiveFeed() {
       state.liveFeed = [...uniqueNew, ...state.liveFeed]
         .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
       applyLiveFilter();
+    }
+
+    // Refresh live dashboard cards when in live mode
+    if (state.dashboardMode === 'live' && typeof renderLiveFeedFull === 'function') {
+      renderLiveFeedFull(state.liveFeed);
     }
   } catch (e) {
     console.warn('Live feed poll failed:', e);
@@ -1185,6 +1195,77 @@ function computeUserEngagement() {
     avgPerUser,
     topOccasion: topOccasion ? topOccasion[0] : 'N/A'
   };
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Live KPIs (for dual-mode dashboard LIVE panel)
+// ═══════════════════════════════════════════════════════════════════
+
+async function loadLiveKPIs(period) {
+  if (!sbClient) return;
+
+  var p = period || state.livePeriod || '24h';
+  var cutoffMs = { '24h': 24*3600000, '7d': 7*24*3600000, '30d': 30*24*3600000 };
+  var cutoff24h;
+  if (p === 'ytd') {
+    cutoff24h = new Date(new Date().getFullYear(), 0, 1).toISOString();
+  } else {
+    cutoff24h = new Date(Date.now() - (cutoffMs[p] || 24*3600000)).toISOString();
+  }
+
+  try {
+    var resp = await sbClient
+      .from('user_queries')
+      .select('donde_match, score_fit_score, blurb_quality_score, response_time_ms, cache_hit, source, created_at, was_fallback')
+      .neq('source', 'command-center')
+      .gte('created_at', cutoff24h)
+      .order('created_at', { ascending: false })
+      .limit(500);
+
+    var queries = (resp && resp.data) ? resp.data : [];
+    if (queries.length === 0) {
+      if (typeof updateLivePulseCards === 'function') {
+        updateLivePulseCards({ blurbQuality: 0, scoreFit: 0, responseTime: 0, cacheHitRate: 0, avgDm: 0, passRate: 0, queryCount: 0 });
+      }
+      return;
+    }
+
+    // P1: Response Quality
+    var withBlurb = queries.filter(function(q) { return q.blurb_quality_score != null; });
+    var avgBlurb = withBlurb.length > 0 ? Math.round(withBlurb.reduce(function(s, q) { return s + q.blurb_quality_score; }, 0) / withBlurb.length) : 0;
+    var withFit = queries.filter(function(q) { return q.score_fit_score != null; });
+    var avgFit = withFit.length > 0 ? Math.round(withFit.reduce(function(s, q) { return s + q.score_fit_score; }, 0) / withFit.length) : 0;
+
+    // P2: Operational
+    var times = queries.map(function(q) { return q.response_time_ms; }).filter(Boolean).sort(function(a, b) { return a - b; });
+    var p50 = times.length > 0 ? times[Math.floor(times.length * 0.5)] : 0;
+    var cacheHits = queries.filter(function(q) { return q.cache_hit === true; }).length;
+    var cacheHitRate = queries.length > 0 ? Math.round(cacheHits / queries.length * 100) : 0;
+
+    // P3: User Satisfaction
+    var avgDm = Math.round(queries.reduce(function(s, q) { return s + (q.donde_match || 0); }, 0) / queries.length);
+    var passing = queries.filter(function(q) { return (q.donde_match || 0) >= 70; }).length;
+    var passRate = Math.round(passing / queries.length * 100);
+
+    // P4: Business
+    var todayCutoff = typeof chicagoTodayStart === 'function' ? chicagoTodayStart() : new Date().toISOString().slice(0, 10);
+    var todayQueries = queries.filter(function(q) { return q.created_at >= todayCutoff; });
+
+    var kpis = {
+      blurbQuality: avgBlurb, scoreFit: avgFit,
+      responseTime: p50, cacheHitRate: cacheHitRate,
+      avgDm: avgDm, passRate: passRate,
+      queryCount: todayQueries.length
+    };
+
+    state.liveKPIs = kpis;
+
+    if (typeof updateLivePulseCards === 'function') updateLivePulseCards(kpis);
+    if (typeof renderLiveBrief === 'function') renderLiveBrief();
+
+  } catch (e) {
+    console.warn('Failed to load live KPIs:', e);
+  }
 }
 
 // Note: refreshAllData() is defined in cc-compare.js; exportCurrentView() is defined in cc-ui.js

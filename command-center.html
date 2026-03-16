@@ -42,11 +42,10 @@
       </div>
     </div>
     <div class="mc-header__right">
-      <div class="mc-live-toggle">
-        <button class="mc-live-toggle__btn mc-live-toggle__btn--off" id="live-api-toggle" onclick="toggleLiveAPI()" aria-pressed="false">
-          <span class="mc-live-toggle__dot" id="live-api-dot"></span>
-          <span class="mc-live-toggle__label" id="live-api-label">Scoring Only</span>
-        </button>
+      <div class="mc-mode-toggle mc-mode-toggle--test" id="mode-toggle">
+        <span class="mc-mode-toggle__slider"></span>
+        <button class="mc-mode-toggle__option mc-mode-toggle__option--active" data-mode-btn="test" onclick="switchDashboardMode('test')">TEST</button>
+        <button class="mc-mode-toggle__option" data-mode-btn="live" onclick="switchDashboardMode('live')">LIVE</button>
       </div>
       <button class="mc-header__terminal-btn" onclick="toggleDrawer()" title="Toggle COO Terminal" aria-label="Toggle terminal">
         <span style="font-family:var(--font-mono);font-size:var(--text-xs)">$_</span>
@@ -60,14 +59,14 @@
   <main class="mc-dashboard" id="main-content" style="display:none">
 
     <!-- Morning Brief Banner -->
-    <div class="mc-brief" id="mc-brief" style="display:none">
+    <div class="mc-brief" id="mc-brief" data-mode="test" style="display:none">
       <div class="mc-brief__icon" id="mc-brief-icon"></div>
       <div class="mc-brief__text" id="mc-brief-text"></div>
       <div class="mc-smart-action" id="mc-smart-action"></div>
     </div>
 
     <!-- Hero: 5 Pulse Cards — unified grid, all expand on click -->
-    <div class="mc-pulse mc-pulse--5">
+    <div class="mc-pulse mc-pulse--5" data-mode="test">
       <div class="mc-pulse-col">
         <button class="mc-pulse-card" id="pulse-health" role="status" onclick="togglePulseExpand('health')" title="Expand health details">
           <div class="mc-pulse-card__value rag-green" id="pulse-health-val">--</div>
@@ -107,7 +106,7 @@
     </div>
 
     <!-- Actions + Agent Divisions -->
-    <div class="mc-section">
+    <div class="mc-section" data-mode="test">
       <div class="mc-section__title">Actions &amp; Agents</div>
       <div class="mc-divisions-inline" id="mc-agents" style="margin-bottom:var(--space-sm)"></div>
       <div class="mc-actions" role="toolbar" aria-label="Quick actions">
@@ -145,7 +144,7 @@
     </div>
 
     <!-- Quick Test -->
-    <div class="mc-section">
+    <div class="mc-section" data-mode="test">
       <div class="mc-section__title">Quick Test</div>
       <div class="mc-quick-test">
         <input type="text" class="mc-quick-test__input" id="quick-test-input" placeholder="Enter a query to test... e.g. romantic Italian dinner" autocomplete="off" spellcheck="false">
@@ -156,7 +155,7 @@
     </div>
 
     <!-- Recent Runs + Live Feed side by side -->
-    <div class="mc-columns">
+    <div class="mc-columns" data-mode="test">
       <div class="mc-section mc-section--test">
         <div class="mc-section__title"><span class="mc-section__dot mc-section__dot--test"></span> Test Runs</div>
         <div class="mc-runs" id="mc-runs">
@@ -168,6 +167,112 @@
         <div class="mc-feed" id="mc-feed">
           <div class="mc-empty">No recent queries</div>
         </div>
+      </div>
+    </div>
+
+    <!-- LIVE MODE: Morning Brief -->
+    <div class="mc-brief mc-brief--live" id="mc-brief-live" data-mode="live" style="display:none">
+      <div class="mc-brief__icon" id="mc-brief-live-icon"></div>
+      <div class="mc-brief__text" id="mc-brief-live-text"></div>
+      <div class="mc-smart-action" id="mc-smart-action-live"></div>
+    </div>
+
+    <!-- LIVE MODE: 6 Pulse Cards (Response Quality > Operational > Satisfaction) -->
+    <div class="mc-pulse mc-pulse--6" data-mode="live" style="display:none">
+      <div class="mc-pulse-col">
+        <button class="mc-pulse-card mc-pulse-card--live" id="pulse-live-blurb" role="status" onclick="togglePulseExpand('live-blurb')" title="Live blurb quality">
+          <div class="mc-pulse-card__value" id="pulse-live-blurb-val">--</div>
+          <div class="mc-pulse-card__label">Blurb Quality</div>
+        </button>
+        <div class="mc-pulse-expand" id="pulse-expand-live-blurb"></div>
+      </div>
+      <div class="mc-pulse-col">
+        <button class="mc-pulse-card mc-pulse-card--live" id="pulse-live-fit" role="status" onclick="togglePulseExpand('live-fit')" title="Live score fit">
+          <div class="mc-pulse-card__value" id="pulse-live-fit-val">--</div>
+          <div class="mc-pulse-card__label">Score Fit</div>
+        </button>
+        <div class="mc-pulse-expand" id="pulse-expand-live-fit"></div>
+      </div>
+      <div class="mc-pulse-col">
+        <button class="mc-pulse-card mc-pulse-card--live" id="pulse-live-rt" role="status" onclick="togglePulseExpand('live-rt')" title="Response time">
+          <div class="mc-pulse-card__value" id="pulse-live-rt-val">--</div>
+          <div class="mc-pulse-card__label">Response Time</div>
+        </button>
+        <div class="mc-pulse-expand" id="pulse-expand-live-rt"></div>
+      </div>
+      <div class="mc-pulse-col">
+        <button class="mc-pulse-card mc-pulse-card--live" id="pulse-live-cache" role="status" onclick="togglePulseExpand('live-cache')" title="Cache hit rate">
+          <div class="mc-pulse-card__value" id="pulse-live-cache-val">--</div>
+          <div class="mc-pulse-card__label">Cache Hits</div>
+        </button>
+        <div class="mc-pulse-expand" id="pulse-expand-live-cache"></div>
+      </div>
+      <div class="mc-pulse-col">
+        <button class="mc-pulse-card mc-pulse-card--live" id="pulse-live-dm" role="status" onclick="togglePulseExpand('live-dm')" title="Live avg DM">
+          <div class="mc-pulse-card__value" id="pulse-live-dm-val">--</div>
+          <div class="mc-pulse-card__label">Avg DM</div>
+        </button>
+        <div class="mc-pulse-expand" id="pulse-expand-live-dm"></div>
+      </div>
+      <div class="mc-pulse-col">
+        <button class="mc-pulse-card mc-pulse-card--live" id="pulse-live-pass" role="status" onclick="togglePulseExpand('live-pass')" title="Live pass rate">
+          <div class="mc-pulse-card__value" id="pulse-live-pass-val">--</div>
+          <div class="mc-pulse-card__label">Pass Rate</div>
+        </button>
+        <div class="mc-pulse-expand" id="pulse-expand-live-pass"></div>
+      </div>
+    </div>
+
+    <!-- LIVE MODE: Actions -->
+    <div class="mc-section" data-mode="live" style="display:none">
+      <div class="mc-section__title">Live Actions</div>
+      <div class="mc-actions" role="toolbar">
+        <button class="mc-action-btn" onclick="viewSlowQueries()">
+          <span class="mc-action-btn__icon">&#9201;</span>
+          <span class="mc-action-btn__label">Slow Queries</span>
+          <span class="mc-action-btn__meta">p95 &gt; 5s</span>
+        </button>
+        <button class="mc-action-btn" onclick="viewLowScoreQueries()">
+          <span class="mc-action-btn__icon">&#128201;</span>
+          <span class="mc-action-btn__label">Low Scores</span>
+          <span class="mc-action-btn__meta">DM &lt; 60</span>
+        </button>
+        <button class="mc-action-btn" onclick="viewFallbacks()">
+          <span class="mc-action-btn__icon">&#9888;</span>
+          <span class="mc-action-btn__label">Fallbacks</span>
+          <span class="mc-action-btn__meta">Error responses</span>
+        </button>
+        <button class="mc-action-btn" onclick="processCOOInput('warm cache')">
+          <span class="mc-action-btn__icon">&#9889;</span>
+          <span class="mc-action-btn__label">Warm Cache</span>
+          <span class="mc-action-btn__meta">Pre-populate</span>
+        </button>
+        <button class="mc-action-btn" onclick="processCOOInput('cache status')">
+          <span class="mc-action-btn__icon">&#128202;</span>
+          <span class="mc-action-btn__label">Cache Status</span>
+          <span class="mc-action-btn__meta">Hit rate details</span>
+        </button>
+        <button class="mc-action-btn" onclick="processCOOInput('live')">
+          <span class="mc-action-btn__icon">&#128640;</span>
+          <span class="mc-action-btn__label">Recent Queries</span>
+          <span class="mc-action-btn__meta">Last 10 in terminal</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- LIVE MODE: Full Feed -->
+    <div class="mc-section mc-section--live" data-mode="live" style="display:none">
+      <div class="mc-section__title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--space-sm)">
+        <span><span class="mc-section__dot mc-section__dot--live"></span> Live Production Queries <span id="mc-live-query-count" style="font-family:var(--font-mono);color:var(--cc-live)"></span></span>
+        <div class="mc-time-toggle" id="mc-time-toggle">
+          <button class="mc-time-toggle__btn mc-time-toggle__btn--active" data-period="24h" onclick="setLivePeriod('24h')">24h</button>
+          <button class="mc-time-toggle__btn" data-period="7d" onclick="setLivePeriod('7d')">7D</button>
+          <button class="mc-time-toggle__btn" data-period="30d" onclick="setLivePeriod('30d')">30D</button>
+          <button class="mc-time-toggle__btn" data-period="ytd" onclick="setLivePeriod('ytd')">YTD</button>
+        </div>
+      </div>
+      <div class="mc-feed mc-feed--full" id="mc-live-feed-full">
+        <div class="mc-empty">Loading live data...</div>
       </div>
     </div>
 
