@@ -214,6 +214,30 @@ function getScoreColor(score, p) {
   if (score >= 60) return p.ragAmber;
   return p.ragRed;
 }
+function getScoreTier(score) {
+  if (score >= 90) return 'Outstanding';
+  if (score >= 80) return 'Strong Pick';
+  if (score >= 70) return 'Solid Option';
+  if (score >= 60) return 'Worth a Try';
+  return 'Best Available';
+}
+
+/* ---- Factor Bar ---- */
+function drawFactorBar(ctx, x, y, w, label, value, p) {
+  const barH = 10;
+  ctx.font = '500 20px "Inter", system-ui, sans-serif';
+  ctx.fillStyle = p.fg2; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+  ctx.fillText(label, x, y);
+  ctx.textAlign = 'right'; ctx.fillStyle = p.fg3;
+  ctx.fillText(typeof value === 'number' ? value.toFixed(1) : String(value), x + w, y);
+  const barY = y + 28;
+  ctx.fillStyle = p.bg3; roundRect(ctx, x, barY, w, barH, barH / 2); ctx.fill();
+  const fillW = Math.max(barH, (parseFloat(value) / 10) * w);
+  const grad = ctx.createLinearGradient(x, barY, x + fillW, barY);
+  grad.addColorStop(0, p.gradStart); grad.addColorStop(1, p.gradEnd);
+  ctx.fillStyle = grad; roundRect(ctx, x, barY, fillW, barH, barH / 2); ctx.fill();
+  return barY + barH;
+}
 
 /* ---- Separator ---- */
 function drawSeparator(ctx, y, p) {
@@ -441,6 +465,7 @@ function drawBrandedFooter(ctx, p) {
 async function buildReelCard(resultData, p, culture) {
   const r = resultData.restaurant;
   const score = Math.round(parseFloat(resultData.donde_match) || 0);
+  const scoring = resultData.scoring_v9 || resultData.scoring || {};
   const recText = (resultData.recommendation || '').replace(/\u2014/g, ', ').replace(/ , /g, ', ');
 
   const canvas = document.createElement('canvas');
@@ -450,15 +475,8 @@ async function buildReelCard(resultData, p, culture) {
 
   drawReelBackground(ctx, p, culture);
 
-  // ── SCORE RING ──
-  let y = 260;
-  const ringR = 80;
-  drawScoreRing(ctx, CW / 2, y, ringR, score, p, {
-    showLabel: true, numSize: 56, labelSize: 15, lineWidth: 11,
-  });
-  y += ringR + 40;
-
-  // ── RESTAURANT NAME ──
+  // ── 1. RESTAURANT NAME ──
+  let y = 180;
   ctx.font = '700 56px "Playfair Display", Georgia, serif';
   ctx.fillStyle = p.fg;
   ctx.textAlign = 'center';
@@ -468,73 +486,125 @@ async function buildReelCard(resultData, p, culture) {
     ctx.fillText(line, CW / 2, y);
     y += 68;
   }
-  y += 12;
+  y += 8;
 
-  // ── META PILLS (neighborhood, cuisine, price) ──
+  // ── 2. META PILLS (neighborhood, cuisine, price) ──
   const metaParts = [];
   const hood = r.neighborhood_name || '';
   if (hood && !/^chicago$/i.test(hood.trim())) metaParts.push(hood);
   if (r.cuisine_type) metaParts.push(r.cuisine_type);
   if (r.price_level) metaParts.push(r.price_level);
   if (metaParts.length > 0) {
-    y = drawCenteredPills(ctx, y, metaParts, p) + 24;
+    y = drawCenteredPills(ctx, y, metaParts, p) + 20;
   }
 
   // Separator
   drawSeparator(ctx, y, p);
-  y += 40;
+  y += 36;
 
-  // ── RECOMMENDATION BLURB — full, no truncation ──
+  // ── 3. RECOMMENDATION BLURB — the MOAT ──
   if (recText) {
-    ctx.font = '300 72px "Playfair Display", Georgia, serif';
+    ctx.font = '300 64px "Playfair Display", Georgia, serif';
     ctx.fillStyle = p.ac + '40';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
-    ctx.fillText('\u201C', CW / 2, y - 14);
-    y += 50;
+    ctx.fillText('\u201C', CW / 2, y - 12);
+    y += 44;
 
-    ctx.font = 'italic 400 27px "Playfair Display", Georgia, serif';
+    ctx.font = 'italic 400 26px "Playfair Display", Georgia, serif';
     ctx.fillStyle = p.fg2;
     const blurbLines = wrapText(ctx, recText, CONTENT_W - 80);
     for (const line of blurbLines) {
       ctx.fillText(line, CW / 2, y);
-      y += 38;
+      y += 36;
     }
-    y += 8;
+    y += 6;
 
-    ctx.font = '300 72px "Playfair Display", Georgia, serif';
+    ctx.font = '300 64px "Playfair Display", Georgia, serif';
     ctx.fillStyle = p.ac + '40';
-    ctx.fillText('\u201D', CW / 2, y - 18);
-    y += 36;
+    ctx.fillText('\u201D', CW / 2, y - 16);
+    y += 28;
   }
 
-  // ── MATCH NARRATIVE (strongest factor summary) ──
+  // ── 4. FULL DONDE MATCH HERO — the MOAT ──
+  drawSeparator(ctx, y, p);
+  y += 24;
+
+  // Glass card background
+  const heroX = PAD + 10, heroW = CONTENT_W - 20;
+  const heroH = 220;
+  ctx.save();
+  ctx.fillStyle = p.glass;
+  roundRect(ctx, heroX, y, heroW, heroH, 24);
+  ctx.fill();
+  ctx.strokeStyle = p.border;
+  ctx.lineWidth = 1;
+  roundRect(ctx, heroX, y, heroW, heroH, 24);
+  ctx.stroke();
+  // Top accent glow
+  const hg = ctx.createLinearGradient(heroX, y, heroX + heroW, y);
+  hg.addColorStop(0, p.ac + '0a'); hg.addColorStop(0.5, p.ac + '18'); hg.addColorStop(1, p.ac + '0a');
+  ctx.fillStyle = hg;
+  ctx.fillRect(heroX + 1, y + 1, heroW - 2, 3);
+  ctx.restore();
+
+  // Score ring inside hero (left side)
+  drawScoreRing(ctx, heroX + 90, y + heroH / 2, 52, score, p, {
+    showLabel: true, numSize: 44, labelSize: 13, lineWidth: 9,
+  });
+
+  // Tier text + narrative (right side)
+  const tX = heroX + 170, tW = heroW - 190;
+  ctx.font = '700 26px "Playfair Display", Georgia, serif';
+  ctx.fillStyle = getScoreColor(score, p);
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  ctx.fillText(getScoreTier(score), tX, y + 24);
+
   const narrative = resultData.match_narrative?.summary || '';
   if (narrative) {
-    drawSeparator(ctx, y, p);
-    y += 36;
-    ctx.font = '400 21px "Inter", system-ui, sans-serif';
-    ctx.fillStyle = p.fg3;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
-    const narLines = wrapText(ctx, narrative, CONTENT_W - 60);
-    for (const line of narLines.slice(0, 3)) {
-      ctx.fillText(line, CW / 2, y);
-      y += 30;
+    ctx.font = '400 19px "Inter", system-ui, sans-serif';
+    ctx.fillStyle = p.fg2;
+    let ny = y + 58;
+    for (const line of wrapText(ctx, narrative, tW).slice(0, 3)) {
+      ctx.fillText(line, tX, ny); ny += 26;
     }
-    y += 16;
   }
 
-  // ── KEY SIGNALS (pill tags) ──
+  // Key signals (pill chips inside hero bottom)
   const signals = resultData.match_narrative?.key_signals || [];
   if (signals.length > 0) {
-    y = drawCenteredPills(ctx, y, signals.slice(0, 3), p) + 20;
+    ctx.font = '500 15px "Inter", system-ui, sans-serif';
+    let sx = tX;
+    const sigY = y + heroH - 44;
+    for (const sig of signals.slice(0, 3)) {
+      const tw = ctx.measureText(sig).width, pw = tw + 20;
+      if (sx + pw > heroX + heroW - 16) break;
+      ctx.fillStyle = p.acSoft; roundRect(ctx, sx, sigY, pw, 26, 13); ctx.fill();
+      ctx.fillStyle = p.ac; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      ctx.fillText(sig, sx + 10, sigY + 13); sx += pw + 8;
+    }
+  }
+  y += heroH + 20;
+
+  // ── 5. FACTOR BARS ──
+  const factors = [
+    { label: 'Food', value: scoring.food },
+    { label: 'Vibe', value: scoring.vibe },
+    { label: 'Service', value: scoring.service },
+    { label: 'Reputation', value: scoring.reputation },
+    { label: 'Convenience', value: scoring.convenience },
+  ].filter(f => f.value != null);
+  if (factors.length > 0) {
+    for (const f of factors) {
+      y = drawFactorBar(ctx, PAD + 10, y, CONTENT_W - 20, f.label, f.value, p) + 14;
+    }
+    y += 6;
   }
 
-  // ── INSIDER TIP ──
+  // ── 6. INSIDER TIP ──
   const tip = (resultData.insider_tip || '').replace(/\u2014/g, ', ');
   if (tip) {
-    y += 8;
     const tipLines = wrapText(ctx, tip, CONTENT_W - 80);
     const tipBoxH = 32 + Math.min(tipLines.length, 3) * 28 + 16;
     ctx.fillStyle = p.ac + '0c';
@@ -555,7 +625,7 @@ async function buildReelCard(resultData, p, culture) {
     y += tipBoxH + 16;
   }
 
-  // ── BRANDED FOOTER ──
+  // ── 7. BRANDED FOOTER ──
   drawBrandedFooter(ctx, p);
   return canvas;
 }
