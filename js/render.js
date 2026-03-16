@@ -262,7 +262,9 @@ function renderGlanceContext(data) {
     }
 
     const statusText = oh.open_now ? 'Open' : 'Closed';
-    const hoursInline = todayHours ? ` · ${todayHours}` : '';
+    // Avoid "Closed · Closed" — only show today's hours if they're actual times, not just "Closed"
+    const isTodayClosed = /^closed$/i.test(todayHours.trim());
+    const hoursInline = (todayHours && !isTodayClosed) ? ` · ${todayHours}` : '';
     pill.innerHTML = `${svgIcon('clock', 11)} ${statusText}${hoursInline}`;
 
     if (hasHours) {
