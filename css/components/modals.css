@@ -465,10 +465,102 @@
   background: var(--bg3);
 }
 
+/* Donde Card preview: 9:16 aspect ratio */
+.share-preview--card {
+  aspect-ratio: 9 / 16;
+  max-width: 220px;
+  max-height: 390px;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 32px hsl(0 0% 0% / 0.15);
+  position: relative;
+}
+
+.share-preview--card.share-preview--loading::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--bg3);
+  border-radius: inherit;
+  animation: card-shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes card-shimmer {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.7; }
+}
+
+.donde-card-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: inherit;
+}
+
 .share-preview canvas {
   width: 100%;
   height: 100%;
   display: block;
+}
+
+/* ---- Donde Card Primary Actions ---- */
+.share-card-actions {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: center;
+  margin-bottom: var(--space-md);
+}
+
+.share-card-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-pill);
+  border: none;
+  cursor: pointer;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  transition: transform var(--dur-fast) var(--spring),
+              box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.share-card-btn:active {
+  transform: scale(0.96);
+}
+
+.share-card-btn svg {
+  flex-shrink: 0;
+}
+
+.share-card-btn--save {
+  background: var(--ac);
+  color: var(--bg);
+}
+
+.share-card-btn--save:hover {
+  box-shadow: 0 4px 16px var(--ac-soft);
+}
+
+.share-card-btn--share {
+  background: var(--ac-soft);
+  color: var(--ac);
+  border: 1.5px solid var(--ac);
+}
+
+.share-card-btn--share:hover {
+  background: var(--ac);
+  color: var(--bg);
+}
+
+/* ---- Share Divider ---- */
+.share-divider {
+  text-align: center;
+  color: var(--fg3);
+  margin-bottom: var(--space-sm);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: var(--text-2xs);
 }
 
 .share-format-toggle {

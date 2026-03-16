@@ -38,6 +38,7 @@
   <link rel="stylesheet" href="css/components/result.css">
   <link rel="stylesheet" href="css/components/modals.css">
   <link rel="stylesheet" href="css/components/ui.css">
+  <link rel="stylesheet" href="css/components/taste-dna.css">
   <link rel="stylesheet" href="css/animations.css">
   <link rel="stylesheet" href="css/responsive.css">
 </head>
@@ -130,6 +131,8 @@
           </div>
         </div>
         <div class="user-menu__actions">
+          <button class="user-menu__btn type-structural" data-action="open-taste-dna">My Taste DNA</button>
+          <button class="user-menu__btn type-structural" data-action="open-taste-blend">Dining with friends?</button>
           <a id="admin-gauntlet-link" href="command-center.html" class="user-menu__btn type-structural" style="display:none;text-decoration:none;text-align:center;">Command Center</a>
           <button class="user-menu__btn type-structural" data-action="sign-out">Sign Out</button>
         </div>
@@ -680,14 +683,22 @@
       <div class="share-sheet__backdrop" data-action="close-share"></div>
       <div class="share-sheet__panel">
         <h3 class="type-structural" style="margin-bottom: var(--space-md);">Share This Spot</h3>
-        <!-- Canvas Share Preview -->
-        <div class="share-preview" id="share-preview">
-          <canvas id="share-canvas"></canvas>
+        <!-- Donde Card Preview -->
+        <div class="share-preview share-preview--card" id="share-preview">
+          <canvas id="share-canvas" style="display:none;"></canvas>
         </div>
-        <div class="share-format-toggle">
-          <button class="share-format-btn share-format-btn--active type-structural" data-action="share-format" data-format="post">Post (1:1)</button>
-          <button class="share-format-btn type-structural" data-action="share-format" data-format="story">Story (9:16)</button>
+        <!-- Primary Card Actions -->
+        <div class="share-card-actions">
+          <button class="share-card-btn share-card-btn--save type-structural" data-action="share-channel" data-channel="save-card">
+            <svg viewBox="0 0 256 256" width="20" height="20"><path fill="currentColor" d="M228,144v64a12,12,0,0,1-12,12H40a12,12,0,0,1-12-12V144a4,4,0,0,1,8,0v64a4,4,0,0,0,4,4H216a4,4,0,0,0,4-4V144a4,4,0,0,1,8,0Zm-98.83,5.17a4,4,0,0,0,5.66,0l48-48a4,4,0,0,0-5.66-5.66L132,140.69V32a4,4,0,0,0-8,0V140.69L78.83,95.51a4,4,0,0,0-5.66,5.66Z"/></svg>
+            Save to Photos
+          </button>
+          <button class="share-card-btn share-card-btn--share type-structural" data-action="share-channel" data-channel="share-card">
+            <svg viewBox="0 0 256 256" width="20" height="20"><path fill="currentColor" d="M176,164a36,36,0,0,0-27.92,13.3L96.25,144a35.92,35.92,0,0,0,0-32L148.08,78.7A35.93,35.93,0,1,0,143.75,72L91.92,105.3a36,36,0,1,0,0,45.4L143.75,184A36,36,0,1,0,176,164Zm0-136a28,28,0,1,1-28,28A28,28,0,0,1,176,28ZM64,156a28,28,0,1,1,28-28A28,28,0,0,1,64,156Zm112,72a28,28,0,1,1,28-28A28,28,0,0,1,176,228Z"/></svg>
+            Share to Stories
+          </button>
         </div>
+        <p class="share-divider type-data--sm">or share via</p>
         <div class="share-grid">
           <button class="share-btn" data-action="share-channel" data-channel="clipboard">
             <span class="share-btn__icon" style="background: var(--bg3);">
@@ -794,6 +805,35 @@
       <button class="coach-mark__dismiss type-data--sm" data-action="dismiss-coach">Got it</button>
     </div>
     <div class="coach-mark__backdrop" id="coach-mark-backdrop" style="display: none;"></div>
+
+    <!-- Taste DNA Modal -->
+    <div class="taste-dna-modal" id="taste-dna-modal" role="dialog" aria-label="Your Taste DNA" aria-modal="true">
+      <div class="taste-dna-modal__backdrop" data-action="close-taste-dna"></div>
+      <div class="taste-dna-modal__panel">
+        <button class="taste-dna-modal__close" data-action="close-taste-dna" aria-label="Close">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+        <h3 class="taste-dna-modal__title type-emotional">Your Taste DNA</h3>
+        <div class="taste-dna-modal__content" id="taste-dna-content"></div>
+      </div>
+    </div>
+
+    <!-- Taste Blend Modal (Group Dining) -->
+    <div class="taste-blend-modal" id="taste-blend-modal" role="dialog" aria-label="Group Taste Blend" aria-modal="true">
+      <div class="taste-blend-modal__backdrop" data-action="close-taste-blend"></div>
+      <div class="taste-blend-modal__panel">
+        <button class="taste-blend-modal__close" data-action="close-taste-blend" aria-label="Close">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+        <div class="taste-blend-modal__content" id="taste-blend-content"></div>
+      </div>
+    </div>
 
     <!-- Theme Wash (radial clip-path transition) -->
     <div class="theme-wash" id="theme-wash" aria-hidden="true"></div>
