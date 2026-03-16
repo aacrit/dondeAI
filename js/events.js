@@ -1471,6 +1471,28 @@ export function wireEvents(appCallbacks) {
         closeUserMenu();
         break;
 
+      /* ---- Taste DNA / Blend actions ---- */
+      case 'open-taste-dna':
+        closeUserMenu();
+        import('./taste-dna.js').then(function(m) { m.openTasteDnaModal(); });
+        break;
+      case 'open-taste-blend':
+        closeUserMenu();
+        import('./taste-dna.js').then(function(m) { m.openBlendModal(); });
+        break;
+      case 'close-taste-dna':
+        import('./taste-dna.js').then(function(m) { m.closeTasteDnaModal(); });
+        break;
+      case 'close-taste-blend':
+        import('./taste-dna.js').then(function(m) { m.closeBlendModal(); });
+        break;
+      case 'share-dna':
+        import('./taste-dna.js').then(function(m) { m.shareTasteDna(); });
+        break;
+      case 'search-blend':
+        import('./taste-dna.js').then(function(m) { m.closeBlendModal(); });
+        break;
+
       case 'clear-filters': {
         setState({ occasion: 'Any', neighborhood: 'Anywhere', priceLevel: 'Any', openNow: false });
         clearAllSelections();

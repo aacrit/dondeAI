@@ -22,6 +22,7 @@ import { initAuth, isAuthenticated as isAuthAuthenticated, getUser as getAuthUse
 import { loadRive } from './animations.js';
 import { getGreeting } from './utils.js';
 import { $dom, initDomRefs, REDUCED_MOTION } from './globals.js';
+import { initTasteDna } from './taste-dna.js'; // Taste DNA visualization
 
 // Module imports
 import {
@@ -72,6 +73,7 @@ function init() {
   initAccessibility();
   initScrollHeader();
   initAuth();
+  initTasteDna(); // Background-fetch taste profile if authenticated
 
   // Set up greeting
   setupLanding();
@@ -200,6 +202,9 @@ function init() {
     }
     if (state.error !== prev.error && state.error) {
       showToast(state.error, true);
+    }
+    if (state.isAuthenticated && !prev.isAuthenticated) {
+      initTasteDna(); // Re-fetch taste profile on sign-in
     }
     if (state.theme.culture !== prev.theme.culture) {
       renderSmartChips();

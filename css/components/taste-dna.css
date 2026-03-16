@@ -1,0 +1,745 @@
+/* ============================================
+   DondeAI — Taste DNA Components
+   Radial chart, archetype badge, vibe bars,
+   blend modal, DNA card
+   ============================================ */
+
+/* ---- Taste DNA Modal ---- */
+.taste-dna-modal,
+.taste-blend-modal {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--dur-normal) var(--ease-out);
+}
+
+.taste-dna-modal--open,
+.taste-blend-modal--open {
+  pointer-events: auto;
+  opacity: 1;
+}
+
+.taste-dna-modal__backdrop,
+.taste-blend-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: hsl(0 0% 0% / 0.5);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.taste-dna-modal__panel,
+.taste-blend-modal__panel {
+  position: relative;
+  width: 92vw;
+  max-width: 420px;
+  max-height: 85vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  transform: scale(0.92) translateY(12px);
+  transition: transform var(--dur-step) var(--spring);
+  overscroll-behavior: contain;
+
+  /* Glassmorphism */
+  background: var(--glass);
+  backdrop-filter: blur(var(--glass-e3-blur, 32px)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--glass-e3-blur, 32px)) saturate(140%);
+  box-shadow: var(--glass-e3-shadow);
+}
+
+.taste-dna-modal--open .taste-dna-modal__panel,
+.taste-blend-modal--open .taste-blend-modal__panel {
+  transform: scale(1) translateY(0);
+}
+
+.taste-dna-modal__close,
+.taste-blend-modal__close {
+  position: absolute;
+  top: var(--space-sm);
+  right: var(--space-sm);
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: var(--fg2);
+  background: none;
+  border: none;
+  cursor: pointer;
+  z-index: 1;
+  transition: background var(--dur-fast) var(--ease-out),
+              color var(--dur-fast) var(--ease-out);
+}
+
+.taste-dna-modal__close:hover,
+.taste-blend-modal__close:hover {
+  background: var(--bg3);
+  color: var(--fg);
+}
+
+.taste-dna-modal__title,
+.taste-blend-modal__title {
+  text-align: center;
+  margin-bottom: var(--space-md);
+  color: var(--fg);
+}
+
+/* ---- DNA Card ---- */
+.dna-card__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-sm) 0;
+}
+
+.dna-card__inner--empty {
+  text-align: center;
+}
+
+.dna-card--loaded .dna-card__inner {
+  animation: dna-fadein var(--dur-normal) var(--ease-out);
+}
+
+@keyframes dna-fadein {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ---- Radial Chart ---- */
+.dna-chart-wrap {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  flex-shrink: 0;
+}
+
+.dna-radial {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.dna-arc {
+  transition: opacity var(--dur-fast) var(--ease-out);
+  cursor: default;
+}
+
+.dna-arc:hover {
+  opacity: 1 !important;
+}
+
+.dna-radial--empty {
+  opacity: 0.5;
+}
+
+/* Center archetype overlay */
+.dna-archetype-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.dna-archetype-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+  margin-bottom: var(--space-2xs);
+}
+
+.dna-archetype-name {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--fg);
+  text-align: center;
+  max-width: 80px;
+  line-height: 1.2;
+}
+
+.dna-archetype-desc {
+  text-align: center;
+  color: var(--fg2);
+  font-size: var(--text-sm);
+  max-width: 280px;
+  line-height: 1.5;
+}
+
+/* ---- Sections ---- */
+.dna-section {
+  width: 100%;
+}
+
+.dna-section-title {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--fg3);
+  margin-bottom: var(--space-xs);
+  font-weight: 600;
+}
+
+/* ---- Cuisine List ---- */
+.dna-cuisine-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.dna-cuisine-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  animation: dna-cuisine-slide var(--dur-normal) var(--ease-out) var(--dna-delay, 0ms) both;
+}
+
+@keyframes dna-cuisine-slide {
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.dna-cuisine-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dna-cuisine-name {
+  font-size: var(--text-sm);
+  min-width: 70px;
+  color: var(--fg);
+}
+
+.dna-cuisine-bar-track {
+  flex: 1;
+  height: 6px;
+  background: var(--bg3);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.dna-cuisine-bar {
+  height: 100%;
+  border-radius: 3px;
+  width: 0;
+  transition: width var(--dur-slow) var(--ease-out);
+}
+
+.dna-cuisine-bar--animate {
+  /* Width is set inline — this class triggers the transition */
+}
+
+.dna-cuisine-pct {
+  color: var(--fg3);
+  min-width: 32px;
+  text-align: right;
+}
+
+/* ---- Vibe Chart ---- */
+.dna-vibe-chart {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.dna-vibe-axis {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.dna-vibe-label {
+  color: var(--fg3);
+  min-width: 56px;
+  font-size: var(--text-2xs);
+}
+
+.dna-vibe-label--left {
+  text-align: right;
+}
+
+.dna-vibe-label--right {
+  text-align: left;
+}
+
+.dna-vibe-track {
+  flex: 1;
+  height: 6px;
+  background: var(--bg3);
+  border-radius: 3px;
+  position: relative;
+}
+
+.dna-vibe-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  background: var(--ac-soft);
+  border-radius: 3px;
+}
+
+.dna-vibe-marker {
+  position: absolute;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  background: var(--ac);
+  border: 2px solid var(--bg2);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 1px 4px hsl(0 0% 0% / 0.15);
+  transition: left var(--dur-slow) var(--ease-out);
+}
+
+/* ---- Stats Row ---- */
+.dna-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-xs);
+  width: 100%;
+}
+
+.dna-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2xs);
+  padding: var(--space-xs);
+  background: var(--bg3);
+  border-radius: var(--radius-sm);
+}
+
+.dna-stat-value {
+  font-size: var(--text-md);
+  font-weight: 700;
+  color: var(--fg);
+  line-height: 1;
+}
+
+.dna-stat-label {
+  color: var(--fg3);
+  text-align: center;
+  line-height: 1.2;
+}
+
+/* ---- Discovery Bar ---- */
+.dna-discovery-bar {
+  width: 100%;
+  height: 4px;
+  background: var(--bg);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.dna-discovery-fill {
+  height: 100%;
+  background: var(--ac);
+  border-radius: 2px;
+  width: 0;
+  transition: width var(--dur-slow) var(--ease-out);
+}
+
+.dna-discovery-fill--animate {
+  /* Width is set inline */
+}
+
+/* ---- Neighborhood ---- */
+.dna-neighborhood {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--bg3);
+  border-radius: var(--radius-sm);
+  width: 100%;
+}
+
+.dna-neighborhood-label {
+  color: var(--fg3);
+}
+
+.dna-neighborhood-name {
+  color: var(--fg);
+}
+
+/* ---- Signal Breakdown ---- */
+.dna-signals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  justify-content: center;
+  color: var(--fg3);
+}
+
+.dna-signals span::before {
+  content: '\2022 ';
+  opacity: 0.4;
+}
+
+.dna-signals span:first-child::before {
+  content: '';
+}
+
+/* ---- Share Button ---- */
+.dna-share-btn {
+  margin-top: var(--space-xs);
+}
+
+/* ---- Archetype Badge (Header) ---- */
+.dna-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  padding: 2px var(--space-xs);
+  background: var(--ac-soft);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: transform var(--dur-fast) var(--spring),
+              background var(--dur-fast) var(--ease-out);
+  vertical-align: middle;
+  margin-left: var(--space-xs);
+}
+
+.dna-badge:hover {
+  background: color-mix(in srgb, var(--ac) 20%, transparent);
+  transform: scale(1.05);
+}
+
+.dna-badge__icon {
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+.dna-badge__label {
+  color: var(--fg2);
+  white-space: nowrap;
+}
+
+.dna-badge--enter {
+  animation: dna-badge-pop var(--dur-step) var(--spring);
+}
+
+@keyframes dna-badge-pop {
+  0%   { transform: scale(0); opacity: 0; }
+  60%  { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(1); }
+}
+
+/* ---- Loading State ---- */
+.dna-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-2xl) 0;
+}
+
+.dna-loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border);
+  border-top-color: var(--ac);
+  border-radius: 50%;
+  animation: dna-spin 0.8s linear infinite;
+}
+
+@keyframes dna-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ---- Empty CTA ---- */
+.dna-empty-cta {
+  padding: var(--space-md);
+  background: var(--bg3);
+  border-radius: var(--radius-sm);
+  text-align: center;
+}
+
+.dna-empty-cta-label {
+  color: var(--fg3);
+}
+
+/* ============================================
+   Taste Blend Components
+   ============================================ */
+
+/* ---- Blend Inner ---- */
+.dna-blend-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+/* ---- Compatibility Ring ---- */
+.dna-blend-compat {
+  position: relative;
+  width: 120px;
+  height: 120px;
+}
+
+.dna-blend-ring {
+  display: block;
+}
+
+.dna-blend-ring-fill {
+  transition: stroke-dasharray var(--dur-score) var(--ease-out);
+}
+
+.dna-blend-compat-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.dna-blend-compat-value {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: var(--fg);
+  line-height: 1;
+}
+
+.dna-blend-compat-label {
+  color: var(--fg3);
+}
+
+/* ---- Blend Sections ---- */
+.dna-blend-section {
+  width: 100%;
+}
+
+.dna-blend-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.dna-blend-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  padding: var(--space-2xs) var(--space-sm);
+  background: color-mix(in srgb, var(--chip-color, var(--ac)) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--chip-color, var(--ac)) 30%, transparent);
+  border-radius: var(--radius-pill);
+  color: var(--fg);
+  font-size: var(--text-sm);
+}
+
+.dna-blend-chip--new {
+  border-style: dashed;
+  opacity: 0.8;
+}
+
+.dna-blend-chip-shared {
+  color: var(--fg3);
+}
+
+.dna-blend-neighborhoods {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.dna-blend-neighborhood {
+  padding: var(--space-2xs) var(--space-sm);
+  background: var(--bg3);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-sm);
+  color: var(--fg2);
+}
+
+.dna-blend-price {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--bg3);
+  border-radius: var(--radius-sm);
+}
+
+.dna-blend-search-btn {
+  width: 100%;
+  margin-top: var(--space-xs);
+}
+
+.dna-blend-error {
+  text-align: center;
+  color: var(--fg3);
+  padding: var(--space-lg);
+}
+
+/* ---- Blend Form ---- */
+.dna-blend-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.dna-blend-form-title {
+  text-align: center;
+  color: var(--fg);
+}
+
+.dna-blend-form-subtitle {
+  text-align: center;
+  color: var(--fg2);
+  font-size: var(--text-sm);
+}
+
+.dna-blend-people {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.dna-blend-person {
+  padding: var(--space-sm);
+  background: var(--bg3);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.dna-blend-person-title {
+  color: var(--fg);
+  font-weight: 600;
+}
+
+.dna-blend-cuisine-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs);
+}
+
+.dna-blend-cuisine-opt,
+.dna-blend-vibe-opt {
+  cursor: pointer;
+}
+
+.dna-blend-cuisine-opt input,
+.dna-blend-vibe-opt input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.dna-blend-cuisine-chip,
+.dna-blend-vibe-chip {
+  display: inline-block;
+  padding: var(--space-2xs) var(--space-sm);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-sm);
+  color: var(--fg2);
+  transition: background var(--dur-fast) var(--ease-out),
+              border-color var(--dur-fast) var(--ease-out),
+              color var(--dur-fast) var(--ease-out);
+  user-select: none;
+}
+
+.dna-blend-cuisine-chip:hover,
+.dna-blend-vibe-chip:hover {
+  border-color: var(--ac);
+}
+
+.dna-blend-cuisine-opt input:checked + .dna-blend-cuisine-chip,
+.dna-blend-vibe-opt input:checked + .dna-blend-vibe-chip {
+  background: var(--ac-soft);
+  border-color: var(--ac);
+  color: var(--fg);
+}
+
+.dna-blend-vibe-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs);
+}
+
+.dna-blend-add-person {
+  background: none;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-xs) var(--space-sm);
+  color: var(--fg3);
+  cursor: pointer;
+  text-align: center;
+  transition: border-color var(--dur-fast) var(--ease-out),
+              color var(--dur-fast) var(--ease-out);
+}
+
+.dna-blend-add-person:hover {
+  border-color: var(--ac);
+  color: var(--fg2);
+}
+
+.dna-blend-budget {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.dna-blend-budget-pills {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.dna-blend-compute-btn {
+  width: 100%;
+}
+
+.dna-blend-result {
+  width: 100%;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 380px) {
+  .dna-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .dna-chart-wrap {
+    width: 160px;
+    height: 160px;
+  }
+
+  .dna-vibe-label {
+    min-width: 40px;
+    font-size: 0.5625rem;
+  }
+}
+
+/* ---- Reduced Motion ---- */
+@media (prefers-reduced-motion: reduce) {
+  .dna-cuisine-row {
+    animation: none;
+  }
+
+  .dna-badge--enter {
+    animation: none;
+  }
+
+  .dna-cuisine-bar,
+  .dna-discovery-fill,
+  .dna-vibe-marker,
+  .dna-blend-ring-fill {
+    transition: none;
+  }
+}
