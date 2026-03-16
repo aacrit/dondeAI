@@ -436,7 +436,7 @@ async function buildSmallCard(resultData, p, culture) {
   const mc = document.createElement('canvas'); mc.width = CW; mc.height = 100;
   const m = mc.getContext('2d');
   let totalH = PAD;
-  const photoH = 520; totalH += photoH + 36;
+  const photoH = 280; totalH += photoH + 36;
   m.font = '700 52px "Playfair Display", Georgia, serif';
   const nameLines = wrapText(m, r.name || 'Restaurant', CONTENT_W);
   totalH += nameLines.length * 62 + 12;
@@ -461,10 +461,10 @@ async function buildSmallCard(resultData, p, culture) {
   if (img) drawCoverPhoto(ctx, img, PAD, y, CONTENT_W, photoH, 28);
   else drawFallbackVisual(ctx, PAD, y, CONTENT_W, photoH, 28, p);
   // Score badge overlay
-  const bS = 88, bX = PAD + 20, bY = y + photoH - bS - 20;
-  ctx.fillStyle = p.bg2 + 'e6'; roundRect(ctx, bX, bY, bS, bS, 18); ctx.fill();
-  ctx.strokeStyle = p.border; ctx.lineWidth = 1.5; roundRect(ctx, bX, bY, bS, bS, 18); ctx.stroke();
-  drawScoreRing(ctx, bX + bS / 2, bY + bS / 2, 30, score, p, { showLabel: true, labelSize: 11, numSize: 30 });
+  const bS = 76, bX = PAD + 16, bY = y + photoH - bS - 16;
+  ctx.fillStyle = p.bg2 + 'e6'; roundRect(ctx, bX, bY, bS, bS, 16); ctx.fill();
+  ctx.strokeStyle = p.border; ctx.lineWidth = 1.5; roundRect(ctx, bX, bY, bS, bS, 16); ctx.stroke();
+  drawScoreRing(ctx, bX + bS / 2, bY + bS / 2, 26, score, p, { showLabel: true, labelSize: 10, numSize: 26 });
   y += photoH + 36;
 
   // Name
@@ -510,7 +510,7 @@ async function buildLargeCard(resultData, p, culture) {
   const mc = document.createElement('canvas'); mc.width = CW; mc.height = 100;
   const m = mc.getContext('2d');
   let totalH = PAD;
-  const photoH = 460; totalH += photoH + 36;
+  const photoH = 260; totalH += photoH + 36;
   m.font = '700 48px "Playfair Display", Georgia, serif';
   const nameLines = wrapText(m, r.name || 'Restaurant', CONTENT_W);
   totalH += nameLines.length * 58 + 8;
@@ -549,10 +549,10 @@ async function buildLargeCard(resultData, p, culture) {
   // Photo
   if (img) drawCoverPhoto(ctx, img, PAD, y, CONTENT_W, photoH, 28);
   else drawFallbackVisual(ctx, PAD, y, CONTENT_W, photoH, 28, p);
-  const bS = 80, bX = PAD + 20, bY = y + photoH - bS - 16;
-  ctx.fillStyle = p.bg2 + 'e6'; roundRect(ctx, bX, bY, bS, bS, 16); ctx.fill();
-  ctx.strokeStyle = p.border; ctx.lineWidth = 1.5; roundRect(ctx, bX, bY, bS, bS, 16); ctx.stroke();
-  drawScoreRing(ctx, bX + bS / 2, bY + bS / 2, 26, score, p, { numSize: 28 });
+  const bS = 72, bX = PAD + 16, bY = y + photoH - bS - 14;
+  ctx.fillStyle = p.bg2 + 'e6'; roundRect(ctx, bX, bY, bS, bS, 14); ctx.fill();
+  ctx.strokeStyle = p.border; ctx.lineWidth = 1.5; roundRect(ctx, bX, bY, bS, bS, 14); ctx.stroke();
+  drawScoreRing(ctx, bX + bS / 2, bY + bS / 2, 24, score, p, { numSize: 24 });
   y += photoH + 36;
 
   // Name
