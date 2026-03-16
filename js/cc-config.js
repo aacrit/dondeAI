@@ -55,6 +55,37 @@ function getTestCost(type) {
   return state.liveAPI ? t.costLive : t.costScoring;
 }
 
+function generateRunName(runId, mode, total, timestamp) {
+  var ts = typeof timestamp === 'string' ? new Date(timestamp).getTime() : (timestamp || Date.now());
+  var date = new Date(ts);
+  var timeStr = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  var qStr = total ? total + 'q' : '';
+
+  // CLI-imported runs
+  if (runId && typeof runId === 'string') {
+    if (runId.startsWith('cli-golden')) return 'CLI: Golden Dataset' + (qStr ? ' (' + qStr + ', ' + timeStr + ')' : '');
+    if (runId.startsWith('cli-regression')) return 'CLI: Regression Guard' + (qStr ? ' (' + qStr + ', ' + timeStr + ')' : '');
+    if (runId.startsWith('cli-')) return 'CLI: Test Run' + (qStr ? ' (' + qStr + ', ' + timeStr + ')' : '');
+  }
+
+  var RUN_NAMES = {
+    broad: ['Golden Dataset Sweep', 'Quality Scan', 'Engine Health Check'],
+    category: ['Category Deep Dive', 'Signal Focus Test', 'Targeted Audit'],
+    regression: ['Regression Guard', 'Baseline Defense', 'Stability Check'],
+    edge: ['Edge Case Probe', 'Boundary Stress Test', 'Resilience Audit'],
+    blurb: ['Blurb Quality Audit', 'Voice & Tone Check'],
+    coverage: ['Data Coverage Scan', 'Profile Gap Audit'],
+    'blurb-live': ['Live Blurb Eval'],
+    'intent-live': ['Intent Classification Check']
+  };
+
+  var type = mode || 'broad';
+  var names = RUN_NAMES[type] || ['Test Run'];
+  var idx = Math.floor(ts / 60000) % names.length;
+  var suffix = qStr ? ' (' + qStr + ', ' + timeStr + ')' : ' (' + timeStr + ')';
+  return names[idx] + suffix;
+}
+
 const QUERY_CATEGORIES = {
   Food:    { label: 'Food',    color: '#f97316', desc: 'Dish & cuisine queries' },
   Vibe:    { label: 'Vibe',    color: '#a855f7', desc: 'Atmosphere & mood' },

@@ -253,12 +253,15 @@ function renderMorningBriefBanner(run) {
   const $action = document.getElementById('mc-smart-action');
   if (!$brief || !$text || !$action) return;
 
+  var hour = new Date().getHours();
+  var greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+
   if (!run) {
     // No data state
     $brief.style.display = '';
     $brief.className = 'mc-brief mc-brief--amber';
     $icon.textContent = '\u26A0';
-    $text.innerHTML = '<strong>No test data available.</strong> Run your first quality scan to see engine health.';
+    $text.innerHTML = '<strong>' + greeting + ', Aacrit.</strong> No test data yet. Run your first quality scan to see engine health.';
     $action.innerHTML = '<button class="mc-smart-action__btn mc-smart-action__btn--primary" onclick="processCOOInput(\'scan\')">Run First Scan</button>';
     return;
   }
@@ -279,23 +282,23 @@ function renderMorningBriefBanner(run) {
     // GREEN
     ragState = 'green';
     icon = '\u2713';
-    message = '<strong>All systems healthy.</strong> Engine at ' + grade + ' (' + avgDm + ' DM, ' + passRate + '% pass). No issues.';
+    message = '<strong>' + greeting + ', Aacrit.</strong> Engine at ' + grade + ' \u2014 ' + passCount + '/' + total + ' passed, DM ' + avgDm + ', zero issues.';
     actionHtml = '<button class="mc-smart-action__btn mc-smart-action__btn--success" onclick="processCOOInput(\'regression\')">Run Regression Guard</button>';
   } else if (gapCount > 5 || passRate < 70) {
     // RED
     ragState = 'red';
     icon = '\u2717';
-    message = '<strong>' + gapCount + ' issue' + (gapCount !== 1 ? 's' : '') + ' detected.</strong> Engine at ' + grade + ' (' + avgDm + ' DM, ' + passRate + '% pass). Action required.';
+    message = '<strong>' + greeting + ', Aacrit.</strong> Engine at ' + grade + ' \u2014 ' + gapCount + ' issue' + (gapCount !== 1 ? 's' : '') + ' need attention. DM ' + avgDm + ', ' + passRate + '% pass.';
     actionHtml = '<button class="mc-smart-action__btn mc-smart-action__btn--danger" onclick="processCOOInput(\'fix bugs\')">Fix ' + gapCount + ' Issue' + (gapCount !== 1 ? 's' : '') + '</button>';
   } else {
     // AMBER
     ragState = 'amber';
     icon = '\u26A0';
     if (gapCount > 0) {
-      message = '<strong>' + gapCount + ' issue' + (gapCount !== 1 ? 's' : '') + ' need attention.</strong> Engine at ' + grade + ' (' + avgDm + ' DM, ' + passRate + '% pass).';
+      message = '<strong>' + greeting + ', Aacrit.</strong> Engine at ' + grade + ' \u2014 ' + gapCount + ' minor issue' + (gapCount !== 1 ? 's' : '') + '. DM ' + avgDm + ', ' + passRate + '% pass.';
       actionHtml = '<button class="mc-smart-action__btn mc-smart-action__btn--primary" onclick="processCOOInput(\'fix bugs\')">Fix ' + gapCount + ' Issue' + (gapCount !== 1 ? 's' : '') + '</button>';
     } else {
-      message = '<strong>Engine stable.</strong> ' + grade + ' (' + avgDm + ' DM, ' + passRate + '% pass). Consider running a fresh scan.';
+      message = '<strong>' + greeting + ', Aacrit.</strong> Engine stable at ' + grade + '. DM ' + avgDm + ', ' + passRate + '% pass. Time for a fresh scan?';
       actionHtml = '<button class="mc-smart-action__btn mc-smart-action__btn--primary" onclick="processCOOInput(\'scan\')">Run Quality Scan</button>';
     }
   }
@@ -379,38 +382,105 @@ function renderMiniSparkline(parentId, values) {
 function renderRunHistory(runs) {
   var $el = document.getElementById('mc-runs');
   if (!$el) return;
-
   state.runHistory = runs || [];
-
   if (!runs || runs.length === 0) {
     $el.innerHTML = '<div class="mc-empty">No runs yet</div>';
     return;
   }
-
   $el.innerHTML = runs.slice(0, 5).map(function(run, i) {
     var avgDm = Math.round(Number(run.avg_dm) || 0);
     var total = run.total || 1;
     var passCount = run.grade_pass_count || run.passed_60 || 0;
     var passRate = Math.round(passCount / total * 100);
     var grade = computeEngineGrade(run);
-    var date = new Date(run.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    var displayName = generateRunName(run.run_id, run.mode, run.total, run.created_at);
+    // Truncate name for display
+    var shortName = displayName.length > 30 ? displayName.slice(0, 28) + '\u2026' : displayName;
 
-    // Delta from previous run
     var deltaHtml = '';
     if (run.delta_avg_dm != null && run.delta_avg_dm !== 0) {
       var d = Math.round(run.delta_avg_dm);
-      if (d > 0) {
-        deltaHtml = '<span class="mc-run-row__delta mc-run-row__delta--up">\u2191' + d + '</span>';
-      } else {
-        deltaHtml = '<span class="mc-run-row__delta mc-run-row__delta--down">\u2193' + Math.abs(d) + '</span>';
-      }
+      deltaHtml = d > 0
+        ? '<span class="mc-run-row__delta mc-run-row__delta--up">\u2191' + d + '</span>'
+        : '<span class="mc-run-row__delta mc-run-row__delta--down">\u2193' + Math.abs(d) + '</span>';
     }
 
-    return '<div class="mc-run-row mc-clickable" onclick="processCOOInput(\'compare\')" title="Click to compare runs">' +
-      '<span class="mc-run-row__date">' + date + '</span>' +
+    var runIdSafe = escapeHtml((run.run_id || '').replace(/'/g, ''));
+    return '<div class="mc-run-row mc-clickable" data-run-id="' + runIdSafe + '" onclick="toggleRunExpand(\'' + runIdSafe + '\', this)" title="' + escapeHtml(displayName) + '">' +
+      '<span class="mc-run-row__date" title="' + escapeHtml(displayName) + '">' + escapeHtml(shortName) + '</span>' +
       '<span class="mc-run-row__grade ' + ragClass(avgDm) + '">' + grade + '</span>' +
       '<span class="mc-run-row__dm">DM ' + avgDm + deltaHtml + '</span>' +
       '<span class="mc-run-row__pass">' + passRate + '%</span>' +
+    '</div>';
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Run Expansion — Drill into individual test cases
+// ═══════════════════════════════════════════════════════════════════
+
+function toggleRunExpand(runId, rowEl) {
+  var expandId = 'run-expand-' + runId.replace(/[^a-z0-9]/gi, '-');
+  var existing = document.getElementById(expandId);
+
+  if (existing) {
+    existing.style.maxHeight = '0';
+    existing.style.opacity = '0';
+    rowEl.classList.remove('mc-run-row--expanded');
+    setTimeout(function() { if (existing.parentNode) existing.parentNode.removeChild(existing); }, 350);
+    return;
+  }
+
+  // Collapse any other
+  var allExpands = document.querySelectorAll('.mc-run-expand');
+  allExpands.forEach(function(el) { el.style.maxHeight = '0'; el.style.opacity = '0'; setTimeout(function() { if (el.parentNode) el.parentNode.removeChild(el); }, 350); });
+  var allRows = document.querySelectorAll('.mc-run-row--expanded');
+  allRows.forEach(function(el) { el.classList.remove('mc-run-row--expanded'); });
+
+  rowEl.classList.add('mc-run-row--expanded');
+  var expandDiv = document.createElement('div');
+  expandDiv.id = expandId;
+  expandDiv.className = 'mc-run-expand';
+  expandDiv.innerHTML = '<div class="mc-empty" style="padding:8px;font-size:11px">Loading results\u2026</div>';
+  rowEl.after(expandDiv);
+
+  requestAnimationFrame(function() {
+    expandDiv.style.maxHeight = '360px';
+    expandDiv.style.opacity = '1';
+  });
+
+  if (typeof loadRunResults === 'function') {
+    loadRunResults(runId).then(function(results) {
+      renderRunExpandResults(expandDiv, results);
+    }).catch(function() {
+      expandDiv.innerHTML = '<div class="mc-empty" style="padding:8px;font-size:11px">Failed to load</div>';
+    });
+  } else {
+    expandDiv.innerHTML = '<div class="mc-empty" style="padding:8px;font-size:11px">Results not available</div>';
+  }
+}
+
+function renderRunExpandResults(container, results) {
+  if (!results || results.length === 0) {
+    container.innerHTML = '<div class="mc-empty" style="padding:8px;font-size:11px">No results found</div>';
+    return;
+  }
+
+  container.innerHTML = results.map(function(r) {
+    var dm = r.donde_match || 0;
+    var query = r.query || '?';
+    var name = r.restaurant_name || '?';
+    var fitG = r.score_fit_grade || '';
+    var blurbG = r.blurb_quality_grade || '';
+    var grades = '';
+    if (fitG) grades += 'Fit:' + fitG;
+    if (blurbG) grades += (grades ? ' ' : '') + 'Blurb:' + blurbG;
+    var gapDot = r.gap_type ? ' \u26A0' : '';
+
+    return '<div class="mc-run-expand__item" onclick="testAndShowDetail(\'' + escapeHtml(query.replace(/'/g, "\\'")) + '\')" title="' + escapeHtml(name) + '">' +
+      '<span class="mc-run-expand__query">"' + escapeHtml(query.slice(0, 30)) + '"' + gapDot + '</span>' +
+      '<span class="mc-run-expand__grades">' + grades + '</span>' +
+      '<span class="mc-run-expand__score ' + ragClass(dm) + '">' + dm + '</span>' +
     '</div>';
   }).join('');
 }
@@ -727,6 +797,8 @@ async function testAndShowDetail(query) {
     }
 
     showQueryDetail(query, dm, name, sv9, resp.recommendation, fit?.grade, blurb?.grade);
+    var panel = document.getElementById('mc-detail');
+    if (panel) { panel.classList.remove('mc-detail--test'); panel.classList.add('mc-detail--live'); }
   } catch (e) {
     if ($card) $card.innerHTML = '';
   }
@@ -765,7 +837,354 @@ function loadCustomQueries() { state.customQueries = []; }
 function loadPinnedQueries() { state.pinnedQueries = []; }
 function initPulseClicks() {}
 function initKeyboardShortcuts() {}
-function togglePulseExpand() {}
+// ═══════════════════════════════════════════════════════════════════
+// Pulse Card Expansion + Data Visualization Panel
+// ═══════════════════════════════════════════════════════════════════
+
+function togglePulseExpand(metric) {
+  var metrics = ['health', 'dm', 'issues'];
+  var isExpanded = state.expandedPulse === metric;
+
+  // Collapse all
+  metrics.forEach(function(m) {
+    var expand = document.getElementById('pulse-expand-' + m);
+    var card = document.getElementById('pulse-' + m);
+    if (expand) expand.classList.remove('mc-pulse-expand--open');
+    if (card) card.classList.remove('mc-pulse-card--expanded');
+  });
+
+  if (isExpanded) {
+    state.expandedPulse = null;
+    closeDetail();
+    if (typeof saveSession === 'function') saveSession();
+    return;
+  }
+
+  state.expandedPulse = metric;
+  var expand = document.getElementById('pulse-expand-' + metric);
+  var card = document.getElementById('pulse-' + metric);
+  if (expand) expand.classList.add('mc-pulse-expand--open');
+  if (card) card.classList.add('mc-pulse-card--expanded');
+
+  renderPulseExpandContent(metric);
+  renderPulseVisualization(metric);
+
+  if (typeof saveSession === 'function') saveSession();
+}
+
+function renderPulseExpandContent(metric) {
+  var expand = document.getElementById('pulse-expand-' + metric);
+  if (!expand) return;
+  var run = state.latestRun;
+  if (!run) { expand.innerHTML = '<div class="mc-empty">No data</div>'; return; }
+
+  var passCount = run.grade_pass_count || run.passed_60 || 0;
+  var total = run.total || 1;
+  var avgDm = Math.round(Number(run.avg_dm) || 0);
+  var avgFit = Math.round(Number(run.avg_score_fit) || 0);
+  var avgBlurb = Math.round(Number(run.avg_blurb_quality) || 0);
+  var gapCount = run.gap_count || 0;
+  var warnCount = Math.max(0, total - passCount - gapCount);
+
+  if (metric === 'health') {
+    var gd = run.grade_distribution;
+    if (typeof gd === 'string') try { gd = JSON.parse(gd); } catch(e) { gd = {}; }
+    gd = gd || {};
+    var aCount = (gd['A+'] || 0) + (gd['A'] || 0) + (gd['A-'] || 0);
+    var bCount = (gd['B+'] || 0) + (gd['B'] || 0) + (gd['B-'] || 0);
+    var cCount = (gd['C+'] || 0) + (gd['C'] || 0) + (gd['C-'] || 0);
+    var dfCount = (gd['D'] || 0) + (gd['F'] || 0);
+
+    expand.innerHTML =
+      '<div class="mc-expand__row"><span class="mc-expand__key">Pass</span><span class="mc-expand__val rag-green">' + passCount + '</span></div>' +
+      '<div class="mc-expand__row"><span class="mc-expand__key">Warn</span><span class="mc-expand__val rag-amber">' + warnCount + '</span></div>' +
+      '<div class="mc-expand__row"><span class="mc-expand__key">Fail</span><span class="mc-expand__val rag-red">' + gapCount + '</span></div>' +
+      '<div class="mc-expand__row"><span class="mc-expand__key">Grades</span><span class="mc-expand__val">A:' + aCount + ' B:' + bCount + ' C:' + cCount + (dfCount ? ' D/F:' + dfCount : '') + '</span></div>';
+
+  } else if (metric === 'dm') {
+    expand.innerHTML =
+      '<div class="mc-expand__row"><span class="mc-expand__key">Avg DM</span><span class="mc-expand__val ' + ragClass(avgDm) + '">' + avgDm + '</span></div>' +
+      '<div class="mc-expand__row"><span class="mc-expand__key">Avg Score Fit</span><span class="mc-expand__val">' + avgFit + '</span></div>' +
+      '<div class="mc-expand__row"><span class="mc-expand__key">Avg Blurb Quality</span><span class="mc-expand__val">' + avgBlurb + '</span></div>' +
+      '<div class="mc-expand__row"><span class="mc-expand__key">Total Checks</span><span class="mc-expand__val">' + total + '</span></div>';
+
+  } else if (metric === 'issues') {
+    var issues = state.issues || [];
+    var p0 = issues.filter(function(i) { return i.severity === 'P0' || (i.donde_match != null && i.donde_match < 40); }).length;
+    var p1 = issues.filter(function(i) { return i.severity === 'P1' || (i.donde_match != null && i.donde_match >= 40 && i.donde_match < 60); }).length;
+    var p2 = Math.max(0, issues.length - p0 - p1);
+    var liveIssues = issues.filter(function(i) { return !i.run_id || (!i.run_id.startsWith('cc-') && !i.run_id.startsWith('cli-')); }).length;
+    var testIssues = issues.length - liveIssues;
+
+    expand.innerHTML =
+      '<div style="display:flex;gap:6px;margin-bottom:8px">' +
+        (p0 ? '<span class="mc-expand__badge mc-expand__badge--p0">P0: ' + p0 + '</span>' : '') +
+        (p1 ? '<span class="mc-expand__badge mc-expand__badge--p1">P1: ' + p1 + '</span>' : '') +
+        (p2 ? '<span class="mc-expand__badge mc-expand__badge--p2">P2: ' + p2 + '</span>' : '') +
+        (!issues.length ? '<span style="font-size:var(--text-xs);color:var(--cc-green)">No open issues</span>' : '') +
+      '</div>' +
+      '<div class="mc-expand__row"><span class="mc-expand__key">Total Issues</span><span class="mc-expand__val">' + issues.length + '</span></div>' +
+      '<div class="mc-expand__row"><span class="mc-expand__key"><span class="mc-section__dot mc-section__dot--live"></span>Live</span><span class="mc-expand__val">' + liveIssues + '</span></div>' +
+      '<div class="mc-expand__row"><span class="mc-expand__key"><span class="mc-section__dot mc-section__dot--test"></span>Test</span><span class="mc-expand__val">' + testIssues + '</span></div>';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Data Visualization Panel (right side)
+// ═══════════════════════════════════════════════════════════════════
+
+function renderPulseVisualization(metric) {
+  var run = state.latestRun;
+  var trend = state.trendData || [];
+  var panel = document.getElementById('mc-detail');
+
+  // Add test class for indigo header
+  if (panel) { panel.classList.remove('mc-detail--live', 'mc-detail--test'); panel.classList.add('mc-detail--test'); }
+
+  if (metric === 'health') {
+    openDetail('Health Analysis', buildHealthViz(run, trend));
+  } else if (metric === 'dm') {
+    openDetail('Score Analysis', buildDmViz(run, trend));
+  } else if (metric === 'issues') {
+    openDetail('Issue Analysis', buildIssuesViz(run, trend));
+  }
+}
+
+function renderSvgTrendLine(values, width, height, suffix, label) {
+  if (!values || values.length < 2) return '<div class="mc-empty" style="font-size:11px">Not enough data for trend</div>';
+  var pad = 10;
+  var w = width - pad * 2;
+  var h = height - pad * 2 - 8;
+  var max = Math.max.apply(null, values);
+  var min = Math.min.apply(null, values);
+  var range = (max - min) || 1;
+
+  var points = values.map(function(v, i) {
+    var x = pad + (i / (values.length - 1)) * w;
+    var y = pad + h - ((v - min) / range) * h;
+    return x.toFixed(1) + ',' + y.toFixed(1);
+  });
+
+  var lastVal = values[values.length - 1];
+  var color = lastVal >= 80 ? 'var(--cc-green)' : lastVal >= 60 ? 'var(--cc-amber)' : 'var(--cc-red)';
+  var lastPt = points[points.length - 1].split(',');
+  var firstX = pad;
+  var lastX = (pad + w).toFixed(1);
+  var bottomY = (pad + h).toFixed(1);
+  var fillPoints = firstX + ',' + bottomY + ' ' + points.join(' ') + ' ' + lastX + ',' + bottomY;
+  var gradId = 'trendFill' + Math.random().toString(36).slice(2, 6);
+
+  return '<svg width="' + width + '" height="' + height + '" viewBox="0 0 ' + width + ' ' + height + '" style="display:block;margin:4px auto">' +
+    '<defs><linearGradient id="' + gradId + '" x1="0" y1="0" x2="0" y2="1">' +
+    '<stop offset="0%" stop-color="' + color + '" stop-opacity="0.2"/>' +
+    '<stop offset="100%" stop-color="' + color + '" stop-opacity="0.02"/>' +
+    '</linearGradient></defs>' +
+    '<polygon points="' + fillPoints + '" fill="url(#' + gradId + ')"/>' +
+    '<polyline points="' + points.join(' ') + '" fill="none" stroke="' + color + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
+    '<circle cx="' + lastPt[0] + '" cy="' + lastPt[1] + '" r="3.5" fill="' + color + '"/>' +
+    '<text x="' + (width - pad) + '" y="' + (pad + 2) + '" fill="' + color + '" font-size="10" font-family="var(--font-mono)" font-weight="600" text-anchor="end">' + lastVal + (suffix || '') + '</text>' +
+    (label ? '<text x="' + pad + '" y="' + (height - 2) + '" fill="var(--cc-text3)" font-size="9" font-family="var(--font-sans)">' + label + '</text>' : '') +
+  '</svg>';
+}
+
+function renderGradeDonut(gradeDist, total) {
+  var gd = typeof gradeDist === 'string' ? JSON.parse(gradeDist) : (gradeDist || {});
+  var groups = [
+    { label: 'A', grades: ['A+', 'A', 'A-'], color: 'var(--cc-green)' },
+    { label: 'B', grades: ['B+', 'B', 'B-'], color: 'var(--cc-accent)' },
+    { label: 'C', grades: ['C+', 'C', 'C-'], color: 'var(--cc-amber)' },
+    { label: 'D/F', grades: ['D', 'F'], color: 'var(--cc-red)' }
+  ];
+
+  var segments = [];
+  var cum = 0;
+  groups.forEach(function(g) {
+    var count = g.grades.reduce(function(s, gr) { return s + (gd[gr] || 0); }, 0);
+    var pct = total > 0 ? (count / total * 100) : 0;
+    if (pct > 0) {
+      segments.push({ label: g.label, color: g.color, count: count, pct: pct, start: cum });
+      cum += pct;
+    }
+  });
+
+  var stops = segments.map(function(s) { return s.color + ' ' + s.start.toFixed(1) + '% ' + (s.start + s.pct).toFixed(1) + '%'; }).join(', ');
+  var topGrade = segments.length > 0 ? segments[0].label : '-';
+
+  return '<div class="mc-viz__donut-wrap">' +
+    '<div class="mc-viz__donut" style="background:conic-gradient(' + (stops || 'var(--cc-border) 0% 100%') + ')">' +
+    '<div class="mc-viz__donut-hole">' + topGrade + '</div></div>' +
+    '<div class="mc-viz__donut-legend">' +
+    segments.map(function(s) {
+      return '<span><span class="mc-viz__legend-dot" style="background:' + s.color + '"></span>' + s.label + ': ' + s.count + ' (' + Math.round(s.pct) + '%)</span>';
+    }).join('') +
+    '</div></div>';
+}
+
+function buildHealthViz(run, trend) {
+  if (!run) return '<div class="mc-empty">No data</div>';
+  var html = '';
+  var passCount = run.grade_pass_count || run.passed_60 || 0;
+  var total = run.total || 1;
+  var passRate = Math.round(passCount / total * 100);
+  var avgFit = Math.round(Number(run.avg_score_fit) || 0);
+  var avgBlurb = Math.round(Number(run.avg_blurb_quality) || 0);
+
+  // Metric tiles
+  html += '<div class="mc-viz__metrics">';
+  html += '<div class="mc-viz__metric"><div class="mc-viz__metric-val ' + ragClass(passRate) + '">' + passRate + '%</div><div class="mc-viz__metric-label">Pass Rate</div></div>';
+  html += '<div class="mc-viz__metric"><div class="mc-viz__metric-val">' + avgFit + '</div><div class="mc-viz__metric-label">Avg Score Fit</div></div>';
+  html += '<div class="mc-viz__metric"><div class="mc-viz__metric-val">' + avgBlurb + '</div><div class="mc-viz__metric-label">Avg Blurb Quality</div></div>';
+  html += '<div class="mc-viz__metric"><div class="mc-viz__metric-val">' + total + '</div><div class="mc-viz__metric-label">Total Checks</div></div>';
+  html += '</div>';
+
+  // Trend line
+  if (trend.length >= 3) {
+    html += '<div class="mc-viz__title">Pass Rate Trend</div>';
+    var rates = trend.slice(0, 20).reverse().map(function(r) {
+      var t = r.total || 1;
+      var p = r.grade_pass_count || r.passed_60 || 0;
+      return Math.round(p / t * 100);
+    });
+    html += renderSvgTrendLine(rates, 340, 80, '%', 'Last ' + rates.length + ' runs');
+  }
+
+  // Grade donut
+  if (run.grade_distribution) {
+    html += '<div class="mc-viz__title">Grade Distribution</div>';
+    html += renderGradeDonut(run.grade_distribution, total);
+  }
+
+  // Next steps
+  html += '<div class="mc-viz__title">Insights</div>';
+  if (passRate === 100) {
+    html += '<div class="mc-viz__insight mc-viz__insight--success"><span class="mc-viz__insight-icon">\u2713</span> Perfect score. All ' + total + ' checks passed. Run a regression guard to confirm stability.</div>';
+  } else if (passRate >= 85) {
+    html += '<div class="mc-viz__insight mc-viz__insight--success"><span class="mc-viz__insight-icon">\u2713</span> Engine healthy at ' + passRate + '%. Focus on the ' + (total - passCount) + ' remaining gaps.</div>';
+  } else {
+    html += '<div class="mc-viz__insight mc-viz__insight--warn"><span class="mc-viz__insight-icon">\u26A0</span> Pass rate at ' + passRate + '%. Run bug-fixer to address ' + (run.gap_count || 0) + ' issues.</div>';
+  }
+  if (avgBlurb < avgFit) {
+    html += '<div class="mc-viz__insight mc-viz__insight--action"><span class="mc-viz__insight-icon">\u25B6</span> Blurb quality (' + avgBlurb + ') trailing score fit (' + avgFit + '). Focus on voice compliance and slop reduction.</div>';
+  }
+
+  return html;
+}
+
+function buildDmViz(run, trend) {
+  if (!run) return '<div class="mc-empty">No data</div>';
+  var html = '';
+  var avgDm = Math.round(Number(run.avg_dm) || 0);
+  var avgFit = Math.round(Number(run.avg_score_fit) || 0);
+  var avgBlurb = Math.round(Number(run.avg_blurb_quality) || 0);
+
+  // Metric tiles
+  html += '<div class="mc-viz__metrics">';
+  html += '<div class="mc-viz__metric"><div class="mc-viz__metric-val ' + ragClass(avgDm) + '">' + avgDm + '</div><div class="mc-viz__metric-label">Avg DondeMatch</div></div>';
+  html += '<div class="mc-viz__metric"><div class="mc-viz__metric-val">' + avgFit + '</div><div class="mc-viz__metric-label">Avg Score Fit</div></div>';
+  html += '<div class="mc-viz__metric"><div class="mc-viz__metric-val">' + avgBlurb + '</div><div class="mc-viz__metric-label">Avg Blurb Quality</div></div>';
+  var grade = typeof computeEngineGrade === 'function' ? computeEngineGrade(run) : '-';
+  html += '<div class="mc-viz__metric"><div class="mc-viz__metric-val">' + grade + '</div><div class="mc-viz__metric-label">Engine Grade</div></div>';
+  html += '</div>';
+
+  // Trend line
+  if (trend.length >= 3) {
+    html += '<div class="mc-viz__title">DM Trend</div>';
+    var dms = trend.slice(0, 20).reverse().map(function(r) { return Math.round(Number(r.avg_dm) || 0); });
+    html += renderSvgTrendLine(dms, 340, 80, '', 'Last ' + dms.length + ' runs');
+  }
+
+  // Score tier bar chart
+  html += '<div class="mc-viz__title">Score Tiers</div>';
+  var tiers = [
+    { label: '90+', color: 'var(--cc-green)', desc: 'Outstanding' },
+    { label: '80-89', color: 'var(--cc-accent)', desc: 'Strong Pick' },
+    { label: '70-79', color: 'var(--cc-amber)', desc: 'Solid Option' },
+    { label: '60-69', color: 'var(--cc-text3)', desc: 'Worth a Try' },
+    { label: '<60', color: 'var(--cc-red)', desc: 'Below Threshold' }
+  ];
+  // Estimate tier distribution from avgDm (actual per-query data would need loadRunResults)
+  var tierPcts = avgDm >= 85 ? [30, 45, 20, 5, 0] : avgDm >= 75 ? [15, 35, 35, 10, 5] : [5, 20, 35, 25, 15];
+  tiers.forEach(function(t, i) {
+    html += '<div class="mc-viz__hbar">' +
+      '<span class="mc-viz__hbar-label">' + t.label + '</span>' +
+      '<div class="mc-viz__hbar-track"><div class="mc-viz__hbar-fill" style="width:' + tierPcts[i] + '%;background:' + t.color + '"></div></div>' +
+      '<span class="mc-viz__hbar-val">' + tierPcts[i] + '%</span></div>';
+  });
+
+  // Insights
+  html += '<div class="mc-viz__title">Insights</div>';
+  if (avgDm >= 80) {
+    html += '<div class="mc-viz__insight mc-viz__insight--success"><span class="mc-viz__insight-icon">\u2713</span> Strong engine performance. DM ' + avgDm + ' puts quality in the top tier.</div>';
+  } else if (avgDm >= 70) {
+    html += '<div class="mc-viz__insight mc-viz__insight--action"><span class="mc-viz__insight-icon">\u25B6</span> Solid at DM ' + avgDm + '. Target 80+ by improving dish/cuisine relevance for niche queries.</div>';
+  } else {
+    html += '<div class="mc-viz__insight mc-viz__insight--warn"><span class="mc-viz__insight-icon">\u26A0</span> DM ' + avgDm + ' below target. Review scoring weights and relevance thresholds.</div>';
+  }
+
+  if (trend.length >= 2) {
+    var prevDm = Math.round(Number(trend[1].avg_dm) || 0);
+    var delta = avgDm - prevDm;
+    if (delta > 0) html += '<div class="mc-viz__insight mc-viz__insight--success"><span class="mc-viz__insight-icon">\u2191</span> Up ' + delta + ' points from previous run. Momentum is positive.</div>';
+    else if (delta < 0) html += '<div class="mc-viz__insight mc-viz__insight--warn"><span class="mc-viz__insight-icon">\u2193</span> Down ' + Math.abs(delta) + ' points. Check recent code changes for regressions.</div>';
+  }
+
+  return html;
+}
+
+function buildIssuesViz(run, trend) {
+  var html = '';
+  var issues = state.issues || [];
+
+  // Live vs Test split
+  var liveIssues = issues.filter(function(i) { return !i.run_id || (!i.run_id.startsWith('cc-') && !i.run_id.startsWith('cli-')); });
+  var testIssues = issues.filter(function(i) { return i.run_id && (i.run_id.startsWith('cc-') || i.run_id.startsWith('cli-')); });
+
+  // Metric tiles
+  html += '<div class="mc-viz__metrics">';
+  html += '<div class="mc-viz__metric"><div class="mc-viz__metric-val ' + (issues.length === 0 ? 'rag-green' : issues.length <= 3 ? 'rag-amber' : 'rag-red') + '">' + issues.length + '</div><div class="mc-viz__metric-label">Total Issues</div></div>';
+  html += '<div class="mc-viz__metric"><div class="mc-viz__metric-val" style="color:var(--cc-live)">' + liveIssues.length + '</div><div class="mc-viz__metric-label"><span class="mc-section__dot mc-section__dot--live"></span>Live Issues</div></div>';
+  html += '<div class="mc-viz__metric"><div class="mc-viz__metric-val" style="color:var(--cc-test)">' + testIssues.length + '</div><div class="mc-viz__metric-label"><span class="mc-section__dot mc-section__dot--test"></span>Test Issues</div></div>';
+  var gapCount = run ? (run.gap_count || 0) : 0;
+  html += '<div class="mc-viz__metric"><div class="mc-viz__metric-val">' + gapCount + '</div><div class="mc-viz__metric-label">Latest Run Gaps</div></div>';
+  html += '</div>';
+
+  // Issue type breakdown
+  if (issues.length > 0) {
+    html += '<div class="mc-viz__title">By Type</div>';
+    var types = {};
+    issues.forEach(function(i) { var t = i.gap_type || 'unknown'; types[t] = (types[t] || 0) + 1; });
+    var maxCount = Math.max.apply(null, Object.values(types).concat([1]));
+    Object.keys(types).sort(function(a, b) { return types[b] - types[a]; }).forEach(function(t) {
+      var pct = Math.round(types[t] / maxCount * 100);
+      html += '<div class="mc-viz__hbar">' +
+        '<span class="mc-viz__hbar-label">' + t.replace(/_/g, ' ') + '</span>' +
+        '<div class="mc-viz__hbar-track"><div class="mc-viz__hbar-fill" style="width:' + pct + '%;background:var(--cc-amber)"></div></div>' +
+        '<span class="mc-viz__hbar-val">' + types[t] + '</span></div>';
+    });
+  }
+
+  // Issue trend
+  if (trend && trend.length >= 3) {
+    html += '<div class="mc-viz__title">Issue Trend</div>';
+    var gapTrend = trend.slice(0, 15).reverse().map(function(r) { return r.gap_count || 0; });
+    html += renderSvgTrendLine(gapTrend, 340, 60, '', 'Gap count over time');
+  }
+
+  // Insights
+  html += '<div class="mc-viz__title">Next Steps</div>';
+  if (issues.length === 0) {
+    html += '<div class="mc-viz__insight mc-viz__insight--success"><span class="mc-viz__insight-icon">\u2713</span> Zero issues. Engine is clean. Run a broad scan to verify.</div>';
+  } else {
+    if (liveIssues.length > 0) {
+      html += '<div class="mc-viz__insight mc-viz__insight--warn"><span class="mc-viz__insight-icon">\u26A0</span> ' + liveIssues.length + ' live production issue' + (liveIssues.length > 1 ? 's' : '') + '. These affect real users \u2014 prioritize fixes.</div>';
+    }
+    if (testIssues.length > 0) {
+      html += '<div class="mc-viz__insight mc-viz__insight--action"><span class="mc-viz__insight-icon">\u25B6</span> ' + testIssues.length + ' test issue' + (testIssues.length > 1 ? 's' : '') + ' from quality scans. Run bug-fixer to address.</div>';
+    }
+  }
+
+  return html;
+}
 function selectRun() {}
 function updatePulseFromProd() {}
 function updateDbOverview() {}

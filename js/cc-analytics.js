@@ -303,6 +303,22 @@ async function loadRunHistory() {
   }
 }
 
+async function loadRunResults(runId) {
+  if (!runId) return [];
+  try {
+    if (!sbClient) return [];
+    var resp = await sbClient.from('gauntlet_results')
+      .select('query, donde_match, restaurant_name, score_fit_score, score_fit_grade, blurb_quality_score, blurb_quality_grade, gap_type, category, run_id')
+      .eq('run_id', runId)
+      .order('donde_match', { ascending: false })
+      .limit(100);
+    return (resp && resp.data) ? resp.data : [];
+  } catch(e) {
+    console.warn('loadRunResults error:', e);
+    return [];
+  }
+}
+
 // ═══════════════════════════════════════════════════════════════════
 // Live Production Feed
 // ═══════════════════════════════════════════════════════════════════
