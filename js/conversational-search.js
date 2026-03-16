@@ -1,7 +1,7 @@
 /* ============================================
    DondeAI — Conversational Search Module
    Real-time intent parsing, followup suggestions,
-   "Tell Me More" expansion, placeholder rotation.
+   placeholder rotation.
    ============================================ */
 
 import { getState, setState, subscribe } from './state.js';
@@ -544,161 +544,6 @@ function executeFollowup(followup) {
   if (submitBtn) submitBtn.click();
 }
 
-/* ═══════════════════════════════════════════════
-   SECTION 6: "Tell Me More" Expansion
-   ═══════════════════════════════════════════════ */
-
-export function renderTellMeMore(result) {
-  const resultCard = document.getElementById('result-card');
-  if (!resultCard) return;
-
-  const existing = resultCard.querySelector('.cs-tell-more');
-  if (existing) existing.remove();
-
-  if (!result?.match_narrative && !result?.deep_context && !result?.insider_tip) return;
-
-  const container = document.createElement('div');
-  container.className = 'cs-tell-more';
-
-  // Toggle button
-  const toggle = document.createElement('button');
-  toggle.className = 'cs-tell-more__toggle';
-  toggle.setAttribute('aria-expanded', 'false');
-  toggle.innerHTML = '<span class="cs-tell-more__toggle-text">Tell me more</span>' +
-    '<svg class="cs-tell-more__arrow" viewBox="0 0 16 16" width="14" height="14">' +
-    '<path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-
-  // Content panel
-  const panel = document.createElement('div');
-  panel.className = 'cs-tell-more__panel';
-  panel.setAttribute('aria-hidden', 'true');
-  panel.style.maxHeight = '0';
-
-  const inner = document.createElement('div');
-  inner.className = 'cs-tell-more__inner';
-
-  // Match narrative
-  const narrative = result.match_narrative;
-  if (narrative) {
-    if (narrative.summary) {
-      const section = document.createElement('div');
-      section.className = 'cs-tell-more__section';
-      section.innerHTML = `<h4 class="cs-tell-more__section-title">Why this pick</h4>` +
-        `<p class="cs-tell-more__text">${_escHtml(narrative.summary)}</p>`;
-      inner.appendChild(section);
-    }
-
-    if (narrative.strongest_factor) {
-      const factor = document.createElement('div');
-      factor.className = 'cs-tell-more__factor';
-      factor.innerHTML = `<span class="cs-tell-more__factor-label">Strongest signal:</span> <strong>${_escHtml(narrative.strongest_factor)}</strong>`;
-      inner.appendChild(factor);
-    }
-
-    if (narrative.key_signals?.length) {
-      const section = document.createElement('div');
-      section.className = 'cs-tell-more__section';
-      let html = '<h4 class="cs-tell-more__section-title">Key signals</h4><ul class="cs-tell-more__signals">';
-      for (const sig of narrative.key_signals) {
-        html += `<li>${_escHtml(sig)}</li>`;
-      }
-      html += '</ul>';
-      section.innerHTML = html;
-      inner.appendChild(section);
-    }
-
-    if (narrative.weak_spots?.length) {
-      const section = document.createElement('div');
-      section.className = 'cs-tell-more__section cs-tell-more__section--weak';
-      let html = '<h4 class="cs-tell-more__section-title">Worth noting</h4><ul class="cs-tell-more__signals cs-tell-more__signals--weak">';
-      for (const w of narrative.weak_spots) {
-        html += `<li>${_escHtml(w)}</li>`;
-      }
-      html += '</ul>';
-      section.innerHTML = html;
-      inner.appendChild(section);
-    }
-  }
-
-  // Deep context
-  const dc = result.deep_context;
-  if (dc) {
-    if (dc.signature_dishes?.length) {
-      const section = document.createElement('div');
-      section.className = 'cs-tell-more__section';
-      section.innerHTML = `<h4 class="cs-tell-more__section-title">Signature dishes</h4>` +
-        `<p class="cs-tell-more__text">${_escHtml(dc.signature_dishes.join(', '))}</p>`;
-      inner.appendChild(section);
-    }
-
-    if (dc.service_style) {
-      const section = document.createElement('div');
-      section.className = 'cs-tell-more__section';
-      section.innerHTML = `<h4 class="cs-tell-more__section-title">Service style</h4>` +
-        `<p class="cs-tell-more__text">${_escHtml(dc.service_style)}</p>`;
-      inner.appendChild(section);
-    }
-
-    if (dc.reservation_difficulty) {
-      const section = document.createElement('div');
-      section.className = 'cs-tell-more__section';
-      section.innerHTML = `<h4 class="cs-tell-more__section-title">Reservations</h4>` +
-        `<p class="cs-tell-more__text">${_escHtml(dc.reservation_difficulty)}</p>`;
-      inner.appendChild(section);
-    }
-  }
-
-  // Insider tip
-  if (result.insider_tip) {
-    const section = document.createElement('div');
-    section.className = 'cs-tell-more__section cs-tell-more__section--tip';
-    section.innerHTML = `<h4 class="cs-tell-more__section-title">Insider tip</h4>` +
-      `<p class="cs-tell-more__text cs-tell-more__text--tip">${_escHtml(result.insider_tip)}</p>`;
-    inner.appendChild(section);
-  }
-
-  panel.appendChild(inner);
-  container.appendChild(toggle);
-  container.appendChild(panel);
-
-  // Wire toggle
-  toggle.addEventListener('click', () => {
-    const isExpanded = toggle.getAttribute('aria-expanded') === 'true';
-    toggle.setAttribute('aria-expanded', String(!isExpanded));
-    panel.setAttribute('aria-hidden', String(isExpanded));
-
-    if (!isExpanded) {
-      panel.style.maxHeight = panel.scrollHeight + 'px';
-      container.classList.add('cs-tell-more--expanded');
-      haptic(HAPTICS.drawerOpen);
-      announce('Match details expanded');
-      panel.addEventListener('transitionend', () => {
-        if (toggle.getAttribute('aria-expanded') === 'true') {
-          panel.style.maxHeight = 'none';
-        }
-      }, { once: true });
-    } else {
-      panel.style.maxHeight = panel.scrollHeight + 'px';
-      void panel.offsetHeight; // force reflow
-      panel.style.maxHeight = '0';
-      container.classList.remove('cs-tell-more--expanded');
-      announce('Match details collapsed');
-    }
-  });
-
-  // Insert before followups or after blurb
-  const followups = resultCard.querySelector('.cs-followups');
-  if (followups) {
-    resultCard.insertBefore(container, followups);
-  } else {
-    const blurb = resultCard.querySelector('.donde-blurb');
-    if (blurb?.nextSibling) {
-      blurb.parentNode.insertBefore(container, blurb.nextSibling);
-    } else {
-      resultCard.appendChild(container);
-    }
-  }
-}
 
 /* ═══════════════════════════════════════════════
    SECTION 7: Input Integration
@@ -731,11 +576,10 @@ export function initConversationalSearch() {
     }
   });
 
-  // Render "Tell Me More" and followup chips when result arrives
+  // Render followup chips when result arrives
   subscribe((state, prev) => {
     if (state.result !== prev.result && state.result) {
       setTimeout(() => {
-        renderTellMeMore(state.result);
         renderFollowups(state.result);
       }, 100);
     }
