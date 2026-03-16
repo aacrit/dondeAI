@@ -574,12 +574,10 @@ export function initConversationalSearch() {
     }
   });
 
-  // Render followup chips when result arrives
   subscribe((state, prev) => {
-    if (state.result !== prev.result && state.result) {
-      setTimeout(() => {
-        renderFollowups(state.result);
-      }, 100);
+    // Remove any lingering followup chips
+    if (state.result !== prev.result) {
+      document.querySelectorAll('.cs-followups').forEach(el => el.remove());
     }
     // Clear signals on craving reset
     if (state.craving === '' && prev.craving !== '') {
