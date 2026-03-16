@@ -1884,6 +1884,133 @@ body.mc-mode--live .mc-detail__header {
   border-bottom-color: var(--cc-live);
 }
 
+/* ─── Agent Team Section ─── */
+.mc-section--agents {
+  border: none;
+  padding-left: 0;
+}
+
+.mc-agent-coo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  border-radius: var(--radius);
+  margin-bottom: var(--space-sm);
+  cursor: pointer;
+  transition: all var(--dur-normal) var(--ease-out);
+}
+.mc-agent-coo:hover {
+  background: rgba(99, 102, 241, 0.15);
+  transform: translateY(-1px);
+}
+.mc-agent-coo__icon { font-size: var(--text-lg); }
+.mc-agent-coo__name { font-weight: 700; font-size: var(--text-sm); }
+.mc-agent-coo__role { font-size: var(--text-xs); color: var(--cc-text3); margin-left: auto; }
+
+.mc-agent-div {
+  margin-bottom: var(--space-sm);
+}
+.mc-agent-div__header {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--cc-text3);
+  padding-left: var(--space-sm);
+  border-left: 2px solid var(--cc-border);
+  margin-bottom: var(--space-xs);
+}
+.mc-agent-div__grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding-left: var(--space-md);
+}
+.mc-agent-card {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  background: var(--cc-surface2);
+  border: 1px solid var(--cc-border);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: all var(--dur-fast) var(--ease-out);
+  font-size: var(--text-xs);
+}
+.mc-agent-card:hover {
+  background: var(--cc-accent-soft);
+  border-color: rgba(99, 102, 241, 0.3);
+  transform: translateY(-1px);
+}
+.mc-agent-card__icon { font-size: var(--text-sm); }
+.mc-agent-card__name { font-weight: 500; color: var(--cc-text2); }
+
+/* ─── Agent Drawer Layout ─── */
+.mc-drawer__agents {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-md);
+  scrollbar-width: thin;
+  scrollbar-color: var(--cc-border) transparent;
+}
+.mc-drawer__agent-count {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--cc-text3);
+}
+
+/* Staggered entrance animation for agent cards in drawer */
+.mc-drawer__agents .mc-agent-div { animation: mc-mode-in 400ms var(--ease-out) backwards; }
+.mc-drawer__agents .mc-agent-div:nth-child(2) { animation-delay: 50ms; }
+.mc-drawer__agents .mc-agent-div:nth-child(3) { animation-delay: 100ms; }
+.mc-drawer__agents .mc-agent-div:nth-child(4) { animation-delay: 150ms; }
+.mc-drawer__agents .mc-agent-div:nth-child(5) { animation-delay: 200ms; }
+.mc-drawer__agents .mc-agent-div:nth-child(6) { animation-delay: 250ms; }
+.mc-drawer__agents .mc-agent-div:nth-child(7) { animation-delay: 300ms; }
+
+/* Terminal collapsed at bottom of drawer */
+.mc-drawer__terminal-section {
+  border-top: 1px solid var(--cc-border);
+  flex-shrink: 0;
+}
+.mc-drawer__terminal-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--cc-surface);
+  border: none;
+  color: var(--cc-text3);
+  font-size: var(--text-xs);
+  font-family: var(--font-mono);
+  cursor: pointer;
+  transition: color var(--dur-fast) var(--ease-out);
+}
+.mc-drawer__terminal-toggle:hover { color: var(--cc-text); }
+.mc-drawer__terminal-chevron {
+  font-size: 8px;
+  transition: transform var(--dur-normal) var(--spring);
+}
+.mc-drawer__terminal-chevron--open {
+  transform: rotate(180deg);
+}
+.mc-drawer__terminal-body {
+  max-height: 200px;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--cc-border);
+}
+.mc-drawer__terminal-body .mc-terminal__output {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 150px;
+}
+
 /* ─── 27. Mobile Responsive ─── */
 @media (max-width: 768px) {
   body { overflow-y: auto; }
@@ -1906,7 +2033,7 @@ body.mc-mode--live .mc-detail__header {
   .mc-brief__icon { margin: 0 auto; }
   .mc-result-card { flex-direction: column; text-align: center; }
   .mc-result-card__detail { margin-top: var(--space-sm); }
-  .mc-divisions-inline { justify-content: center; }
+  .mc-agent-div__grid { justify-content: center; }
   .mc-pulse-expand--open { max-height: 200px; }
   .mc-viz__metrics { grid-template-columns: 1fr; }
 }

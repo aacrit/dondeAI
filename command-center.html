@@ -47,7 +47,7 @@
         <button class="mc-mode-toggle__option mc-mode-toggle__option--active" data-mode-btn="test" onclick="switchDashboardMode('test')">TEST</button>
         <button class="mc-mode-toggle__option" data-mode-btn="live" onclick="switchDashboardMode('live')">LIVE</button>
       </div>
-      <button class="mc-header__terminal-btn" onclick="toggleDrawer()" title="Toggle COO Terminal" aria-label="Toggle terminal">
+      <button class="mc-header__terminal-btn" onclick="toggleDrawer()" title="Toggle Agent Team" aria-label="Toggle agent panel">
         <span style="font-family:var(--font-mono);font-size:var(--text-xs)">$_</span>
       </button>
       <span class="mc-health-dot" id="mc-health-dot" title="System health" role="status" aria-label="System health indicator"></span>
@@ -105,11 +105,15 @@
       </div>
     </div>
 
-    <!-- Actions + Agent Divisions -->
+    <!-- Agent Team — shared between TEST and LIVE -->
+    <div class="mc-section mc-section--agents">
+      <div class="mc-section__title">Agent Team</div>
+      <div class="mc-agents-grid" id="mc-agents"></div>
+    </div>
+
+    <!-- Actions -->
     <div class="mc-section" data-mode="test">
       <div class="mc-section__title">Actions</div>
-      <div class="mc-divisions-inline" id="mc-agents" style="margin-bottom:var(--space-sm)"></div>
-      <div style="font-size:9px;color:var(--cc-text3);margin-bottom:var(--space-sm);font-style:italic">CLI agents — click to trigger via terminal</div>
       <div class="mc-actions" role="toolbar" aria-label="Quick actions">
         <button class="mc-action-btn" id="action-scan" onclick="processCOOInput('scan')">
           <span class="mc-action-btn__icon">&#9654;</span>
@@ -305,20 +309,33 @@
     <div class="mc-detail__body" id="mc-detail-body"></div>
   </aside>
 
-  <!-- COO Terminal Drawer (collapsible left) -->
-  <div class="mc-drawer" id="mc-drawer" role="region" aria-label="COO Terminal">
+  <!-- Agent Team Drawer (left panel) -->
+  <div class="mc-drawer" id="mc-drawer" role="region" aria-label="Agent Team">
     <button class="mc-drawer__toggle" id="mc-drawer-toggle" onclick="toggleDrawer()" aria-expanded="false">
       <span class="mc-drawer__chevron" id="mc-drawer-chevron">&#9650;</span>
-      <span class="mc-drawer__label">COO Terminal</span>
+      <span class="mc-drawer__label">Agent Team</span>
       <span class="mc-drawer__badge" id="mc-drawer-badge" style="display:none">0</span>
       <span class="mc-drawer__spacer"></span>
-      <span class="mc-terminal__clear" onclick="event.stopPropagation();cmdClear()" title="Clear">Clear</span>
+      <span class="mc-drawer__agent-count" id="mc-drawer-agent-count">26 agents</span>
     </button>
     <div class="mc-drawer__body" id="mc-drawer-body">
-      <div class="mc-terminal__output" id="coo-output" role="log" aria-live="polite" aria-label="Terminal output"></div>
-      <div class="mc-terminal__input-row">
-        <span class="mc-terminal__prompt">$</span>
-        <input type="text" class="mc-terminal__input" id="coo-input" placeholder="Type a command... (/ to focus)" autocomplete="off" spellcheck="false">
+      <!-- Agent Hierarchy (primary content) -->
+      <div class="mc-drawer__agents" id="mc-drawer-agents"></div>
+
+      <!-- Terminal (collapsed at bottom) -->
+      <div class="mc-drawer__terminal-section">
+        <button class="mc-drawer__terminal-toggle" id="mc-terminal-toggle" onclick="toggleTerminalInDrawer()">
+          <span class="mc-drawer__terminal-chevron" id="mc-terminal-chevron">&#9660;</span>
+          <span>Terminal</span>
+          <span class="mc-drawer__badge" id="mc-terminal-badge" style="display:none">0</span>
+        </button>
+        <div class="mc-drawer__terminal-body" id="mc-terminal-body" style="display:none">
+          <div class="mc-terminal__output" id="coo-output" role="log" aria-live="polite" aria-label="Terminal output"></div>
+          <div class="mc-terminal__input-row">
+            <span class="mc-terminal__prompt">$</span>
+            <input type="text" class="mc-terminal__input" id="coo-input" placeholder="Type a command..." autocomplete="off" spellcheck="false">
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -331,7 +348,7 @@
     <span class="mc-footer__sep">|</span>
     <span id="mc-footer-latency">-- avg</span>
     <span class="mc-footer__sep">|</span>
-    <span>16 agents</span>
+    <span>26 agents</span>
   </footer>
 
   <div class="mc-dark-pulse" id="dark-pulse"></div>

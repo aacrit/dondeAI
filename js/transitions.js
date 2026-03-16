@@ -190,14 +190,23 @@ export async function manifestResult(data) {
       $dom.resultCard.classList.add('result-card--premium-border');
     }
   }
-  const scoreDuration = getSessionResultCount() > 2 ? 600 : undefined;
-  _scaffoldTimers.push(setTimeout(() => {
-    animateScoreCountUp(
-      document.getElementById('match-pill-score'),
-      dondeScore,
-      scoreDuration
-    );
-  }, REDUCED_MOTION.matches ? 0 : 360));
+  // Show score instantly on initial load (no count-up animation)
+  const $matchPillScore = document.getElementById('match-pill-score');
+  const $matchPillArcFill = document.getElementById('match-pill-arc-fill');
+  if ($matchPillScore) {
+    $matchPillScore.textContent = dondeScore;
+    $matchPillScore.style.color = getScoreThresholdColor(dondeScore);
+  }
+  if ($matchPillArcFill) {
+    const arcLen = 2 * Math.PI * 25;
+    $matchPillArcFill.style.strokeDasharray = String(arcLen);
+    $matchPillArcFill.style.strokeDashoffset = String(arcLen - (dondeScore / 100) * arcLen);
+    $matchPillArcFill.style.stroke = getScoreThresholdColor(dondeScore);
+  }
+  if (dondeScore >= 80 && $matchPillArcFill) {
+    const $ring = $matchPillArcFill.closest('.match-mini__score-wrap');
+    if ($ring) $ring.classList.add('match-mini__score-wrap--warm-glow');
+  }
 
   if (dondeScore >= 70) {
     _scaffoldTimers.push(setTimeout(() => {
