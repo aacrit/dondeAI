@@ -101,8 +101,10 @@ function finishTest() {
     const celebrate = avg >= 85;
     appendSummaryRow(TEST_TYPES[test.type]?.name || test.type, test.results.length, passed, avg, elapsed, celebrate, test.type);
 
-    // Terminal summary
-    termLog('info', `Complete. ${passed}/${test.results.length} passed · avg DM: ${Math.round(avg)} · ${gaps} gaps · ${elapsed}s`);
+    // Terminal summary with Google API cost
+    const totalGoogleCost = test.results.reduce((s, r) => s + (r.googleApiCost || 0), 0);
+    const costStr = totalGoogleCost > 0 ? ` · $${totalGoogleCost.toFixed(2)} Google` : ' · $0.00 API';
+    termLog('info', `Complete. ${passed}/${test.results.length} passed · avg DM: ${Math.round(avg)} · ${gaps} gaps · ${elapsed}s${costStr}`);
     if (celebrate) termLog('success', 'Excellent run! Average DM above 85.');
 
     // Remove cursor from terminal
@@ -184,11 +186,13 @@ async function runBroadScan() {
       const blurbGrade = computeBlurbQualityGrade(q.query, resp);
       const pass = gradePass(dm, fitGrade.score, blurbGrade.score);
       const gap = pass ? null : determineGapType(resp, dm);
+      const googleCost = resp.google_api_cost?.estimated_cost_usd || 0;
       const result = {
         query: q.query, cat: q.cat, diff: q.diff, dm, pass, gap,
         restaurant: resp.restaurant?.name,
         scoreFitScore: fitGrade.score, scoreFitGrade: fitGrade.grade,
         blurbScore: blurbGrade.score, blurbGrade: blurbGrade.grade,
+        googleApiCost: googleCost,
       };
       recordResult(result);
       appendResultRow(result);
@@ -203,7 +207,7 @@ async function runBroadScan() {
     } catch (e) {
       if (e.name === 'AbortError') break;
       const errMsg = e.message || String(e);
-      recordResult({ query: q.query, cat: q.cat, diff: q.diff, dm: 0, pass: false, gap: 'error: ' + errMsg, error: errMsg, scoreFitScore: 0, scoreFitGrade: 'F', blurbScore: 0, blurbGrade: 'F' });
+      recordResult({ query: q.query, cat: q.cat, diff: q.diff, dm: 0, pass: false, gap: 'error: ' + errMsg, error: errMsg, scoreFitScore: 0, scoreFitGrade: 'F', blurbScore: 0, blurbGrade: 'F', googleApiCost: 0 });
       appendResultRow({ query: q.query, cat: q.cat, diff: q.diff, dm: 0, pass: false, gap: 'error: ' + errMsg });
       termLog('error', `Error: ${errMsg.slice(0, 80)}`);
     }
@@ -245,11 +249,13 @@ async function runCategoryFocus(categories) {
       const blurbGrade = computeBlurbQualityGrade(q.query, resp);
       const pass = gradePass(dm, fitGrade.score, blurbGrade.score);
       const gap = pass ? null : determineGapType(resp, dm);
+      const googleCost = resp.google_api_cost?.estimated_cost_usd || 0;
       const result = {
         query: q.query, cat: q.cat, diff: q.diff, dm, pass, gap,
         restaurant: resp.restaurant?.name,
         scoreFitScore: fitGrade.score, scoreFitGrade: fitGrade.grade,
         blurbScore: blurbGrade.score, blurbGrade: blurbGrade.grade,
+        googleApiCost: googleCost,
       };
       recordResult(result);
       appendResultRow(result);
@@ -262,7 +268,7 @@ async function runCategoryFocus(categories) {
     } catch (e) {
       if (e.name === 'AbortError') break;
       termLog('error', `Error: ${(e.message || '').slice(0, 80)}`);
-      recordResult({ query: q.query, cat: q.cat, dm: 0, pass: false, gap: 'error', scoreFitScore: 0, scoreFitGrade: 'F', blurbScore: 0, blurbGrade: 'F' });
+      recordResult({ query: q.query, cat: q.cat, dm: 0, pass: false, gap: 'error', scoreFitScore: 0, scoreFitGrade: 'F', blurbScore: 0, blurbGrade: 'F', googleApiCost: 0 });
       appendResultRow({ query: q.query, cat: q.cat, dm: 0, pass: false, gap: 'error' });
     }
   }
@@ -288,6 +294,7 @@ async function runRegressionGuard() {
       const blurbGrade = computeBlurbQualityGrade(gq.query, resp);
       const pass = dm >= gq.minScore && gradePass(dm, fitGrade.score, blurbGrade.score);
       const delta = dm - gq.minScore;
+      const googleCost = resp.google_api_cost?.estimated_cost_usd || 0;
       const result = {
         query: gq.query, cat: gq.cat, dm, pass,
         gap: pass ? null : 'regression',
@@ -295,6 +302,7 @@ async function runRegressionGuard() {
         restaurant: resp.restaurant?.name,
         scoreFitScore: fitGrade.score, scoreFitGrade: fitGrade.grade,
         blurbScore: blurbGrade.score, blurbGrade: blurbGrade.grade,
+        googleApiCost: googleCost,
       };
       recordResult(result);
       appendResultRow(result);
@@ -308,7 +316,7 @@ async function runRegressionGuard() {
     } catch (e) {
       if (e.name === 'AbortError') break;
       termLog('error', `Error: ${(e.message || '').slice(0, 80)}`);
-      recordResult({ query: gq.query, cat: gq.cat, dm: 0, pass: false, gap: 'error', scoreFitScore: 0, scoreFitGrade: 'F', blurbScore: 0, blurbGrade: 'F' });
+      recordResult({ query: gq.query, cat: gq.cat, dm: 0, pass: false, gap: 'error', scoreFitScore: 0, scoreFitGrade: 'F', blurbScore: 0, blurbGrade: 'F', googleApiCost: 0 });
       appendResultRow({ query: gq.query, cat: gq.cat, dm: 0, pass: false, gap: 'error' });
     }
   }
