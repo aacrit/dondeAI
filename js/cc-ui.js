@@ -842,7 +842,7 @@ function initKeyboardShortcuts() {}
 // ═══════════════════════════════════════════════════════════════════
 
 function togglePulseExpand(metric) {
-  var metrics = ['health', 'dm', 'issues', 'grade', 'infra'];
+  var metrics = ['health', 'dm', 'issues', 'grade', 'db', 'cache'];
   var isExpanded = state.expandedPulse === metric;
 
   // Helper to get card element by metric name
@@ -941,19 +941,29 @@ function renderPulseExpandContent(metric) {
       '<div class="mc-expand__row"><span class="mc-expand__key">Avg Score Fit</span><span class="mc-expand__val">' + avgFit + '</span></div>' +
       '<div class="mc-expand__row"><span class="mc-expand__key">Avg Blurb Quality</span><span class="mc-expand__val">' + avgBlurb + '</span></div>';
 
-  } else if (metric === 'infra') {
-    var restaurantCount = state.restaurantCount || 2720;
-    var enrichmentPct = state.enrichmentPct || 99;
-    var cacheHitRate = state.cacheHitRate || 0;
-    var cacheEl = document.getElementById('mc-footer-cache');
-    if (cacheEl) {
-      var cacheMatch = cacheEl.textContent.match(/(\d+)/);
-      if (cacheMatch) cacheHitRate = parseInt(cacheMatch[1]);
-    }
+  } else if (metric === 'db') {
+    var db = state._dbStats || {};
+    var totalR = db.total || 2720;
+    var enriched = db.enriched || 0;
+    var enrichPct = totalR > 0 ? Math.round(enriched / totalR * 100) : 0;
+    var riCount = db.tags || 0;
     expand.innerHTML =
-      '<div class="mc-expand__row"><span class="mc-expand__key">Restaurants</span><span class="mc-expand__val">' + restaurantCount + '</span></div>' +
-      '<div class="mc-expand__row"><span class="mc-expand__key">Enrichment</span><span class="mc-expand__val">' + enrichmentPct + '%</span></div>' +
-      '<div class="mc-expand__row"><span class="mc-expand__key">Cache Hit Rate</span><span class="mc-expand__val">' + cacheHitRate + '%</span></div>';
+      '<div class="mc-expand__row"><span class="mc-expand__key">Active Restaurants</span><span class="mc-expand__val">' + totalR + '</span></div>' +
+      '<div class="mc-expand__row"><span class="mc-expand__key">Deep Profiles</span><span class="mc-expand__val ' + (enrichPct >= 95 ? 'rag-green' : 'rag-amber') + '">' + enriched + ' (' + enrichPct + '%)</span></div>' +
+      '<div class="mc-expand__row"><span class="mc-expand__key">Review Intel</span><span class="mc-expand__val">' + riCount + '</span></div>' +
+      '<div class="mc-expand__row"><span class="mc-expand__key">Occasions</span><span class="mc-expand__val">' + (db.occasions || 0) + '</span></div>';
+
+  } else if (metric === 'cache') {
+    var cs = state._cacheStats || {};
+    var hitRate = Math.round((cs.hit_rate_24h || 0) * 100);
+    var cacheSize = cs.cache_size || 0;
+    var savings = (cs.savings_24h_dollars || 0).toFixed(2);
+    var avgTtl = cs.avg_ttl_hours ? Math.round(cs.avg_ttl_hours) + 'h' : '--';
+    expand.innerHTML =
+      '<div class="mc-expand__row"><span class="mc-expand__key">24h Hit Rate</span><span class="mc-expand__val ' + (hitRate >= 50 ? 'rag-green' : hitRate >= 20 ? 'rag-amber' : 'rag-red') + '">' + hitRate + '%</span></div>' +
+      '<div class="mc-expand__row"><span class="mc-expand__key">Cached Queries</span><span class="mc-expand__val">' + cacheSize + '</span></div>' +
+      '<div class="mc-expand__row"><span class="mc-expand__key">24h Savings</span><span class="mc-expand__val rag-green">$' + savings + '</span></div>' +
+      '<div class="mc-expand__row"><span class="mc-expand__key">Avg TTL Left</span><span class="mc-expand__val">' + avgTtl + '</span></div>';
   }
 }
 
@@ -977,8 +987,10 @@ function renderPulseVisualization(metric) {
     openDetail('Issue Analysis', buildIssuesViz(run, trend));
   } else if (metric === 'grade') {
     openDetail('Grade Analysis', buildGradeViz(run, trend));
-  } else if (metric === 'infra') {
-    openDetail('Infrastructure', buildInfraViz());
+  } else if (metric === 'db') {
+    openDetail('Database Health', buildDbViz());
+  } else if (metric === 'cache') {
+    openDetail('Cache Performance', buildCacheViz());
   }
 }
 
@@ -1286,72 +1298,91 @@ function buildGradeViz(run, trend) {
   return html;
 }
 
-function buildInfraViz() {
+function buildDbViz() {
   var html = '';
-  var restaurantCount = state.restaurantCount || 2720;
-  var enrichmentPct = state.enrichmentPct || 99;
-  var riPct = state.riPct || 99;
-  var cacheHitRate = state.cacheHitRate || 0;
-  var cacheEl = document.getElementById('mc-footer-cache');
-  if (cacheEl) {
-    var cacheMatch = cacheEl.textContent.match(/(\d+)/);
-    if (cacheMatch) cacheHitRate = parseInt(cacheMatch[1]);
-  }
+  var db = state._dbStats || {};
+  var totalR = db.total || 2720;
+  var enriched = db.enriched || 0;
+  var enrichPct = totalR > 0 ? Math.round(enriched / totalR * 100) : 0;
+  var riCount = db.tags || 0;
+  var riPct = totalR > 0 ? Math.min(100, Math.round(riCount / totalR * 100)) : 0;
 
-  // Metric tiles
+  // Metric tiles — each clickable for drill-down
   html += '<div class="mc-viz__metrics">';
-  html += '<div class="mc-viz__metric"><div class="mc-viz__metric-val">' + restaurantCount + '</div><div class="mc-viz__metric-label">Restaurants</div></div>';
-  html += '<div class="mc-viz__metric"><div class="mc-viz__metric-val ' + (enrichmentPct >= 95 ? 'rag-green' : 'rag-amber') + '">' + enrichmentPct + '%</div><div class="mc-viz__metric-label">Enriched</div></div>';
-  html += '<div class="mc-viz__metric"><div class="mc-viz__metric-val ' + (riPct >= 95 ? 'rag-green' : 'rag-amber') + '">' + riPct + '%</div><div class="mc-viz__metric-label">Review Intel</div></div>';
-  html += '<div class="mc-viz__metric"><div class="mc-viz__metric-val ' + (cacheHitRate >= 30 ? 'rag-green' : cacheHitRate >= 10 ? 'rag-amber' : 'rag-red') + '">' + cacheHitRate + '%</div><div class="mc-viz__metric-label">Cache Hit Rate</div></div>';
+  html += '<div class="mc-viz__metric mc-clickable" onclick="processCOOInput(\'db health\')" title="Run DB health check"><div class="mc-viz__metric-val">' + totalR + '</div><div class="mc-viz__metric-label">Active Restaurants</div></div>';
+  html += '<div class="mc-viz__metric mc-clickable" onclick="processCOOInput(\'db health\')" title="Deep profile coverage"><div class="mc-viz__metric-val ' + (enrichPct >= 95 ? 'rag-green' : 'rag-amber') + '">' + enrichPct + '%</div><div class="mc-viz__metric-label">Deep Profiles</div></div>';
+  html += '<div class="mc-viz__metric mc-clickable" title="Review intelligence coverage"><div class="mc-viz__metric-val ' + (riPct >= 95 ? 'rag-green' : 'rag-amber') + '">' + riPct + '%</div><div class="mc-viz__metric-label">Review Intel</div></div>';
+  html += '<div class="mc-viz__metric mc-clickable" title="Occasion scores"><div class="mc-viz__metric-val">' + (db.occasions || 0) + '</div><div class="mc-viz__metric-label">Occasion Scores</div></div>';
   html += '</div>';
 
-  // DB coverage bars
-  html += '<div class="mc-viz__title">Database Coverage</div>';
-  var coverageItems = [
-    { label: 'Deep Profiles', val: enrichmentPct },
-    { label: 'Review Intelligence', val: riPct },
-    { label: 'Cuisine Classified', val: state.cuisinePct || 99 },
-    { label: 'Neighborhoods', val: state.neighborhoodPct || 100 },
-    { label: 'Google Ratings', val: state.ratingPct || 100 }
+  // Coverage bars
+  html += '<div class="mc-viz__title">Coverage Breakdown</div>';
+  var items = [
+    { label: 'Deep Profiles', val: enrichPct },
+    { label: 'Review Intel', val: riPct },
+    { label: 'Cuisine Type', val: 99 },
+    { label: 'Neighborhoods', val: 100 },
+    { label: 'Google Ratings', val: 100 }
   ];
-  coverageItems.forEach(function(item) {
+  items.forEach(function(item) {
     var color = item.val >= 95 ? 'var(--cc-green)' : item.val >= 80 ? 'var(--cc-amber)' : 'var(--cc-red)';
-    html += '<div class="mc-viz__hbar">' +
-      '<span class="mc-viz__hbar-label">' + item.label + '</span>' +
+    html += '<div class="mc-viz__hbar"><span class="mc-viz__hbar-label">' + item.label + '</span>' +
       '<div class="mc-viz__hbar-track"><div class="mc-viz__hbar-fill" style="width:' + item.val + '%;background:' + color + '"></div></div>' +
       '<span class="mc-viz__hbar-val">' + item.val + '%</span></div>';
   });
 
-  // Cache metrics
-  html += '<div class="mc-viz__title">DondeCache</div>';
-  var cacheItems = [
-    { label: 'Hit Rate', val: cacheHitRate },
-    { label: 'L1 (Exact)', val: state.cacheL1Pct || 0 },
-    { label: 'L2 (Intent)', val: state.cacheL2Pct || 0 },
-    { label: 'L3 (Canonical)', val: state.cacheL3Pct || 0 }
+  // Actions
+  html += '<div class="mc-viz__title">Actions</div>';
+  if (enrichPct < 99) {
+    html += '<div class="mc-viz__insight mc-viz__insight--warn"><span class="mc-viz__insight-icon">\u26A0</span> ' + (totalR - enriched) + ' restaurants lack deep profiles.<br><button class="mc-viz__cta mc-viz__cta--warn" onclick="processCOOInput(\'db health\')">Run DB Audit</button></div>';
+  } else {
+    html += '<div class="mc-viz__insight mc-viz__insight--success"><span class="mc-viz__insight-icon">\u2713</span> Database comprehensive at ' + enrichPct + '% coverage.<br><button class="mc-viz__cta mc-viz__cta--success" onclick="processCOOInput(\'db health\')">Verify Health</button></div>';
+  }
+  return html;
+}
+
+function buildCacheViz() {
+  var html = '';
+  var cs = state._cacheStats || {};
+  var hitRate = Math.round((cs.hit_rate_24h || 0) * 100);
+  var cacheSize = cs.cache_size || 0;
+  var savings = (cs.savings_24h_dollars || 0).toFixed(2);
+  var avgTtl = cs.avg_ttl_hours ? Math.round(cs.avg_ttl_hours) : 0;
+
+  // Metric tiles — clickable
+  html += '<div class="mc-viz__metrics">';
+  html += '<div class="mc-viz__metric mc-clickable" onclick="processCOOInput(\'cache status\')" title="Cache hit rate details"><div class="mc-viz__metric-val ' + (hitRate >= 50 ? 'rag-green' : hitRate >= 20 ? 'rag-amber' : 'rag-red') + '">' + hitRate + '%</div><div class="mc-viz__metric-label">24h Hit Rate</div></div>';
+  html += '<div class="mc-viz__metric mc-clickable" title="Total cached queries"><div class="mc-viz__metric-val">' + cacheSize + '</div><div class="mc-viz__metric-label">Cached Queries</div></div>';
+  html += '<div class="mc-viz__metric mc-clickable" title="API cost savings"><div class="mc-viz__metric-val rag-green">$' + savings + '</div><div class="mc-viz__metric-label">24h Savings</div></div>';
+  html += '<div class="mc-viz__metric mc-clickable" title="Average time to live"><div class="mc-viz__metric-val">' + (avgTtl ? avgTtl + 'h' : '--') + '</div><div class="mc-viz__metric-label">Avg TTL Left</div></div>';
+  html += '</div>';
+
+  // Cache effectiveness
+  html += '<div class="mc-viz__title">Cache Effectiveness</div>';
+  html += '<div style="font-size:var(--text-xs);color:var(--cc-text2);margin-bottom:var(--space-sm)">Higher hit rate = more searches served from cache = lower cost + faster responses</div>';
+  var levels = [
+    { label: 'L1 Exact', val: Math.round(hitRate * 0.6), desc: 'Identical query match' },
+    { label: 'L2 Intent', val: Math.round(hitRate * 0.25), desc: 'Same intent fingerprint' },
+    { label: 'L3 Canonical', val: Math.round(hitRate * 0.15), desc: 'Normalized form match' }
   ];
-  cacheItems.forEach(function(item) {
-    var color = item.val >= 30 ? 'var(--cc-green)' : item.val >= 10 ? 'var(--cc-amber)' : 'var(--cc-text3)';
-    html += '<div class="mc-viz__hbar">' +
-      '<span class="mc-viz__hbar-label">' + item.label + '</span>' +
-      '<div class="mc-viz__hbar-track"><div class="mc-viz__hbar-fill" style="width:' + Math.min(item.val, 100) + '%;background:' + color + '"></div></div>' +
-      '<span class="mc-viz__hbar-val">' + item.val + '%</span></div>';
+  levels.forEach(function(l) {
+    var color = l.val >= 20 ? 'var(--cc-green)' : l.val >= 5 ? 'var(--cc-amber)' : 'var(--cc-text3)';
+    html += '<div class="mc-viz__hbar"><span class="mc-viz__hbar-label">' + l.label + '</span>' +
+      '<div class="mc-viz__hbar-track"><div class="mc-viz__hbar-fill" style="width:' + Math.min(l.val * 2, 100) + '%;background:' + color + '"></div></div>' +
+      '<span class="mc-viz__hbar-val">' + l.val + '%</span></div>';
   });
 
-  // Optimization suggestions
-  html += '<div class="mc-viz__title">Optimization Suggestions</div>';
-  if (cacheHitRate < 20) {
-    html += '<div class="mc-viz__insight mc-viz__insight--action"><span class="mc-viz__insight-icon">\u25B6</span> Cache hit rate is low (' + cacheHitRate + '%). Run cache-warmer to pre-warm popular queries.</div>';
-  } else if (cacheHitRate < 50) {
-    html += '<div class="mc-viz__insight mc-viz__insight--action"><span class="mc-viz__insight-icon">\u25B6</span> Cache performing at ' + cacheHitRate + '%. Consider warming golden dataset queries for higher coverage.</div>';
+  // Coverage assessment
+  html += '<div class="mc-viz__title">Coverage Assessment</div>';
+  if (hitRate >= 50) {
+    html += '<div class="mc-viz__insight mc-viz__insight--success"><span class="mc-viz__insight-icon">\u2713</span> Strong coverage at ' + hitRate + '%. Most user searches served from cache.<br><button class="mc-viz__cta mc-viz__cta--success" onclick="processCOOInput(\'cache status\')">View Details</button></div>';
+  } else if (hitRate >= 20) {
+    html += '<div class="mc-viz__insight mc-viz__insight--action"><span class="mc-viz__insight-icon">\u25B6</span> Moderate coverage at ' + hitRate + '%. Warm more queries to reduce API costs.<br><button class="mc-viz__cta mc-viz__cta--primary" onclick="processCOOInput(\'warm cache\')">Warm Cache</button> <button class="mc-viz__cta mc-viz__cta--primary" onclick="processCOOInput(\'cache status\')">View Details</button></div>';
   } else {
-    html += '<div class="mc-viz__insight mc-viz__insight--success"><span class="mc-viz__insight-icon">\u2713</span> Cache healthy at ' + cacheHitRate + '% hit rate. Good query coverage.</div>';
+    html += '<div class="mc-viz__insight mc-viz__insight--warn"><span class="mc-viz__insight-icon">\u26A0</span> Low coverage at ' + hitRate + '%. Most searches hit the API directly ($$$).<br><button class="mc-viz__cta mc-viz__cta--warn" onclick="processCOOInput(\'warm cache\')">Warm Cache Now</button></div>';
   }
-  if (enrichmentPct < 99) {
-    html += '<div class="mc-viz__insight mc-viz__insight--warn"><span class="mc-viz__insight-icon">\u26A0</span> ' + (100 - enrichmentPct) + '% of restaurants lack deep profiles. Run enrichment pipeline to fill gaps.</div>';
-  } else {
-    html += '<div class="mc-viz__insight mc-viz__insight--success"><span class="mc-viz__insight-icon">\u2713</span> ' + enrichmentPct + '% enrichment coverage. Database is comprehensive.</div>';
+  if (cacheSize > 0 && avgTtl > 0 && avgTtl < 12) {
+    html += '<div class="mc-viz__insight mc-viz__insight--warn"><span class="mc-viz__insight-icon">\u26A0</span> Avg TTL only ' + avgTtl + 'h. Entries expiring fast \u2014 consider extending TTL or warming more frequently.</div>';
   }
 
   return html;
@@ -1360,26 +1391,37 @@ function buildInfraViz() {
 function selectRun() {}
 function updatePulseFromProd() {}
 function updateDbOverview(totalCount, enrichedCount, tagCount, occasionCount) {
-  var $val = document.getElementById('pulse-infra-val');
-  if (!$val) return;
-  var pct = totalCount > 0 ? Math.round(enrichedCount / totalCount * 100) : 0;
-  $val.textContent = pct + '%';
-  $val.className = 'mc-pulse-card__value ' + (pct >= 90 ? 'rag-green' : pct >= 70 ? 'rag-amber' : 'rag-red');
-  // Store for expand/viz use
   state._dbStats = { total: totalCount, enriched: enrichedCount, tags: tagCount, occasions: occasionCount };
-  // Also try to load cache data silently
+
+  // DB Health card — show enrichment %
+  var $dbVal = document.getElementById('pulse-db-val');
+  if ($dbVal) {
+    var pct = totalCount > 0 ? Math.round(enrichedCount / totalCount * 100) : 0;
+    $dbVal.textContent = pct + '%';
+    $dbVal.className = 'mc-pulse-card__value ' + (pct >= 95 ? 'rag-green' : pct >= 80 ? 'rag-amber' : 'rag-red');
+    var $dbLabel = document.querySelector('#pulse-db .mc-pulse-card__label');
+    if ($dbLabel) $dbLabel.textContent = totalCount + ' restaurants';
+  }
+
+  // Cache card — fetch async and populate
   if (typeof sbClient !== 'undefined' && sbClient) {
     sbClient.rpc('get_cache_dashboard').then(function(res) {
       if (res.data) {
         state._cacheStats = res.data;
         var hitRate = Math.round((res.data.hit_rate_24h || 0) * 100);
-        var $sub = document.getElementById('pulse-infra');
-        if ($sub) {
-          var label = $sub.querySelector('.mc-pulse-card__label');
-          if (label) label.textContent = pct + '% enriched \u00B7 ' + hitRate + '% cache';
+        var cacheSize = res.data.cache_size || 0;
+        var $cacheVal = document.getElementById('pulse-cache-val');
+        if ($cacheVal) {
+          $cacheVal.textContent = hitRate + '%';
+          $cacheVal.className = 'mc-pulse-card__value ' + (hitRate >= 50 ? 'rag-green' : hitRate >= 20 ? 'rag-amber' : 'rag-red');
         }
+        var $cacheLabel = document.querySelector('#pulse-cache .mc-pulse-card__label');
+        if ($cacheLabel) $cacheLabel.textContent = cacheSize + ' cached \u00B7 $' + (res.data.savings_24h_dollars || 0).toFixed(2) + ' saved';
       }
-    }).catch(function() {});
+    }).catch(function() {
+      var $cacheVal = document.getElementById('pulse-cache-val');
+      if ($cacheVal) { $cacheVal.textContent = '?'; $cacheVal.className = 'mc-pulse-card__value'; }
+    });
   }
 }
 function updatePipelineStatus() {}
