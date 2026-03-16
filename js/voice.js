@@ -48,6 +48,11 @@ export function startVoice() {
     // Update CTA state (no auto-submit — let user decide)
     const ctaBtn = document.querySelector('[data-action="submit"]');
     if (ctaBtn) ctaBtn.disabled = !text.trim();
+
+    // Notify conversational search module of voice result
+    document.dispatchEvent(new CustomEvent('voice-result', { detail: { text } }));
+    // Trigger input event so intent parser picks up voice text
+    if (input) input.dispatchEvent(new Event('input', { bubbles: true }));
   };
 
   const restorePlaceholder = () => {

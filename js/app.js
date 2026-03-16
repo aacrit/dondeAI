@@ -23,6 +23,7 @@ import { loadRive } from './animations.js';
 import { getGreeting } from './utils.js';
 import { $dom, initDomRefs, REDUCED_MOTION } from './globals.js';
 import { initTasteDna } from './taste-dna.js'; // Taste DNA visualization
+import { initConversationalSearch, patchVoiceForConversational } from './conversational-search.js';
 
 // Module imports
 import {
@@ -96,6 +97,10 @@ function init() {
 
   // Wire craving input
   wireCravingInput();
+
+  // Conversational search: real-time intent parsing + result enrichment
+  initConversationalSearch();
+  patchVoiceForConversational();
 
   // Living placeholder rotation on canvas input
   initLivingPlaceholder();
