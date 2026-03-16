@@ -408,12 +408,13 @@ a {
 
 .mc-pulse-card {
   width: 100%;
-  min-height: 72px;
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   overflow: visible;
+  padding: var(--space-sm) var(--space-sm) var(--space-xs);
   background: rgba(19, 19, 26, 0.7);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);

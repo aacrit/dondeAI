@@ -1005,7 +1005,8 @@ function renderPulseExpandContent(metric) {
 
   } else if (metric === 'cache') {
     var cs = state._cacheStats || {};
-    var hitRate = Math.round((cs.hit_rate_24h || 0) * 100);
+    var rawHit = Number(cs.hit_rate_24h) || 0;
+    var hitRate = rawHit > 1 ? Math.round(rawHit) : Math.round(rawHit * 100);
     var cacheSize = cs.cache_size || 0;
     var savings = (cs.savings_24h_dollars || 0).toFixed(2);
     var avgTtl = cs.avg_ttl_hours ? Math.round(cs.avg_ttl_hours) + 'h' : '--';
@@ -1426,7 +1427,8 @@ function buildDbViz() {
 function buildCacheViz() {
   var html = '';
   var cs = state._cacheStats || {};
-  var hitRate = Math.round((cs.hit_rate_24h || 0) * 100);
+  var rawHitViz = Number(cs.hit_rate_24h) || 0;
+  var hitRate = rawHitViz > 1 ? Math.round(rawHitViz) : Math.round(rawHitViz * 100);
   var cacheSize = cs.cache_size || 0;
   var savings = (cs.savings_24h_dollars || 0).toFixed(2);
   var avgTtl = cs.avg_ttl_hours ? Math.round(cs.avg_ttl_hours) : 0;
@@ -1475,14 +1477,14 @@ function updatePulseFromProd() {}
 function updateDbOverview(totalCount, enrichedCount, tagCount, occasionCount) {
   state._dbStats = { total: totalCount, enriched: enrichedCount, tags: tagCount, occasions: occasionCount };
 
-  // DB Health card — show enrichment %
+  // DB Health card — show restaurant count as primary, enrichment as label
   var $dbVal = document.getElementById('pulse-db-val');
   if ($dbVal) {
+    $dbVal.textContent = totalCount.toLocaleString();
     var pct = totalCount > 0 ? Math.round(enrichedCount / totalCount * 100) : 0;
-    $dbVal.textContent = pct + '%';
     $dbVal.className = 'mc-pulse-card__value ' + (pct >= 95 ? 'rag-green' : pct >= 80 ? 'rag-amber' : 'rag-red');
     var $dbLabel = document.querySelector('#pulse-db .mc-pulse-card__label');
-    if ($dbLabel) $dbLabel.textContent = totalCount + ' restaurants';
+    if ($dbLabel) $dbLabel.textContent = pct + '% enriched';
   }
 
   // Cache card — fetch async and populate
@@ -1490,7 +1492,9 @@ function updateDbOverview(totalCount, enrichedCount, tagCount, occasionCount) {
     sbClient.rpc('get_cache_dashboard').then(function(res) {
       if (res.data) {
         state._cacheStats = res.data;
-        var hitRate = Math.round((res.data.hit_rate_24h || 0) * 100);
+        // hit_rate_24h can be 0-1 (ratio) or 0-100 (percentage) — normalize
+        var raw = Number(res.data.hit_rate_24h) || 0;
+        var hitRate = raw > 1 ? Math.round(raw) : Math.round(raw * 100);
         var cacheSize = res.data.cache_size || 0;
         var $cacheVal = document.getElementById('pulse-cache-val');
         if ($cacheVal) {
@@ -1498,11 +1502,11 @@ function updateDbOverview(totalCount, enrichedCount, tagCount, occasionCount) {
           $cacheVal.className = 'mc-pulse-card__value ' + (hitRate >= 50 ? 'rag-green' : hitRate >= 20 ? 'rag-amber' : 'rag-red');
         }
         var $cacheLabel = document.querySelector('#pulse-cache .mc-pulse-card__label');
-        if ($cacheLabel) $cacheLabel.textContent = cacheSize + ' cached \u00B7 $' + (res.data.savings_24h_dollars || 0).toFixed(2) + ' saved';
+        if ($cacheLabel) $cacheLabel.textContent = cacheSize + ' queries cached';
       }
     }).catch(function() {
       var $cacheVal = document.getElementById('pulse-cache-val');
-      if ($cacheVal) { $cacheVal.textContent = '?'; $cacheVal.className = 'mc-pulse-card__value'; }
+      if ($cacheVal) { $cacheVal.textContent = '--'; $cacheVal.className = 'mc-pulse-card__value'; }
     });
   }
 }
