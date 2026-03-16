@@ -776,6 +776,12 @@
   animation: popoutItemIn 200ms var(--ease-out) forwards;
 }
 
+.cuisine-chips__reserve-slot {
+  border-color: color-mix(in srgb, var(--ac) 30%, transparent);
+  color: var(--fg);
+  font-weight: 600;
+}
+
 .cuisine-chips__reserve-phone {
   display: inline-flex;
   align-items: center;

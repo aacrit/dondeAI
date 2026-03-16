@@ -1,8 +1,9 @@
 /* ============================================
-   DondeAI — Donde Card Generator V2
-   Screen-replica shareable infographic cards.
-   Dynamic height driven by content.
-   Cultural theme backgrounds + QR code + branding.
+   DondeAI — Donde Card Generator V3
+   Redesigned shareable infographic cards.
+   Small: no photo, name-first, blurb included.
+   Large: full details replica (Tier 1 + Tier 2).
+   Enhanced QR footer with Donde logo + tagline + CTA.
    ============================================ */
 
 import { getState } from './state.js';
@@ -175,13 +176,7 @@ const THEME_PATTERNS = {
 const CW = 1080;
 const PAD = 64;
 const CONTENT_W = CW - PAD * 2;
-const TAGLINES = [
-  'Your next favorite spot in Chicago',
-  'AI-powered restaurant discovery',
-  'Found something worth sharing',
-  'Chicago dining, curated by AI',
-  'One pick. Zero stress.',
-];
+const DONDE_TAGLINE = 'Your next favorite spot in Chicago';
 
 /* ======== HELPERS ======== */
 
@@ -319,6 +314,48 @@ function drawQRCode(ctx, x, y, size, matrix, fg, bg) {
     if (matrix[r][c]) ctx.fillRect(x + c * moduleSize, y + r * moduleSize, moduleSize + 0.5, moduleSize + 0.5);
 }
 
+/* ---- Donde Brand Mark (steam + pin logo) ---- */
+function drawDondeLogo(ctx, cx, cy, scale, color) {
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.scale(scale, scale);
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  // Left steam curl
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(-5.5, -21);
+  ctx.bezierCurveTo(-5.5, -21, -6, -13.5, -3.5, -10.5);
+  ctx.quadraticCurveTo(-2, -9, -1.5, -8.5);
+  ctx.stroke();
+
+  // Right steam curl
+  ctx.beginPath();
+  ctx.moveTo(5.5, -21);
+  ctx.bezierCurveTo(5.5, -21, 6, -13.5, 3.5, -10.5);
+  ctx.quadraticCurveTo(2, -9, 1.5, -8.5);
+  ctx.stroke();
+
+  // Pin body (teardrop)
+  ctx.lineWidth = 2.8;
+  ctx.beginPath();
+  ctx.moveTo(0, -8.5);
+  ctx.bezierCurveTo(6, -11, 13, -8, 12, -1);
+  ctx.bezierCurveTo(11, 5, 3, 7, 0, 9);
+  ctx.lineTo(0, 12);
+  ctx.stroke();
+
+  // Pin dot
+  ctx.beginPath();
+  ctx.arc(0, 18, 2.8, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
 /* ---- Score Ring ---- */
 function drawScoreRing(ctx, cx, cy, radius, score, p, opts = {}) {
   const lw = opts.lineWidth || (radius > 40 ? 10 : 7);
@@ -392,19 +429,72 @@ function drawBackground(ctx, H, p, culture) {
   (THEME_PATTERNS[culture] || THEME_PATTERNS.neutral)(ctx, CW, H, p);
 }
 
-/* ---- Footer ---- */
-function drawFooter(ctx, y, p) {
-  drawSeparator(ctx, y, p, 'accent'); y += 24;
-  const qrSize = 72, qrX = CW - PAD - qrSize, qrY = y;
+/* ---- Enhanced QR Footer with Donde Logo + Tagline + CTA ---- */
+const FOOTER_H = 200; // fixed height for layout calculation
+
+function drawBrandedFooter(ctx, y, p) {
+  // Separator line
+  drawSeparator(ctx, y, p, 'accent');
+  y += 32;
+
+  // Glass card background for footer
+  const footerX = PAD, footerW = CONTENT_W, footerH = 150;
+  ctx.save();
+  ctx.fillStyle = p.glass;
+  roundRect(ctx, footerX, y, footerW, footerH, 20);
+  ctx.fill();
+  ctx.strokeStyle = p.border; ctx.lineWidth = 1;
+  roundRect(ctx, footerX, y, footerW, footerH, 20);
+  ctx.stroke();
+  ctx.restore();
+
+  // QR code on the right side
+  const qrSize = 110;
+  const qrPad = 24;
+  const qrX = footerX + footerW - qrPad - qrSize;
+  const qrY = y + (footerH - qrSize) / 2;
   const dark = isDarkMode();
-  drawQRCode(ctx, qrX, qrY, qrSize, generateQRMatrix('https://donde.ai'), dark ? p.fg : p.fg, dark ? p.bg2 : '#ffffff');
-  const textCy = qrY + qrSize / 2;
-  ctx.font = '700 34px "Playfair Display", Georgia, serif';
+  const qrFg = dark ? p.fg : '#211e1c';
+  const qrBg = dark ? p.bg2 : '#ffffff';
+  drawQRCode(ctx, qrX, qrY, qrSize, generateQRMatrix('https://donde.ai'), qrFg, qrBg);
+
+  // Donde logo in center of QR code
+  const qrCx = qrX + qrSize / 2;
+  const qrCy = qrY + qrSize / 2;
+  // Clear a circle in the center for the logo
+  ctx.fillStyle = qrBg;
+  ctx.beginPath();
+  ctx.arc(qrCx, qrCy, 18, 0, Math.PI * 2);
+  ctx.fill();
+  drawDondeLogo(ctx, qrCx, qrCy + 2, 0.55, p.ac);
+
+  // Left side: brand name + tagline + CTA
+  const textX = footerX + 28;
+  const textW = footerW - qrSize - qrPad * 2 - 56;
+  const textCy = y + footerH / 2;
+
+  // Brand name "Donde"
+  ctx.font = '700 42px "Playfair Display", Georgia, serif';
   ctx.fillStyle = p.fg; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-  ctx.fillText('Donde', PAD, textCy - 16);
-  ctx.font = '400 17px "Inter", system-ui, sans-serif'; ctx.fillStyle = p.fg3;
-  ctx.fillText(TAGLINES[Math.floor(Date.now() / 86400000) % TAGLINES.length], PAD, textCy + 14);
-  return qrY + qrSize + 16;
+  ctx.fillText('Donde', textX, textCy - 32);
+
+  // Tagline
+  ctx.font = '400 19px "Inter", system-ui, sans-serif';
+  ctx.fillStyle = p.fg3;
+  const taglineLines = wrapText(ctx, DONDE_TAGLINE, textW);
+  let tagY = textCy - 2;
+  for (const line of taglineLines.slice(0, 2)) {
+    ctx.fillText(line, textX, tagY);
+    tagY += 24;
+  }
+
+  // CTA text with arrow
+  ctx.font = '600 17px "Inter", system-ui, sans-serif';
+  ctx.fillStyle = p.ac;
+  const ctaY = textCy + 36;
+  ctx.fillText('Scan QR code to go to app \u2192', textX, ctaY);
+
+  return y + footerH + 16;
 }
 
 /* ---- Pills Row Helper ---- */
@@ -425,53 +515,62 @@ function drawPills(ctx, y, parts, p, fontSize = 20, pillH = 36) {
 }
 
 /* ======================================================================
-   SMALL CARD — Tier 1 replica (compact infographic)
+   SMALL CARD — Compact: No photo. Name-first with score, blurb included.
    ====================================================================== */
 async function buildSmallCard(resultData, p, culture) {
   const r = resultData.restaurant;
   const score = Math.round(parseFloat(resultData.donde_match) || 0);
-  const img = r.photo_urls?.[0] ? await loadImage(r.photo_urls[0]) : null;
 
   // Measure pass for dynamic height
   const mc = document.createElement('canvas'); mc.width = CW; mc.height = 100;
   const m = mc.getContext('2d');
   let totalH = PAD;
-  const photoH = 280; totalH += photoH + 36;
+
+  // Score ring row (inline with name)
   m.font = '700 52px "Playfair Display", Georgia, serif';
-  const nameLines = wrapText(m, r.name || 'Restaurant', CONTENT_W);
-  totalH += nameLines.length * 62 + 12;
+  const nameLines = wrapText(m, r.name || 'Restaurant', CONTENT_W - 130); // leave room for score ring
+  const nameBlockH = Math.max(nameLines.length * 62, 100); // at least 100 for the ring
+  totalH += nameBlockH + 16;
+
+  // Meta pills
   const metaParts = [];
   const hood = r.neighborhood_name || '';
   if (hood && !/^chicago$/i.test(hood.trim())) metaParts.push(hood);
   if (r.cuisine_type) metaParts.push(r.cuisine_type);
   if (r.price_level) metaParts.push(r.price_level);
   if (metaParts.length > 0) totalH += 40 + 20;
+
+  // One-liner
   const oneliner = r.best_for_oneliner || '';
   if (oneliner) { m.font = 'italic 400 26px "Playfair Display", Georgia, serif'; totalH += Math.min(wrapText(m, oneliner, CONTENT_W - 20).length, 3) * 36 + 16; }
+
+  // Match signal
   const matchSig = resultData.match_narrative?.summary || '';
   if (matchSig) { m.font = '400 20px "Inter", system-ui, sans-serif'; totalH += Math.min(wrapText(m, matchSig, CONTENT_W - 40).length, 2) * 28 + 28; }
-  totalH += 24 + 24 + 72 + 16 + PAD; // separator + footer
+
+  // Recommendation blurb
+  const recText = (resultData.recommendation || '').replace(/\u2014/g, ', ').replace(/ , /g, ', ');
+  if (recText) { m.font = 'italic 400 24px "Playfair Display", Georgia, serif'; totalH += 16 + Math.min(wrapText(m, recText, CONTENT_W - 40).length, 5) * 34 + 24; }
+
+  // Footer
+  totalH += FOOTER_H + PAD;
 
   const canvas = document.createElement('canvas'); canvas.width = CW; canvas.height = totalH;
   const ctx = canvas.getContext('2d');
   drawBackground(ctx, totalH, p, culture);
   let y = PAD;
 
-  // Photo
-  if (img) drawCoverPhoto(ctx, img, PAD, y, CONTENT_W, photoH, 28);
-  else drawFallbackVisual(ctx, PAD, y, CONTENT_W, photoH, 28, p);
-  // Score badge overlay
-  const bS = 76, bX = PAD + 16, bY = y + photoH - bS - 16;
-  ctx.fillStyle = p.bg2 + 'e6'; roundRect(ctx, bX, bY, bS, bS, 16); ctx.fill();
-  ctx.strokeStyle = p.border; ctx.lineWidth = 1.5; roundRect(ctx, bX, bY, bS, bS, 16); ctx.stroke();
-  drawScoreRing(ctx, bX + bS / 2, bY + bS / 2, 26, score, p, { showLabel: true, labelSize: 10, numSize: 26 });
-  y += photoH + 36;
+  // Score ring on the left, name on the right
+  const ringR = 40, ringCx = PAD + ringR + 8, ringCy = y + nameBlockH / 2;
+  drawScoreRing(ctx, ringCx, ringCy, ringR, score, p, { showLabel: true, numSize: 36, labelSize: 12, lineWidth: 8 });
 
-  // Name
+  // Name text to the right of the ring
+  const nameX = PAD + ringR * 2 + 36;
   ctx.fillStyle = p.fg; ctx.font = '700 52px "Playfair Display", Georgia, serif';
   ctx.textAlign = 'left'; ctx.textBaseline = 'top';
-  for (const line of nameLines.slice(0, 2)) { ctx.fillText(line, PAD, y); y += 62; }
-  y += 12;
+  const nameY = y + (nameBlockH - nameLines.length * 62) / 2;
+  for (const line of nameLines.slice(0, 2)) { ctx.fillText(line, nameX, nameY + (nameLines.indexOf(line)) * 62); }
+  y += nameBlockH + 16;
 
   // Pills
   if (metaParts.length > 0) { y = drawPills(ctx, y, metaParts, p) + 20; }
@@ -494,12 +593,26 @@ async function buildSmallCard(resultData, p, culture) {
     y += 8;
   }
 
-  y += 16; drawFooter(ctx, y, p);
+  // Recommendation blurb
+  if (recText) {
+    drawSeparator(ctx, y, p, 'fade'); y += 16;
+    ctx.font = '300 46px "Playfair Display", Georgia, serif'; ctx.fillStyle = p.ac + '30';
+    ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText('\u201C', PAD, y - 8);
+    ctx.font = 'italic 400 24px "Playfair Display", Georgia, serif'; ctx.fillStyle = p.fg2;
+    y += 20;
+    for (const line of wrapText(ctx, recText, CONTENT_W - 40).slice(0, 5)) { ctx.fillText(line, PAD + 16, y); y += 34; }
+    y += 24;
+  }
+
+  // Enhanced QR footer
+  y += 8;
+  drawBrandedFooter(ctx, y, p);
   return canvas;
 }
 
 /* ======================================================================
-   LARGE CARD — Tier 1 + Tier 2 rich infographic
+   LARGE CARD — Full details: Tier 1 + Tier 2 informational content.
+   No CTA buttons or interactive elements.
    ====================================================================== */
 async function buildLargeCard(resultData, p, culture) {
   const r = resultData.restaurant;
@@ -510,36 +623,56 @@ async function buildLargeCard(resultData, p, culture) {
   const mc = document.createElement('canvas'); mc.width = CW; mc.height = 100;
   const m = mc.getContext('2d');
   let totalH = PAD;
+
+  // Photo
   const photoH = 260; totalH += photoH + 36;
+
+  // Name
   m.font = '700 48px "Playfair Display", Georgia, serif';
   const nameLines = wrapText(m, r.name || 'Restaurant', CONTENT_W);
   totalH += nameLines.length * 58 + 8;
+
+  // Meta pills
   const metaParts = [];
   const hood = r.neighborhood_name || '';
   if (hood && !/^chicago$/i.test(hood.trim())) metaParts.push(hood);
   if (r.cuisine_type) metaParts.push(r.cuisine_type);
   if (r.price_level) metaParts.push(r.price_level);
   if (metaParts.length > 0) totalH += 36 + 24;
+
+  // One-liner
   const oneliner = r.best_for_oneliner || '';
   if (oneliner) { m.font = 'italic 400 24px "Playfair Display", Georgia, serif'; totalH += Math.min(wrapText(m, oneliner, CONTENT_W - 20).length, 2) * 34 + 16; }
+
+  // Score hero
   totalH += 16 + 220 + 24; // separator + hero + gap
+
+  // Factor bars
   const factors = [
     { label: 'Food', value: scoring.food }, { label: 'Vibe', value: scoring.vibe },
     { label: 'Service', value: scoring.service }, { label: 'Reputation', value: scoring.reputation },
     { label: 'Convenience', value: scoring.convenience },
   ].filter(f => f.value != null);
   if (factors.length > 0) totalH += factors.length * 48 + 24;
+
+  // Recommendation blurb
   const recText = (resultData.recommendation || '').replace(/\u2014/g, ', ').replace(/ , /g, ', ');
   if (recText) { m.font = 'italic 400 24px "Playfair Display", Georgia, serif'; totalH += 16 + Math.min(wrapText(m, recText, CONTENT_W - 40).length, 6) * 34 + 24; }
+
+  // Insider tip
   const tip = (resultData.insider_tip || '').replace(/\u2014/g, ', ');
   if (tip) { m.font = '400 19px "Inter", system-ui, sans-serif'; totalH += Math.min(wrapText(m, tip, CONTENT_W - 48).length, 3) * 26 + 56; }
+
+  // Deep context highlights
   const dc = resultData.deep_context || {};
   const highlights = [];
   if (dc.signature_dishes?.length) highlights.push({ label: 'Signature Dishes', text: dc.signature_dishes.slice(0, 3).join(', ') });
   if (dc.service_style) highlights.push({ label: 'Service', text: dc.service_style });
   if (dc.reservation_difficulty) highlights.push({ label: 'Reservations', text: dc.reservation_difficulty });
   if (highlights.length > 0) totalH += highlights.length * 50 + 32;
-  totalH += 40 + 72 + 16 + PAD; // footer
+
+  // Footer
+  totalH += FOOTER_H + PAD;
 
   const canvas = document.createElement('canvas'); canvas.width = CW; canvas.height = totalH;
   const ctx = canvas.getContext('2d');
@@ -660,7 +793,9 @@ async function buildLargeCard(resultData, p, culture) {
     y += 12;
   }
 
-  y += 16; drawFooter(ctx, y, p);
+  // Enhanced QR footer
+  y += 8;
+  drawBrandedFooter(ctx, y, p);
   return canvas;
 }
 

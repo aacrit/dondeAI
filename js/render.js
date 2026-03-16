@@ -1441,6 +1441,16 @@ function renderCuisineDetails(data) {
       bodyHTML += `<div class="cuisine-chips__reserve-tip" style="animation-delay:${(idx++) * 30}ms">${_escHtml(rl.booking_tip)}</div>`;
     }
 
+    // Real-time availability slots (from Resy)
+    if (rl.availability?.length) {
+      const slotChips = rl.availability.map((s, si) =>
+        `<span class="cuisine-chips__item cuisine-chips__reserve-slot" style="animation-delay:${(idx + si) * 30}ms">${_escHtml(s.time)}${s.type ? ` \u00b7 ${_escHtml(s.type)}` : ''}</span>`
+      ).join('');
+      idx += rl.availability.length;
+      bodyHTML += `<div class="cuisine-chips__reserve-meta" style="animation-delay:${(idx++) * 30}ms">Available tonight</div>`;
+      bodyHTML += `<div class="cuisine-chips__items" style="margin-top:2px">${slotChips}</div>`;
+    }
+
     // Phone/walk-in fallback
     if (rl.fallback && rl.fallback.type === 'phone' && rl.fallback.value) {
       bodyHTML += `<a class="cuisine-chips__reserve-phone" href="tel:${_escHtml(rl.fallback.value)}" style="animation-delay:${(idx++) * 30}ms">${svgIcon('phone', 12)} ${_escHtml(rl.fallback.value)}</a>`;
