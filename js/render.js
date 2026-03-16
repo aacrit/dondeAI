@@ -244,7 +244,7 @@ function renderGlanceContext(data) {
     pill.setAttribute('aria-haspopup', 'true');
     pill.setAttribute('data-action', 'toggle-badge-popout');
     const platformName = rl.primary.platform.charAt(0).toUpperCase() + rl.primary.platform.slice(1);
-    pill.innerHTML = `${svgIcon('calendar', 11)} Reserve`;
+    pill.innerHTML = `${svgIcon('calendar', 9)} Reserve`;
 
     // Build popout
     const popout = document.createElement('div');
@@ -327,7 +327,7 @@ function renderGlanceContext(data) {
     // Avoid "Closed · Closed" — only show today's hours if they're actual times, not just "Closed"
     const isTodayClosed = /^closed$/i.test(todayHours.trim());
     const hoursInline = (todayHours && !isTodayClosed) ? ` · ${todayHours}` : '';
-    pill.innerHTML = `${svgIcon('clock', 11)} ${statusText}${hoursInline}`;
+    pill.innerHTML = `${svgIcon('clock', 9)} ${statusText}${hoursInline}`;
 
     if (hasHours) {
       pill.setAttribute('role', 'button');
@@ -385,18 +385,11 @@ function renderGlanceContext(data) {
       t.trim().charAt(0).toUpperCase() + t.trim().slice(1).toLowerCase()
     ).filter(Boolean).join(' · ');
     if (times) {
-      pill.innerHTML = `${svgIcon('clock', 11)} ${times}`;
+      pill.innerHTML = `${svgIcon('clock', 9)} ${times}`;
       $ctx.appendChild(pill);
     }
   }
 
-  // Share pill — accented CTA
-  const sharePill = document.createElement('button');
-  sharePill.className = 'glance-context__pill glance-context__pill--share type-data--sm';
-  sharePill.setAttribute('data-action', 'share');
-  sharePill.setAttribute('aria-label', 'Share this find');
-  sharePill.innerHTML = `${svgIcon('shareNetwork', 11)} Share`;
-  $ctx.appendChild(sharePill);
 }
 
 /* ---- Quick Actions ---- */

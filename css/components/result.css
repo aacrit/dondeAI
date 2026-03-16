@@ -1276,9 +1276,10 @@
 .glance-context__pill {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  padding: 2px var(--space-xs);
-  font-size: var(--text-2xs);
+  gap: 2px;
+  padding: 1px 6px;
+  font-size: 10px;
+  line-height: 1.2;
   font-family: var(--font-data);
   color: var(--fg3);
   background: var(--bg2);
@@ -1299,10 +1300,10 @@
 }
 .glance-context__pill::after {
   content: '';
-  width: 5px;
-  height: 5px;
-  border-right: 1.5px solid currentColor;
-  border-bottom: 1.5px solid currentColor;
+  width: 4px;
+  height: 4px;
+  border-right: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;
   transform: rotate(45deg);
   opacity: 0.4;
   margin-left: 1px;
