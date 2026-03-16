@@ -222,23 +222,6 @@ function getScoreTier(score) {
   return 'Best Available';
 }
 
-/* ---- Factor Bar ---- */
-function drawFactorBar(ctx, x, y, w, label, value, p) {
-  const barH = 10;
-  ctx.font = '500 20px "Inter", system-ui, sans-serif';
-  ctx.fillStyle = p.fg2; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
-  ctx.fillText(label, x, y);
-  ctx.textAlign = 'right'; ctx.fillStyle = p.fg3;
-  ctx.fillText(typeof value === 'number' ? value.toFixed(1) : String(value), x + w, y);
-  const barY = y + 28;
-  ctx.fillStyle = p.bg3; roundRect(ctx, x, barY, w, barH, barH / 2); ctx.fill();
-  const fillW = Math.max(barH, (parseFloat(value) / 10) * w);
-  const grad = ctx.createLinearGradient(x, barY, x + fillW, barY);
-  grad.addColorStop(0, p.gradStart); grad.addColorStop(1, p.gradEnd);
-  ctx.fillStyle = grad; roundRect(ctx, x, barY, fillW, barH, barH / 2); ctx.fill();
-  return barY + barH;
-}
-
 /* ---- Separator ---- */
 function drawSeparator(ctx, y, p) {
   const w = 200;
@@ -465,7 +448,6 @@ function drawBrandedFooter(ctx, p) {
 async function buildReelCard(resultData, p, culture) {
   const r = resultData.restaurant;
   const score = Math.round(parseFloat(resultData.donde_match) || 0);
-  const scoring = resultData.scoring_v9 || resultData.scoring || {};
   const recText = (resultData.recommendation || '').replace(/\u2014/g, ', ').replace(/ , /g, ', ');
 
   const canvas = document.createElement('canvas');
@@ -532,7 +514,7 @@ async function buildReelCard(resultData, p, culture) {
 
   // Glass card background
   const heroX = PAD + 10, heroW = CONTENT_W - 20;
-  const heroH = 220;
+  const heroH = 300;
   ctx.save();
   ctx.fillStyle = p.glass;
   roundRect(ctx, heroX, y, heroW, heroH, 24);
@@ -541,68 +523,58 @@ async function buildReelCard(resultData, p, culture) {
   ctx.lineWidth = 1;
   roundRect(ctx, heroX, y, heroW, heroH, 24);
   ctx.stroke();
-  // Top accent glow
   const hg = ctx.createLinearGradient(heroX, y, heroX + heroW, y);
   hg.addColorStop(0, p.ac + '0a'); hg.addColorStop(0.5, p.ac + '18'); hg.addColorStop(1, p.ac + '0a');
   ctx.fillStyle = hg;
   ctx.fillRect(heroX + 1, y + 1, heroW - 2, 3);
   ctx.restore();
 
-  // Score ring inside hero (left side)
-  drawScoreRing(ctx, heroX + 90, y + heroH / 2, 52, score, p, {
-    showLabel: true, numSize: 44, labelSize: 13, lineWidth: 9,
+  // Big centered score ring
+  const ringR = 72;
+  const ringCX = CW / 2;
+  const ringCY = y + 24 + ringR + 8;
+  drawScoreRing(ctx, ringCX, ringCY, ringR, score, p, {
+    showLabel: true, numSize: 52, labelSize: 14, lineWidth: 10,
   });
 
-  // Tier text + narrative (right side)
-  const tX = heroX + 170, tW = heroW - 190;
-  ctx.font = '700 26px "Playfair Display", Georgia, serif';
+  // Score tier verdict below ring
+  const tierY = ringCY + ringR + 16;
+  ctx.font = '700 28px "Playfair Display", Georgia, serif';
   ctx.fillStyle = getScoreColor(score, p);
-  ctx.textAlign = 'left';
+  ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
-  ctx.fillText(getScoreTier(score), tX, y + 24);
+  ctx.fillText(getScoreTier(score), CW / 2, tierY);
 
+  // Narrative below tier
   const narrative = resultData.match_narrative?.summary || '';
   if (narrative) {
-    ctx.font = '400 19px "Inter", system-ui, sans-serif';
-    ctx.fillStyle = p.fg2;
-    let ny = y + 58;
-    for (const line of wrapText(ctx, narrative, tW).slice(0, 3)) {
-      ctx.fillText(line, tX, ny); ny += 26;
+    ctx.font = '400 18px "Inter", system-ui, sans-serif';
+    ctx.fillStyle = p.fg3;
+    let ny = tierY + 36;
+    for (const line of wrapText(ctx, narrative, heroW - 60).slice(0, 2)) {
+      ctx.fillText(line, CW / 2, ny); ny += 24;
     }
   }
 
-  // Key signals (pill chips inside hero bottom)
+  // Key signals (pill chips at hero bottom)
   const signals = resultData.match_narrative?.key_signals || [];
   if (signals.length > 0) {
     ctx.font = '500 15px "Inter", system-ui, sans-serif';
-    let sx = tX;
-    const sigY = y + heroH - 44;
-    for (const sig of signals.slice(0, 3)) {
-      const tw = ctx.measureText(sig).width, pw = tw + 20;
-      if (sx + pw > heroX + heroW - 16) break;
+    const sigY = y + heroH - 42;
+    const sigWidths = signals.slice(0, 3).map(s => ctx.measureText(s).width + 20);
+    const sigTotal = sigWidths.reduce((a, w) => a + w + 8, -8);
+    let sx = (CW - sigTotal) / 2;
+    for (let i = 0; i < Math.min(signals.length, 3); i++) {
+      const pw = sigWidths[i];
       ctx.fillStyle = p.acSoft; roundRect(ctx, sx, sigY, pw, 26, 13); ctx.fill();
-      ctx.fillStyle = p.ac; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-      ctx.fillText(sig, sx + 10, sigY + 13); sx += pw + 8;
+      ctx.fillStyle = p.ac; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(signals[i], sx + pw / 2, sigY + 13);
+      sx += pw + 8;
     }
   }
   y += heroH + 20;
 
-  // ── 5. FACTOR BARS ──
-  const factors = [
-    { label: 'Food', value: scoring.food },
-    { label: 'Vibe', value: scoring.vibe },
-    { label: 'Service', value: scoring.service },
-    { label: 'Reputation', value: scoring.reputation },
-    { label: 'Convenience', value: scoring.convenience },
-  ].filter(f => f.value != null);
-  if (factors.length > 0) {
-    for (const f of factors) {
-      y = drawFactorBar(ctx, PAD + 10, y, CONTENT_W - 20, f.label, f.value, p) + 14;
-    }
-    y += 6;
-  }
-
-  // ── 6. INSIDER TIP ──
+  // ── 5. INSIDER TIP ──
   const tip = (resultData.insider_tip || '').replace(/\u2014/g, ', ');
   if (tip) {
     const tipLines = wrapText(ctx, tip, CONTENT_W - 80);
