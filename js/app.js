@@ -36,6 +36,9 @@ import {
 import {
   beginCanvasFold, manifestResult
 } from './transitions.js';
+import {
+  initNeighborhoodPulse, syncPulseVisibility
+} from './neighborhood-pulse.js';
 
 
 /* ---- Initialize ---- */
@@ -115,6 +118,9 @@ function init() {
   // V10: Render combined "Your Spots"
   renderYourSpots();
 
+  // Neighborhood Pulse: ambient city intelligence card
+  initNeighborhoodPulse();
+
   // F9: Initialize anonymous user ID
   getOrCreateUserId();
 
@@ -186,6 +192,11 @@ function init() {
     }
     if (state.loading !== prev.loading && state.loading) {
       beginCanvasFold();
+    }
+    // Sync Neighborhood Pulse visibility on state changes
+    if (state.step !== prev.step || state.loading !== prev.loading
+      || state.result !== prev.result || state.craving !== prev.craving) {
+      syncPulseVisibility();
     }
     if (state.error !== prev.error && state.error) {
       showToast(state.error, true);
