@@ -2040,47 +2040,83 @@ function showAgentDetail(agentId) {
   }
   if (!agent) return;
 
-  var html = '';
+  // Expand inline in the left drawer — collapse any existing detail first
+  var container = document.getElementById('mc-drawer-agents');
+  if (!container) return;
+  var existingDetail = document.getElementById('mc-agent-inline-detail');
+  if (existingDetail) {
+    // If same agent, collapse
+    if (existingDetail.dataset.agentId === agentId) {
+      existingDetail.style.maxHeight = '0';
+      existingDetail.style.opacity = '0';
+      setTimeout(function() { if (existingDetail.parentNode) existingDetail.parentNode.removeChild(existingDetail); }, 350);
+      return;
+    }
+    existingDetail.parentNode.removeChild(existingDetail);
+  }
 
-  // Agent header
-  html += '<div style="text-align:center;padding:var(--space-md) 0;border-bottom:1px solid var(--cc-border);margin-bottom:var(--space-md)">';
-  html += '<div style="font-size:2rem;margin-bottom:var(--space-xs)">' + agent.icon + '</div>';
-  html += '<div style="font-size:var(--text-sm);font-weight:700">' + agent.name + '</div>';
+  // Find the clicked agent card and insert detail after it
+  var cards = container.querySelectorAll('.mc-agent-card, .mc-agent-coo');
+  var targetCard = null;
+  cards.forEach(function(c) {
+    if (c.getAttribute('onclick') && c.getAttribute('onclick').indexOf(agentId) >= 0) targetCard = c;
+  });
+
+  var html = '';
+  html += '<div style="padding:var(--space-sm) 0;border-bottom:1px solid var(--cc-border);margin-bottom:var(--space-sm)">';
+  html += '<div style="font-size:var(--text-sm);font-weight:700;margin-bottom:2px">' + agent.name + '</div>';
   html += '<div style="font-size:var(--text-xs);color:var(--cc-text3)">' + agent.role + '</div>';
-  html += '<div style="margin-top:var(--space-xs)"><span style="font-size:9px;padding:2px 8px;border-radius:var(--radius-pill);background:' + divColor + ';color:white;font-weight:600">' + divName + '</span></div>';
+  html += '<span style="font-size:9px;padding:1px 6px;border-radius:var(--radius-pill);background:' + divColor + ';color:white;font-weight:600;display:inline-block;margin-top:4px">' + divName + '</span>';
   html += '</div>';
 
-  // Agent ID
-  html += '<div class="mc-detail__row"><span class="mc-detail__key">Agent ID</span><span class="mc-detail__val" style="font-size:10px">' + agent.id + '</span></div>';
-  html += '<div class="mc-detail__row"><span class="mc-detail__key">Trigger</span><span class="mc-detail__val" style="font-size:10px">' + agent.trigger + '</span></div>';
-
   // Skills
-  html += '<div class="mc-viz__title">Skills & Expertise</div>';
-  html += '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:var(--space-md)">';
+  html += '<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:var(--space-sm)">';
   agent.skills.forEach(function(s) {
-    html += '<span style="font-size:10px;padding:3px 8px;background:var(--cc-surface2);border:1px solid var(--cc-border);border-radius:var(--radius-pill);color:var(--cc-text2)">' + s + '</span>';
+    html += '<span style="font-size:9px;padding:2px 6px;background:var(--cc-surface2);border:1px solid var(--cc-border);border-radius:var(--radius-pill);color:var(--cc-text2)">' + s + '</span>';
   });
   html += '</div>';
 
-  // CLI Command
-  html += '<div class="mc-viz__title">Run This Agent</div>';
-  html += '<div class="mc-cli-block" style="margin-bottom:var(--space-sm)">';
-  html += '<code style="color:var(--cc-accent)">claude --agent ' + agent.id + '</code>';
+  // Agent ID + Trigger
+  html += '<div class="mc-expand__row"><span class="mc-expand__key">ID</span><span class="mc-expand__val" style="font-size:9px">' + agent.id + '</span></div>';
+  html += '<div class="mc-expand__row"><span class="mc-expand__key">Trigger</span><span class="mc-expand__val" style="font-size:9px">' + agent.trigger + '</span></div>';
+
+  // Prompt textarea
+  html += '<div style="margin-top:var(--space-sm)">';
+  html += '<textarea id="mc-agent-prompt" style="width:100%;min-height:60px;padding:var(--space-xs);background:var(--cc-bg);border:1px solid var(--cc-border);border-radius:var(--radius-sm);color:var(--cc-text);font-family:var(--font-sans);font-size:10px;resize:vertical;line-height:1.4;box-sizing:border-box">' + agent.defaultPrompt + '</textarea>';
   html += '</div>';
 
-  // Customizable prompt
-  html += '<div class="mc-viz__title">Prompt</div>';
-  html += '<div style="position:relative">';
-  html += '<textarea id="mc-agent-prompt" style="width:100%;min-height:80px;padding:var(--space-sm);background:var(--cc-bg);border:1px solid var(--cc-border);border-radius:var(--radius-sm);color:var(--cc-text);font-family:var(--font-sans);font-size:var(--text-xs);resize:vertical;line-height:1.5;box-sizing:border-box">' + agent.defaultPrompt + '</textarea>';
+  // Buttons
+  html += '<div style="margin-top:var(--space-xs);display:flex;gap:4px">';
+  html += '<button class="mc-viz__cta mc-viz__cta--primary" onclick="copyAgentCommand(\'' + agent.id + '\')" style="flex:1;font-size:9px">Copy Command</button>';
+  html += '<button class="mc-viz__cta mc-viz__cta--success" onclick="processCOOInput(\'' + agent.id.replace('donde-', '').replace(/-/g, ' ') + '\')" style="flex:1;font-size:9px">Run</button>';
   html += '</div>';
 
-  // Copy full command button
-  html += '<div style="margin-top:var(--space-sm);display:flex;gap:var(--space-sm)">';
-  html += '<button class="mc-viz__cta mc-viz__cta--primary" onclick="copyAgentCommand(\'' + agent.id + '\')" style="flex:1">Copy Full Command</button>';
-  html += '<button class="mc-viz__cta mc-viz__cta--success" onclick="processCOOInput(\'' + agent.id.replace('donde-', '').replace(/-/g, ' ') + '\')" style="flex:1">Run in Terminal</button>';
-  html += '</div>';
+  var detailDiv = document.createElement('div');
+  detailDiv.id = 'mc-agent-inline-detail';
+  detailDiv.dataset.agentId = agentId;
+  detailDiv.className = 'mc-agent-inline-detail';
+  detailDiv.innerHTML = html;
+  detailDiv.style.maxHeight = '0';
+  detailDiv.style.opacity = '0';
 
-  openDetail(agent.icon + ' ' + agent.name, html);
+  // Insert after the clicked card's parent div, or after the card itself
+  var insertAfter = targetCard ? (targetCard.closest('.mc-agent-div') || targetCard) : container.lastElementChild;
+  if (insertAfter && insertAfter.nextSibling) {
+    insertAfter.parentNode.insertBefore(detailDiv, insertAfter.nextSibling);
+  } else if (insertAfter) {
+    insertAfter.parentNode.appendChild(detailDiv);
+  } else {
+    container.appendChild(detailDiv);
+  }
+
+  // Animate open
+  requestAnimationFrame(function() {
+    detailDiv.style.maxHeight = '400px';
+    detailDiv.style.opacity = '1';
+  });
+
+  // Scroll into view
+  setTimeout(function() { detailDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, 100);
 }
 
 /**

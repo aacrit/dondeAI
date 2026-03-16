@@ -2010,6 +2010,18 @@ body.mc-mode--live .mc-detail__header {
   border-radius: var(--radius-pill);
 }
 
+/* ─── Agent Inline Detail (expands in left drawer) ─── */
+.mc-agent-inline-detail {
+  overflow: hidden;
+  transition: max-height var(--dur-step) var(--spring),
+              opacity var(--dur-normal) var(--ease-out);
+  padding: 0 var(--space-sm);
+  margin: var(--space-xs) 0;
+  background: rgba(99, 102, 241, 0.05);
+  border: 1px solid rgba(99, 102, 241, 0.12);
+  border-radius: var(--radius);
+}
+
 /* ─── Agent Drawer Layout ─── */
 .mc-drawer__agents {
   flex: 1;

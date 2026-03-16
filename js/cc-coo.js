@@ -379,10 +379,38 @@ function renderAgentStatus() {
   var el = document.getElementById('mc-agents');
   if (!el) return;
 
+  // SVG icon factory — 14x14 inline SVGs for crisp rendering
+  function agentSvg(type) {
+    var s = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">';
+    var icons = {
+      coo:     s+'<circle cx="8" cy="5" r="3"/><path d="M2 15c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M8 2V0M5 3L3.5 1.5M11 3l1.5-1.5" stroke-width="1.2"/></svg>',
+      chart:   s+'<path d="M2 14V8M6 14V4M10 14V9M14 14V2"/></svg>',
+      bug:     s+'<ellipse cx="8" cy="9" rx="4" ry="5"/><path d="M8 4V2M4 7H1M12 7h3M3 12l-2 2M13 12l2 2M5 5L3 3M11 5l2-2"/></svg>',
+      dice:    s+'<rect x="2" y="2" width="12" height="12" rx="2"/><circle cx="5" cy="5" r="1" fill="currentColor"/><circle cx="11" cy="11" r="1" fill="currentColor"/><circle cx="8" cy="8" r="1" fill="currentColor"/></svg>',
+      check:   s+'<path d="M2 8.5l4 4 8-8"/></svg>',
+      bolt:    s+'<path d="M9 1L4 9h4l-1 6 5-8H8l1-6"/></svg>',
+      db:      s+'<ellipse cx="8" cy="4" rx="6" ry="3"/><path d="M2 4v4c0 1.7 2.7 3 6 3s6-1.3 6-3V4"/><path d="M2 8v4c0 1.7 2.7 3 6 3s6-1.3 6-3V8"/></svg>',
+      doc:     s+'<path d="M4 2h5l4 4v8a1 1 0 01-1 1H4a1 1 0 01-1-1V3a1 1 0 011-1z"/><path d="M9 2v4h4M6 9h4M6 12h2"/></svg>',
+      radar:   s+'<circle cx="8" cy="8" r="6"/><circle cx="8" cy="8" r="2"/><path d="M8 2v4M14 8h-4"/></svg>',
+      crown:   s+'<path d="M2 12l2-7 3 4 1-7 1 7 3-4 2 7z"/><path d="M2 12h12"/></svg>',
+      gem:     s+'<path d="M3 6l5-4 5 4-5 9z"/><path d="M3 6h10"/><path d="M8 2l-2 4 2 9 2-9-2-4"/></svg>',
+      shield:  s+'<path d="M8 1L2 4v4c0 4 3 7 6 8 3-1 6-4 6-8V4z"/></svg>',
+      search:  s+'<circle cx="7" cy="7" r="5"/><path d="M11 11l3 3"/></svg>',
+      build:   s+'<path d="M4 14V8h8v6"/><path d="M2 8l6-6 6 6"/></svg>',
+      wrench:  s+'<path d="M5.5 2A4.5 4.5 0 009 8l5 5-2 2-5-5a4.5 4.5 0 01-1.5-8z"/></svg>',
+      palette: s+'<circle cx="8" cy="8" r="6"/><circle cx="6" cy="6" r="1" fill="currentColor"/><circle cx="10" cy="6" r="1" fill="currentColor"/><circle cx="6" cy="10" r="1" fill="currentColor"/></svg>',
+      cal:     s+'<rect x="2" y="3" width="12" height="11" rx="1"/><path d="M5 1v3M11 1v3M2 7h12"/></svg>',
+      card:    s+'<rect x="1" y="4" width="14" height="9" rx="1"/><path d="M1 7h14"/></svg>',
+      map:     s+'<path d="M1 3l5 2v10l-5-2z"/><path d="M6 5l5-2v10l-5 2z"/><path d="M11 3l4-1v10l-4 1z"/></svg>',
+      phone:   s+'<rect x="4" y="1" width="8" height="14" rx="1.5"/><path d="M7 12h2"/></svg>',
+    };
+    return icons[type] || icons.check;
+  }
+
   var AGENT_TEAM = {
     'COO': {
       agents: [{
-        id: 'donde-coo', name: 'COO', icon: '\u{1F3AF}',
+        id: 'donde-coo', name: 'COO', iconType: 'coo',
         role: 'Chief Operating Officer',
         skills: ['Multi-agent orchestration', 'Quality cycles', 'Cross-division coordination', 'CEO briefings'],
         trigger: 'Auto on significant changes',
@@ -392,50 +420,50 @@ function renderAgentStatus() {
     },
     'Quality': {
       agents: [
-        { id: 'analytics-expert', name: 'Analytics', icon: '\u{1F4CA}', role: 'Chief Analytics Officer', skills: ['Engine benchmarking', 'Quick-win implementation', 'Scoring optimization', 'Golden dataset analysis'], trigger: 'Manual or auto on scoring changes', defaultPrompt: 'Benchmark the scoring engine, run golden tests, and implement any quick-wins found' },
-        { id: 'bug-fixer', name: 'Bug Fixer', icon: '\u{1F41B}', role: 'Post-test bug fixer', skills: ['Root cause analysis', 'Scoring/blurb/grading fixes', 'Grouped issue resolution', 'Regression prevention'], trigger: 'Auto after test failures', defaultPrompt: 'Analyze the latest test results, root-cause every FAIL/WARN, and implement targeted fixes' },
-        { id: 'gen-test-queries', name: 'Test Gen', icon: '\u{1F3B2}', role: 'Test query generator', skills: ['Persona-driven queries', 'Demographic diversity', 'Edge case generation', 'Cultural coverage'], trigger: 'Manual', defaultPrompt: 'Generate 10 diverse persona-driven test queries covering different demographics and occasions' },
-        { id: 'continuous-tester', name: 'Tester', icon: '\u2705', role: 'Automated test runner', skills: ['Golden dataset testing', 'Regression guard', 'Result persistence', 'Auto bug-fixer spawn'], trigger: 'After deploys', defaultPrompt: 'Run the golden dataset test and regression guard, then report results' }
+        { id: 'analytics-expert', name: 'Analytics', iconType: 'chart', role: 'Chief Analytics Officer', skills: ['Engine benchmarking', 'Quick-win implementation', 'Scoring optimization', 'Golden dataset analysis'], trigger: 'Manual or auto on scoring changes', defaultPrompt: 'Benchmark the scoring engine, run golden tests, and implement any quick-wins found' },
+        { id: 'bug-fixer', name: 'Bug Fixer', iconType: 'bug', role: 'Post-test bug fixer', skills: ['Root cause analysis', 'Scoring/blurb/grading fixes', 'Grouped issue resolution', 'Regression prevention'], trigger: 'Auto after test failures', defaultPrompt: 'Analyze the latest test results, root-cause every FAIL/WARN, and implement targeted fixes' },
+        { id: 'gen-test-queries', name: 'Test Gen', iconType: 'dice', role: 'Test query generator', skills: ['Persona-driven queries', 'Demographic diversity', 'Edge case generation', 'Cultural coverage'], trigger: 'Manual', defaultPrompt: 'Generate 10 diverse persona-driven test queries covering different demographics and occasions' },
+        { id: 'continuous-tester', name: 'Tester', iconType: 'check', role: 'Automated test runner', skills: ['Golden dataset testing', 'Regression guard', 'Result persistence', 'Auto bug-fixer spawn'], trigger: 'After deploys', defaultPrompt: 'Run the golden dataset test and regression guard, then report results' }
       ],
       color: 'var(--cc-green)'
     },
     'Infrastructure': {
       agents: [
-        { id: 'perf-optimizer', name: 'Perf', icon: '\u26A1', role: 'Response time optimizer', skills: ['Latency profiling', 'Timeout prevention', 'Bottleneck identification', 'Safe optimizations'], trigger: 'Manual or auto on latency', defaultPrompt: 'Profile the recommendation engine latency, identify bottlenecks, and implement safe optimizations' },
-        { id: 'db-reviewer', name: 'DB Review', icon: '\u{1F5C4}', role: 'Database quality auditor', skills: ['Data accuracy audit', 'Freshness checks', 'Cross-field consistency', 'Enrichment planning'], trigger: 'Manual or auto after enrichment', defaultPrompt: 'Audit all restaurants for data accuracy, freshness, and completeness. Deliver prioritized enrichment plan' },
-        { id: 'update-docs', name: 'Docs', icon: '\u{1F4DD}', role: 'Documentation updater', skills: ['Codebase scanning', 'CLAUDE.md updates', 'Architecture docs', 'API documentation'], trigger: 'Auto on significant changes', defaultPrompt: 'Scan the codebase for changes and update all documentation files to reflect current state' },
-        { id: 'prod-sentinel', name: 'Sentinel', icon: '\u{1F4E1}', role: 'Production monitor', skills: ['Error rate monitoring', 'Cache health checks', 'Response time tracking', 'Anomaly detection'], trigger: 'Scheduled or manual', defaultPrompt: 'Check production error rates, cache hit ratios, and response times. Flag any anomalies' }
+        { id: 'perf-optimizer', name: 'Perf', iconType: 'bolt', role: 'Response time optimizer', skills: ['Latency profiling', 'Timeout prevention', 'Bottleneck identification', 'Safe optimizations'], trigger: 'Manual or auto on latency', defaultPrompt: 'Profile the recommendation engine latency, identify bottlenecks, and implement safe optimizations' },
+        { id: 'db-reviewer', name: 'DB Review', iconType: 'db', role: 'Database quality auditor', skills: ['Data accuracy audit', 'Freshness checks', 'Cross-field consistency', 'Enrichment planning'], trigger: 'Manual or auto after enrichment', defaultPrompt: 'Audit all restaurants for data accuracy, freshness, and completeness. Deliver prioritized enrichment plan' },
+        { id: 'update-docs', name: 'Docs', iconType: 'doc', role: 'Documentation updater', skills: ['Codebase scanning', 'CLAUDE.md updates', 'Architecture docs', 'API documentation'], trigger: 'Auto on significant changes', defaultPrompt: 'Scan the codebase for changes and update all documentation files to reflect current state' },
+        { id: 'prod-sentinel', name: 'Sentinel', iconType: 'radar', role: 'Production monitor', skills: ['Error rate monitoring', 'Cache health checks', 'Response time tracking', 'Anomaly detection'], trigger: 'Scheduled or manual', defaultPrompt: 'Check production error rates, cache hit ratios, and response times. Flag any anomalies' }
       ],
       color: 'var(--cc-blue)'
     },
     'Product': {
       agents: [
-        { id: 'ceo-advisor', name: 'CEO Advisor', icon: '\u{1F451}', role: 'Strategic product advisor', skills: ['Board-level strategy', 'Prioritized recommendations', 'Competitive analysis', 'Growth opportunities'], trigger: 'Manual', defaultPrompt: 'Provide top 10 prioritized strategic recommendations for DondeAI product growth' },
-        { id: 'donde-premium-advisor', name: 'Premium', icon: '\u{1F48E}', role: 'Premium app advisor', skills: ['$50B caliber assessment', 'UI/UX polish audit', 'Marketing psychology', 'Premium feature design'], trigger: 'Manual', defaultPrompt: 'Audit DondeAI as a premium product. Deliver concrete recommendations across UI/UX, backend, and marketing' }
+        { id: 'ceo-advisor', name: 'CEO Advisor', iconType: 'crown', role: 'Strategic product advisor', skills: ['Board-level strategy', 'Prioritized recommendations', 'Competitive analysis', 'Growth opportunities'], trigger: 'Manual', defaultPrompt: 'Provide top 10 prioritized strategic recommendations for DondeAI product growth' },
+        { id: 'donde-premium-advisor', name: 'Premium', iconType: 'gem', role: 'Premium app advisor', skills: ['$50B caliber assessment', 'UI/UX polish audit', 'Marketing psychology', 'Premium feature design'], trigger: 'Manual', defaultPrompt: 'Audit DondeAI as a premium product. Deliver concrete recommendations across UI/UX, backend, and marketing' }
       ],
       color: 'var(--cc-amber)'
     },
     'Security': {
       agents: [
-        { id: 'donde-ciso', name: 'CISO', icon: '\u{1F6E1}', role: 'Chief Information Security Officer', skills: ['Vulnerability scanning', 'API exposure audit', 'Auth gap detection', 'Supply chain review'], trigger: 'Manual or auto on security changes', defaultPrompt: 'Run a full security audit across all repositories. Deliver severity-ranked findings with remediation plan' }
+        { id: 'donde-ciso', name: 'CISO', iconType: 'shield', role: 'Chief Information Security Officer', skills: ['Vulnerability scanning', 'API exposure audit', 'Auth gap detection', 'Supply chain review'], trigger: 'Manual or auto on security changes', defaultPrompt: 'Run a full security audit across all repositories. Deliver severity-ranked findings with remediation plan' }
       ],
       color: 'var(--cc-red)'
     },
     'Frontend': {
       agents: [
-        { id: 'uat-tester', name: 'UAT', icon: '\u{1F50D}', role: 'UAT browser tester', skills: ['Playwright automation', 'Bug detection', 'UX audit', 'Accessibility testing'], trigger: 'Manual', defaultPrompt: 'Run a comprehensive UAT of donde.lat covering core journey, edge cases, accessibility, and mobile responsiveness' },
-        { id: 'frontend-builder', name: 'Builder', icon: '\u{1F3D7}', role: 'Component engineer', skills: ['Component architecture', 'Design system compliance', 'Performance optimization', 'Animation engineering'], trigger: 'Manual', defaultPrompt: 'Build the requested frontend component following the DondeAI design system and coding standards' },
-        { id: 'frontend-fixer', name: 'Fixer', icon: '\u{1F527}', role: 'UI bug remediation', skills: ['CSS debugging', 'Layout fixes', 'Cross-browser issues', 'Responsive design'], trigger: 'Manual', defaultPrompt: 'Fix the reported UI bugs in the frontend application' },
-        { id: 'css-theme-specialist', name: 'Themes', icon: '\u{1F3A8}', role: 'Theme variant designer', skills: ['10 theme variants', 'Color system design', 'Dark/light modes', 'Seasonal themes'], trigger: 'Manual', defaultPrompt: 'Design and implement a new theme variant for the DondeAI app' }
+        { id: 'uat-tester', name: 'UAT', iconType: 'search', role: 'UAT browser tester', skills: ['Playwright automation', 'Bug detection', 'UX audit', 'Accessibility testing'], trigger: 'Manual', defaultPrompt: 'Run a comprehensive UAT of donde.lat covering core journey, edge cases, accessibility, and mobile responsiveness' },
+        { id: 'frontend-builder', name: 'Builder', iconType: 'build', role: 'Component engineer', skills: ['Component architecture', 'Design system compliance', 'Performance optimization', 'Animation engineering'], trigger: 'Manual', defaultPrompt: 'Build the requested frontend component following the DondeAI design system and coding standards' },
+        { id: 'frontend-fixer', name: 'Fixer', iconType: 'wrench', role: 'UI bug remediation', skills: ['CSS debugging', 'Layout fixes', 'Cross-browser issues', 'Responsive design'], trigger: 'Manual', defaultPrompt: 'Fix the reported UI bugs in the frontend application' },
+        { id: 'css-theme-specialist', name: 'Themes', iconType: 'palette', role: 'Theme variant designer', skills: ['10 theme variants', 'Color system design', 'Dark/light modes', 'Seasonal themes'], trigger: 'Manual', defaultPrompt: 'Design and implement a new theme variant for the DondeAI app' }
       ],
       color: '#a855f7'
     },
     'Integrations': {
       agents: [
-        { id: 'reservation-integration-specialist', name: 'Reservations', icon: '\u{1F4C5}', role: 'Reservation API specialist', skills: ['Resy/OpenTable/Tock APIs', 'Deep link generation', 'Affiliate integration', '$0 implementation'], trigger: 'Manual', defaultPrompt: 'Design the reservation integration strategy using Resy, OpenTable, and Tock APIs with $0 deep links' },
-        { id: 'payments-ordering-specialist', name: 'Payments', icon: '\u{1F4B3}', role: 'Ordering/payment specialist', skills: ['Toast/DoorDash APIs', 'UberEats integration', 'Square payments', 'Order flow design'], trigger: 'Manual', defaultPrompt: 'Design the ordering and payment integration with Toast, DoorDash, and UberEats APIs' },
-        { id: 'maps-location-specialist', name: 'Maps', icon: '\u{1F5FA}', role: 'Mapping/location specialist', skills: ['Google Maps optimization', 'Mapbox integration', 'Cost analysis', 'Location features'], trigger: 'Manual', defaultPrompt: 'Optimize mapping integration costs and design enhanced location features' },
-        { id: 'social-reviews-specialist', name: 'Social', icon: '\u{1F4F1}', role: 'Social/review specialist', skills: ['Yelp Fusion API', 'Instagram integration', 'Trending detection', 'Social proof features'], trigger: 'Manual', defaultPrompt: 'Design social proof and trending detection features using Yelp, Instagram, and TikTok APIs' }
+        { id: 'reservation-integration-specialist', name: 'Reservations', iconType: 'cal', role: 'Reservation API specialist', skills: ['Resy/OpenTable/Tock APIs', 'Deep link generation', 'Affiliate integration', '$0 implementation'], trigger: 'Manual', defaultPrompt: 'Design the reservation integration strategy using Resy, OpenTable, and Tock APIs with $0 deep links' },
+        { id: 'payments-ordering-specialist', name: 'Payments', iconType: 'card', role: 'Ordering/payment specialist', skills: ['Toast/DoorDash APIs', 'UberEats integration', 'Square payments', 'Order flow design'], trigger: 'Manual', defaultPrompt: 'Design the ordering and payment integration with Toast, DoorDash, and UberEats APIs' },
+        { id: 'maps-location-specialist', name: 'Maps', iconType: 'map', role: 'Mapping/location specialist', skills: ['Google Maps optimization', 'Mapbox integration', 'Cost analysis', 'Location features'], trigger: 'Manual', defaultPrompt: 'Optimize mapping integration costs and design enhanced location features' },
+        { id: 'social-reviews-specialist', name: 'Social', iconType: 'phone', role: 'Social/review specialist', skills: ['Yelp Fusion API', 'Instagram integration', 'Trending detection', 'Social proof features'], trigger: 'Manual', defaultPrompt: 'Design social proof and trending detection features using Yelp, Instagram, and TikTok APIs' }
       ],
       color: 'var(--cc-live)'
     }
@@ -446,7 +474,7 @@ function renderAgentStatus() {
   // COO at the top (special treatment)
   var coo = AGENT_TEAM['COO'].agents[0];
   html += '<div class="mc-agent-coo mc-clickable" onclick="showAgentDetail(\'' + coo.id + '\')" title="' + coo.role + '">' +
-    '<span class="mc-agent-coo__icon">' + coo.icon + '</span>' +
+    '<span class="mc-agent-coo__icon">' + agentSvg(coo.iconType) + '</span>' +
     '<span class="mc-agent-coo__name">' + coo.name + '</span>' +
     '<span class="mc-agent-coo__role">' + coo.role + '</span>' +
   '</div>';
@@ -461,7 +489,7 @@ function renderAgentStatus() {
     html += '<div class="mc-agent-div__grid">';
     div.agents.forEach(function(a) {
       html += '<div class="mc-agent-card mc-clickable" onclick="showAgentDetail(\'' + a.id + '\')" title="' + a.role + '">' +
-        '<span class="mc-agent-card__icon">' + a.icon + '</span>' +
+        '<span class="mc-agent-card__icon">' + agentSvg(a.iconType) + '</span>' +
         '<span class="mc-agent-card__name">' + a.name + '</span>' +
       '</div>';
     });
