@@ -523,7 +523,7 @@ function renderFooterBar(stats) {
 
   if ($engine && stats?.version) $engine.textContent = 'Engine ' + stats.version;
   if ($cache && stats?.cacheHitRate != null) $cache.textContent = 'Cache ' + Math.round(stats.cacheHitRate * 100) + '%';
-  if ($latency && stats?.avgLatency != null) $latency.textContent = Math.round(stats.avgLatency) + 'ms avg';
+  if ($latency && stats?.avgLatency != null) $latency.textContent = (stats.avgLatency / 1000).toFixed(1) + 's avg';
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -1004,8 +1004,8 @@ function renderPulseExpandContent(metric) {
     var kpis = state.liveKPIs || {};
     var rt = kpis.responseTime || 0;
     expand.innerHTML =
-      '<div class="mc-expand__row"><span class="mc-expand__key">p50 Response</span><span class="mc-expand__val">' + rt + 'ms</span></div>' +
-      '<div class="mc-expand__row"><span class="mc-expand__key">Target</span><span class="mc-expand__val">&lt; 3000ms</span></div>' +
+      '<div class="mc-expand__row"><span class="mc-expand__key">p50 Response</span><span class="mc-expand__val">' + (rt / 1000).toFixed(1) + 's</span></div>' +
+      '<div class="mc-expand__row"><span class="mc-expand__key">Target</span><span class="mc-expand__val">&lt; 3s</span></div>' +
       '<div class="mc-expand__row"><span class="mc-expand__key">Cache Hits</span><span class="mc-expand__val">' + (kpis.cacheHitRate || 0) + '%</span></div>';
 
   } else if (metric === 'live-cache') {
@@ -1826,7 +1826,7 @@ function updateLivePulseCards(kpis) {
   var $rt = document.getElementById('pulse-live-rt-val');
   if ($rt) {
     var rtMs = kpis.responseTime || 0;
-    var rtDisplay = rtMs > 1000 ? (rtMs / 1000).toFixed(1) + 's' : rtMs + 'ms';
+    var rtDisplay = (rtMs / 1000).toFixed(1) + 's';
     $rt.textContent = rtDisplay;
     $rt.className = 'mc-pulse-card__value ' + (rtMs <= 3000 ? 'rag-green' : rtMs <= 5000 ? 'rag-amber' : 'rag-red');
   }
@@ -1869,7 +1869,7 @@ function renderLiveFeedFull(queries) {
 
   $el.innerHTML = filtered.slice(0, 20).map(function(q) {
     var dm = q.donde_match || 0;
-    var rt = q.response_time_ms ? q.response_time_ms + 'ms' : '--';
+    var rt = q.response_time_ms ? (q.response_time_ms / 1000).toFixed(1) + 's' : '--';
     var fitG = q.score_fit_grade || '--';
     var blurbG = q.blurb_quality_grade || '--';
     var query = q.special_request || '(empty)';
@@ -1901,7 +1901,7 @@ function viewSlowQueries() {
     html += slow.slice(0, 10).map(function(q) {
       return '<div class="mc-run-expand__item" onclick="testAndShowDetail(\'' + escapeHtml((q.special_request || '').replace(/'/g, "\\'")) + '\')">' +
         '<span class="mc-run-expand__query">"' + escapeHtml((q.special_request || '').slice(0, 30)) + '"</span>' +
-        '<span class="mc-run-expand__grades">' + q.response_time_ms + 'ms</span>' +
+        '<span class="mc-run-expand__grades">' + (q.response_time_ms / 1000).toFixed(1) + 's</span>' +
         '<span class="mc-run-expand__score ' + ragClass(q.donde_match || 0) + '">' + (q.donde_match || 0) + '</span></div>';
     }).join('');
   }
