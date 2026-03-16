@@ -516,24 +516,10 @@ async function buildReelCard(resultData, p, culture) {
   // ── SCORE RING (centered hero) ──
   let y = 280;
   const ringR = 80;
-  const ringCX = CW / 2;
-  drawScoreHalo(ctx, ringCX, y, ringR, p);
-  drawScoreRing(ctx, ringCX, y, ringR, score, p, {
+  drawScoreRing(ctx, CW / 2, y, ringR, score, p, {
     showLabel: true, numSize: 56, labelSize: 15, lineWidth: 11,
   });
-  y += ringR + 30;
-
-  // Score tier text
-  ctx.font = '700 30px "Playfair Display", Georgia, serif';
-  ctx.fillStyle = getScoreColor(score, p);
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'top';
-  ctx.fillText(getScoreTier(score), CW / 2, y);
-  y += 60;
-
-  // Accent separator
-  drawSeparator(ctx, y, p, 'accent');
-  y += 56;
+  y += ringR + 48;
 
   // ── RESTAURANT NAME (centered, prominent) ──
   ctx.font = '700 56px "Playfair Display", Georgia, serif';
@@ -545,23 +531,13 @@ async function buildReelCard(resultData, p, culture) {
     ctx.fillText(line, CW / 2, y);
     y += 68;
   }
-  y += 20;
+  y += 28;
 
-  // ── META PILLS (centered) ──
-  const metaParts = [];
-  const hood = r.neighborhood_name || '';
-  if (hood && !/^chicago$/i.test(hood.trim())) metaParts.push(hood);
-  if (r.cuisine_type) metaParts.push(r.cuisine_type);
-  if (r.price_level) metaParts.push(r.price_level);
-  if (metaParts.length > 0) {
-    y = drawCenteredPills(ctx, y, metaParts, p) + 32;
-  }
+  // Separator
+  drawSeparator(ctx, y, p, 'accent');
+  y += 48;
 
-  // Dot separator
-  drawSeparator(ctx, y, p, 'dots');
-  y += 56;
-
-  // ── RECOMMENDATION BLURB (in elegant quotes) ──
+  // ── RECOMMENDATION BLURB (full, no truncation) ──
   if (recText) {
     // Opening quote mark
     ctx.font = '300 80px "Playfair Display", Georgia, serif';
@@ -571,11 +547,11 @@ async function buildReelCard(resultData, p, culture) {
     ctx.fillText('\u201C', CW / 2, y - 16);
     y += 56;
 
-    // Blurb text
+    // Blurb text — render all lines
     ctx.font = 'italic 400 28px "Playfair Display", Georgia, serif';
     ctx.fillStyle = p.fg2;
     const blurbLines = wrapText(ctx, recText, CONTENT_W - 80);
-    for (const line of blurbLines.slice(0, 8)) {
+    for (const line of blurbLines) {
       ctx.fillText(line, CW / 2, y);
       y += 40;
     }
