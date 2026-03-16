@@ -434,20 +434,18 @@ function renderAgentStatus() {
 // ═══════════════════════════════════════════════════════════════════
 
 function cmdScan() {
-  cooLog('action', 'Starting broad quality scan...');
-  if (typeof startTest === 'function') {
-    startTest('broad');
+  if (typeof showTestConfirm === 'function') {
+    showTestConfirm('broad');
   } else {
-    cooLog('error', 'Test runner not available. Is cc-tests.js loaded?');
+    startTest('broad');
   }
 }
 
 function cmdRegression() {
-  cooLog('action', 'Starting regression guard (golden dataset)...');
-  if (typeof startTest === 'function') {
-    startTest('regression');
+  if (typeof showTestConfirm === 'function') {
+    showTestConfirm('regression');
   } else {
-    cooLog('error', 'Test runner not available. Is cc-tests.js loaded?');
+    startTest('regression');
   }
 }
 
@@ -458,27 +456,19 @@ function cmdCategory(input, match) {
     cooLog('warn', `Invalid category "${cat}". Valid: ${validCats.join(', ')}`);
     return;
   }
-  cooLog('action', `Starting category test: ${cat}...`);
-  if (typeof state !== 'undefined') {
-    state.selectedCategories = [cat];
-  }
-  if (typeof startTest === 'function') {
-    startTest('category');
-    // After opening the picker, trigger the multi-category runner
-    if (typeof runMultiCategoryTest === 'function') {
-      runMultiCategoryTest();
-    }
+  if (typeof showTestConfirm === 'function') {
+    showTestConfirm('category', cat);
   } else {
-    cooLog('error', 'Test runner not available. Is cc-tests.js loaded?');
+    state.selectedCategories = [cat];
+    startTest('category');
   }
 }
 
 function cmdEdge() {
-  cooLog('action', 'Starting edge case probes...');
-  if (typeof startTest === 'function') {
-    startTest('edge');
+  if (typeof showTestConfirm === 'function') {
+    showTestConfirm('edge');
   } else {
-    cooLog('error', 'Test runner not available. Is cc-tests.js loaded?');
+    startTest('edge');
   }
 }
 

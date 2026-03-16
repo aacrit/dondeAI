@@ -152,6 +152,20 @@
 
   </main>
 
+  <!-- Test Confirmation Modal -->
+  <div class="mc-confirm-backdrop" id="mc-confirm-backdrop" onclick="cancelTestConfirm()" style="display:none"></div>
+  <div class="mc-confirm" id="mc-confirm" role="dialog" aria-modal="true" aria-label="Confirm test" style="display:none">
+    <div class="mc-confirm__header">
+      <span class="mc-confirm__icon" id="mc-confirm-icon">&#9654;</span>
+      <span class="mc-confirm__title" id="mc-confirm-title">Confirm Test</span>
+    </div>
+    <div class="mc-confirm__body" id="mc-confirm-body"></div>
+    <div class="mc-confirm__actions">
+      <button class="mc-confirm__cancel" onclick="cancelTestConfirm()">Cancel</button>
+      <button class="mc-confirm__run" id="mc-confirm-run" onclick="executeConfirmedTest()">Run Test</button>
+    </div>
+  </div>
+
   <!-- Detail Panel (slides in from right) -->
   <aside class="mc-detail" id="mc-detail" aria-label="Query detail">
     <div class="mc-detail__header">

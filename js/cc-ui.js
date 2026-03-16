@@ -512,6 +512,111 @@ function toggleMobileMenu() {}
 function renderMobileRunCards() {}
 
 // ═══════════════════════════════════════════════════════════════════
+// Test Confirmation Modal
+// ═══════════════════════════════════════════════════════════════════
+
+let _pendingTestType = null;
+let _pendingTestArgs = null;
+
+const TEST_DESCRIPTIONS = {
+  broad: {
+    icon: '&#9654;',
+    title: 'Broad Quality Scan',
+    desc: 'Runs 20 random queries across all categories (Food, Vibe, Service, Rep, Conv) to assess overall engine quality. Each query is graded for Score Fit and Blurb Quality.',
+    data: '20 queries from 5 categories, stratified random sampling',
+  },
+  regression: {
+    icon: '&#9878;',
+    title: 'Regression Guard',
+    desc: 'Tests 23 golden baseline queries with known minimum scores. Detects scoring regressions from engine changes. Any query below its baseline flags a regression.',
+    data: '23 golden queries with baseline DM thresholds (45-65)',
+  },
+  edge: {
+    icon: '&#128737;',
+    title: 'Edge Case Probes',
+    desc: 'Sends 20 adversarial inputs (SQL injection, XSS, empty input, emoji-only, oversized arrays) to verify the API handles edge cases gracefully without crashing.',
+    data: '20 probes: empty, XSS, SQL injection, Unicode, oversized, contradictory',
+  },
+  category: {
+    icon: '&#127919;',
+    title: 'Category Focus',
+    desc: 'Tests 15 queries focused on a specific category to deep-dive into one signal type.',
+    data: '15 queries from selected category',
+  },
+  blurb: {
+    icon: '&#128214;',
+    title: 'Blurb Quality Audit',
+    desc: 'Checks 10 restaurant blurbs for slop patterns (clichés, banned phrases). Quick mode uses regex; Deep mode calls Claude API.',
+    data: '10 random restaurant blurbs from database',
+  },
+  coverage: {
+    icon: '&#128202;',
+    title: 'Data Coverage Check',
+    desc: 'Audits 10 random restaurants for field completeness (name, address, cuisine, rating, noise, price, phone, neighborhood, lighting).',
+    data: '10 random restaurants, 9 required fields each',
+  },
+};
+
+function showTestConfirm(type, args) {
+  _pendingTestType = type;
+  _pendingTestArgs = args;
+
+  const info = TEST_DESCRIPTIONS[type] || { icon: '&#9654;', title: type, desc: '', data: '' };
+  const testDef = typeof TEST_TYPES !== 'undefined' ? TEST_TYPES[type] : null;
+  const cost = typeof getTestCost === 'function' ? getTestCost(type) : '$0.00';
+  const count = testDef?.count || '?';
+  const time = testDef?.time || '?';
+  const isLive = state.liveAPI;
+
+  const $icon = document.getElementById('mc-confirm-icon');
+  const $title = document.getElementById('mc-confirm-title');
+  const $body = document.getElementById('mc-confirm-body');
+  if ($icon) $icon.innerHTML = info.icon;
+  if ($title) $title.textContent = info.title;
+
+  let html = '';
+  html += '<div class="mc-confirm__row"><span class="mc-confirm__key">Queries</span><span class="mc-confirm__val">' + count + '</span></div>';
+  html += '<div class="mc-confirm__row"><span class="mc-confirm__key">Est. Time</span><span class="mc-confirm__val">' + time + '</span></div>';
+  html += '<div class="mc-confirm__row"><span class="mc-confirm__key">API Mode</span><span class="mc-confirm__val ' + (isLive ? 'mc-confirm__val--red' : 'mc-confirm__val--green') + '">' + (isLive ? 'LIVE API' : 'Scoring Only') + '</span></div>';
+  html += '<div class="mc-confirm__row"><span class="mc-confirm__key">Cost</span><span class="mc-confirm__val ' + (cost === '$0.00' ? 'mc-confirm__val--green' : 'mc-confirm__val--amber') + '">' + cost + '</span></div>';
+  if (args) html += '<div class="mc-confirm__row"><span class="mc-confirm__key">Filter</span><span class="mc-confirm__val">' + escapeHtml(String(args)) + '</span></div>';
+  html += '<div class="mc-confirm__row"><span class="mc-confirm__key">Data</span><span class="mc-confirm__val" style="text-align:right;max-width:220px;font-weight:400;font-size:10px">' + info.data + '</span></div>';
+  html += '<div class="mc-confirm__desc">' + info.desc + '</div>';
+
+  if ($body) $body.innerHTML = html;
+
+  document.getElementById('mc-confirm-backdrop').style.display = '';
+  document.getElementById('mc-confirm').style.display = '';
+}
+
+function cancelTestConfirm() {
+  _pendingTestType = null;
+  _pendingTestArgs = null;
+  document.getElementById('mc-confirm-backdrop').style.display = 'none';
+  document.getElementById('mc-confirm').style.display = 'none';
+}
+
+function executeConfirmedTest() {
+  const type = _pendingTestType;
+  const args = _pendingTestArgs;
+  cancelTestConfirm();
+
+  if (!type) return;
+  if (typeof startTest !== 'function') { cooLog('error', 'Test runner not available.'); return; }
+
+  if (type === 'category' && args) {
+    state.selectedCategories = Array.isArray(args) ? args : [args];
+    if (typeof runCategoryFocus === 'function') {
+      openTerminal(); showTicker(); triggerDarkPulse();
+      termLog('system', 'Starting Category Focus: ' + state.selectedCategories.join(', ') + '...');
+      runCategoryFocus(state.selectedCategories);
+    }
+  } else {
+    startTest(type);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
 // Terminal Log (legacy — redirect to COO terminal)
 // ═══════════════════════════════════════════════════════════════════
 
