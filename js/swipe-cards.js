@@ -130,9 +130,16 @@ function handleTouchCancel() {
 function animateOut($card, direction, callback) {
   const target = direction * window.innerWidth;
 
-  // Outgoing card: smooth ease-out slide (unchanged feel)
-  $card.style.transition = 'transform 300ms var(--ease-out), opacity 200ms var(--ease-out)';
-  $card.style.transform = `translateX(${target}px) rotate(${direction * 5}deg)`;
+  // Velocity-dependent exit: faster swipe = faster exit + more rotation
+  const elapsed = (Date.now() - _startTime) || 1;
+  const dx = Math.abs(_currentX - _startX);
+  const velocity = dx / elapsed; // px/ms
+  const exitDuration = Math.max(150, 300 - velocity * 200);
+  const exitRotation = direction * Math.min(12, 3 + velocity * 8);
+
+  // Outgoing card: velocity-scaled ease-out slide
+  $card.style.transition = `transform ${exitDuration}ms var(--ease-out), opacity ${Math.round(exitDuration * 0.67)}ms var(--ease-out)`;
+  $card.style.transform = `translateX(${target}px) rotate(${exitRotation}deg)`;
   $card.style.opacity = '0';
 
   setTimeout(() => {
@@ -151,13 +158,13 @@ function animateOut($card, direction, callback) {
       }
 
       // MOTION-2: Spring physics for incoming card
-      // Animate translateX + scale with bouncy spring preset
+      // Cards are rigid objects that settle, not bounce — use smooth preset
       $card.style.opacity = '';
       $card.style.transition = 'opacity 200ms var(--ease-out)';
       springAnimate($card, {
         transform: 'translateX(0px) scale(1)',
       }, {
-        spring: SPRINGS.bouncy,
+        spring: SPRINGS.smooth,
         duration: 400,
         easing: 'var(--spring)',
       });
@@ -168,5 +175,5 @@ function animateOut($card, direction, callback) {
         $card.style.transform = '';
       }, 600);
     });
-  }, 300);
+  }, exitDuration);
 }

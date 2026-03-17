@@ -189,7 +189,7 @@ export async function manifestResult(data) {
             if ($rName) $rName.classList.remove('result-name--animated');
           }, 830));
         }
-      }, 750));
+      }, 900));
     }, COMPLETION_DELAY));
   }
 
@@ -221,10 +221,10 @@ export async function manifestResult(data) {
         $matchPillArcFill.style.stroke = getScoreThresholdColor(dondeScore);
       }
     } else {
-      // Animated: count up from 0 after card reveal completes (~750ms card reveal + 100ms buffer)
+      // Animated: count up from 0 after card reveal completes (~900ms card reveal + 200ms buffer)
       _scaffoldTimers.push(setTimeout(() => {
         animateScoreCountUp($matchPillScore, dondeScore, 1200);
-      }, 850));
+      }, 1100));
     }
   }
   if (dondeScore >= 80 && $matchPillArcFill) {
@@ -235,7 +235,7 @@ export async function manifestResult(data) {
   if (dondeScore >= 70) {
     _scaffoldTimers.push(setTimeout(() => {
       _fireTieredCelebration(dondeScore);
-    }, 1400));
+    }, 1600));
   }
 
   if (!REDUCED_MOTION.matches) {
@@ -253,7 +253,7 @@ export async function manifestResult(data) {
         }, { root: $photos, threshold: 0.6 });
         $photoImgs.forEach(img => photoObs.observe(img));
       }
-    }, 1400));
+    }, 2200));
   }
 
   // Auto-expand Tier 2 while waiting for Claude blurb
@@ -273,7 +273,7 @@ export async function manifestResult(data) {
       });
       renderTier2Animations();
     }
-  }, REDUCED_MOTION.matches ? 0 : 2200));
+  }, REDUCED_MOTION.matches ? 0 : 2800));
 
   _revealBlurb(data);
 

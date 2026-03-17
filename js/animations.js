@@ -1653,10 +1653,12 @@ export function startParticles(canvasEl) {
     particles.push({
       x: Math.random() * w,
       y: Math.random() * h,
+      vy: 0,
       targetX: centerX + (Math.random() - 0.5) * 40,
       targetY: centerY + (Math.random() - 0.5) * 40,
       size: Math.random() * 2 + 0.5,
       speed: Math.random() * 0.3 + 0.2,
+      mass: 0.5 + Math.random() * 1.5,
     });
   }
 
@@ -1669,13 +1671,17 @@ export function startParticles(canvasEl) {
     const accentColor = getComputedStyle(canvasEl).getPropertyValue('--ac').trim() || '#6c5ce7';
 
     for (const p of particles) {
-      // Gentle inward drift + sine-wave wind for organic floating
+      // Gentle inward drift + sine-wave wind for organic floating + micro-gravity
       const dx = p.targetX - p.x;
       const dy = p.targetY - p.y;
+      const massFactor = 1 / p.mass;
       const windX = Math.sin(now * 0.0008 + p.speed * 20) * 0.4;
       const windY = Math.cos(now * 0.0006 + p.speed * 15) * 0.2;
-      p.x += dx * 0.003 + (Math.random() - 0.5) * 0.6 + windX;
-      p.y += dy * 0.003 + (Math.random() - 0.5) * 0.6 + windY;
+      p.vy = (p.vy || 0) + 0.003;
+      p.x += (dx * 0.003 + (Math.random() - 0.5) * 0.6 + windX) * massFactor;
+      p.y += (dy * 0.003 + (Math.random() - 0.5) * 0.6 + windY) * massFactor + p.vy;
+      // Soft ceiling bounce — keep particles from sinking below 80% of canvas
+      if (p.y > h * 0.8) { p.vy = -0.15; }
 
       const alpha = 0.15 + Math.sin(elapsed * 0.001 + p.speed * 10) * 0.08;
 
@@ -1805,11 +1811,12 @@ function _fireParticleBurst(count, addTrails) {
     ctx.globalCompositeOperation = 'lighter';
 
     for (const p of particles) {
-      // Wind simulation — organic sine drift
-      p.x += p.vx + Math.sin(now * 0.001 + p.phase) * 0.3;
+      // Wind simulation — organic sine drift + tumble flutter
+      p.x += p.vx + Math.sin(now * 0.001 + p.phase) * 0.3 + Math.sin(p.rotation * 0.05) * 0.4;
       p.y += p.vy;
-      p.vy += 0.12;
-      p.vx *= 0.99;
+      p.vy += 0.06;
+      p.vy *= 0.985;
+      p.vx *= 0.98;
       p.rotation += p.rotSpeed;
       p.alpha = Math.max(0, 1 - progress * 1.2);
 

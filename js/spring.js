@@ -9,11 +9,11 @@ import { DEBUG } from './config.js';
 
 /* ---- Spring Presets ---- */
 export const SPRINGS = {
-  snappy:  { stiffness: 500, damping: 30, mass: 1 },
-  smooth:  { stiffness: 300, damping: 25, mass: 1 },
-  gentle:  { stiffness: 200, damping: 20, mass: 1 },
-  bouncy:  { stiffness: 400, damping: 15, mass: 1 },
-  score:   { stiffness: 120, damping: 14, mass: 0.8 },
+  snappy:  { stiffness: 600, damping: 35, mass: 1 },
+  smooth:  { stiffness: 280, damping: 22, mass: 1 },
+  gentle:  { stiffness: 150, damping: 12, mass: 1.2 },
+  bouncy:  { stiffness: 450, damping: 12, mass: 1.1 },
+  score:   { stiffness: 180, damping: 16, mass: 1.4 },
 };
 
 let _motion = null;

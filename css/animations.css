@@ -7,6 +7,47 @@
 /* User-initiated: cubic-bezier(0.34, 1.56, 0.64, 1) = var(--spring) */
 /* System reveal:  cubic-bezier(0.4, 0, 0.2, 1) = var(--ease-out) */
 
+/* ---- Culture-Specific Motion Tokens ---- */
+/* Default motion tokens — read by motion.js springPress + springStagger */
+:root {
+  --motion-stagger: 60ms;
+  --motion-press-scale: 0.97;
+  --motion-press-return: 300ms;
+  --motion-typewriter-speed: 35;
+}
+
+/* Japanese: deliberate, restrained — wabi-sabi stillness */
+[data-theme="japanese"] {
+  --motion-stagger: 80ms;
+  --motion-press-scale: 0.985;
+  --motion-press-return: 450ms;
+  --motion-typewriter-speed: 55;
+}
+
+/* Indian: vibrant, energetic — festival rhythm */
+[data-theme="indian"] {
+  --motion-stagger: 50ms;
+  --motion-press-scale: 0.96;
+  --motion-press-return: 280ms;
+  --motion-typewriter-speed: 30;
+}
+
+/* Middle Eastern: flowing, unhurried — hospitality grace */
+[data-theme="middleeastern"] {
+  --motion-stagger: 70ms;
+  --motion-press-scale: 0.975;
+  --motion-press-return: 350ms;
+  --motion-typewriter-speed: 40;
+}
+
+/* South American: quick, playful — carnival snap */
+[data-theme="southamerican"] {
+  --motion-stagger: 40ms;
+  --motion-press-scale: 0.95;
+  --motion-press-return: 250ms;
+  --motion-typewriter-speed: 25;
+}
+
 /* ---- Fade In Up (stagger children) ---- */
 @keyframes fadeInUp {
   from {

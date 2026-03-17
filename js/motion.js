@@ -133,12 +133,13 @@ export function cancelAllRafs() {
  */
 export function springPress(el, opts = {}) {
   if (!el || REDUCED.matches) return;
-  const scale = opts.scale ?? 0.97;
-  const dur = opts.duration ?? '300ms';
+  const root = document.documentElement;
+  const scale = opts.scale ?? parseFloat(getComputedStyle(root).getPropertyValue('--motion-press-scale')) || 0.97;
+  const dur = opts.duration ?? (getComputedStyle(root).getPropertyValue('--motion-press-return').trim() || '300ms');
 
   el.addEventListener('pointerdown', () => {
     el.style.transform = `scale(${scale})`;
-    el.style.transition = `transform 100ms var(--ease-out)`;
+    el.style.transition = `transform 80ms var(--ease-out)`;
   }, { passive: true });
 
   const release = () => {
@@ -163,7 +164,7 @@ export function springPress(el, opts = {}) {
  */
 export function springStagger(elements, opts = {}) {
   if (!elements || !elements.length) return;
-  const stagger = opts.stagger ?? 60;
+  const stagger = opts.stagger ?? parseInt(getComputedStyle(document.documentElement).getPropertyValue('--motion-stagger')) || 50;
   const dist = opts.distance ?? 8;
   const initialDelay = opts.initialDelay ?? 0;
 
@@ -256,8 +257,8 @@ export function magneticHover(el, opts = {}) {
 
   el.addEventListener('mouseleave', () => {
     el.style.transform = '';
-    el.style.transition = `transform 400ms var(--spring)`;
-    setTimeout(() => { el.style.transition = ''; }, 400);
+    el.style.transition = `transform 250ms var(--spring)`;
+    setTimeout(() => { el.style.transition = ''; }, 250);
   }, { passive: true });
 }
 
