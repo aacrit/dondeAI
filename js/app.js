@@ -22,7 +22,7 @@ import { initSwipeCards } from './swipe-cards.js';
 import { initAuth, isAuthenticated as isAuthAuthenticated, getUser as getAuthUser } from './auth.js';
 import { loadRive, fireCelebration } from './animations.js';
 import { getGreeting } from './utils.js';
-import { $dom, initDomRefs, REDUCED_MOTION, _escHtml } from './globals.js';
+import { $dom, initDomRefs, REDUCED_MOTION } from './globals.js';
 import { initTasteDna } from './taste-dna.js'; // Taste DNA visualization
 import { initConversationalSearch, patchVoiceForConversational } from './conversational-search.js';
 
@@ -33,7 +33,7 @@ import {
 } from './events.js';
 import {
   renderYourSpots,
-  showToast, dismissToast, syncOfflineBannerText
+  showToast, dismissToast, syncOfflineBannerText, getLoadingText
 } from './render.js';
 import {
   beginCanvasFold, manifestResult
@@ -224,7 +224,7 @@ function init() {
         requestAnimationFrame(() => {
           const $loadingText = document.querySelector('.loading-state__text');
           if ($loadingText) {
-            $loadingText.innerHTML = formatLoadingText(craving);
+            $loadingText.innerHTML = getLoadingText(craving);
           }
         });
       }
@@ -727,24 +727,6 @@ function showSnowEffect() {
     container.appendChild(flake);
   }
   document.body.appendChild(container);
-}
-
-/* ---- Easter Egg 4: Single-Word Query Loading Text Polish ---- */
-/**
- * Formats the loading text for a search query.
- * Single-word queries use "Finding the best X..." instead of "Finding your X..."
- * to read more naturally.
- *
- * NOTE: transitions.js currently constructs loading text inline (line ~84).
- * It should import and use this function instead:
- *   import { formatLoadingText } from './app.js';
- *   $loadingText.innerHTML = formatLoadingText(craving);
- */
-export function formatLoadingText(craving) {
-  const display = craving.length > 50 ? craving.substring(0, 47) + '...' : craving;
-  const words = craving.trim().split(/\s+/);
-  const prefix = words.length === 1 ? 'Finding the best' : 'Finding your';
-  return `${prefix} <em class="loading-state__craving">${_escHtml(display)}</em>...`;
 }
 
 /* ---- Boot ---- */

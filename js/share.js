@@ -7,6 +7,7 @@ import { getState } from './state.js';
 import { buildShareText } from './utils.js';
 import { generateDondeCard, downloadDondeCard, shareDondeCard } from './donde-card.js';
 import { showToast } from './render.js';
+import { DEBUG } from './config.js';
 
 let $sheet = null;
 let _cardBlob = null;
@@ -100,7 +101,7 @@ async function _getOrGenerateCard(result) {
     _cardResultId = resultId;
     return _cardBlob;
   } catch (err) {
-    console.warn('[DondeCard] Generation failed:', err);
+    DEBUG && console.warn('[DondeCard] Generation failed:', err);
     _cardBlob = null;
     _cardResultId = null;
     return null;
@@ -141,7 +142,7 @@ async function _renderCardPreview() {
     $img.onload = () => URL.revokeObjectURL(url);
     $img.src = url;
   } catch (err) {
-    console.warn('[DondeCard] Preview failed:', err);
+    DEBUG && console.warn('[DondeCard] Preview failed:', err);
     if ($canvas) $canvas.style.display = '';
     if (typeof window.renderShareCanvas === 'function') {
       window.renderShareCanvas('story');

@@ -984,6 +984,7 @@ export function updateBookmarkBtn(restaurantId) {
   $btn.querySelector('.bookmark-icon--outline').style.display = saved ? 'none' : '';
   $btn.querySelector('.bookmark-icon--filled').style.display = saved ? '' : 'none';
   $btn.setAttribute('aria-label', saved ? 'Remove from saved' : 'Save this spot');
+  $btn.setAttribute('aria-pressed', saved ? 'true' : 'false');
   $btn.classList.toggle('feedback-btn--active', saved);
 }
 

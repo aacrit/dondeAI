@@ -4,7 +4,8 @@
    chaos-to-order text, logo animation.
    ============================================ */
 
-const REDUCED = matchMedia('(prefers-reduced-motion: reduce)');
+/* REDUCED aliased from globals.js REDUCED_MOTION — import below (ES modules hoist) */
+const REDUCED = REDUCED_MOTION;
 
 /* ---- Rive Runtime (async, non-blocking) ---- */
 let _rive = null;
@@ -109,7 +110,7 @@ export function animateScoreRing(rawScore) {
 /* ---- Imports ---- */
 import { svgIcon, buildVibeSummary, getScoreThresholdColor, getScoreTier, getFactorColor, humanizeSnake, humanizeSignal, getFactorLabel, strengthDots } from './utils.js';
 import { springValue, springAnimate, SPRINGS, hasMotion } from './spring.js';
-import { _escHtml } from './globals.js';
+import { _escHtml, REDUCED_MOTION } from './globals.js';
 
 /** V5 Factor dimensions */
 const FACTOR_DIMS = [
@@ -1157,7 +1158,7 @@ export function chaosToOrderReveal(element, text) {
     const dy = (Math.random() - 0.5) * 40;
     const rotate = (Math.random() - 0.5) * 30;
     span.style.transform = `translate(${dx}px, ${dy}px) rotate(${rotate}deg)`;
-    span.style.transition = `transform 800ms cubic-bezier(0.2, 1, 0.4, 1) ${i * 3}ms, opacity 400ms ease ${i * 3}ms`;
+    span.style.transition = `transform 800ms cubic-bezier(0.2, 1, 0.4, 1) ${i * 3}ms, opacity 400ms var(--ease-out) ${i * 3}ms`;
     element.appendChild(span);
     return span;
   });

@@ -294,7 +294,7 @@ export function rotateOneChip() {
     return;
   }
 
-  oldChip.style.transition = 'opacity 200ms ease, transform 200ms ease';
+  oldChip.style.transition = 'opacity 200ms var(--ease-out), transform 200ms var(--ease-out)';
   oldChip.style.opacity = '0';
   oldChip.style.transform = 'translateY(-8px) scale(0.9)';
 
@@ -302,7 +302,7 @@ export function rotateOneChip() {
     updateChipContent(oldChip, newText);
     oldChip.style.transform = 'translateY(8px) scale(0.9)';
     requestAnimationFrame(() => {
-      oldChip.style.transition = 'opacity 250ms ease, transform 350ms var(--spring)';
+      oldChip.style.transition = 'opacity 250ms var(--ease-out), transform 350ms var(--spring)';
       oldChip.style.opacity = '1';
       oldChip.style.transform = 'translateY(0) scale(1)';
     });
@@ -405,13 +405,13 @@ export function updateChipsForInput(query) {
         chip.dataset.value = text;
         return;
       }
-      chip.style.transition = 'opacity 150ms ease, transform 150ms ease';
+      chip.style.transition = 'opacity 150ms var(--ease-out), transform 150ms var(--ease-out)';
       chip.style.opacity = '0';
       chip.style.transform = 'scale(0.9)';
       setTimeout(() => {
         chip.textContent = text;
         chip.dataset.value = text;
-        chip.style.transition = 'opacity 200ms ease, transform 250ms var(--spring)';
+        chip.style.transition = 'opacity 200ms var(--ease-out), transform 250ms var(--spring)';
         chip.style.opacity = '1';
         chip.style.transform = 'scale(1)';
       }, 160);
