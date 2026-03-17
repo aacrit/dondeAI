@@ -1,0 +1,151 @@
+/* ============================================
+   DondeAI — Result Action Animations
+   Bookmark ink-pour, going-here celebration,
+   particle effects for action button delight.
+   ============================================ */
+
+/* ---- Bookmark Ink Pour (Save) ---- */
+.bookmark-icon--animating {
+  animation: bookmarkPop 400ms var(--spring) forwards;
+}
+
+@keyframes bookmarkPop {
+  0%   { transform: scale(0.9); }
+  50%  { transform: scale(1.25); }
+  100% { transform: scale(1); }
+}
+
+/* Clip-path fill from bottom to top on the filled icon */
+.bookmark-icon--filling {
+  animation: bookmarkFillUp 200ms var(--ease-out) forwards;
+}
+
+@keyframes bookmarkFillUp {
+  0%   { clip-path: inset(100% 0 0 0); }
+  100% { clip-path: inset(0 0 0 0); }
+}
+
+/* Clip-path drain from top to bottom on unsave */
+.bookmark-icon--draining {
+  animation: bookmarkDrain 200ms var(--ease-out) forwards;
+}
+
+@keyframes bookmarkDrain {
+  0%   { clip-path: inset(0 0 0 0); }
+  100% { clip-path: inset(0 0 100% 0); }
+}
+
+/* Unsave: subtle scale-down settle */
+.bookmark-icon--unsaving {
+  animation: bookmarkShrink 300ms var(--ease-out) forwards;
+}
+
+@keyframes bookmarkShrink {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(0.85); }
+  100% { transform: scale(1); }
+}
+
+/* ---- Bookmark Particles ---- */
+.bookmark-particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--color-bookmark, var(--ac));
+  pointer-events: none;
+  z-index: 10;
+  animation: bookmarkParticleRise 600ms var(--ease-out) forwards;
+}
+
+@keyframes bookmarkParticleRise {
+  0%   { opacity: 1; transform: translate(0, 0) scale(1); }
+  100% { opacity: 0; transform: translate(var(--particle-x), -20px) scale(0); }
+}
+
+/* ---- "I'm Going Here" Celebration ---- */
+
+/* Confirmed state: subtle background shift */
+.going-btn--confirmed {
+  background: color-mix(in srgb, var(--color-success) 90%, white 10%);
+  border-color: color-mix(in srgb, var(--color-success) 90%, white 10%);
+}
+
+/* Checkmark icon pop-in */
+.going-checkmark {
+  display: inline-flex;
+  align-items: center;
+  animation: checkmarkPop 400ms var(--spring) forwards;
+}
+
+@keyframes checkmarkPop {
+  0%   { transform: scale(0); opacity: 0; }
+  60%  { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Text fade out before transform */
+.going-btn__text--fading {
+  animation: goingTextFade 150ms var(--ease-out) forwards;
+}
+
+@keyframes goingTextFade {
+  0%   { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* Text fade in after checkmark */
+.going-btn__text--appearing {
+  animation: goingTextAppear 250ms var(--ease-out) forwards;
+}
+
+@keyframes goingTextAppear {
+  0%   { opacity: 0; transform: translateY(4px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Going celebration particles (accent-colored confetti) */
+.going-particle {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-success);
+  pointer-events: none;
+  z-index: 10;
+  animation: goingParticleBurst 700ms var(--ease-out) forwards;
+}
+
+@keyframes goingParticleBurst {
+  0%   { opacity: 1; transform: translate(0, 0) scale(1); }
+  100% { opacity: 0; transform: translate(var(--particle-x), var(--particle-y)) scale(0); }
+}
+
+/* ---- Reduced Motion ---- */
+@media (prefers-reduced-motion: reduce) {
+  .bookmark-icon--animating,
+  .bookmark-icon--filling,
+  .bookmark-icon--draining,
+  .bookmark-icon--unsaving,
+  .bookmark-particle,
+  .going-checkmark,
+  .going-btn__text--fading,
+  .going-btn__text--appearing,
+  .going-particle {
+    animation: none !important;
+  }
+
+  .bookmark-icon--filling {
+    clip-path: inset(0 0 0 0);
+  }
+
+  .going-checkmark {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  .going-btn__text--appearing {
+    opacity: 1;
+    transform: none;
+  }
+}
