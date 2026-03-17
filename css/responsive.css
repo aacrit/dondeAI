@@ -28,13 +28,13 @@
   }
 
   .header__feature-btn {
-    width: 30px;
-    height: 30px;
+    width: 36px;
+    height: 36px;
   }
 
   .header__feature-icon {
-    width: 18px;
-    height: 18px;
+    width: 22px;
+    height: 22px;
   }
 
   .header__divider {
@@ -261,9 +261,9 @@ a[href],
   *,
   *::before,
   *::after {
-    animation-duration: 100ms !important;
+    animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 100ms !important;
+    transition-duration: 0.01ms !important;
     transition-timing-function: linear !important;
     scroll-behavior: auto !important;
   }
