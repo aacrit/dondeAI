@@ -8,7 +8,7 @@ import {
   $dom, _escHtml, haptic, HAPTICS, pushTimer, clearAnimationTimers,
   setSwapInFlight, _swapInFlight, setCurrentAbort, currentAbort as getGlobalAbort,
   setPendingResultData, getPendingResultData, setPendingCuisine, getPendingCuisine,
-  isTier2Prepared, setTier2Prepared,
+  isTier2Prepared, setTier2Prepared, setTier2Animated,
   getArrowBounceTimer, setArrowBounceTimer,
   REDUCED_MOTION
 } from './globals.js';
@@ -45,6 +45,7 @@ import {
   beginCanvasFold, manifestResult, settleResult, reverseCanvasFold,
   unfoldResultToCanvas, animateScoreCountUp, _fireTieredCelebration
 } from './transitions.js';
+import { resetBloomState } from './animations.js';
 
 /* ---- Module-local state ---- */
 let _canvasPhase = 'minimal';
@@ -1763,6 +1764,9 @@ export function wireEvents(appCallbacks) {
           announce('Showing match details');
         } else {
           haptic(HAPTICS.tick);
+          // Reset animation state so re-expanding replays score ring + factor bars
+          setTier2Animated(false);
+          resetBloomState();
           $tier2.style.willChange = 'max-height, opacity';
           $tier2.style.maxHeight = $tier2.scrollHeight + 'px';
           void $tier2.offsetHeight;
