@@ -4,7 +4,8 @@
    chaos-to-order text, logo animation.
    ============================================ */
 
-const REDUCED = matchMedia('(prefers-reduced-motion: reduce)');
+/* REDUCED aliased from globals.js REDUCED_MOTION — import below (ES modules hoist) */
+const REDUCED = REDUCED_MOTION;
 
 /* ---- Rive Runtime (async, non-blocking) ---- */
 let _rive = null;
@@ -109,7 +110,7 @@ export function animateScoreRing(rawScore) {
 /* ---- Imports ---- */
 import { svgIcon, buildVibeSummary, getScoreThresholdColor, getScoreTier, getFactorColor, humanizeSnake, humanizeSignal, getFactorLabel, strengthDots } from './utils.js';
 import { springValue, springAnimate, SPRINGS, hasMotion } from './spring.js';
-import { _escHtml } from './globals.js';
+import { _escHtml, REDUCED_MOTION } from './globals.js';
 
 /** V5 Factor dimensions */
 const FACTOR_DIMS = [

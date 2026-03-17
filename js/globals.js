@@ -120,3 +120,8 @@ export function setArrowBounceTimer(v) { _arrowBounceTimer = v; }
 
 /* ---- Reduced motion media query (shared across modules) ---- */
 export const REDUCED_MOTION = matchMedia('(prefers-reduced-motion: reduce)');
+
+/* TODO: P3.3 — Badge popout elements (.badge-popout--open) should be focus-trapped
+   when opened. They currently lack fixed IDs, so they can't use the MODAL_CONFIG
+   system in accessibility.js. Either assign stable IDs or extend the MutationObserver
+   to watch for class changes on dynamic popout elements. */

@@ -90,6 +90,8 @@ export function beginCanvasFold() {
       $progressBar.style.transform = 'scaleX(0)';
       $progressBar.style.width = '100%';
       requestAnimationFrame(() => {
+        /* Progress bar uses 2.5s with a custom deceleration curve — intentionally outside
+           the token duration system. The slow fill builds user confidence during API wait. */
         $progressBar.style.transition = 'transform 2.5s cubic-bezier(0.1, 0.7, 0.3, 0.9)';
         $progressBar.style.transform = 'scaleX(0.72)';
       });

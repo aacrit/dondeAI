@@ -40,6 +40,8 @@
   --spring:    cubic-bezier(0.34, 1.56, 0.64, 1);
   --ease-out:  cubic-bezier(0.4, 0, 0.2, 1);
   --ease-in:   cubic-bezier(0.4, 0, 1, 1);
+  /* Progress bar uses a custom deceleration curve: cubic-bezier(0.1, 0.7, 0.3, 0.9)
+     This is intentionally outside the 3-curve system for a confidence-building fill effect. */
 
   /* ---- Motion Durations ---- */
   --dur-instant: 0ms;
@@ -52,6 +54,10 @@
   --dur-morph:   400ms;
   --dur-expand:  350ms;
   --dur-ink:     600ms;
+  --dur-bloom:   800ms; /* chaos-to-order text settle / word rotation bloom */
+
+  /* TODO: Chip swap timings in events.js (200ms/250ms/350ms) should use
+     --dur-fast (150ms) / --dur-normal (300ms) once events.js is updated. */
 
   /* ---- Z-Index Scale ---- */
   --z-base:     1;
@@ -178,5 +184,6 @@
     --dur-morph:   0ms;
     --dur-expand:  0ms;
     --dur-ink:     0ms;
+    --dur-bloom:   0ms;
   }
 }

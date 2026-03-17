@@ -5,6 +5,7 @@
 
 import { getState, setState, subscribe } from './state.js';
 import { saveTheme } from './persistence.js';
+import { REDUCED_MOTION } from './globals.js';
 
 export const CULTURES = ['neutral', 'indian', 'middleeastern', 'japanese', 'southamerican'];
 
@@ -755,7 +756,7 @@ function applyTheme(culture, mode) {
   _washOrigin = null;
 
   // Radial clip-path wash transition (skip on first load, skip during instant swaps)
-  if (!isFirstApply && !skipWash && wash && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  if (!isFirstApply && !skipWash && wash && !REDUCED_MOTION.matches) {
     // Apply new theme to wash div first
     wash.setAttribute('data-theme', culture);
     wash.setAttribute('data-mode', mode);
