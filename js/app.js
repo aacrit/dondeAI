@@ -309,7 +309,7 @@ function startGreetingRotation() {
     if (!$greeting) return;
     const newText = getGreeting(state.theme.culture);
     if (newText === $greeting.textContent) return;
-    $greeting.style.transition = 'opacity 400ms cubic-bezier(0.4, 0, 0.2, 1)';
+    $greeting.style.transition = 'opacity 400ms var(--ease-out)';
     $greeting.style.opacity = '0';
     setTimeout(() => {
       $greeting.textContent = newText;

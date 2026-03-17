@@ -477,41 +477,6 @@ export function getGreeting(culture = 'neutral') {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
-// Quick picks data retained for potential future use (smart chips, etc.)
-// Not currently rendered in the UI after quick-picks tile removal.
-const QUICK_PICKS = {
-  morning:   [
-    { icon: 'brunch', label: 'Brunch', value: 'Brunch spot' },
-    { icon: 'coffee', label: 'Coffee', value: 'Great coffee shop' },
-    { icon: 'croissant', label: 'Bakery', value: 'Fresh bakery' },
-    { icon: 'salad', label: 'Healthy', value: 'Healthy breakfast' },
-  ],
-  lunch: [
-    { icon: 'taco', label: 'Quick Bite', value: 'Quick lunch' },
-    { icon: 'salad', label: 'Healthy', value: 'Healthy lunch' },
-    { icon: 'noodles', label: 'Noodles', value: 'Noodle soup' },
-    { icon: 'taco', label: 'Tacos', value: 'Great tacos' },
-  ],
-  afternoon: [
-    { icon: 'coffee', label: 'Coffee', value: 'Best coffee' },
-    { icon: 'croissant', label: 'Snacks', value: 'Good snacks and pastries' },
-    { icon: 'cocktail', label: 'Happy Hour', value: 'Happy hour drinks' },
-    { icon: 'coffee', label: 'Tea', value: 'Tea house' },
-  ],
-  dinner: [
-    { icon: 'cocktail', label: 'Date Night', value: 'Romantic date night' },
-    { icon: 'cocktail', label: 'Drinks', value: 'Great cocktails and drinks' },
-    { icon: 'plate', label: 'Trendy', value: 'Trendy new restaurant' },
-    { icon: 'plate', label: 'Family', value: 'Family friendly dinner' },
-  ],
-  latenight: [
-    { icon: 'plate', label: 'Late Night', value: 'Late night food' },
-    { icon: 'cocktail', label: 'Cocktails', value: 'Late night cocktail bar' },
-    { icon: 'burger', label: 'Comfort', value: 'Comfort food late night' },
-    { icon: 'pasta', label: 'Pizza', value: 'Late night pizza' },
-  ],
-};
-
 /* ---- Match System V9 (0-99 range, verdict-first, emotionally resonant) ---- */
 const MATCH_WORDS = {
   90: 'Perfect For You',
