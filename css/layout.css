@@ -100,6 +100,16 @@
   background-size: 200px;
   pointer-events: none;
   z-index: 2;
+  animation: grainDrift 8s steps(2) infinite;
+}
+
+@keyframes grainDrift {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(-1px, 1px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ambient__grain { animation: none; }
 }
 
 @keyframes blobDrift {
@@ -125,7 +135,8 @@
   background: var(--glass-header);
   backdrop-filter: blur(var(--glass-e1-blur, var(--glass-blur)));
   -webkit-backdrop-filter: blur(var(--glass-e1-blur, var(--glass-blur)));
-  border-bottom: 1px solid transparent;
+  border-top: 0.5px solid color-mix(in srgb, var(--fg) 12%, transparent);
+  border-bottom: 0.5px solid color-mix(in srgb, var(--fg) 3%, transparent);
   box-shadow: var(--glass-e1-shadow);
   transition: opacity var(--dur-normal) var(--ease-out),
               border-color 300ms var(--ease-out),
@@ -593,6 +604,7 @@
   justify-content: flex-start;
   padding-top: calc(var(--header-h) + var(--space-lg));
   scroll-padding-top: calc(var(--header-h) + var(--space-md));
+  scrollbar-gutter: stable;
 }
 
 /* Swipe-right edge affordance — gesture hint with JS-driven replay */
@@ -745,6 +757,8 @@
   backdrop-filter: blur(var(--glass-blur));
   -webkit-backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--border);
+  border-top: 0.5px solid color-mix(in srgb, var(--fg) 12%, transparent);
+  border-bottom: 0.5px solid color-mix(in srgb, var(--fg) 3%, transparent);
   border-radius: var(--radius);
   box-shadow: var(--glass-e2-shadow);
   z-index: var(--z-toast);

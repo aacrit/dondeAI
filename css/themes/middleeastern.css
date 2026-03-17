@@ -44,10 +44,15 @@
   --glass-score:  var(--glass);
 }
 
-/* Bazaar warmth: warm, moderate blobs */
+/* Bazaar warmth: warm, moderate blobs — slower + more saturated than Indian */
 [data-theme="middleeastern"] .ambient__blob {
-  filter: blur(80px) saturate(0.65);
+  animation-duration: 24s;
+  filter: blur(80px) saturate(0.75);
 }
+
+[data-theme="middleeastern"] .ambient__blob--1 { opacity: 0.5; }
+[data-theme="middleeastern"] .ambient__blob--2 { opacity: 0.35; }
+[data-theme="middleeastern"] .ambient__blob--3 { opacity: 0.25; }
 
 /* ---- Dark Mode ---- */
 [data-theme="middleeastern"][data-mode="dark"] {
@@ -71,8 +76,8 @@
   --glass:       hsl(35 12% 12% / 0.82);
   --glass-blur:  16px;
   --border:      hsl(35 10% 22%);
-  --shadow:      transparent;
-  --shadow-lg:   transparent;
+  --shadow:      hsl(42 20% 5% / 0.12);
+  --shadow-lg:   hsl(42 20% 5% / 0.18);
   --radius:      14px;
   --radius-sm:   8px;
   --radius-lg:   22px;

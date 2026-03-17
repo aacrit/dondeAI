@@ -538,9 +538,44 @@ export function getScoreColor(score) {
  * @returns {string} CSS variable string
  */
 export function getScoreThresholdColor(score) {
-  if (score >= 80) return 'var(--rag-green)';
-  if (score >= 60) return 'var(--rag-amber)';
-  return 'var(--rag-red)';
+  // OKLCH smooth interpolation — no hard threshold snaps
+  // Light: red oklch(0.55 0.18 340), amber oklch(0.65 0.20 85), green oklch(0.55 0.18 162)
+  // Dark:  red oklch(0.60 0.15 340), amber oklch(0.70 0.17 85), green oklch(0.65 0.15 162)
+  const isDark = document.documentElement.dataset.mode === 'dark';
+
+  let L, C, H;
+
+  if (score >= 80) {
+    // 80-100: stay green
+    L = isDark ? 0.65 : 0.55;
+    C = isDark ? 0.15 : 0.18;
+    H = 162;
+  } else if (score >= 60) {
+    // 60-80: interpolate amber -> green
+    const t = (score - 60) / 20;
+    if (isDark) {
+      L = 0.70 + t * (0.65 - 0.70);
+      C = 0.17 + t * (0.15 - 0.17);
+    } else {
+      L = 0.65 + t * (0.55 - 0.65);
+      C = 0.20 + t * (0.18 - 0.20);
+    }
+    H = 85 + t * (162 - 85);
+  } else {
+    // 0-60: interpolate red -> amber
+    const t = score / 60;
+    if (isDark) {
+      L = 0.60 + t * (0.70 - 0.60);
+      C = 0.15 + t * (0.17 - 0.15);
+    } else {
+      L = 0.55 + t * (0.65 - 0.55);
+      C = 0.18 + t * (0.20 - 0.18);
+    }
+    // Hue: 340 -> 85 (short path through 0/360)
+    H = (340 + t * 105) % 360;
+  }
+
+  return `oklch(${L.toFixed(3)} ${C.toFixed(3)} ${H.toFixed(1)})`;
 }
 
 /**
