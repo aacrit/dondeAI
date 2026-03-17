@@ -29,7 +29,7 @@ import { initConversationalSearch, patchVoiceForConversational } from './convers
 import {
   renderSmartChips, closeSuggestions,
   startCanvasDisclosure, wireEvents, wireCravingInput, wireSwipe,
-  updateCtaState
+  updateCtaState, showSwipeHint
 } from './events.js';
 import {
   renderYourSpots,
@@ -192,16 +192,14 @@ function init() {
   }
 
   // Subscribe to state changes
-  let _resultCount = 0;
+  // UX-2: Auth prompt moved to events.js (triggers on bookmark/like/going-here)
   subscribe((state, prev) => {
     if (state.result !== prev.result && state.result) {
       if (prev.loading || $dom.resultCard?.classList.contains('result-card--scaffold')) {
         manifestResult(state.result);
       }
-      _resultCount++;
-      if (_resultCount >= 4 && !isAuthAuthenticated() && !hasGuestDismissed()) {
-        setTimeout(() => openAuthSheet(), 600);
-      }
+      // UX-7: Show swipe hint after first result appears
+      setTimeout(() => showSwipeHint(), 1500);
     }
     if (state.loading !== prev.loading && state.loading) {
       beginCanvasFold();
@@ -456,10 +454,14 @@ function showCoachMarks() {
   coachMarkStep = 0;
   showCoachStep();
   const autoDismiss = () => dismissAllCoachMarks();
+  // UX-6: Dismiss on any user interaction (click, tap, or input)
   $dom.cravingInput?.addEventListener('input', autoDismiss, { once: true });
+  document.addEventListener('click', autoDismiss, { once: true });
+  document.addEventListener('touchstart', autoDismiss, { once: true, passive: true });
+  // UX-6: Increased auto-dismiss from 10s to 20s
   setTimeout(() => {
     if (coachMarkStep < COACH_STEPS.length) dismissAllCoachMarks();
-  }, 10000);
+  }, 20000);
 }
 
 function showCoachStep() {

@@ -57,6 +57,7 @@ let activeIndex = -1;
 let autoAdvanceTimer = null;
 let ctaBreathTimer = null;
 let _chipsPaused = false;
+let _pendingFeedbackTimer = null; // QW-3: Delayed feedback API call for undo support
 
 /* ---- Canvas Progressive Disclosure ---- */
 export function startCanvasDisclosure() {
@@ -669,6 +670,15 @@ export function updateFilterSummary() {
     $count.textContent = drawerParts.length ? String(drawerParts.length) : '';
   }
 
+  // UX-4: Update filter drawer toggle label
+  const $toggle = document.querySelector('[data-action="toggle-filters"]');
+  if ($toggle) {
+    const $label = $toggle.querySelector('span:not(.filter-drawer__count):not(.filter-drawer__summary)');
+    if ($label) {
+      $label.textContent = drawerParts.length > 0 ? drawerParts.join(', ') : 'More Filters';
+    }
+  }
+
   const $narrative = document.getElementById('filter-narrative');
   if ($narrative) {
     const pieces = [];
@@ -1210,12 +1220,30 @@ export function wireEvents(appCallbacks) {
           sendFeedback(restaurantId, null, userId);
           showToast(toasts().feedbackCleared, false);
         } else {
+          // QW-3 / UX-1: Undo toast — delay API call by 5s, allow undo
           saveFeedback(restaurantId, fb);
           setState({ pendingFeedback: { restaurant_id: restaurantId, feedback: fb } });
           document.querySelectorAll('.feedback-btn').forEach(b => b.classList.remove('feedback-btn--active'));
           btn.classList.add('feedback-btn--active');
-          sendFeedback(restaurantId, fb, userId);
-          showToast(fb === 'like' ? toasts().feedbackLike : toasts().feedbackDislike, false);
+          if (_pendingFeedbackTimer) clearTimeout(_pendingFeedbackTimer);
+          _pendingFeedbackTimer = setTimeout(() => {
+            sendFeedback(restaurantId, fb, userId);
+            _pendingFeedbackTimer = null;
+          }, 5000);
+          showToast(fb === 'like' ? toasts().feedbackLike : toasts().feedbackDislike, false, {
+            label: 'Undo',
+            callback: () => {
+              if (_pendingFeedbackTimer) { clearTimeout(_pendingFeedbackTimer); _pendingFeedbackTimer = null; }
+              clearFeedback(restaurantId);
+              setState({ pendingFeedback: null });
+              document.querySelectorAll('.feedback-btn').forEach(b => b.classList.remove('feedback-btn--active'));
+              showToast('Feedback undone', false);
+            },
+          });
+          // UX-2: Auth prompt on positive action (like)
+          if (fb === 'like' && !isAuthAuthenticated() && !hasGuestDismissed()) {
+            setTimeout(() => openAuthSheet(), 800);
+          }
         }
         break;
       }
@@ -1240,6 +1268,10 @@ export function wireEvents(appCallbacks) {
           ? (wasBookmarked ? t.bookmarkRemove : t.bookmarkAddAuth)
           : (wasBookmarked ? t.bookmarkRemove : t.bookmarkAdd);
         showToast(savedMsg, false);
+        // UX-2: Auth prompt on bookmark add
+        if (!wasBookmarked && !isAuthAuthenticated() && !hasGuestDismissed()) {
+          setTimeout(() => openAuthSheet(), 800);
+        }
         break;
       }
 
@@ -1256,6 +1288,10 @@ export function wireEvents(appCallbacks) {
         updateGoingBtn(restaurant.id);
         renderYourSpots();
         showToast(toasts().goingHere, false);
+        // UX-2: Auth prompt on going-here
+        if (!isAuthAuthenticated() && !hasGuestDismissed()) {
+          setTimeout(() => openAuthSheet(), 800);
+        }
         break;
       }
 
@@ -1766,6 +1802,7 @@ export function wireSwipe() {
 
     if (dx > 0 && step === 1 && (dx > COMPLETE_THRESHOLD || velocity > VELOCITY_THRESHOLD)) {
       haptic(HAPTICS.swipe);
+      dismissSwipeHint();
       unfoldResultToCanvas();
       syncFilterPillsToState();
       revertAutoTheme();
@@ -1773,10 +1810,45 @@ export function wireSwipe() {
 
     if (dx < 0 && step === 1 && (Math.abs(dx) > COMPLETE_THRESHOLD || velocity > VELOCITY_THRESHOLD)) {
       haptic(HAPTICS.tick);
+      dismissSwipeHint();
       const $tryAnother = document.querySelector('[data-action="try-again"]');
       if ($tryAnother && !$tryAnother.disabled) {
         $tryAnother.click();
       }
     }
   }, { passive: true });
+}
+
+/* ---- UX-7: Swipe Gesture Hint ---- */
+let _swipeHintEl = null;
+let _swipeHintShown = false;
+
+export function showSwipeHint() {
+  if (_swipeHintShown) return;
+  if (REDUCED_MOTION.matches) return;
+  if (sessionStorage.getItem('donde_swipe_hint_seen')) return;
+  const $resultStep = document.querySelector('.step[data-step="1"]');
+  if (!$resultStep) return;
+  _swipeHintShown = true;
+  _swipeHintEl = document.createElement('div');
+  _swipeHintEl.className = 'swipe-hint';
+  _swipeHintEl.setAttribute('aria-hidden', 'true');
+  _swipeHintEl.innerHTML = '<div class="swipe-hint__inner"><svg class="swipe-hint__arrow" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg><span class="swipe-hint__text type-data--sm">Swipe for more</span></div>';
+  $resultStep.appendChild(_swipeHintEl);
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      if (_swipeHintEl) _swipeHintEl.classList.add('swipe-hint--visible');
+    });
+  });
+  setTimeout(() => dismissSwipeHint(), 6000);
+}
+
+export function dismissSwipeHint() {
+  if (!_swipeHintEl) return;
+  sessionStorage.setItem('donde_swipe_hint_seen', '1');
+  _swipeHintEl.classList.remove('swipe-hint--visible');
+  _swipeHintEl.classList.add('swipe-hint--exiting');
+  const el = _swipeHintEl;
+  setTimeout(() => { if (el.parentNode) el.remove(); }, 400);
+  _swipeHintEl = null;
 }
