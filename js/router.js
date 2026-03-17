@@ -57,6 +57,7 @@ export function goToStepInstant(n) {
   }
   if ($backBtn) {
     $backBtn.classList.toggle('back-btn--visible', step === 1);
+    $backBtn.setAttribute('tabindex', step === 1 ? '0' : '-1');
   }
   history.pushState({ step }, '', '');
   setState({ step });
@@ -77,6 +78,7 @@ function renderStep(current, previous) {
   // Back button visibility — only visible on result step (step 1)
   if ($backBtn) {
     $backBtn.classList.toggle('back-btn--visible', current === 1);
+    $backBtn.setAttribute('tabindex', current === 1 ? '0' : '-1');
   }
 
   // Screen reader announcement

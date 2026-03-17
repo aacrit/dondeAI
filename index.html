@@ -64,7 +64,7 @@
     </div>
 
     <!-- Header -->
-    <header class="header">
+    <header class="header" role="banner">
       <button class="header__logo" data-action="reset" aria-label="Donde — start over">
         <svg class="logo-mark" viewBox="0 0 32 44" width="24" height="33" aria-hidden="true">
           <!-- Question Pin: fork tines at top merge into question-mark curve, pin dot at base -->
@@ -168,7 +168,7 @@
     </div>
 
     <!-- Back Button -->
-    <button class="back-btn" data-action="back" aria-label="Go back">
+    <button class="back-btn" data-action="back" aria-label="Go back" tabindex="-1">
       <svg viewBox="0 0 256 256" width="20" height="20">
         <path fill="currentColor" d="M162.83,205.17a4,4,0,0,1-5.66,5.66l-80-80a4,4,0,0,1,0-5.66l80-80a4,4,0,1,1,5.66,5.66L85.66,128Z"/>
       </svg>
@@ -391,7 +391,7 @@
                   <h2 class="filter-section__title type-structural--caps" id="filter-title-budget">Budget</h2>
                   <div class="filter-pills" role="radiogroup" aria-labelledby="filter-title-budget">
                     <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-budget" data-value="Any">Any</button>
-                    <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-budget" data-value="$">
+                    <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-budget" data-value="$" aria-label="Budget: $">
                       <svg viewBox="0 0 256 256" width="14" height="14"><path fill="currentColor" d="M152,124H132V52h12a36,36,0,0,1,36,36,4,4,0,0,0,8,0,44.05,44.05,0,0,0-44-44H132V24a4,4,0,0,0-8,0V44H112a44,44,0,0,0,0,88h12v72H104a36,36,0,0,1-36-36,4,4,0,0,0-8,0,44.05,44.05,0,0,0,44,44h20v20a4,4,0,0,0,8,0V212h20a44,44,0,0,0,0-88Zm-40,0a36,36,0,0,1,0-72h12v72Zm40,80H132V132h20a36,36,0,0,1,0,72Z"/></svg>
                     </button>
                     <button class="filter-pill type-structural" role="radio" aria-checked="false" data-action="select-budget" data-value="$$">$$</button>
@@ -532,6 +532,7 @@
               <!-- ══════ TIER 2: LEAN-IN — "Tell me more / Should I go?" ══════ -->
               <div class="tier tier--leanin" id="tier-leanin" aria-hidden="true">
 
+                <h3 class="sr-only">Match Score</h3>
                 <!-- Score Hero: Verdict-First + Ring Accent + Narrative + Factor Bars -->
                 <div class="score-hero" id="score-hero"
                      role="figure" tabindex="-1"
@@ -568,6 +569,7 @@
                   </div>
                 </div>
 
+                <h3 class="sr-only">The Story</h3>
                 <!-- The Story: Origin + Insider Tip (dynamic label) -->
                 <div class="restaurant-story" id="restaurant-story" style="display: none;">
                   <span class="restaurant-story__label type-data--sm" id="story-label">The Story</span>
@@ -580,6 +582,7 @@
                   </div>
                 </div>
 
+                <h3 class="sr-only">Restaurant Details</h3>
                 <!-- Info Stream: unified living metadata surface -->
                 <div class="info-stream" id="info-stream" role="region"
                      aria-label="Restaurant details" aria-live="polite"></div>
