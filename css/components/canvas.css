@@ -316,8 +316,8 @@
 
 .smart-chip--active {
   background: color-mix(in srgb, var(--ac) 15%, transparent);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(var(--glass-blur-subtle));
+  -webkit-backdrop-filter: blur(var(--glass-blur-subtle));
   color: var(--ac);
   border-color: var(--ac);
   animation: chipPop 350ms var(--spring);
@@ -1186,8 +1186,8 @@ html .theme-crossfading * {
   gap: var(--space-md);
   padding: var(--space-md) var(--space-lg);
   background: var(--glass);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(var(--glass-blur-modal));
+  -webkit-backdrop-filter: blur(var(--glass-blur-modal));
   border: 1px solid color-mix(in srgb, var(--ac) 20%, var(--border));
   border-radius: var(--radius-lg);
   cursor: pointer;

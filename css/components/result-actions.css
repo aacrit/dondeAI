@@ -1,0 +1,249 @@
+/* ============================================
+   DondeAI — Result Actions
+   Tile expand, card footer, share CTA,
+   scoring breakdown, subfactors
+   ============================================ */
+
+/* ---- Tile Expand: Radar dimension list ---- */
+.tile-expand__title {
+  color: var(--fg3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  text-align: center;
+  display: block;
+  margin-bottom: var(--space-sm);
+}
+
+.tile-expand__dims {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  width: 100%;
+}
+
+.tile-expand__dim {
+  display: grid;
+  grid-template-columns: 20px 56px 1fr auto;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.tile-expand__dim-icon {
+  color: var(--fg2);
+  display: flex;
+  align-items: center;
+}
+
+.tile-expand__dim-label {
+  color: var(--fg2);
+  letter-spacing: 0.04em;
+}
+
+.tile-expand__dim-bar {
+  width: 100%;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.tile-expand__dim-fill {
+  height: 100%;
+  background: var(--fg3);
+  border-radius: 2px;
+}
+
+.tile-expand__dim-value {
+  color: var(--fg);
+  font-weight: 700;
+  text-align: right;
+}
+
+/* ---- Scoring V2 Breakdown (inside tile-expand modal) ---- */
+.tile-expand__v2 {
+  width: 100%;
+  margin-top: var(--space-md);
+  padding-top: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.tile-expand__v2-label {
+  color: var(--fg3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: var(--text-xs);
+}
+
+.tile-expand__v2 .tile-expand__dim {
+  grid-template-columns: 80px 1fr 40px;
+}
+
+.tile-expand__summary {
+  color: var(--fg3);
+  font-size: var(--text-xs);
+  margin-top: var(--space-2xs);
+  font-style: italic;
+}
+
+/* ---- 6D: Expandable sub-factor rows ---- */
+.tile-expand__dim--expandable {
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  padding: 2px 4px;
+  margin: -2px -4px;
+  transition: background var(--dur-fast) var(--ease-out);
+}
+.tile-expand__dim--expandable:hover,
+.tile-expand__dim--expandable:focus-visible {
+  background: var(--glass);
+  outline: none;
+}
+.tile-expand__dim-chevron {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 4px;
+  transition: transform var(--dur-fast) var(--ease-out);
+  opacity: 0.45;
+}
+.tile-expand__dim--expandable.is-expanded .tile-expand__dim-chevron {
+  transform: rotate(90deg);
+  opacity: 0.7;
+}
+.tile-expand__subfactors {
+  padding-left: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  padding-top: var(--space-2xs);
+  padding-bottom: var(--space-2xs);
+}
+.tile-expand__subfactor {
+  display: grid;
+  grid-template-columns: 76px 1fr 36px;
+  align-items: center;
+  gap: var(--space-2xs);
+}
+.tile-expand__subfactor-label {
+  color: var(--fg3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tile-expand__subfactor-bar {
+  width: 100%;
+  height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.tile-expand__subfactor-fill {
+  height: 100%;
+  border-radius: 2px;
+}
+.tile-expand__subfactor-score {
+  color: var(--fg2);
+  font-weight: 600;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.tile-expand__subfactor-signal {
+  grid-column: 1 / -1;
+  color: var(--fg3);
+  font-style: italic;
+  font-size: var(--text-2xs);
+  line-height: 1.3;
+  padding-bottom: 1px;
+}
+
+/* ---- Card Footer — 2 primary actions + compact secondary row ---- */
+.card-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  width: 100%;
+  padding-top: var(--space-sm);
+}
+
+/* Secondary row: feedback + start over */
+.card-footer__secondary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  width: 100%;
+}
+
+/* Text-link style for Start Over — minimal, matches Show More/Less size */
+.cta-btn--link {
+  background: none;
+  border: none;
+  color: var(--fg3);
+  font-family: var(--font-structural);
+  font-size: var(--text-sm);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  padding: var(--space-xs) var(--space-sm);
+  transition: color var(--dur-fast) var(--ease-out);
+}
+
+.cta-btn--link:hover {
+  color: var(--fg);
+}
+
+/* ── Share CTA — personified, subtle call-to-action ── */
+.share-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  align-self: center;
+  padding: var(--space-sm) var(--space-lg);
+  background: color-mix(in srgb, var(--ac) 10%, var(--bg2));
+  border: 1.5px solid color-mix(in srgb, var(--ac) 25%, var(--border));
+  border-radius: var(--radius-pill);
+  color: var(--ac);
+  font-family: var(--font-structural);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out),
+              border-color var(--dur-fast) var(--ease-out),
+              color var(--dur-fast) var(--ease-out),
+              transform var(--dur-fast) var(--spring),
+              box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.share-cta:hover {
+  background: color-mix(in srgb, var(--ac) 18%, var(--bg2));
+  border-color: color-mix(in srgb, var(--ac) 45%, var(--border));
+  box-shadow: 0 2px 12px color-mix(in srgb, var(--ac) 12%, transparent);
+}
+
+.share-cta:active {
+  transform: scale(0.96);
+}
+
+.share-cta__icon {
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
+.share-cta__icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.share-cta__text {
+  white-space: nowrap;
+}
+
+/* Dark mode: slightly brighter background */
+[data-mode="dark"] .share-cta {
+  background: color-mix(in srgb, var(--ac) 8%, var(--bg3));
+  border-color: color-mix(in srgb, var(--ac) 20%, var(--border));
+}

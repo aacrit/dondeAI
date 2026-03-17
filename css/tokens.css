@@ -91,6 +91,11 @@
   --glass-tip:      var(--glass);
   --glass-score:    var(--glass);
 
+  /* ---- Glass Blur Scale ---- */
+  --glass-blur-subtle: 4px;
+  --glass-blur-panel:  8px;
+  --glass-blur-modal:  20px;
+
   /* ---- Elevation Depth System (4-layer) ---- */
   /* E0: Surface (result card, canvas) — opaque */
   --glass-e0:        var(--bg2);

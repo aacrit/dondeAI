@@ -29,8 +29,8 @@
   position: absolute;
   inset: 0;
   background: hsl(0 0% 0% / 0.5);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(var(--glass-blur-subtle));
+  -webkit-backdrop-filter: blur(var(--glass-blur-subtle));
 }
 
 .taste-dna-modal__panel,
@@ -135,6 +135,7 @@
   cursor: default;
 }
 
+/* !important needed: overrides inline opacity set by JS on arcs */
 .dna-arc:hover {
   opacity: 1 !important;
 }

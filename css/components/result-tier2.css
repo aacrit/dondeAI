@@ -1,0 +1,1361 @@
+/* ============================================
+   DondeAI — Result Tier 2: Score & Story
+   Score hero, factor bars, factor detail,
+   score tile, sentiment, story extras,
+   restaurant story, boost badge
+   ============================================ */
+
+/* ---- V11: Semantic Concept Tags (factor drill-down) ---- */
+.factor-detail__concepts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: var(--space-2xs);
+  padding-top: var(--space-2xs);
+  border-top: 1px solid var(--border);
+}
+
+.factor-detail__concept-tag {
+  display: inline-block;
+  padding: 1px var(--space-2xs);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--fg3);
+  opacity: 0.7;
+}
+
+/* .result-recommendation styles moved into .donde-blurb__text above */
+
+/* ---- Score Section (legacy container — now part of tier system) ---- */
+
+/* ---- Individual Score Tile ---- */
+.score-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-md);
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  text-align: center;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.score-tile--donde {
+  overflow: hidden;
+}
+
+.score-tile__label {
+  color: var(--fg3);
+  letter-spacing: 0.06em;
+}
+
+/* ---- Score Tile Brand (logo + wordmark + Score™) ---- */
+.score-tile__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  line-height: 1;
+}
+
+.score-tile__logo-mark {
+  color: var(--fg);
+  flex-shrink: 0;
+  /* Align SVG center with text cap height */
+  align-self: center;
+}
+
+.score-tile__wordmark {
+  display: inline-flex;
+  align-items: baseline;
+  line-height: 1;
+  font-size: var(--text-sm);
+  user-select: none;
+}
+
+.score-tile__wordmark-d {
+  font-family: var(--font-emotional);
+  font-weight: 700;
+  font-size: 1.15em;
+  color: var(--fg);
+  letter-spacing: -0.03em;
+}
+
+.score-tile__wordmark-ond {
+  font-family: var(--font-emotional);
+  font-weight: 400;
+  font-size: 1em;
+  color: var(--fg);
+  letter-spacing: -0.02em;
+}
+
+.score-tile__wordmark-e {
+  font-family: var(--font-emotional);
+  font-weight: 700;
+  font-style: italic;
+  font-size: 1.05em;
+  color: var(--fg);
+  letter-spacing: -0.01em;
+}
+
+.score-tile__score-label {
+  color: var(--fg3);
+  letter-spacing: 0.06em;
+  margin-left: 2px;
+  font-size: var(--text-xs);
+  align-self: center;
+}
+
+.score-tile__score-label sup {
+  font-size: 0.6em;
+  vertical-align: super;
+}
+
+/* ---- Score Info Button ---- */
+.score-tile__info {
+  position: absolute;
+  top: var(--space-xs);
+  right: var(--space-xs);
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  color: var(--fg3);
+  cursor: pointer;
+  border-radius: 50%;
+  transition: color var(--dur-fast) var(--ease-out),
+              background var(--dur-fast) var(--ease-out);
+  padding: 0;
+}
+
+.score-tile__info:hover {
+  color: var(--fg);
+  background: var(--bg3);
+}
+
+/* ---- DondeAI Score Tile ---- */
+.score-tile--donde {
+  position: relative;
+  background: var(--bg2);
+}
+
+/* (Score tile mobile overrides removed — now handled by tier system) */
+
+/* ---- Score Ring (inside tile) ---- */
+.score-tile .score-ring-wrap {
+  position: relative;
+  width: 128px;
+  height: 128px;
+  flex-shrink: 0;
+}
+
+.score-ring {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.score-ring__bg {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 6;
+}
+
+.score-ring__fill {
+  fill: none;
+  stroke-width: 6;
+  stroke-linecap: round;
+  stroke-dasharray: 283;
+  stroke-dashoffset: 283;
+  transition: stroke-dashoffset 1200ms cubic-bezier(0.2, 1, 0.4, 1),
+              stroke var(--dur-normal) var(--ease-out);
+}
+
+.score-ring__number {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Percentage text fits inside 112px+ ring */
+.score-tile .score-ring__number .type-data--lg {
+  font-size: var(--text-xl);
+}
+
+.score-verdict {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--ac);
+}
+
+.score-verdict[data-tier="mid"] {
+  color: var(--fg2);
+}
+
+.score-verdict[data-tier="low"] {
+  color: var(--fg3);
+}
+
+
+.google-stars__empty {
+  color: var(--border);
+}
+
+/* ---- Score Hero (Confidence Ring — Tier 2 expanded view) ---- */
+.score-hero {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  outline: none;
+}
+
+.score-hero:focus-visible {
+  outline: 2px solid var(--ac);
+  outline-offset: 4px;
+  border-radius: var(--radius);
+}
+
+/* Verdict — smaller text BELOW the ring, RAG colored */
+.score-hero__verdict-text {
+  font-family: var(--font-emotional);
+  font-size: var(--text-sm);
+  color: var(--rag-green);
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 300ms var(--ease-out), transform 300ms var(--ease-out);
+}
+
+.score-hero__verdict-text--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.score-hero__verdict-text[data-tier="high"] {
+  color: var(--rag-green);
+}
+
+.score-hero__verdict-text[data-tier="mid"] {
+  color: var(--rag-amber);
+}
+
+.score-hero__verdict-text[data-tier="low"] {
+  color: var(--rag-red);
+}
+
+/* Confidence Ring container */
+.score-hero__ring-wrap {
+  position: relative;
+  width: clamp(120px, 32vw, 150px);
+  aspect-ratio: 1;
+}
+
+.score-hero__svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  transform: rotate(-90deg);
+}
+
+/* Background ring */
+.score-hero__ring-bg {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 5;
+  opacity: 0.5;
+}
+
+/* RAG fill ring — color set by JS based on score threshold */
+.score-hero__ring-fill {
+  fill: none;
+  stroke: var(--rag-green);
+  stroke-width: 5;
+  stroke-linecap: round;
+}
+
+/* Number + brand + verdict overlay (centered inside ring) */
+.score-hero__center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  z-index: 2;
+}
+
+.score-hero__number {
+  font-size: clamp(2.5rem, 9vw, 3.5rem);
+  font-weight: 700;
+  color: var(--fg);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+
+/* V9: Narrative — editorial voice below ring, more prominent */
+.score-hero__narrative {
+  font-family: var(--font-emotional);
+  font-size: var(--text-sm);
+  color: var(--fg2);
+  text-align: center;
+  max-width: 360px;
+  line-height: 1.5;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 400ms var(--ease-out), transform 400ms var(--ease-out);
+  /* Tier 2 is the lean-in view — content flows fully, no clamp */
+}
+
+/* V9: Signal pills — key match reasons below narrative */
+.score-hero__signals {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 6px;
+  max-width: 360px;
+}
+
+.score-hero__signal-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  padding: var(--space-2xs) var(--space-sm);
+  font-family: var(--font-structural);
+  font-size: var(--text-xs);
+  color: var(--fg2);
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill, 100px);
+  opacity: 0;
+  transform: translateY(4px) scale(0.95);
+  transition: opacity 250ms var(--ease-out), transform 250ms var(--spring);
+}
+
+.score-hero__signal-pill--visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.score-hero__narrative--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* V9 Formula Row — Relevance × Quality equation */
+.score-hero__formula {
+  width: 100%;
+  max-width: 360px;
+}
+
+.v9-formula-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--space-2xs);
+  margin: 0;
+  overflow: visible;
+  position: relative;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 300ms var(--ease-out), transform 300ms var(--ease-out);
+}
+
+.v9-formula-row--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.v9-formula__gate {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  background: none;
+  border: 1px solid color-mix(in srgb, var(--gate-color, var(--border)) 20%, transparent);
+  border-radius: var(--radius-pill);
+  padding: 1px var(--space-xs);
+  cursor: pointer;
+  position: relative;
+  transition: background 150ms var(--ease-out);
+  font-family: var(--font-data);
+  font-size: var(--text-2xs);
+}
+
+.v9-formula__gate:hover {
+  background: color-mix(in srgb, var(--gate-color, var(--bg2)) 25%, transparent);
+}
+
+.v9-formula__gate-label { color: var(--fg3); }
+.v9-formula__gate-score { font-weight: 600; }
+.v9-formula__bonus-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px var(--space-xs);
+  border-radius: var(--radius-pill);
+  font-family: var(--font-data);
+  font-size: var(--text-2xs);
+  font-weight: 500;
+  opacity: 0.7;
+}
+.v9-formula__bonus-pill[data-positive="true"] {
+  background: color-mix(in srgb, var(--green, #4ade80) 12%, transparent);
+  color: var(--green, #4ade80);
+}
+.v9-formula__bonus-pill[data-positive="false"] {
+  background: color-mix(in srgb, var(--red, #f87171) 12%, transparent);
+  color: var(--red, #f87171);
+}
+
+.v9-formula__boost-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px var(--space-xs);
+  border-radius: var(--radius-pill, 100px);
+  font-family: var(--font-data);
+  font-size: var(--text-2xs);
+  font-weight: 500;
+  background: color-mix(in srgb, var(--blue, #60a5fa) 12%, transparent);
+  color: var(--blue, #60a5fa);
+  opacity: 0.7;
+}
+
+/* Gate popout */
+.v9-gate-popout {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 50;
+  background: var(--bg1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-sm);
+  width: 220px;
+  box-shadow: var(--shadow-md);
+  opacity: 0;
+  transform: translateY(-4px);
+  pointer-events: none;
+  transition: opacity 200ms var(--ease-out), transform 200ms var(--ease-out);
+}
+
+.v9-gate-popout--open {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.v9-gate-popout__label {
+  display: block;
+  color: var(--fg3);
+  font-family: var(--font-data);
+  font-size: var(--text-xs);
+  margin-bottom: 4px;
+}
+
+.v9-gate-popout__detail {
+  color: var(--fg2);
+  font-family: var(--font-structural);
+  font-size: var(--text-sm);
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Factor bars weight profile label */
+.factor-bars__profile {
+  color: var(--fg3);
+  margin-bottom: 8px;
+  font-style: italic;
+  text-align: center;
+  font-family: var(--font-structural);
+  font-size: var(--text-xs);
+}
+
+/* Score Hero Brand (logo + Match™) — inside the ring */
+.score-hero__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  line-height: 1;
+}
+
+.score-hero__brand-logo {
+  color: var(--ac);
+  flex-shrink: 0;
+  display: block;
+}
+
+.score-hero__tm {
+  font-family: var(--font-data);
+  font-size: 0.625rem;
+  color: var(--fg3);
+  letter-spacing: 0.04em;
+  margin-left: 1px;
+}
+
+.score-hero__tm sup {
+  font-size: 0.6em;
+  vertical-align: super;
+}
+
+/* V7: Intent alignment indicator */
+.score-hero__intent {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 8px;
+  background: color-mix(in srgb, var(--ac) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ac) 15%, transparent);
+  border-radius: var(--radius-pill, 100px);
+  font-family: var(--font-data);
+  font-size: var(--text-2xs, 10px);
+  color: var(--fg2);
+  margin-top: var(--space-2xs);
+  opacity: 0;
+  transition: opacity 400ms var(--ease-out);
+}
+
+.score-hero__intent--visible {
+  opacity: 1;
+}
+
+/* Per-element crossfade for Try Again transitions */
+.result-card--crossfading .result-name,
+.result-card--crossfading .result-oneliner,
+.result-card--crossfading .result-meta,
+.result-card--crossfading .quick-actions,
+.result-card--crossfading .glance-nav,
+.result-card--crossfading .donde-blurb__text,
+.result-card--crossfading .result-photos,
+.result-card--crossfading .match-mini__score,
+.result-card--crossfading .match-mini__verdict {
+  opacity: 0;
+  transition: opacity 250ms var(--ease-out);
+}
+}
+
+/* (Brand, center, callout CSS removed — replaced by ring-wrap layout above) */
+
+/* ---- V5: Intent Boost Badge ---- */
+.boost-badge {
+  display: none;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--ac-muted, rgba(var(--ac-rgb, 99, 102, 241), 0.12));
+  border: 1px solid var(--ac-subtle, rgba(var(--ac-rgb, 99, 102, 241), 0.25));
+  border-radius: var(--radius-pill, 100px);
+  font-size: var(--text-xs);
+  color: var(--ac);
+  cursor: pointer;
+  position: relative;
+  max-width: fit-content;
+  margin: var(--space-xs) auto 0;
+}
+
+.boost-badge--visible {
+  display: inline-flex;
+  animation: boostSlideIn 300ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.boost-badge__icon {
+  font-size: 1em;
+  line-height: 1;
+}
+
+.boost-badge__text {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.boost-badge__popout {
+  display: none;
+  position: absolute;
+  top: calc(100% + var(--space-xs));
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md, 8px);
+  padding: var(--space-sm);
+  font-size: var(--text-xs);
+  color: var(--fg2);
+  min-width: 200px;
+  max-width: 280px;
+  z-index: 100;
+  box-shadow: var(--shadow-md, 0 4px 12px rgba(0,0,0,0.15));
+  text-align: center;
+  line-height: 1.4;
+}
+
+.boost-badge:hover .boost-badge__popout,
+.boost-badge:focus .boost-badge__popout {
+  display: block;
+}
+
+/* ---- V5: Relaxation Notice ---- */
+.relaxation-notice {
+  display: none;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md, 8px);
+  font-size: var(--text-xs);
+  color: var(--fg3);
+  margin: 0 var(--space-sm) var(--space-xs);
+  text-align: center;
+  animation: relaxationFadeIn 400ms ease-out both;
+}
+
+.relaxation-notice__icon {
+  font-size: 1em;
+}
+
+.relaxation-notice__text {
+  line-height: 1.3;
+}
+
+.relaxation-notice__dismiss {
+  background: none;
+  border: none;
+  color: var(--fg4);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  padding: 0 var(--space-2xs);
+  line-height: 1;
+}
+
+.relaxation-notice--dismissing {
+  animation: relaxationFadeIn 300ms ease-out reverse both;
+}
+
+/* ---- Factor Bars (always visible below ring) ---- */
+.score-hero__factors {
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.factor-bars__list {
+  padding-top: var(--space-sm);
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+}
+
+.factor-row-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+}
+
+/* Individual factor row — tappable button — V9: more breathing room */
+.factor-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2xs);
+  min-height: 32px;
+  padding: var(--space-xs) 0 var(--space-2xs);
+  border: none;
+  background: none;
+  width: 100%;
+  cursor: pointer;
+  text-align: left;
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
+  transition: background-color 200ms var(--ease-out);
+}
+
+/* Touch feedback flash — confirms tap registered */
+.factor-row:active {
+  background-color: var(--ac-soft, color-mix(in srgb, var(--ac) 8%, transparent));
+  transition: background-color 100ms var(--ease-out);
+}
+
+/* Ink underline — writes under the factor label on hover/focus */
+.factor-row::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--ac);
+  opacity: 0.3;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 300ms var(--ease-out);
+}
+.factor-row:hover::before,
+.factor-row:focus-visible::before {
+  transform: scaleX(1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .factor-row::before { transition: none; }
+}
+
+.factor-row:focus-visible {
+  outline: 2px solid var(--ac);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.factor-row__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 20px;
+  transition: color var(--dur-normal) var(--ease-out);
+}
+
+.factor-row__icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.factor-row__label-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 76px;
+  flex-shrink: 0;
+}
+
+.factor-row__label {
+  font-family: var(--font-structural);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--fg2);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.factor-row__bar {
+  flex: 1;
+  height: 6px;
+  background: color-mix(in srgb, var(--bg3) 40%, transparent);
+  border-radius: 3px;
+  overflow: hidden;
+  min-width: 40px;
+  position: relative;
+}
+
+/* Benchmark line at average (50%) — gives context for "is this score good?" */
+.factor-row__bar::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--fg3);
+  opacity: 0.2;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.factor-row__bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  width: 0%;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--ac) 70%, transparent), var(--ac));
+  transition: width 600ms cubic-bezier(.34, 1.56, .64, 1);
+}
+
+.factor-row__score {
+  font-family: var(--font-data);
+  font-size: var(--text-xs);
+  color: var(--fg3);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  min-width: 28px;
+  text-align: right;
+}
+
+/* Factor row expand chevron — consistent with other expandable elements */
+.factor-row::after {
+  content: '';
+  display: inline-flex;
+  width: 7px;
+  height: 7px;
+  border-right: 1.5px solid var(--fg3);
+  border-bottom: 1.5px solid var(--fg3);
+  transform: rotate(45deg);
+  margin-left: auto;
+  flex-shrink: 0;
+  opacity: 0.35;
+  transition: transform var(--dur-expand) var(--ease-out), opacity var(--dur-fast) var(--ease-out);
+}
+.factor-row[aria-expanded="true"]::after {
+  transform: rotate(-135deg);
+  opacity: 0.6;
+}
+.factor-row:hover::after {
+  opacity: 0.6;
+}
+
+/* (Weight suffix removed — weight communicated via bar height) */
+
+/* Weight-tier: subtle bar height + icon color (clean, no glow) */
+
+/* Icon tint */
+.factor-row--weight-high .factor-row__icon { color: var(--ac); }
+.factor-row--weight-mid  .factor-row__icon { color: var(--fg2); }
+.factor-row--weight-low  .factor-row__icon { color: var(--fg3); }
+
+/* Variable bar height (thicker = more important) — V9: increased baseline */
+.factor-row--weight-high .factor-row__bar { height: 8px; border-radius: 4px; }
+.factor-row--weight-mid  .factor-row__bar { height: 6px; border-radius: 3px; }
+.factor-row--weight-low  .factor-row__bar { height: 4px; border-radius: 2px; }
+.factor-row--weight-high .factor-row__bar-fill { border-radius: 4px; }
+.factor-row--weight-mid  .factor-row__bar-fill { border-radius: 3px; }
+.factor-row--weight-low  .factor-row__bar-fill { border-radius: 2px; }
+
+/* V9: Highest-weight factor gets subtle left accent */
+.factor-row--weight-high {
+  border-left: 2px solid var(--ac);
+  padding-left: var(--space-2xs);
+}
+
+/* Label + score opacity hierarchy */
+.factor-row--weight-high .factor-row__label { font-weight: 700; }
+.factor-row--weight-mid  .factor-row__label { font-weight: 600; opacity: 0.9; }
+.factor-row--weight-low  .factor-row__label { font-weight: 500; opacity: 0.65; }
+.factor-row--weight-high .factor-row__score { font-weight: 600; }
+.factor-row--weight-mid  .factor-row__score { opacity: 0.9; }
+.factor-row--weight-low  .factor-row__score { opacity: 0.65; }
+
+/* Score-based bar fill — RAG-colored for consistency with score ring */
+.bar-fill--strong { background: var(--rag-green); }
+.bar-fill--mid    { background: var(--rag-amber); }
+.bar-fill--weak   { background: var(--rag-red); }
+
+/* Drill-down detail panel — height animated via JS */
+.factor-detail {
+  height: 0;
+  opacity: 0;
+  overflow: hidden;
+  background: var(--bg2);
+  border-radius: 6px;
+  margin: 0 0 var(--space-2xs) 28px;
+}
+
+.factor-detail[aria-hidden="false"] {
+  padding: var(--space-xs);
+}
+
+.factor-detail__items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+}
+
+/* (Factor detail header removed — weight info moved to bar height) */
+
+/* Factor detail: subtle icon list rows with left-border tier indicator + stagger */
+.factor-detail__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  padding: 3px 0 3px var(--space-2xs);
+  border-left: 2px solid transparent;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 200ms var(--ease-out), transform 200ms var(--ease-out);
+}
+.factor-detail[aria-hidden="false"] .factor-detail__row {
+  opacity: 1;
+  transform: translateY(0);
+}
+/* Staggered reveal: each row fades in 40ms after the previous */
+.factor-detail__row:nth-child(1) { transition-delay: 0ms; }
+.factor-detail__row:nth-child(2) { transition-delay: 40ms; }
+.factor-detail__row:nth-child(3) { transition-delay: 80ms; }
+.factor-detail__row:nth-child(4) { transition-delay: 120ms; }
+.factor-detail__row:nth-child(5) { transition-delay: 160ms; }
+.factor-detail__row:nth-child(6) { transition-delay: 200ms; }
+.factor-detail__row:nth-child(7) { transition-delay: 240ms; }
+
+.factor-detail__row-icon {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  color: var(--fg4);
+  width: 14px;
+}
+
+.factor-detail__row-icon svg {
+  width: 12px;
+  height: 12px;
+}
+
+.factor-detail__row-label {
+  font-family: var(--font-structural);
+  font-size: var(--text-xs);
+  color: var(--fg3);
+  min-width: 56px;
+  flex-shrink: 0;
+}
+
+.factor-detail__row-signal {
+  font-family: var(--font-structural);
+  font-size: var(--text-xs);
+  color: var(--fg2);
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
+}
+
+/* 3-tier sub-factor color coding — uses unified RAG tokens */
+.factor-detail__row--helper {
+  color: var(--rag-green);
+  border-left: 2px solid var(--rag-green);
+}
+.factor-detail__row--helper .factor-detail__row-label,
+.factor-detail__row--helper .factor-detail__row-signal {
+  color: var(--rag-green);
+}
+.factor-detail__row--detractor {
+  color: var(--rag-red);
+  border-left: 2px solid var(--rag-red);
+}
+.factor-detail__row--detractor .factor-detail__row-label,
+.factor-detail__row--detractor .factor-detail__row-signal {
+  color: var(--rag-red);
+}
+.factor-detail__row--neutral {
+  color: var(--fg3);
+  border-left: 2px solid transparent;
+}
+
+/* Mini-bar inside each sub-factor row */
+.factor-detail__mini-bar {
+  width: 40px;
+  flex-shrink: 0;
+  height: 3px;
+  background: color-mix(in srgb, var(--bg3) 60%, transparent);
+  border-radius: 1.5px;
+  overflow: hidden;
+  margin: 0 var(--space-2xs);
+}
+.factor-detail__mini-bar-fill {
+  height: 100%;
+  border-radius: 1.5px;
+  background: var(--fg3);
+}
+.factor-detail__row--helper    .factor-detail__mini-bar-fill { background: var(--rag-green); }
+.factor-detail__row--detractor .factor-detail__mini-bar-fill { background: var(--rag-red); }
+/* Dark mode handled automatically by --rag-* tokens in tokens.css */
+
+/* Narrative-first: Signal evidence container */
+.factor-detail__signals {
+  padding-top: var(--space-2xs);
+}
+
+/* V9: Signal pill layout — replaces mini-bars */
+.factor-detail__signal-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 4px 0;
+}
+
+.factor-detail__signal-label {
+  font-family: var(--font-structural);
+  font-size: var(--text-xs);
+  color: var(--fg2);
+  flex: 1;
+  min-width: 0;
+}
+
+.factor-detail__signal-row--helper .factor-detail__signal-label {
+  color: var(--rag-green);
+}
+.factor-detail__signal-row--detractor .factor-detail__signal-label {
+  color: var(--rag-red);
+}
+
+/* V9: Strength dots — 3-dot score indicator */
+.strength-dots {
+  display: inline-flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.sdot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.sdot--fill { background: var(--ac); }
+.sdot--half { background: linear-gradient(90deg, var(--ac) 50%, var(--border) 50%); }
+.sdot--empty { background: var(--border); }
+
+.sdot--green.sdot--fill { background: var(--rag-green); }
+.sdot--green.sdot--half { background: linear-gradient(90deg, var(--rag-green) 50%, var(--border) 50%); }
+.sdot--amber.sdot--fill { background: var(--rag-amber); }
+.sdot--amber.sdot--half { background: linear-gradient(90deg, var(--rag-amber) 50%, var(--border) 50%); }
+.sdot--red.sdot--fill { background: var(--rag-red); }
+.sdot--red.sdot--half { background: linear-gradient(90deg, var(--rag-red) 50%, var(--border) 50%); }
+
+/* V9: Factor narrative — promoted, larger */
+/* V9: Confidence note */
+.factor-detail__confidence {
+  font-family: var(--font-structural);
+  font-size: var(--text-2xs, 10px);
+  color: var(--fg4);
+  font-style: italic;
+  padding-top: var(--space-2xs);
+}
+
+/* V9: Deep context curator notes */
+.factor-detail__context {
+  padding-top: var(--space-xs);
+  border-top: 1px solid color-mix(in srgb, var(--border) 40%, transparent);
+  margin-top: var(--space-xs);
+}
+
+.factor-detail__context-header {
+  font-family: var(--font-structural);
+  font-size: var(--text-2xs, 10px);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--fg4);
+  padding-bottom: 2px;
+}
+
+.factor-detail__context-item {
+  font-family: var(--font-emotional);
+  font-size: var(--text-xs);
+  font-style: italic;
+  color: var(--fg3);
+  padding: 2px 0;
+  line-height: 1.4;
+}
+
+/* Weight-importance pips (●/●●/●●●) next to factor label */
+.factor-row__weight-pips {
+  font-size: var(--text-2xs);
+  letter-spacing: 2px;
+  color: var(--fg3);
+  opacity: 0.5;
+  line-height: 1;
+}
+
+/* Strongest factor "Top match" badge */
+.factor-row__top-badge {
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  color: var(--ac);
+  letter-spacing: 0.04em;
+  line-height: 1;
+  opacity: 0.85;
+}
+.factor-row--weight-high .factor-row__weight-pips {
+  color: var(--ac);
+  opacity: 0.8;
+}
+.factor-row--weight-mid .factor-row__weight-pips {
+  opacity: 0.65;
+}
+
+/* V9: Factor bar label replaces numeric score */
+.factor-row__label-tag {
+  font-family: var(--font-structural);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--fg2);
+  min-width: 52px;
+  text-align: right;
+}
+
+.factor-detail__weight {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: var(--space-2xs);
+  margin-top: var(--space-2xs);
+  border-top: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+}
+
+.factor-detail__weight-label {
+  font-family: var(--font-structural);
+  font-size: var(--text-2xs, 10px);
+  color: var(--fg4);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.factor-detail__weight-value {
+  font-family: var(--font-data);
+  font-size: var(--text-xs);
+  color: var(--fg3);
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .factor-row__bar-fill {
+    transition-duration: 0ms;
+  }
+  .score-hero__factors {
+    transition-duration: 0ms;
+  }
+  .factor-detail {
+    transition-duration: 0ms;
+  }
+  .factor-detail__row {
+    opacity: 1;
+    transform: none;
+    transition-duration: 0ms;
+    transition-delay: 0ms;
+  }
+}
+
+/* (Confidence badges removed — data moved to drill-down) */
+
+/* V9: Google rating row in reputation drill-down */
+.factor-detail__google-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--fg3) 15%, transparent);
+  margin-bottom: 8px;
+}
+.factor-detail__google-icon { color: var(--star-gold, #facc15); flex-shrink: 0; }
+.factor-detail__google-rating {
+  font-family: var(--font-data);
+  font-size: var(--text-base);
+  font-weight: 700;
+}
+.factor-detail__google-label {
+  font-family: var(--font-data);
+  font-size: var(--text-xs);
+  color: var(--fg3);
+}
+
+/* V9: Weight transparency note in factor drill-down */
+.factor-detail__weight-note {
+  font-family: var(--font-data);
+  font-size: var(--text-xs);
+  color: var(--fg3);
+  opacity: 0.7;
+  padding-top: 6px;
+  border-top: 1px solid color-mix(in srgb, var(--fg3) 10%, transparent);
+  margin-top: 8px;
+}
+
+/* ---- Sentiment Inline Track (used inside badge-popout) ---- */
+.sentiment-inline__track {
+  display: flex;
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  overflow: hidden;
+  gap: 1px;
+}
+
+.sentiment-inline__seg {
+  height: 100%;
+  transition: flex var(--dur-normal) var(--ease-out);
+}
+
+.sentiment-inline__seg--pos { background: var(--rag-green); opacity: 0.7; }
+.sentiment-inline__seg--neu { background: var(--fg3); opacity: 0.3; }
+.sentiment-inline__seg--neg { background: var(--rag-red); opacity: 0.7; }
+
+
+/* ---- Story Extras (Dishes + Insider Tip — merged row) ---- */
+.story-extras {
+  display: flex;
+  gap: var(--space-md);
+  align-items: stretch;
+}
+
+.story-extras__item {
+  flex: 1;
+  position: relative;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--glass-tip);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--fg3);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  min-width: 0;
+}
+
+#story-extras-tip {
+  border-left-color: var(--ac);
+}
+
+.story-extras__label {
+  display: block;
+  font-size: var(--text-xs);
+  color: var(--fg3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: var(--space-2xs);
+}
+
+#story-extras-tip .story-extras__label {
+  color: var(--ac);
+}
+
+.story-extras__text {
+  display: block;
+  font-size: var(--text-sm);
+  color: var(--fg);
+  line-height: 1.5;
+}
+
+@media (max-width: 767px) {
+  .story-extras {
+    gap: var(--space-xs);
+  }
+  .story-extras__item {
+    padding: var(--space-xs) var(--space-sm);
+  }
+}
+
+/* ---- Restaurant Story (merged Insider Tip + Origin) ---- */
+/* ---- Story & Insider Tip (facelift) ---- */
+.restaurant-story {
+  padding: var(--space-xs) 0;
+}
+
+.restaurant-story__label {
+  display: block;
+  color: var(--ac);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: var(--space-sm);
+  font-size: var(--text-2xs, 10px);
+}
+
+.restaurant-story__content {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* Pull-quote treatment — emotional voice for emotional content */
+.restaurant-story__origin {
+  color: var(--fg2);
+  font-family: var(--font-emotional);
+  font-style: normal;
+  line-height: 1.8;
+  font-size: var(--text-sm);
+  position: relative;
+  padding-left: var(--space-md);
+  transition: opacity 300ms var(--ease-out), transform 300ms var(--ease-out);
+}
+
+.restaurant-story__origin::before {
+  content: '\201C';
+  font-family: var(--font-emotional);
+  font-size: 2.5em;
+  line-height: 1;
+  color: var(--ac);
+  opacity: 0.35;
+  position: absolute;
+  left: -2px;
+  top: -4px;
+}
+
+/* Whispered secret — dashed border, muted, intimate */
+.restaurant-story__tip-wrap {
+  margin-top: var(--space-sm);
+  padding-top: 0;
+  padding-left: var(--space-sm);
+  border-top: none;
+  border-left: 2px dashed var(--border);
+  transition: opacity 300ms var(--ease-out), transform 300ms var(--ease-out);
+}
+
+.restaurant-story__tip-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-data);
+  font-size: var(--text-2xs, 10px);
+  color: var(--fg3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: var(--space-3xs);
+}
+
+.restaurant-story__tip-icon {
+  width: 12px;
+  height: 12px;
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+
+.restaurant-story__tip {
+  font-size: var(--text-xs);
+  color: var(--fg2);
+  line-height: 1.6;
+  margin: 0;
+  transition: opacity 400ms var(--ease-out), transform 400ms var(--ease-out);
+}
+
+/* Fade-in reveal (replaces typewriter) */
+.story-tip--revealing {
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+/* Staggered entrance on Tier 2 expand */
+.restaurant-story--entering .restaurant-story__origin {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.restaurant-story--entering .restaurant-story__tip-wrap {
+  opacity: 0;
+  transform: translateY(8px);
+  transition-delay: 100ms;
+}
+
+/* When origin is hidden, tip-wrap needs no separator */
+.restaurant-story__origin[style*="display: none"] + .restaurant-story__tip-wrap,
+.restaurant-story__origin:empty + .restaurant-story__tip-wrap {
+  border-left: none;
+  margin-top: 0;
+  padding-left: 0;
+}
+
+.restaurant-story__tip:empty { display: none; }
+
+/* Reduced motion — instant everything */
+@media (prefers-reduced-motion: reduce) {
+  .restaurant-story__origin,
+  .restaurant-story__tip-wrap,
+  .restaurant-story__tip,
+  .story-tip--revealing {
+    transition: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}

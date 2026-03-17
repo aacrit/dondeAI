@@ -72,8 +72,8 @@
   flex-direction: column;
   padding: var(--space-md);
   background: var(--glass);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(var(--glass-blur-modal));
+  -webkit-backdrop-filter: blur(var(--glass-blur-modal));
   border: 1px solid color-mix(in srgb, hsl(var(--fb-hue, 18) 50% 50%) 20%, var(--border));
   border-radius: var(--radius-lg);
   cursor: pointer;

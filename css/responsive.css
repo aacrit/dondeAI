@@ -212,6 +212,24 @@
   }
 }
 
+/* ---- Mobile Landscape (phones rotated sideways) ---- */
+@media (orientation: landscape) and (max-height: 500px) {
+  .header { height: 36px; }
+  .header__logo .logo-wordmark { font-size: var(--text-xs); }
+  .step { padding-top: 36px; padding-bottom: var(--space-xs); justify-content: flex-start; }
+  .step__inner { gap: var(--space-xs); }
+  .step__title { font-size: var(--text-lg); margin-bottom: 0; }
+  .step__subtitle { display: none; }
+  .craving-input { font-size: var(--text-base); min-height: 44px; }
+  .smart-chips { display: none; }
+  .taste-memory { display: none; }
+  .fb-container { display: none; }
+  .result-card { padding: var(--space-sm); gap: var(--space-xs); }
+  .score-hero__ring-wrap { width: 80px; }
+  .score-hero__narrative { max-width: 280px; font-size: var(--text-xs); }
+  .factor-row { min-height: 24px; padding: var(--space-2xs) 0; }
+}
+
 /* ---- Tall Screens (e.g., iPhone Pro Max) ---- */
 @media (min-height: 800px) and (max-width: 767px) {
   .step__inner {

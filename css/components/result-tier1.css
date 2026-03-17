@@ -1,0 +1,1564 @@
+/* ============================================
+   DondeAI — Result Tier 1: Glance Card
+   Result card, tiers, match-mini, badge popout,
+   cuisine chips, blurb, glance context/nav,
+   info stream, meta pills
+   ============================================ */
+
+/* ---- Result Card ---- */
+.result-card {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 0 0 1px var(--border), 0 4px 24px -8px var(--shadow);
+  overflow: hidden;
+}
+
+[data-mode="dark"] .result-card {
+  /* Subtle depth: hairline top-edge highlight + border instead of flat zero-shadow */
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Dark mode elevated surfaces — inset highlight for perceived depth */
+[data-mode="dark"] .cta-btn:not(:disabled),
+[data-mode="dark"] .tell-more-btn,
+[data-mode="dark"] .going-btn,
+[data-mode="dark"] .feedback-btn,
+[data-mode="dark"] .filter-drawer__toggle {
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
+}
+
+/* ---- Ambient Gradient Border (80+ scores) ---- */
+@property --border-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.result-card--premium-border {
+  position: relative;
+  border-color: transparent;
+}
+
+/* Premium border: static subtle accent glow (no rotation) */
+.result-card--premium-border::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: calc(var(--radius-lg) + 1px);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--ac) 15%, transparent),
+    transparent 50%,
+    color-mix(in srgb, var(--ac) 10%, transparent)
+  );
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* 90+ scores: slightly stronger static glow */
+.result-card--premium-border-strong::after {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--ac) 25%, transparent),
+    transparent 50%,
+    color-mix(in srgb, var(--ac) 20%, transparent)
+  );
+}
+
+/* ---- 3-Tier Progressive Disclosure System ---- */
+.tier {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  width: 100%;
+  min-width: 0;
+}
+
+.tier--leanin {
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  padding: 0;
+  margin: 0;
+  pointer-events: none;
+  transition: max-height var(--dur-expand) var(--ease-out),
+              opacity var(--dur-expand) var(--ease-out),
+              padding var(--dur-expand) var(--ease-out),
+              margin var(--dur-expand) var(--ease-out);
+}
+
+.tier--leanin.tier--expanded {
+  opacity: 1;
+  pointer-events: auto;
+  padding-top: var(--space-md);
+  margin-top: var(--space-sm);
+}
+
+/* Spacing between Tier 2 sections — consistent rhythm */
+.tier--leanin > * + * {
+  margin-top: var(--space-sm);
+}
+
+/* ── Glance Hero — badge left, name+oneliner right ── */
+.glance-hero {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+}
+
+.glance-hero__info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+}
+
+/* ── Match Mini — compact stacked badge (brand + arc + score) ── */
+.match-mini {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  gap: var(--space-2xs);
+  padding: var(--space-2xs) var(--space-xs);
+  cursor: pointer;
+}
+
+/* Score-wrap: full circle ring + centered number (matches Tier 2 ring, smaller) */
+.match-mini__score-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.match-mini__arc {
+  width: 56px;
+  height: 56px;
+  overflow: visible;
+  transform: rotate(-90deg); /* fill starts at top, like Tier 2 */
+}
+
+.match-mini__arc-bg {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+
+.match-mini__arc-fill {
+  fill: none;
+  stroke: var(--rag-green);
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+/* RAG coloring on arc fill */
+.match-mini[data-tier="high"] .match-mini__arc-fill { stroke: var(--rag-green); }
+.match-mini[data-tier="mid"]  .match-mini__arc-fill { stroke: var(--rag-amber); }
+.match-mini[data-tier="low"]  .match-mini__arc-fill { stroke: var(--rag-red); }
+
+.match-mini__score {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: clamp(1rem, 4vw, 1.25rem);
+  font-weight: 700;
+  color: var(--fg);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+/* Completion pulse — ring glows briefly when score count-up finishes */
+.match-mini__score-wrap--pulsing {
+  animation: ringPulse 500ms var(--ease-out);
+}
+
+/* Persistent warm glow for 80+ scores — subtle ambient life */
+.match-mini__score-wrap--warm-glow {
+  filter: drop-shadow(0 0 8px var(--rag-green-soft));
+}
+
+/* Tap feedback — micro-scale spring */
+.match-mini:active .match-mini__score-wrap {
+  transform: scale(0.92);
+  transition: transform 100ms var(--ease-out);
+}
+.match-mini__score-wrap {
+  transition: transform 200ms var(--spring);
+}
+/* Score number settle — spring scale on count-up completion */
+.match-mini__score--settling {
+  animation: scoreSettle 400ms var(--spring);
+}
+
+/* Score-tier RAG coloring */
+.match-mini[data-tier="high"] .match-mini__score { color: var(--rag-green); }
+.match-mini[data-tier="mid"]  .match-mini__score { color: var(--rag-amber); }
+.match-mini[data-tier="low"]  .match-mini__score { color: var(--rag-red); }
+
+/* Verdict text under score — small, RAG-colored (e.g. "An Adventure") */
+.match-mini__verdict {
+  font-family: var(--font-emotional);
+  font-size: var(--text-2xs);
+  color: var(--fg3);
+  line-height: 1;
+  text-align: center;
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+}
+.match-mini[data-tier="high"] .match-mini__verdict { color: var(--rag-green); }
+.match-mini[data-tier="mid"]  .match-mini__verdict { color: var(--rag-amber); }
+.match-mini[data-tier="low"]  .match-mini__verdict { color: var(--rag-red); }
+
+/* ── Match Mini Brand (multi-voice wordmark) ── */
+.match-mini__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  line-height: 1;
+}
+
+/* Pin logo SVG in Match Mini — accent-colored, matches header */
+.match-mini__brand-logo {
+  color: var(--ac);
+  flex-shrink: 0;
+  display: block;
+}
+
+.match-mini__tm {
+  font-family: var(--font-data);
+  font-size: 0.625rem;
+  color: var(--fg3);
+  letter-spacing: 0.04em;
+  margin-left: 1px;
+}
+
+.match-mini__tm sup {
+  font-size: 0.6em;
+  vertical-align: super;
+}
+
+/* Tap hint — labeled affordance replacing the old ▾ dot */
+.match-mini__hint {
+  font-family: var(--font-data);
+  font-size: 0.6rem;
+  color: var(--fg3);
+  opacity: 0.6;
+  letter-spacing: 0.03em;
+  transition: opacity 200ms var(--ease-out), transform 200ms var(--ease-out);
+}
+
+.match-mini:hover .match-mini__hint {
+  opacity: 1;
+  transform: translateY(1px);
+}
+
+/* ── Badge Popout — glass morphism panel (fixed to viewport to escape overflow:hidden) ── */
+.badge-popout {
+  position: fixed;
+  display: none;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  font-family: var(--font-structural);
+  font-size: var(--text-sm);
+  color: var(--fg);
+  line-height: 1.5;
+  background: var(--glass);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  z-index: var(--z-popout);
+  opacity: 0;
+  transform: scale(0.95);
+  transform-origin: top left;
+  transition: opacity var(--dur-expand) var(--ease-out),
+              transform var(--dur-expand) var(--spring);
+  min-width: 180px;
+  max-width: 260px;
+  white-space: normal;
+  pointer-events: none;
+  box-shadow: var(--glass-e2-shadow);
+}
+.badge-popout--open {
+  display: flex;
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
+  border-top: 2px solid var(--ac);
+}
+/* Dark mode depth — inner highlight for perceived elevation */
+[data-mode="dark"] .badge-popout--open {
+  box-shadow: inset 0 0.5px 0 0 rgba(255,255,255,0.08),
+              var(--glass-e2-shadow);
+}
+/* Tiny uppercase section label — only place we use the data font */
+.badge-popout__title {
+  font-family: var(--font-data);
+  font-size: var(--text-xs);
+  color: var(--fg3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  padding-bottom: var(--space-2xs);
+  border-bottom: 1px solid var(--border);
+}
+.badge-popout__body {
+  color: var(--fg);
+}
+.badge-popout__item {
+  font-size: var(--text-xs);
+  color: var(--fg2);
+}
+.badge-popout__link {
+  color: var(--fg2);
+  text-decoration: underline;
+  text-decoration-color: var(--border);
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.badge-popout__link:hover {
+  color: var(--fg);
+}
+/* Mini pill badges inside popouts */
+.badge-popout__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px var(--space-xs);
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  color: var(--fg2);
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.badge-popout__pill--today {
+  background: var(--ac-soft);
+  border-color: var(--ac);
+  color: var(--fg);
+  font-weight: 600;
+}
+.badge-popout__pill--dish {
+  white-space: normal;
+  background: var(--bg2);
+}
+.badge-popout__pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs);
+}
+
+/* ---- Hours Popout — Clean Table Layout ---- */
+.badge-popout--hours {
+  min-width: 190px;
+  max-width: 220px;
+  padding: var(--space-sm);
+}
+.hours-table {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.hours-table__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: 3px 0;
+  font-size: var(--text-xs);
+  color: var(--fg2);
+  line-height: 1.3;
+}
+.hours-table__row--today {
+  color: var(--fg);
+  font-weight: 600;
+  position: relative;
+}
+.hours-table__row--today::before {
+  content: '';
+  position: absolute;
+  left: calc(var(--space-xs) * -1);
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--ac);
+}
+.hours-table__day {
+  flex-shrink: 0;
+  width: 28px;
+  font-family: var(--font-data);
+  font-size: var(--text-2xs);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.hours-table__time {
+  text-align: right;
+  white-space: nowrap;
+  font-family: var(--font-data);
+  font-size: var(--text-2xs);
+  color: inherit;
+}
+
+/* Stagger hours pills */
+.badge-popout__pills .badge-popout__pill {
+  opacity: 0;
+  transform: translateY(3px);
+  animation: popoutItemIn 200ms var(--ease-out) forwards;
+}
+
+.badge-popout__pills .badge-popout__pill:nth-child(1) { animation-delay: 30ms; }
+.badge-popout__pills .badge-popout__pill:nth-child(2) { animation-delay: 60ms; }
+.badge-popout__pills .badge-popout__pill:nth-child(3) { animation-delay: 90ms; }
+.badge-popout__pills .badge-popout__pill:nth-child(4) { animation-delay: 120ms; }
+.badge-popout__pills .badge-popout__pill:nth-child(5) { animation-delay: 150ms; }
+.badge-popout__pills .badge-popout__pill:nth-child(6) { animation-delay: 180ms; }
+.badge-popout__pills .badge-popout__pill:nth-child(7) { animation-delay: 210ms; }
+
+.badge-popout__stars-row {
+  display: flex;
+  gap: 2px;
+  color: var(--star-gold);
+}
+.badge-popout__stars-row svg {
+  width: 14px;
+  height: 14px;
+}
+/* Full sentiment bar inside rating popout */
+.badge-popout__sentiment {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  padding-top: var(--space-xs);
+  border-top: 1px solid var(--border);
+  margin-top: var(--space-2xs);
+}
+.badge-popout__sentiment .sentiment-inline__track {
+  display: flex;
+  flex: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  gap: 1px;
+}
+.badge-popout__sentiment-legend {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-xs);
+}
+.badge-popout__sentiment-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-xs);
+  color: var(--fg2);
+}
+.badge-popout__sentiment-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.badge-popout__sentiment-dot--pos { background: var(--rag-green); opacity: 0.85; }
+.badge-popout__sentiment-dot--neu { background: var(--fg3); }
+.badge-popout__sentiment-dot--neg { background: var(--rag-red); opacity: 0.85; }
+/* "Powered by Google" attribution inside popout */
+.badge-popout__google-attr {
+  font-family: 'Roboto', var(--font-structural);
+  font-size: 0.625rem;
+  color: var(--fg3);
+  opacity: 0.6;
+  white-space: nowrap;
+}
+/* "Sentiment" label above track bar */
+.badge-popout__sentiment-label {
+  font-family: var(--font-data);
+  font-size: var(--text-xs);
+  color: var(--fg3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .badge-popout { transition: none; }
+  .badge-popout__pills .badge-popout__pill {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ══════════════════════════════════════════
+   Cuisine Chips — compact icon chips + expansion panels
+   Inspired by Apple Maps action buttons
+   ══════════════════════════════════════════ */
+
+/* Container */
+.cuisine-chips {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding-top: var(--space-xs);
+}
+
+/* ---- Chip Row ---- */
+.cuisine-chips__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs);
+  align-items: center;
+}
+
+/* Mobile: horizontal scroll instead of wrap to avoid tall chip walls */
+@media (max-width: 479px) {
+  .cuisine-chips__row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+  }
+  .cuisine-chips__row::-webkit-scrollbar { display: none; }
+}
+
+/* ---- Individual Chip ---- */
+.cuisine-chips__chip {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 4px;
+  padding: 4px 10px;
+  font-family: var(--font-structural);
+  font-size: var(--text-2xs);
+  font-weight: 500;
+  color: var(--fg3);
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  transition: color var(--dur-fast) var(--ease-out),
+              background var(--dur-fast) var(--ease-out),
+              border-color var(--dur-fast) var(--ease-out),
+              transform var(--dur-fast) var(--spring);
+}
+
+.cuisine-chips__chip svg {
+  opacity: 0.5;
+  flex-shrink: 0;
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+
+.cuisine-chips__chip:hover {
+  color: var(--fg2);
+  background: var(--bg3);
+  border-color: var(--border);
+  transform: translateY(-1px);
+}
+
+.cuisine-chips__chip:hover svg {
+  opacity: 0.7;
+}
+
+.cuisine-chips__chip:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* Active / selected state */
+.cuisine-chips__chip--active {
+  color: var(--fg);
+  background: var(--ac-soft);
+  border-color: color-mix(in srgb, var(--ac) 40%, transparent);
+}
+
+.cuisine-chips__chip--active svg {
+  opacity: 0.85;
+  color: var(--ac);
+}
+
+.cuisine-chips__label {
+  line-height: 1;
+  letter-spacing: 0.01em;
+}
+
+.cuisine-chips__arrow {
+  opacity: 0.4;
+  transition: transform var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out);
+  flex-shrink: 0;
+}
+
+.cuisine-chips__chip--active .cuisine-chips__arrow {
+  transform: rotate(180deg);
+  opacity: 0.7;
+}
+
+/* ---- Expansion Panel ---- */
+.cuisine-chips__panel {
+  display: block;
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  padding: 0 var(--space-sm);
+  background: var(--glass-info);
+  backdrop-filter: blur(var(--glass-blur-panel));
+  -webkit-backdrop-filter: blur(var(--glass-blur-panel));
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  pointer-events: none;
+  transition: max-height var(--dur-expand) var(--ease-out),
+              opacity var(--dur-normal) var(--ease-out),
+              padding var(--dur-normal) var(--ease-out),
+              border-color var(--dur-fast) var(--ease-out);
+}
+
+.cuisine-chips__panel--open {
+  max-height: 300px;
+  opacity: 1;
+  padding-top: var(--space-sm);
+  padding-bottom: var(--space-sm);
+  border-color: color-mix(in srgb, var(--border) 50%, transparent);
+  border-top: 2px solid var(--ac);
+  box-shadow: var(--shadow-sm);
+  pointer-events: auto;
+}
+
+/* ---- Dish rows (Must Try panel) ---- */
+.cuisine-chips__dish {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: var(--space-2xs) 0;
+  opacity: 0;
+  transform: translateY(3px);
+  animation: popoutItemIn 200ms var(--ease-out) forwards;
+}
+
+.cuisine-chips__dish + .cuisine-chips__dish {
+  border-top: 1px solid color-mix(in srgb, var(--border) 30%, transparent);
+}
+
+.cuisine-chips__dish-name {
+  font-family: var(--font-structural);
+  font-weight: 600;
+  color: var(--fg2);
+  font-size: var(--text-xs);
+}
+
+.cuisine-chips__dish-why {
+  font-family: var(--font-data);
+  color: var(--fg3);
+  font-size: var(--text-2xs);
+  line-height: 1.4;
+}
+
+/* ---- Sub-items (Popular / Flavors panels) ---- */
+.cuisine-chips__items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs);
+}
+
+.cuisine-chips__item {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  background: var(--bg2);
+  color: var(--fg2);
+  border: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+  border-radius: var(--radius-pill);
+  font-family: var(--font-structural);
+  font-size: var(--text-2xs);
+  font-weight: 500;
+  line-height: 1.4;
+  opacity: 0;
+  transform: translateY(3px);
+  animation: popoutItemIn 200ms var(--ease-out) forwards;
+}
+
+/* ---- Hours rows (Hours panel) ---- */
+.cuisine-chips__hours {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.cuisine-chips__hours-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+  padding: 2px 0;
+  opacity: 0;
+  transform: translateY(3px);
+  animation: popoutItemIn 200ms var(--ease-out) forwards;
+}
+
+.cuisine-chips__hours-row--today {
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.cuisine-chips__hours-day {
+  font-family: var(--font-structural);
+  font-size: var(--text-2xs);
+  font-weight: 500;
+  color: var(--fg3);
+  width: 2.2em;
+  flex-shrink: 0;
+}
+
+.cuisine-chips__hours-row--today .cuisine-chips__hours-day {
+  color: var(--fg);
+}
+
+.cuisine-chips__hours-time {
+  font-family: var(--font-data);
+  font-size: var(--text-2xs);
+  color: var(--fg2);
+}
+
+/* ---- Reserve Panel ---- */
+.cuisine-chips__reserve-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2xs) var(--space-sm);
+  background: var(--ac);
+  color: var(--bg);
+  border-radius: var(--radius-pill);
+  font-family: var(--font-structural);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-decoration: none;
+  opacity: 0;
+  transform: translateY(3px);
+  animation: popoutItemIn 200ms var(--ease-out) forwards;
+  transition: filter var(--dur-fast) var(--ease-out);
+}
+
+.cuisine-chips__reserve-link:hover {
+  filter: brightness(1.1);
+}
+
+.cuisine-chips__reserve-alt {
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.cuisine-chips__reserve-meta {
+  font-family: var(--font-structural);
+  font-size: var(--text-2xs);
+  font-weight: 500;
+  color: var(--fg2);
+  padding-top: var(--space-2xs);
+  opacity: 0;
+  transform: translateY(3px);
+  animation: popoutItemIn 200ms var(--ease-out) forwards;
+}
+
+.cuisine-chips__reserve-tip {
+  font-family: var(--font-data);
+  font-size: var(--text-2xs);
+  color: var(--fg3);
+  line-height: 1.4;
+  opacity: 0;
+  transform: translateY(3px);
+  animation: popoutItemIn 200ms var(--ease-out) forwards;
+}
+
+.cuisine-chips__reserve-slot {
+  border-color: color-mix(in srgb, var(--ac) 30%, transparent);
+  color: var(--fg);
+  font-weight: 600;
+}
+
+.cuisine-chips__reserve-phone {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding-top: var(--space-2xs);
+  font-family: var(--font-data);
+  font-size: var(--text-2xs);
+  color: var(--fg3);
+  text-decoration: none;
+  opacity: 0;
+  transform: translateY(3px);
+  animation: popoutItemIn 200ms var(--ease-out) forwards;
+}
+
+.cuisine-chips__reserve-phone:hover {
+  color: var(--fg2);
+}
+
+/* ---- Reduced Motion ---- */
+@media (prefers-reduced-motion: reduce) {
+  .cuisine-chips__chip { transition: none; }
+  .cuisine-chips__panel { transition: none; }
+  .cuisine-chips__dish,
+  .cuisine-chips__item,
+  .cuisine-chips__hours-row,
+  .cuisine-chips__reserve-link,
+  .cuisine-chips__reserve-meta,
+  .cuisine-chips__reserve-tip,
+  .cuisine-chips__reserve-phone {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ── Result Meta (cuisine + open/closed pills — inline with name) ── */
+.result-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs);
+  align-items: center;
+}
+
+.result-meta__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  padding: var(--space-2xs) var(--space-sm);
+  font-family: var(--font-data);
+  font-size: var(--text-2xs);
+  color: var(--fg2);
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+  position: relative;
+}
+
+.result-meta__pill:hover {
+  background: var(--bg3);
+  border-color: var(--fg3);
+}
+
+/* .result-meta__pill--accent removed — "What to Order" pill merged into cuisine drawer */
+
+.result-meta__pill--open {
+  border-color: var(--rag-green);
+  color: var(--rag-green);
+}
+
+.result-meta__pill--closed {
+  border-color: var(--rag-red);
+  color: var(--rag-red);
+}
+
+/* Interactive pills — chevron indicator to show expandability */
+.result-meta__pill--interactive {
+  cursor: pointer;
+  transition: background 200ms var(--ease-out), border-color 200ms var(--ease-out), box-shadow 200ms var(--ease-out), transform 150ms var(--spring);
+}
+.result-meta__pill--interactive:active {
+  transform: scale(0.95);
+}
+.result-meta__pill--interactive::after {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg);
+  margin-left: 3px;
+  margin-top: -2px;
+  opacity: 0.5;
+  transition: transform var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out);
+}
+.result-meta__pill--interactive:hover {
+  background: var(--bg3);
+  border-color: var(--fg3);
+  box-shadow: var(--shadow-sm);
+}
+.result-meta__pill--interactive:hover::after {
+  opacity: 0.8;
+}
+.result-meta__pill--interactive[aria-expanded="true"]::after {
+  transform: rotate(-135deg);
+  opacity: 0.8;
+}
+
+/* ── Quick Actions (Reserve, Share, Website, Phone — subtle row in tier 1) ── */
+.quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs);
+  align-items: center;
+}
+
+/* ── Utility Pills (shared style for subtle action items) ── */
+.utility-pills {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: var(--space-2xs);
+  padding-top: var(--space-xs);
+}
+.utility-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px var(--space-xs);
+  font-family: var(--font-data);
+  font-size: 0.625rem;
+  color: var(--fg3);
+  background: none;
+  border: none;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color var(--dur-fast) var(--ease-out);
+}
+.utility-pill:hover {
+  color: var(--fg2);
+}
+
+/* ── Cuisine Mismatch Notice ── */
+.cuisine-mismatch-notice {
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  background: color-mix(in oklch, var(--amber) 12%, transparent);
+  border-left: 3px solid var(--amber);
+  margin-bottom: var(--space-sm);
+}
+.cuisine-mismatch-notice__text {
+  color: var(--fg-secondary);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* ── Match Signal — strongest factor callout (Ink Rule: neutral, no accent) ── */
+.match-signal {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  letter-spacing: 0.02em;
+  padding: 0 var(--space-md);
+  margin: calc(-1 * var(--space-xs)) 0 var(--space-xs);
+  opacity: 0.7;
+}
+
+/* ── DondeAI Blurb — The editorial recommendation voice ── */
+.donde-blurb {
+  position: relative;
+  display: block;
+  padding: 0;
+  padding-bottom: var(--space-xs);
+  background: none;
+  border: none;
+  border-radius: 0;
+  overflow: visible;
+  width: 100%;
+}
+
+.donde-blurb__accent {
+  display: none;
+}
+
+.donde-blurb__text {
+  font-size: clamp(1.0625rem, 2.5vw, 1.1875rem);
+  color: var(--fg);
+  line-height: 1.75;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  padding-left: 0;
+  min-width: 0;
+  position: relative;
+  /* V10: Full text flows naturally — no height cap */
+  transition: opacity 250ms var(--ease-out);
+}
+
+/* Editorial quotation marks — frames recommendation as a personal note */
+.donde-blurb__text::before {
+  content: '\201C';
+  font-family: var(--font-emotional);
+  font-size: 150%;
+  color: var(--fg3);
+  opacity: 0.3;
+  position: absolute;
+  top: -0.15em;
+  left: -0.5em;
+  line-height: 1;
+}
+.donde-blurb__text::after {
+  content: '\201D';
+  font-family: var(--font-emotional);
+  font-size: 150%;
+  color: var(--fg3);
+  opacity: 0.3;
+  margin-left: 0.1em;
+  line-height: 1;
+}
+
+/* First sentence bold — lede structure */
+.donde-blurb__text strong:first-child {
+  font-weight: 600;
+}
+
+@media (max-width: 767px) {
+  .donde-blurb {
+    padding: 0;
+  }
+}
+
+/* V5: Boost-aware blurb accent border */
+.donde-blurb--boosted {
+  border-left: 3px solid var(--ac);
+  padding-left: var(--space-sm);
+}
+
+/* Score-first blurb: collapsed until Claude responds */
+.donde-blurb--pending {
+  height: 0;
+  overflow: hidden;
+  opacity: 0;
+  margin: 0;
+  padding: 0;
+}
+
+/* Measuring helper (temporarily visible to get scrollHeight)
+   Uses !important to override JS-set inline style.height */
+.donde-blurb--measuring {
+  height: auto !important;
+  opacity: 0 !important;
+  position: absolute !important;
+  visibility: hidden !important;
+}
+
+/* Blurb arriving: expanding into layout */
+.donde-blurb--arriving {
+  overflow: hidden;
+  transition: height 400ms var(--ease-out), opacity 300ms var(--ease-out);
+  opacity: 1;
+}
+
+/* Ink-reveal for blurb text (first appearance) */
+.donde-blurb__text--revealing {
+  animation: inkReveal 600ms cubic-bezier(0.2, 1, 0.4, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .donde-blurb--arriving {
+    transition: none;
+  }
+  .donde-blurb__text--revealing {
+    animation: none;
+  }
+}
+
+/* ── Glance Actions (inside card-footer) ── */
+.glance-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--space-sm);
+  width: 100%;
+}
+
+/* ── Glance Navigation — compact pill (neighborhood + short address) ── */
+.glance-nav {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: var(--space-2xs);
+}
+
+.glance-nav__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  padding: 4px 12px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  color: var(--fg2);
+  text-decoration: none;
+  font-family: var(--font-data);
+  font-size: var(--text-xs);
+  transition: background var(--dur-fast) var(--ease-out),
+              border-color var(--dur-fast) var(--ease-out),
+              color var(--dur-fast) var(--ease-out);
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.glance-nav__pill:hover {
+  background: var(--bg3);
+  border-color: var(--fg3);
+  color: var(--fg);
+}
+
+.glance-nav__pill:active {
+  transform: scale(0.97);
+}
+
+.glance-nav__pill svg {
+  flex-shrink: 0;
+  color: var(--fg3);
+}
+
+.glance-nav__pill-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Legacy full-width nav link (kept for backwards compat) */
+.glance-nav__link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  text-decoration: none;
+  color: var(--fg);
+  transition: border-color var(--dur-fast) var(--ease-out);
+}
+
+.glance-nav__link:hover {
+  border-color: var(--ac);
+}
+
+.glance-nav__link:active {
+  transform: scale(0.98);
+}
+
+/* ── Tell Me More / Show More / Show Less Button ── */
+.tell-more-btn {
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  gap: var(--space-2xs);
+  padding: var(--space-xs) var(--space-md);
+  margin-top: var(--space-sm);
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  color: var(--fg2);
+  font-family: var(--font-structural);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: color var(--dur-fast) var(--ease-out),
+              background var(--dur-fast) var(--ease-out),
+              border-color var(--dur-fast) var(--ease-out);
+}
+
+/* Primary "Show More" — accent-colored, most prominent action */
+.tell-more-btn--primary {
+  background: var(--ac);
+  color: var(--bg);
+  border-color: var(--ac);
+  font-weight: 600;
+}
+
+.tell-more-btn--primary:hover {
+  background: var(--ac2);
+  border-color: var(--ac2);
+  color: var(--bg);
+}
+
+.tell-more-btn:hover {
+  color: var(--fg);
+  background: var(--bg3);
+  border-color: var(--fg3);
+}
+
+.tell-more-btn:focus-visible {
+  outline: 2px solid var(--ac);
+  outline-offset: 2px;
+}
+
+.tell-more-btn__arrow {
+  font-size: var(--text-xs);
+  display: inline-block;
+  transition: transform var(--dur-expand) var(--ease-out);
+}
+
+/* Idle bounce hint — draws attention to "Show More" after 5s */
+.tell-more-btn__arrow--bouncing {
+  animation: arrowBounce 600ms var(--ease-out);
+}
+
+/* Text crossfade — smooth "Show More" ↔ "Show Less" transition */
+.tell-more-btn__text {
+  transition: opacity 100ms var(--ease-out);
+}
+.tell-more-btn__text--fading {
+  opacity: 0;
+}
+
+.tell-more-btn[aria-expanded="true"] .tell-more-btn__arrow {
+  transform: rotate(180deg);
+}
+
+.tell-more-btn[aria-expanded="true"] .tell-more-btn__text::after {
+  content: none;
+}
+
+
+/* ── Semantic Block Wrappers ── */
+.result-story {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  width: 100%;
+  min-width: 0;
+}
+
+/* ── Result Header (name only) ── */
+.result-header {
+  width: 100%;
+}
+
+.result-name {
+  font-size: var(--text-xl);
+  color: var(--ac);
+  text-wrap: balance;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  cursor: pointer;
+  text-decoration-line: underline;
+  text-decoration-color: color-mix(in srgb, var(--ac) 20%, transparent);
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1.5px;
+  transition: text-decoration-color 200ms var(--ease-out);
+}
+
+/* Ink write entrance — name "writes in" left-to-right */
+.result-card--revealing .result-name {
+  clip-path: inset(0 100% 0 0);
+  animation: inkReveal 500ms cubic-bezier(0.2, 1, 0.4, 1) 100ms forwards;
+}
+
+.result-name:hover {
+  text-decoration-color: var(--ac);
+}
+
+/* One-liner hidden — AI blurb replaces it in result card.
+   Element retained for share canvas rendering. */
+.result-oneliner {
+  display: none;
+}
+
+/* ── Craving Echo — what you asked for (bottom of card, low priority) ── */
+.craving-echo {
+  font-family: var(--font-data);
+  font-size: var(--text-2xs);
+  color: var(--fg4, var(--fg3));
+  margin: 0;
+  padding: var(--space-2xs) 0;
+  opacity: 0.5;
+  text-align: center;
+}
+.craving-echo:empty { display: none; }
+
+/* ── Glance Context — Cuisine + Open/Closed below name ── */
+.glance-context {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs);
+  align-items: center;
+}
+.glance-context:empty { display: none; }
+
+.glance-context__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px var(--space-xs);
+  font-size: var(--text-2xs);
+  font-family: var(--font-data);
+  color: var(--fg3);
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  transition: border-color var(--dur-fast) var(--ease-out),
+              background var(--dur-fast) var(--ease-out);
+}
+.glance-context__pill:hover {
+  background: var(--bg3);
+}
+.glance-context__pill svg {
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+.glance-context__pill::after {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg);
+  opacity: 0.4;
+  margin-left: 1px;
+}
+.glance-context__pill--open {
+  color: var(--rag-green);
+  border-color: var(--rag-green);
+}
+.glance-context__pill--closed {
+  color: var(--rag-red);
+  border-color: var(--rag-red);
+}
+.glance-context__pill--static {
+  cursor: default;
+}
+.glance-context__pill--static::after,
+.glance-context__pill--share::after {
+  display: none;
+}
+.glance-context__pill--share {
+  color: var(--ac);
+  border-color: color-mix(in srgb, var(--ac) 40%, transparent);
+  font-weight: 600;
+  background: transparent;
+}
+.glance-context__pill--share:hover {
+  background: var(--ac-soft);
+  border-color: var(--ac);
+}
+.glance-context__pill--share svg {
+  opacity: 0.7;
+}
+.glance-context__pill--reserve {
+  color: var(--ac);
+  border-color: color-mix(in srgb, var(--ac) 50%, transparent);
+  text-decoration: none;
+  font-weight: 600;
+  cursor: pointer;
+}
+.glance-context__pill--reserve:hover {
+  background: var(--ac-soft);
+  border-color: var(--ac);
+}
+
+/* ---- Reserve Popout (mini Reserve card) ---- */
+.badge-popout--reserve {
+  min-width: 200px;
+  max-width: 240px;
+  gap: var(--space-2xs);
+  padding: var(--space-sm);
+}
+.reserve-popout__link {
+  display: block;
+  padding: var(--space-2xs) var(--space-sm);
+  background: var(--ac);
+  color: var(--bg);
+  border-radius: var(--radius-pill);
+  font-family: var(--font-structural);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+  transition: filter var(--dur-fast) var(--ease-out);
+}
+.reserve-popout__link:hover {
+  filter: brightness(1.1);
+}
+.reserve-popout__avail {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  padding-top: 2px;
+}
+.reserve-popout__label {
+  font-family: var(--font-structural);
+  font-size: var(--text-2xs);
+  font-weight: 500;
+  color: var(--fg3);
+}
+.reserve-popout__slot {
+  padding: 1px 6px;
+  background: var(--bg2);
+  border: 1px solid color-mix(in srgb, var(--ac) 30%, transparent);
+  border-radius: var(--radius-pill);
+  font-family: var(--font-data);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  color: var(--fg);
+}
+.reserve-popout__meta {
+  font-family: var(--font-structural);
+  font-size: var(--text-2xs);
+  font-weight: 500;
+  color: var(--fg2);
+}
+.reserve-popout__tip {
+  font-family: var(--font-data);
+  font-size: var(--text-2xs);
+  color: var(--fg3);
+  line-height: 1.3;
+}
+.reserve-popout__phone {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-data);
+  font-size: var(--text-2xs);
+  color: var(--fg3);
+  text-decoration: none;
+}
+.reserve-popout__phone:hover {
+  color: var(--fg2);
+}
+.glance-context__pill--static::after {
+  display: none;
+}
+
+/* ---- Unique Selling Point ---- */
+.result-usp {
+  font-size: var(--text-xs);
+  color: var(--fg3);
+  font-style: italic;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Info Stream: two-tier metadata surface ── */
+/* Row 1 (primary): interactive pills — neighborhood, cuisine, hours */
+/* Row 2 (secondary): dot-separated small text — all other metadata */
+.info-stream {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3xs);
+  padding-top: var(--space-xs);
+}
+
+/* ── Primary row: interactive context pills ── */
+.info-stream__primary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs);
+  align-items: center;
+}
+
+.info-stream__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px var(--space-xs);
+  font-size: var(--text-2xs);
+  font-family: var(--font-data);
+  color: var(--fg3);
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+  cursor: default;
+  user-select: none;
+  transition: border-color var(--dur-fast) var(--ease-out),
+              background var(--dur-fast) var(--ease-out);
+}
+
+.info-stream__pill svg {
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+
+/* Open/Closed RAG coloring */
+.info-stream__pill--open {
+  color: var(--rag-green);
+  border-color: var(--rag-green);
+}
+.info-stream__pill--closed {
+  color: var(--rag-red);
+  border-color: var(--rag-red);
+}
+
+/* Interactive pills (cuisine → drawer, hours → popout) */
+.info-stream__pill--interactive {
+  cursor: pointer;
+}
+.info-stream__pill--interactive:hover {
+  background: var(--bg3);
+}
+.info-stream__pill--interactive::after {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg);
+  opacity: 0.4;
+  margin-left: 1px;
+}
+
+/* ── Secondary row: dot-separated metadata text ── */
+.info-stream__secondary {
+  font-size: var(--text-2xs);
+  font-family: var(--font-data);
+  color: var(--fg3);
+  line-height: 1.6;
+  overflow: hidden;
+}
+
+/* Individual secondary items (inline, separated by dots) */
+.info-stream__meta {
+  white-space: nowrap;
+  opacity: 1;
+  transition: opacity var(--dur-normal) var(--ease-out);
+}
+
+.info-stream__meta--exiting {
+  opacity: 0;
+}
+
+.info-stream__dot {
+  display: inline;
+  margin: 0 0.35em;
+  opacity: 1;
+  font-size: 1.15em;
+  font-weight: 700;
+  vertical-align: middle;
+  color: var(--fg3);
+}
+
+/* Cap secondary at 2 lines (both mobile + desktop) */
+.info-stream__secondary--capped {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* Reduced motion: no animation */
+@media (prefers-reduced-motion: reduce) {
+  .info-stream__meta {
+    transition: none;
+  }
+}

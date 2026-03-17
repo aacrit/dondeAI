@@ -1631,8 +1631,8 @@
   inset: 0;
   z-index: var(--z-particle);
   background: var(--overlay-bg);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(var(--glass-blur-panel));
+  -webkit-backdrop-filter: blur(var(--glass-blur-panel));
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2055,8 +2055,8 @@ html .craving-input.craving-input--surprising {
   left: 50%;
   transform: translate(-50%, -100%);
   background: var(--glass);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(var(--glass-e1-blur));
+  -webkit-backdrop-filter: blur(var(--glass-e1-blur));
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: var(--space-2xs) var(--space-xs);
@@ -2256,8 +2256,8 @@ html .craving-input.craving-input--surprising {
   gap: 6px;
   padding: 8px 16px;
   background: var(--glass, rgba(0, 0, 0, 0.6));
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(var(--glass-blur-panel));
+  -webkit-backdrop-filter: blur(var(--glass-blur-panel));
   border-radius: 20px;
   color: var(--fg, #fff);
   font-size: 13px;

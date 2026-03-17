@@ -486,24 +486,25 @@ a {
 }
 .mc-grade__dist { margin-top: 4px; }
 
-/* Override gradient for RAG coloring on grade card */
+/* Override gradient for RAG coloring on grade card
+   Specificity: compound selectors beat the 2-class base rule above */
 .mc-grade__letter--green, .mc-pulse-card--grade.mc-grade__letter--green .mc-pulse-card__value {
-  background: linear-gradient(135deg, #22c55e, #4ade80) !important;
-  -webkit-background-clip: text !important;
-  -webkit-text-fill-color: transparent !important;
-  background-clip: text !important;
+  background: linear-gradient(135deg, #22c55e, #4ade80);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 .mc-grade__letter--amber, .mc-pulse-card--grade.mc-grade__letter--amber .mc-pulse-card__value {
-  background: linear-gradient(135deg, #f59e0b, #fbbf24) !important;
-  -webkit-background-clip: text !important;
-  -webkit-text-fill-color: transparent !important;
-  background-clip: text !important;
+  background: linear-gradient(135deg, #f59e0b, #fbbf24);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 .mc-grade__letter--red, .mc-pulse-card--grade.mc-grade__letter--red .mc-pulse-card__value {
-  background: linear-gradient(135deg, #ef4444, #f87171) !important;
-  -webkit-background-clip: text !important;
-  -webkit-text-fill-color: transparent !important;
-  background-clip: text !important;
+  background: linear-gradient(135deg, #ef4444, #f87171);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .mc-grade__sub {
@@ -1722,6 +1723,8 @@ body::after {
 
 /* Mode section visibility */
 [data-mode="test"] { display: block; }
+/* Mode section visibility: !important required -- attribute toggles
+   must override element-specific display values across the DOM */
 [data-mode="live"] { display: none !important; }
 body.mc-mode--live [data-mode="test"] { display: none !important; }
 body.mc-mode--live [data-mode="live"] { display: block !important; }
