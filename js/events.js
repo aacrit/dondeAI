@@ -59,6 +59,59 @@ let ctaBreathTimer = null;
 let _chipsPaused = false;
 let _chipListenerAC = null; // AbortController to prevent chip listener leaks (BUG 4.6)
 
+/* ---- Action Button Particle Helpers ---- */
+function _spawnBookmarkParticles(anchorEl, count) {
+  if (REDUCED_MOTION.matches) return;
+  const parent = anchorEl.closest('.card-footer__feedback-row') || anchorEl.parentElement;
+  if (!parent) return;
+  parent.style.position = parent.style.position || 'relative';
+  const rect = anchorEl.getBoundingClientRect();
+  const parentRect = parent.getBoundingClientRect();
+  const cx = rect.left - parentRect.left + rect.width / 2;
+  const cy = rect.top - parentRect.top + rect.height / 2;
+
+  for (let i = 0; i < count; i++) {
+    const dot = document.createElement('span');
+    dot.className = 'bookmark-particle';
+    const xOffset = (Math.random() - 0.5) * 16; // -8px to 8px
+    dot.style.setProperty('--particle-x', `${xOffset}px`);
+    dot.style.left = `${cx}px`;
+    dot.style.top = `${cy}px`;
+    parent.appendChild(dot);
+    dot.addEventListener('animationend', () => dot.remove(), { once: true });
+    // Safety cleanup
+    setTimeout(() => { if (dot.parentNode) dot.remove(); }, 700);
+  }
+}
+
+function _spawnGoingParticles(anchorEl, count) {
+  if (REDUCED_MOTION.matches) return;
+  const parent = anchorEl.parentElement;
+  if (!parent) return;
+  parent.style.position = parent.style.position || 'relative';
+  const rect = anchorEl.getBoundingClientRect();
+  const parentRect = parent.getBoundingClientRect();
+  const cx = rect.left - parentRect.left + rect.width / 2;
+  const cy = rect.top - parentRect.top + rect.height / 2;
+
+  for (let i = 0; i < count; i++) {
+    const dot = document.createElement('span');
+    dot.className = 'going-particle';
+    const xOffset = (Math.random() - 0.5) * 40; // -20px to 20px
+    const yOffset = -15 - Math.random() * 25;    // -15px to -40px
+    dot.style.setProperty('--particle-x', `${xOffset}px`);
+    dot.style.setProperty('--particle-y', `${yOffset}px`);
+    dot.style.left = `${cx}px`;
+    dot.style.top = `${cy}px`;
+    // Stagger particle launch
+    setTimeout(() => {
+      parent.appendChild(dot);
+      dot.addEventListener('animationend', () => dot.remove(), { once: true });
+      setTimeout(() => { if (dot.parentNode) dot.remove(); }, 800);
+    }, i * 60);
+  }
+}
+
 /* ---- Canvas Progressive Disclosure ---- */
 export function startCanvasDisclosure() {
   const $step0 = document.querySelector('.step[data-step="0"]');
@@ -1233,19 +1286,49 @@ export function wireEvents(appCallbacks) {
       }
 
       case 'bookmark': {
-        haptic(HAPTICS.doublePulse);
         const result = getState().result;
         const restaurant = result?.restaurant;
         if (!restaurant?.id) break;
         const wasBookmarked = isBookmarked(restaurant.id);
         if (wasBookmarked) {
+          /* ---- Unsave: drain + subtle shrink ---- */
+          haptic([15]);
           removeBookmark(restaurant.id);
           if (isAuthAuthenticated()) removeFavoriteFromServer(restaurant.id);
+          const $filledUnsave = btn.querySelector('.bookmark-icon--filled');
+          if ($filledUnsave && !REDUCED_MOTION.matches) {
+            $filledUnsave.classList.add('bookmark-icon--draining');
+            btn.classList.add('bookmark-icon--unsaving');
+            $filledUnsave.addEventListener('animationend', () => {
+              $filledUnsave.classList.remove('bookmark-icon--draining');
+              btn.classList.remove('bookmark-icon--unsaving');
+              updateBookmarkBtn(restaurant.id);
+            }, { once: true });
+          } else {
+            updateBookmarkBtn(restaurant.id);
+          }
         } else {
+          /* ---- Save: ink-pour + spring pop + particles ---- */
+          haptic(HAPTICS.doublePulse);
           addBookmark(restaurant);
           if (isAuthAuthenticated()) addFavoriteToServer(restaurant);
+          updateBookmarkBtn(restaurant.id);
+          const $filled = btn.querySelector('.bookmark-icon--filled');
+          if ($filled && !REDUCED_MOTION.matches) {
+            /* Clip-path fill from bottom to top */
+            $filled.classList.add('bookmark-icon--filling');
+            $filled.addEventListener('animationend', () => {
+              $filled.classList.remove('bookmark-icon--filling');
+            }, { once: true });
+            /* Spring pop on the whole button */
+            btn.classList.add('bookmark-icon--animating');
+            btn.addEventListener('animationend', () => {
+              btn.classList.remove('bookmark-icon--animating');
+            }, { once: true });
+          }
+          /* Spawn 3 rising particles */
+          _spawnBookmarkParticles(btn, 3);
         }
-        updateBookmarkBtn(restaurant.id);
         renderYourSpots();
         const t = toasts();
         const savedMsg = isAuthAuthenticated()
@@ -1256,18 +1339,58 @@ export function wireEvents(appCallbacks) {
       }
 
       case 'going': {
-        haptic(HAPTICS.goingHere);
-        const result = getState().result;
-        const restaurant = result?.restaurant;
-        if (!restaurant?.id) break;
-        if (isVisited(restaurant.id)) break;
-        addVisit(restaurant);
+        const goingResult = getState().result;
+        const goingRestaurant = goingResult?.restaurant;
+        if (!goingRestaurant?.id) break;
+        if (isVisited(goingRestaurant.id)) break;
+
+        /* Decisive haptic pattern (not same as celebration) */
+        haptic([40, 20, 60]);
+
+        addVisit(goingRestaurant);
         const goingUserId = getOrCreateUserId();
-        sendVisit(restaurant, goingUserId);
-        if (isAuthAuthenticated()) addVisitToServer(restaurant);
-        updateGoingBtn(restaurant.id);
+        sendVisit(goingRestaurant, goingUserId);
+        if (isAuthAuthenticated()) addVisitToServer(goingRestaurant);
+
+        const $goingBtn = document.getElementById('going-btn');
+        const $goingText = $goingBtn?.querySelector('.going-btn__text');
+        const $goingIcon = $goingBtn?.querySelector('.going-btn__icon');
+        const restaurantName = goingRestaurant.name || 'this spot';
+
+        if ($goingBtn && $goingText && !REDUCED_MOTION.matches) {
+          /* Phase 1: Fade out current text */
+          $goingText.classList.add('going-btn__text--fading');
+          $goingBtn.classList.add('going-btn--confirmed');
+
+          setTimeout(() => {
+            /* Phase 2: Insert checkmark + scale it in */
+            if ($goingIcon) {
+              $goingIcon.innerHTML = '<svg class="going-checkmark" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+            }
+
+            /* Phase 3: Update text to "You're Going!" with fade-in */
+            $goingText.classList.remove('going-btn__text--fading');
+            $goingText.textContent = "You're Going!";
+            $goingText.classList.add('going-btn__text--appearing');
+            $goingText.addEventListener('animationend', () => {
+              $goingText.classList.remove('going-btn__text--appearing');
+            }, { once: true });
+
+            $goingBtn.classList.add('going-btn--done');
+            $goingBtn.classList.remove('going-btn--confirmed');
+          }, 160);
+
+          /* Fire particle burst from button */
+          _spawnGoingParticles($goingBtn, 4);
+
+          /* Play celebration chime if sound is on */
+          playChime();
+        } else {
+          updateGoingBtn(goingRestaurant.id);
+        }
+
         renderYourSpots();
-        showToast(toasts().goingHere, false);
+        showToast(`See you at ${restaurantName}!`, false);
         break;
       }
 
