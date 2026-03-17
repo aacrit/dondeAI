@@ -39,9 +39,6 @@ import {
   beginCanvasFold, manifestResult
 } from './transitions.js';
 import {
-  initNeighborhoodPulse, syncPulseVisibility
-} from './neighborhood-pulse.js';
-import {
   initFirstBite, syncFirstBiteVisibility
 } from './first-bite.js';
 
@@ -139,9 +136,6 @@ function init() {
   // First Bite: ambient onboarding — "Right now in Chicago" before user types
   initFirstBite();
 
-  // Neighborhood Pulse: ambient city intelligence card
-  initNeighborhoodPulse();
-
   // F9: Initialize anonymous user ID
   getOrCreateUserId();
 
@@ -235,10 +229,8 @@ function init() {
         });
       }
     }
-    // Sync Neighborhood Pulse visibility on state changes
     if (state.step !== prev.step || state.loading !== prev.loading
       || state.result !== prev.result || state.craving !== prev.craving) {
-      syncPulseVisibility();
       syncFirstBiteVisibility();
     }
     if (state.error !== prev.error && state.error) {
