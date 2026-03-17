@@ -503,26 +503,19 @@ export function renderResultMeta(data) {
 
   const oh = r.opening_hours;
   if (oh?.open_now != null) {
+    // Status pill (compact)
     const pill = document.createElement('span');
-    pill.className = `result-meta__pill result-meta__pill--interactive ${oh.open_now ? 'result-meta__pill--open' : 'result-meta__pill--closed'} type-data--sm`;
-    pill.setAttribute('role', 'button');
-    pill.setAttribute('tabindex', '0');
-    pill.setAttribute('aria-expanded', 'false');
-    pill.setAttribute('aria-haspopup', 'true');
-    pill.setAttribute('data-action', 'toggle-badge-popout');
-    pill.textContent = oh.open_now ? 'Open Now' : 'Closed';
+    pill.className = `result-meta__pill ${oh.open_now ? 'result-meta__pill--open' : 'result-meta__pill--closed'} type-data--sm`;
+    pill.innerHTML = `${svgIcon('clock', 11)} ${oh.open_now ? 'Open Now' : 'Closed'}`;
+    $meta.appendChild(pill);
 
+    // Inline hours table (visible in Tier 2 — no dropdown needed)
     if (oh.weekday_text?.length) {
-      const popout = document.createElement('div');
-      popout.className = 'badge-popout badge-popout--hours';
-      popout.setAttribute('role', 'tooltip');
-      const title = document.createElement('span');
-      title.className = 'badge-popout__title';
-      title.textContent = 'Hours';
-      popout.appendChild(title);
+      const hoursBlock = document.createElement('div');
+      hoursBlock.className = 'result-meta__hours-detail';
       const today = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
       const table = document.createElement('div');
-      table.className = 'hours-table';
+      table.className = 'hours-table hours-table--inline';
       oh.weekday_text.forEach(line => {
         const colonIdx = line.indexOf(':');
         if (colonIdx < 0) return;
@@ -544,11 +537,9 @@ export function renderResultMeta(data) {
         row.appendChild(timeEl);
         table.appendChild(row);
       });
-      popout.appendChild(table);
-      pill.appendChild(popout);
+      hoursBlock.appendChild(table);
+      $meta.appendChild(hoursBlock);
     }
-
-    $meta.appendChild(pill);
   }
 
   $meta.style.display = $meta.children.length > 0 ? '' : 'none';

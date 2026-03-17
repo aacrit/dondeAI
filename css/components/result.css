@@ -417,6 +417,19 @@
   color: inherit;
 }
 
+/* Inline hours table — visible in Tier 2 without dropdown */
+.result-meta__hours-detail {
+  width: 100%;
+  padding: var(--space-xs) 0;
+  padding-left: var(--space-2xs);
+  border-top: 1px solid var(--border);
+  margin-top: var(--space-2xs);
+}
+
+.hours-table--inline {
+  max-width: 280px;
+}
+
 /* Stagger hours pills */
 .badge-popout__pills .badge-popout__pill {
   opacity: 0;
