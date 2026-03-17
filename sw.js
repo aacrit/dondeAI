@@ -29,7 +29,6 @@ const PRECACHE_URLS = [
   '/css/components/ui.css',
   '/css/components/conversational-search.css',
   '/css/components/taste-dna.css',
-  '/css/components/first-bite.css',
   '/css/animations.css',
   '/css/responsive.css',
   '/js/app.js',

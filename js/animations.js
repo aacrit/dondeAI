@@ -7,31 +7,6 @@
 /* REDUCED aliased from globals.js REDUCED_MOTION — import below (ES modules hoist) */
 const REDUCED = REDUCED_MOTION;
 
-/* ---- Rive Runtime (async, non-blocking) ---- */
-let _rive = null;
-let _riveReady = false;
-
-/**
- * Initialize Rive runtime for logo + celebration animations.
- * Falls back gracefully to existing SVG animations if Rive fails to load.
- * Call loadRive() once at app boot — it's non-blocking.
- */
-export function loadRive() {
-  // Dynamic import — only loads if .riv assets exist
-  import('https://cdn.jsdelivr.net/npm/@rive-app/canvas@2/+esm')
-    .then((mod) => {
-      _rive = mod;
-      _riveReady = true;
-    })
-    .catch(() => {
-      // Rive not available — SVG fallback will be used
-      _riveReady = false;
-    });
-}
-
-/** Check if Rive is ready */
-export function hasRive() { return _riveReady; }
-
 /* ---- Match Ring Animation (Percentage-based, 0-100) ---- */
 let _scoreRingSpring = null;
 
@@ -171,38 +146,6 @@ function normalizeScoringKeys(scoring) {
   return normalized;
 }
 
-/* V8: Petal radar removed — occasion scores still available in API response */
-export function renderPetalRadar() {}
-
-/* ---- V9.1: Narrative Keyword Highlighting ---- */
-function highlightNarrativeKeywords($el, restaurantData) {
-  if (!$el || !restaurantData) return;
-  const text = $el.textContent;
-  if (!text) return;
-
-  // Collect keywords to highlight
-  const keywords = new Set();
-  const r = restaurantData.restaurant || restaurantData;
-  if (r.cuisine_type) keywords.add(r.cuisine_type.toLowerCase());
-  if (r.name) keywords.add(r.name.toLowerCase());
-
-  const dc = restaurantData.deep_context || {};
-  if (dc.signature_dishes) {
-    dc.signature_dishes.slice(0, 3).forEach(d => {
-      if (d.dish) keywords.add(d.dish.toLowerCase());
-    });
-  }
-
-  // Build regex from keywords (escape special chars, sort longest first)
-  const escaped = [...keywords].filter(k => k.length > 2)
-    .sort((a, b) => b.length - a.length)
-    .map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-  if (escaped.length === 0) return;
-
-  const regex = new RegExp(`\\b(${escaped.join('|')})\\b`, 'gi');
-  $el.innerHTML = _escHtml(text).replace(regex, '<strong class="narrative-highlight">$1</strong>');
-}
-
 /* ---- Score Hero (Confidence Ring — full circle gauge) ---- */
 
 let heroData = null;
@@ -298,7 +241,6 @@ export function renderScoreHero(dondeMatch, scores, scoringData, sentiment, time
   const $ringFill = document.getElementById('score-hero-ring-fill');
   const $number = document.getElementById('score-hero-number');
   const $verdictText = document.getElementById('score-hero-verdict-text');
-  const $signals = document.getElementById('score-hero-signals');
 
   // Full circle: circumference = 2πr where r=52
   const circumference = 2 * Math.PI * 52; // ~326.7
@@ -435,49 +377,6 @@ export function renderScoreHero(dondeMatch, scores, scoringData, sentiment, time
   }
 
   // V9.1: Factor dots removed (CEO feedback: not intuitive) — factor bars serve this purpose
-
-  // Narrative — typewriter-reveals after ring completes (300ms delay after ring)
-  const $narrative = document.getElementById('score-hero-narrative');
-  const resolvedNarrative = matchNarrative || heroData?.scoringData?.match_narrative;
-
-  if ($narrative) {
-    let narrativeText = '';
-    if (resolvedNarrative?.summary) {
-      narrativeText = resolvedNarrative.summary;
-    } else if (scoringData) {
-      // Fallback: generate from strongest factor
-      const sv = normalizeScoringKeys(scoringData);
-      const weights = sv.weights_used || {};
-      const factorEntries = FACTOR_DIMS.filter(d => sv[d.key] != null);
-      if (factorEntries.length > 0) {
-        const best = factorEntries.reduce((a, b) => {
-          const aContrib = (sv[a.key] || 0) * (parseFloat(weights[a.key]) || 0.2);
-          const bContrib = (sv[b.key] || 0) * (parseFloat(weights[b.key]) || 0.2);
-          return aContrib > bContrib ? a : b;
-        });
-        narrativeText = `Strongest in ${best.label.toLowerCase()} (${(sv[best.key] || 0).toFixed(1)}/10)`;
-      }
-    }
-
-    if (narrativeText) {
-      $narrative.textContent = narrativeText;
-      highlightNarrativeKeywords($narrative, _lastRestaurantData);
-      $narrative.style.display = '';
-      if (!REDUCED.matches) {
-        // 100ms start + 600ms ring + 300ms delay = 1000ms
-        timers.push(setTimeout(() => {
-          $narrative.classList.add('score-hero__narrative--visible');
-        }, 1000));
-      } else {
-        $narrative.classList.add('score-hero__narrative--visible');
-      }
-    } else {
-      $narrative.style.display = 'none';
-    }
-  }
-
-  // Signal pills removed — factor bars communicate the same info with actual data
-  if ($signals) { $signals.innerHTML = ''; $signals.style.display = 'none'; }
 
   // Auto-render factor bars (always visible, no toggle)
   if (scoringData) {
@@ -1042,13 +941,6 @@ export function resetBloomState() {
   _lastRestaurantData = null;
   const $list = document.getElementById('factor-bars-list');
   if ($list) $list.innerHTML = '';
-  // Reset narrative
-  const $narrative = document.getElementById('score-hero-narrative');
-  if ($narrative) {
-    $narrative.classList.remove('score-hero__narrative--visible');
-    $narrative.style.display = 'none';
-  }
-  // V9.1: Factor dots removed — no reset needed
 }
 
 export function toggleBloom(scores, scoringData, timers = [], restaurantData = null) {

@@ -20,7 +20,7 @@ import { initAccessibility } from './accessibility.js';
 import { initScrollHeader } from './scroll-header.js';
 import { initSwipeCards } from './swipe-cards.js';
 import { initAuth, isAuthenticated as isAuthAuthenticated, getUser as getAuthUser } from './auth.js';
-import { loadRive, fireCelebration } from './animations.js';
+import { fireCelebration } from './animations.js';
 import { getGreeting } from './utils.js';
 import { $dom, initDomRefs, REDUCED_MOTION } from './globals.js';
 import { initTasteDna } from './taste-dna.js'; // Taste DNA visualization
@@ -38,11 +38,6 @@ import {
 import {
   beginCanvasFold, manifestResult
 } from './transitions.js';
-// ARCHIVED: First Bite ambient onboarding — hardcoded restaurant cards compete with
-// the craving input and teach "browse" instead of "express." Smart chips serve this
-// role better. Revisit for personalized onboarding powered by taste history.
-// import { initFirstBite, syncFirstBiteVisibility } from './first-bite.js';
-
 
 /* ---- Global Timer Registry (CODE-8) ---- */
 const _timerRegistry = new Set();
@@ -70,7 +65,6 @@ function init() {
 
   // Initialize all modules
   initSpring();
-  loadRive();
   initRouter();
   initTheme();
   initAudio();
@@ -133,8 +127,6 @@ function init() {
 
   // V10: Render combined "Your Spots"
   renderYourSpots();
-
-  // ARCHIVED: First Bite — see import comment above
 
   // F9: Initialize anonymous user ID
   getOrCreateUserId();
@@ -228,10 +220,6 @@ function init() {
           }
         });
       }
-    }
-    if (state.step !== prev.step || state.loading !== prev.loading
-      || state.result !== prev.result || state.craving !== prev.craving) {
-      // syncFirstBiteVisibility(); // ARCHIVED
     }
     if (state.error !== prev.error && state.error) {
       showToast(state.error, true);

@@ -1593,34 +1593,6 @@
 }
 
 /* ============================================
-   Round 2: Photo Pagination Dots
-   ============================================ */
-.photo-dots {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 6px;
-  padding: var(--space-xs) 0 0;
-}
-
-.photo-dots__dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--fg3);
-  opacity: 0.4;
-  transition: all 250ms var(--ease-out);
-}
-
-.photo-dots__dot--active {
-  width: 8px;
-  height: 8px;
-  background: var(--ac);
-  opacity: 1;
-  transform: scale(1.2);
-}
-
-/* ============================================
    Round 2: Photo Lightbox
    ============================================ */
 .lightbox {

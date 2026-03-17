@@ -44,7 +44,6 @@ const CSS_FILES = [
   'css/components/ui.css',
   'css/components/taste-dna.css',
   'css/components/conversational-search.css',
-  'css/components/first-bite.css',
   'css/animations.css',
   'css/responsive.css',
 ];

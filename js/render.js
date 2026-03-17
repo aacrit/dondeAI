@@ -31,7 +31,6 @@ let _popoutTimer = null;
 let _activeInfoStream = null;
 let _blurbRevealAbort = null;
 const BLURB_REVEAL_GATE_MS = 1200;
-let _peekShown = false;
 let toastTimer = null;
 
 /* ---- Late Night Sympathy Loading Prefix (1:00 AM – 4:59 AM Chicago time) ---- */
@@ -125,32 +124,6 @@ export function showEmptyState(message) {
 export function clearEmptyState() {
   const $el = document.getElementById('empty-state');
   if ($el) $el.style.display = 'none';
-}
-
-/* ---- Sentiment Computation Helper ---- */
-export function computeSentiment(r) {
-  let pos = null, neu = null, neg = null;
-  if (r.sentiment_positive != null && r.sentiment_negative != null && r.sentiment_neutral != null) {
-    pos = r.sentiment_positive; neu = r.sentiment_neutral; neg = r.sentiment_negative;
-  } else if (r.sentiment_breakdown) {
-    const parts = r.sentiment_breakdown.toLowerCase();
-    const posMatch = parts.match(/(\d+)%?\s*positive/);
-    const neuMatch = parts.match(/(\d+)%?\s*neutral/);
-    const negMatch = parts.match(/(\d+)%?\s*negative/);
-    if (posMatch || neuMatch || negMatch) {
-      pos = parseInt(posMatch?.[1] || '33', 10);
-      neu = parseInt(neuMatch?.[1] || '34', 10);
-      neg = parseInt(negMatch?.[1] || '33', 10);
-    }
-  } else if (r.sentiment_score != null) {
-    const score = parseFloat(r.sentiment_score);
-    if (!isNaN(score)) {
-      pos = Math.round((score / 10) * 100);
-      neg = Math.round((1 - score / 10) * 30);
-      neu = 100 - pos - neg;
-    }
-  }
-  return pos != null ? { pos, neu, neg } : null;
 }
 
 /* ---- Badge Value Shortener ---- */
@@ -476,75 +449,6 @@ function renderQuickActions(data) {
   $actions.style.display = items.length > 0 ? '' : 'none';
 }
 
-/* ---- Result Meta ---- */
-export function renderResultMeta(data) {
-  const $meta = document.getElementById('result-context');
-  if (!$meta) return;
-  $meta.innerHTML = '';
-
-  const r = data.restaurant || {};
-  const dp = data.deep_context || {};
-
-  const rawHood = r.neighborhood_name || '';
-  const neighborhood = /^chicago$/i.test(rawHood.trim()) ? '' : rawHood;
-  if (neighborhood) {
-    const hoodPill = document.createElement('span');
-    hoodPill.className = 'result-meta__pill type-data--sm';
-    hoodPill.innerHTML = `${svgIcon('pin', 11)} ${neighborhood}`;
-    $meta.appendChild(hoodPill);
-  }
-
-  if (r.cuisine_type) {
-    const pill = document.createElement('span');
-    pill.className = 'result-meta__pill type-data--sm';
-    pill.innerHTML = `${svgIcon('plate', 11)} ${r.cuisine_type}`;
-    $meta.appendChild(pill);
-  }
-
-  const oh = r.opening_hours;
-  if (oh?.open_now != null) {
-    // Status pill (compact)
-    const pill = document.createElement('span');
-    pill.className = `result-meta__pill ${oh.open_now ? 'result-meta__pill--open' : 'result-meta__pill--closed'} type-data--sm`;
-    pill.innerHTML = `${svgIcon('clock', 11)} ${oh.open_now ? 'Open Now' : 'Closed'}`;
-    $meta.appendChild(pill);
-
-    // Inline hours table (visible in Tier 2 — no dropdown needed)
-    if (oh.weekday_text?.length) {
-      const hoursBlock = document.createElement('div');
-      hoursBlock.className = 'result-meta__hours-detail';
-      const today = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
-      const table = document.createElement('div');
-      table.className = 'hours-table hours-table--inline';
-      oh.weekday_text.forEach(line => {
-        const colonIdx = line.indexOf(':');
-        if (colonIdx < 0) return;
-        const dayPart = line.slice(0, colonIdx).trim();
-        const timePart = line.slice(colonIdx + 1).trim();
-        const isToday = dayPart.toLowerCase() === today;
-        const row = document.createElement('div');
-        row.className = `hours-table__row${isToday ? ' hours-table__row--today' : ''}`;
-        const dayEl = document.createElement('span');
-        dayEl.className = 'hours-table__day';
-        dayEl.textContent = dayPart.slice(0, 3);
-        const timeEl = document.createElement('span');
-        timeEl.className = 'hours-table__time';
-        timeEl.textContent = timePart
-          .replace(/(\d{1,2}):00\s*(AM|PM)/gi, (_, h, ap) => `${h}${ap[0].toLowerCase()}`)
-          .replace(/(\d{1,2}:\d{2})\s*(AM|PM)/gi, (_, t, ap) => `${t}${ap[0].toLowerCase()}`)
-          .replace(/\s*[–—-]\s*/g, ' – ');
-        row.appendChild(dayEl);
-        row.appendChild(timeEl);
-        table.appendChild(row);
-      });
-      hoursBlock.appendChild(table);
-      $meta.appendChild(hoursBlock);
-    }
-  }
-
-  $meta.style.display = $meta.children.length > 0 ? '' : 'none';
-}
-
 /* ---- F1: Render Photos ---- */
 export function renderPhotos(data) {
   const $photos = document.getElementById('result-photos');
@@ -558,8 +462,6 @@ export function renderPhotos(data) {
   $photos.innerHTML = '';
   document.getElementById('photo-dots')?.remove();
   const urls = photoUrls.slice(0, 5);
-
-  $photos.classList.remove('result-photos--hero');
 
   urls.forEach((url, i) => {
     const img = document.createElement('img');
@@ -617,8 +519,6 @@ export function renderPhotos(data) {
       setTimeout(() => { _photoSwipeTriggered = false; }, 500);
     }
   }, { passive: true });
-
-  $photos.style.display = '';
 }
 
 /* ---- Photo Lightbox ---- */
@@ -1005,97 +905,6 @@ export function updateGoingBtn(restaurantId) {
   }
 }
 
-/* ---- Saved Spots ---- */
-export function renderSavedSpots() {
-  const $container = document.getElementById('saved-spots');
-  const $list = document.getElementById('saved-spots-list');
-  if (!$container || !$list) return;
-  const bookmarks = loadBookmarks();
-  if (bookmarks.length === 0) {
-    $container.style.display = 'none';
-    return;
-  }
-  $list.innerHTML = '';
-  bookmarks.slice(0, 5).forEach(b => {
-    const item = document.createElement('button');
-    item.className = 'saved-spot type-structural';
-    item.innerHTML = `
-      <span class="saved-spot__name">${b.name}</span>
-      ${b.cuisine_type ? `<span class="saved-spot__meta type-data--sm">${b.cuisine_type}</span>` : ''}
-    `;
-    item.addEventListener('click', () => {
-      if ($dom.cravingInput) {
-        $dom.cravingInput.value = b.name;
-        setState({ craving: b.name });
-      }
-    });
-    $list.appendChild(item);
-  });
-  $container.style.display = '';
-}
-
-/* ---- Visited Spots ---- */
-export function renderVisitedSpots() {
-  const $container = document.getElementById('visited-spots');
-  const $list = document.getElementById('visited-spots-list');
-  if (!$container || !$list) return;
-  const visits = loadVisits();
-  if (visits.length === 0) {
-    $container.style.display = 'none';
-    return;
-  }
-  $list.innerHTML = '';
-  visits.slice(0, 5).forEach(v => {
-    const item = document.createElement('button');
-    item.className = 'visited-spot type-structural';
-    item.innerHTML = `
-      <span class="visited-spot__pin type-data--sm">
-        <svg viewBox="0 0 256 256" width="10" height="10"><path fill="currentColor" d="M128,16a88.1,88.1,0,0,0-88,88c0,75.3,80,132.17,83.41,134.55a8,8,0,0,0,9.18,0C136,236.17,216,179.3,216,104A88.1,88.1,0,0,0,128,16Zm0,56a32,32,0,1,1-32,32A32,32,0,0,1,128,72Z"/></svg>
-        Been
-      </span>
-      <span class="visited-spot__name">${v.name}</span>
-      <span class="visited-spot__meta type-data--sm">${v.cuisine_type || v.neighborhood_name || ''}</span>
-    `;
-    $list.appendChild(item);
-  });
-  $container.style.display = '';
-}
-
-/* ---- Taste Memory ---- */
-export function renderTasteMemory() {
-  const $container = document.getElementById('taste-memory');
-  const $list = document.getElementById('taste-memory-list');
-  if (!$container || !$list) return;
-
-  const { history } = getState();
-  if (!history || history.length === 0) {
-    $container.classList.remove('taste-memory--visible');
-    return;
-  }
-
-  $list.innerHTML = '';
-  history.slice(0, 3).forEach(entry => {
-    const btn = document.createElement('button');
-    btn.className = 'taste-memory__chip';
-    btn.setAttribute('data-action', 'taste-memory');
-    btn.setAttribute('data-payload', JSON.stringify(entry.payload));
-
-    const iconHtml = entry.cuisineIcon
-      ? `<span class="taste-memory__icon">${svgIcon(entry.cuisineIcon, 14)}</span>`
-      : '';
-
-    const label = entry.label.length > 22 ? entry.label.slice(0, 20) + '\u2026' : entry.label;
-    const time = entry.timestamp ? relativeTime(entry.timestamp) : '';
-
-    btn.innerHTML = `${iconHtml}<span>${label}</span>${time ? `<span class="taste-memory__time">${time}</span>` : ''}`;
-    $list.appendChild(btn);
-  });
-
-  $container.classList.remove('taste-memory--visible');
-  void $container.offsetWidth;
-  $container.classList.add('taste-memory--visible');
-}
-
 /* ---- Your Spots (combined recent + saved + visited) ---- */
 export function renderYourSpots() {
   const $container = document.getElementById('your-spots');
@@ -1413,15 +1222,6 @@ function renderDeepContextExtras(data) {
 
   renderInfoStream(data);
   renderCuisineDetails(data);
-
-  const $origin = document.getElementById('origin-story');
-  const $originText = document.getElementById('origin-story-text');
-  if ($origin && $originText && dc.origin_story) {
-    $originText.textContent = dc.origin_story;
-    $origin.style.display = '';
-  } else if ($origin) {
-    $origin.style.display = 'none';
-  }
 }
 
 /* ---- Cuisine Chips (compact icon chips) ---- */
