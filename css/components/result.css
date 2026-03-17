@@ -743,14 +743,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--space-2xs) var(--space-sm);
+  padding: 4px var(--space-sm);
   background: var(--ac);
   color: var(--bg);
   border-radius: var(--radius-pill);
   font-family: var(--font-structural);
-  font-size: var(--text-xs);
+  font-size: var(--text-2xs);
   font-weight: 600;
   text-decoration: none;
+  line-height: 1.4;
   opacity: 0;
   transform: translateY(3px);
   animation: popoutItemIn 200ms var(--ease-out) forwards;
@@ -1373,15 +1374,16 @@
 }
 .reserve-popout__link {
   display: block;
-  padding: var(--space-2xs) var(--space-sm);
+  padding: 4px var(--space-sm);
   background: var(--ac);
   color: var(--bg);
   border-radius: var(--radius-pill);
   font-family: var(--font-structural);
-  font-size: var(--text-xs);
+  font-size: var(--text-2xs);
   font-weight: 600;
   text-align: center;
   text-decoration: none;
+  line-height: 1.4;
   transition: filter var(--dur-fast) var(--ease-out);
 }
 .reserve-popout__link:hover {
