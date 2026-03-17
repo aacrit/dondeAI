@@ -609,8 +609,17 @@ const THEME_LABELS = {
   },
 };
 
+/* ---- Easter Egg 2: "Secret Menu" loading phrases ---- */
+const SECRET_MENU_PHRASES = ['Whispering', 'Decoding', 'Unlocking', 'Conspiring', 'Smuggling'];
+
 export function getLabels(culture) {
-  return THEME_LABELS[culture] || THEME_LABELS.neutral;
+  const labels = THEME_LABELS[culture] || THEME_LABELS.neutral;
+  // Easter Egg 2: If the current craving contains "secret menu", swap loading phrases
+  const craving = getState().craving || '';
+  if (/secret\s+menu/i.test(craving)) {
+    return { ...labels, loadingPhrases: SECRET_MENU_PHRASES };
+  }
+  return labels;
 }
 
 // Migrate users who had a removed theme persisted

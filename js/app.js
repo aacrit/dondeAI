@@ -20,9 +20,9 @@ import { initAccessibility } from './accessibility.js';
 import { initScrollHeader } from './scroll-header.js';
 import { initSwipeCards } from './swipe-cards.js';
 import { initAuth, isAuthenticated as isAuthAuthenticated, getUser as getAuthUser } from './auth.js';
-import { loadRive } from './animations.js';
+import { loadRive, fireCelebration } from './animations.js';
 import { getGreeting } from './utils.js';
-import { $dom, initDomRefs, REDUCED_MOTION } from './globals.js';
+import { $dom, initDomRefs, REDUCED_MOTION, _escHtml } from './globals.js';
 import { initTasteDna } from './taste-dna.js'; // Taste DNA visualization
 import { initConversationalSearch, patchVoiceForConversational } from './conversational-search.js';
 
@@ -145,6 +145,9 @@ function init() {
   // F9: Initialize anonymous user ID
   getOrCreateUserId();
 
+  // Easter Egg 3: Weather Sync Snow (Chicago winter: Dec-Feb, 30% chance)
+  maybeShowSnow();
+
   // Wire swipe gestures
   wireSwipe();
 
@@ -206,10 +209,31 @@ function init() {
       if (prev.loading || $dom.resultCard?.classList.contains('result-card--scaffold')) {
         manifestResult(state.result);
       }
+      // Easter Egg 1: "The Centurion" — 100th search achievement
+      trackCenturionAchievement();
+      // Easter Egg 2: "Secret Menu" result card dashed border
+      if ($dom.resultCard) {
+        const craving = (state.craving || '').trim();
+        if (/secret\s+menu/i.test(craving)) {
+          $dom.resultCard.classList.add('result-card--secret');
+        } else {
+          $dom.resultCard.classList.remove('result-card--secret');
+        }
+      }
       // UX-7: Show swipe hint after first result appears
     }
     if (state.loading !== prev.loading && state.loading) {
       beginCanvasFold();
+      // Easter Egg 4: Fix single-word query loading text after fold starts
+      const craving = (state.craving || '').trim();
+      if (craving) {
+        requestAnimationFrame(() => {
+          const $loadingText = document.querySelector('.loading-state__text');
+          if ($loadingText) {
+            $loadingText.innerHTML = formatLoadingText(craving);
+          }
+        });
+      }
     }
     // Sync Neighborhood Pulse visibility on state changes
     if (state.step !== prev.step || state.loading !== prev.loading
@@ -655,6 +679,80 @@ if (typeof document !== 'undefined') {
       });
     }
   });
+}
+
+/* ---- Easter Egg 1: "The Centurion" — 100th Search Achievement ---- */
+function trackCenturionAchievement() {
+  const KEY = 'donde_total_searches';
+  const ACHIEVED_KEY = 'donde_centurion_achieved';
+  if (localStorage.getItem(ACHIEVED_KEY)) return;
+  const count = (parseInt(localStorage.getItem(KEY), 10) || 0) + 1;
+  localStorage.setItem(KEY, String(count));
+  if (count === 100) {
+    localStorage.setItem(ACHIEVED_KEY, '1');
+    fireCelebration(95);
+    if (navigator.vibrate) navigator.vibrate([10,30,10,30,10,80,15,15,15]);
+    const badge = document.createElement('div');
+    badge.className = 'centurion-badge';
+    badge.textContent = '\u{1F3C6} Centurion \u2014 100 searches!';
+    badge.setAttribute('aria-live', 'polite');
+    const card = $dom.resultCard;
+    if (card && card.parentNode) {
+      card.parentNode.insertBefore(badge, card);
+    } else {
+      document.body.appendChild(badge);
+    }
+    requestAnimationFrame(() => { badge.style.opacity = '1'; });
+    setTimeout(() => {
+      badge.style.transition = 'opacity 500ms var(--ease-out)';
+      badge.style.opacity = '0';
+      setTimeout(() => badge.remove(), 500);
+    }, 3000);
+  }
+}
+
+/* ---- Easter Egg 3: Weather Sync Snow ---- */
+function maybeShowSnow() {
+  const month = new Date().getMonth(); // 0-indexed
+  const isWinter = month === 11 || month === 0 || month === 1;
+  if (isWinter && Math.random() < 0.3) {
+    showSnowEffect();
+  }
+}
+
+function showSnowEffect() {
+  if (REDUCED_MOTION.matches) return;
+  const container = document.createElement('div');
+  container.className = 'snow-container';
+  container.setAttribute('aria-hidden', 'true');
+  for (let i = 0; i < 12; i++) {
+    const flake = document.createElement('div');
+    flake.className = 'snowflake';
+    flake.style.left = `${Math.random() * 100}%`;
+    flake.style.animationDelay = `${Math.random() * 8}s`;
+    flake.style.animationDuration = `${6 + Math.random() * 6}s`;
+    flake.style.opacity = `${0.03 + Math.random() * 0.05}`;
+    container.appendChild(flake);
+  }
+  document.body.appendChild(container);
+}
+
+/* ---- Easter Egg 4: Single-Word Query Loading Text Polish ---- */
+/**
+ * Formats the loading text for a search query.
+ * Single-word queries use "Finding the best X..." instead of "Finding your X..."
+ * to read more naturally.
+ *
+ * NOTE: transitions.js currently constructs loading text inline (line ~84).
+ * It should import and use this function instead:
+ *   import { formatLoadingText } from './app.js';
+ *   $loadingText.innerHTML = formatLoadingText(craving);
+ */
+export function formatLoadingText(craving) {
+  const display = craving.length > 50 ? craving.substring(0, 47) + '...' : craving;
+  const words = craving.trim().split(/\s+/);
+  const prefix = words.length === 1 ? 'Finding the best' : 'Finding your';
+  return `${prefix} <em class="loading-state__craving">${_escHtml(display)}</em>...`;
 }
 
 /* ---- Boot ---- */

@@ -882,3 +882,51 @@
   white-space: nowrap;
   border: 0;
 }
+
+/* ---- Easter Egg 1: Centurion Badge ---- */
+.centurion-badge {
+  text-align: center;
+  font-family: var(--font-structural);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--ac);
+  padding: var(--space-xs) var(--space-md);
+  opacity: 0;
+  transition: opacity 300ms var(--ease-out);
+}
+
+/* ---- Easter Egg 2: Secret Menu Dashed Border ---- */
+.result-card--secret {
+  border-style: dashed;
+}
+
+/* ---- Easter Egg 3: Weather Sync Snow ---- */
+.snow-container {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.snowflake {
+  position: absolute;
+  top: -8px;
+  width: 6px;
+  height: 6px;
+  background: var(--fg);
+  border-radius: 50%;
+  animation: snowfall linear infinite;
+}
+
+@keyframes snowfall {
+  0%   { transform: translateY(-10px) translateX(0) rotate(0deg); }
+  25%  { transform: translateY(25vh) translateX(10px) rotate(90deg); }
+  50%  { transform: translateY(50vh) translateX(-5px) rotate(180deg); }
+  75%  { transform: translateY(75vh) translateX(8px) rotate(270deg); }
+  100% { transform: translateY(105vh) translateX(-3px) rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .snowflake { animation: none; display: none; }
+}
