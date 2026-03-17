@@ -6,6 +6,7 @@
 import { getState } from './state.js';
 import { buildShareText } from './utils.js';
 import { generateDondeCard, downloadDondeCard, shareDondeCard } from './donde-card.js';
+import { showToast } from './render.js';
 
 let $sheet = null;
 let _cardBlob = null;
@@ -158,12 +159,12 @@ async function _saveCard() {
     const blob = await _getOrGenerateCard(result);
     if (blob) {
       downloadDondeCard(blob, result.restaurant?.name);
-      _showToast('Card saved!');
+      showToast('Card saved!');
     } else {
-      _showToast('Could not generate card.');
+      showToast('Could not generate card.');
     }
   } catch {
-    _showToast('Could not save card.');
+    showToast('Could not save card.');
   }
   closeShareSheet();
 }
@@ -178,13 +179,13 @@ async function _shareCard() {
       const shared = await shareDondeCard(blob, result.restaurant?.name);
       if (!shared) {
         downloadDondeCard(blob, result.restaurant?.name);
-        _showToast('Card downloaded!');
+        showToast('Card downloaded!');
       }
     } else {
-      _showToast('Could not generate card.');
+      showToast('Could not generate card.');
     }
   } catch {
-    _showToast('Could not share card.');
+    showToast('Could not share card.');
   }
   closeShareSheet();
 }
@@ -198,7 +199,7 @@ async function _copyCardOrText(text) {
       await navigator.clipboard.write([
         new ClipboardItem({ 'image/png': blob })
       ]);
-      _showToast('Card copied to clipboard!');
+      showToast('Card copied to clipboard!');
       return;
     }
   } catch {
@@ -207,17 +208,8 @@ async function _copyCardOrText(text) {
 
   try {
     await navigator.clipboard?.writeText(text);
-    _showToast('Copied to clipboard!');
+    showToast('Copied to clipboard!');
   } catch {
-    _showToast('Could not copy \u2014 try long-press.');
+    showToast('Could not copy \u2014 try long-press.');
   }
-}
-
-function _showToast(message) {
-  const toast = document.getElementById('toast');
-  const text = document.getElementById('toast-text');
-  if (!toast || !text) return;
-  text.textContent = message;
-  toast.classList.add('toast--visible');
-  setTimeout(() => toast.classList.remove('toast--visible'), 2500);
 }

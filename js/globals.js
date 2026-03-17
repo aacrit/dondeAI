@@ -28,11 +28,12 @@ export function initDomRefs() {
 }
 
 /* ---- HTML Escape (for safe innerHTML insertion) ---- */
-export function _escHtml(s) {
+export function escHtml(s) {
   const d = document.createElement('div');
   d.textContent = s;
   return d.innerHTML;
 }
+export { escHtml as _escHtml }; // backward compat alias
 
 /* ---- Haptic Feedback Library ---- */
 let _userGestureSeen = false;
@@ -77,6 +78,7 @@ export const HAPTICS = {
 
 /* ---- AbortController for fetch cancellation ---- */
 export let currentAbort = null;
+export function getCurrentAbort() { return currentAbort; }
 export function setCurrentAbort(ctrl) { currentAbort = ctrl; }
 
 /* ---- Animation timeout tracker (cancelled on re-render) ---- */
@@ -109,6 +111,7 @@ export function incrementSessionResultCount() { _sessionResultCount++; }
 export function getSessionResultCount() { return _sessionResultCount; }
 
 export let _swapInFlight = false;
+export function getSwapInFlight() { return _swapInFlight; }
 export function setSwapInFlight(v) { _swapInFlight = v; }
 
 let _arrowBounceTimer = null;

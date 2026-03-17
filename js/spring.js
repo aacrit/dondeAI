@@ -19,6 +19,17 @@ export const SPRINGS = {
 let _motion = null;
 let _motionReady = null;
 
+/* ---- Persistent proxy element for springValue (PERF 7.1/7.2) ---- */
+let _springProxy = null;
+function getSpringProxy() {
+  if (!_springProxy) {
+    _springProxy = document.createElement('div');
+    _springProxy.style.cssText = 'position:fixed;top:-9999px;pointer-events:none;';
+    document.body.appendChild(_springProxy);
+  }
+  return _springProxy;
+}
+
 export function initSpring() {
   if (_motionReady) return _motionReady;
   _motionReady = new Promise((resolve) => {
@@ -62,19 +73,18 @@ export function springValue(opts) {
 
   if (_motion && _motion.animate) {
     try {
-      const proxy = document.createElement('div');
+      const proxy = getSpringProxy();
       proxy.style.setProperty('--v', String(from));
-      document.body.appendChild(proxy);
       const anim = _motion.animate(proxy, { '--v': String(to) }, { type: 'spring', ...spring });
       let rafId;
       const read = () => {
         const v = parseFloat(getComputedStyle(proxy).getPropertyValue('--v')) || 0;
         onUpdate(v);
         if (anim.playState !== 'finished') { rafId = requestAnimationFrame(read); }
-        else { onUpdate(to); if (onComplete) onComplete(); proxy.remove(); }
+        else { onUpdate(to); if (onComplete) onComplete(); }
       };
       rafId = requestAnimationFrame(read);
-      return { stop() { cancelAnimationFrame(rafId); try { anim.cancel(); } catch (_) {} proxy.remove(); } };
+      return { stop() { cancelAnimationFrame(rafId); try { anim.cancel(); } catch (_) {} } };
     } catch (e) { /* Fall through */ }
   }
 

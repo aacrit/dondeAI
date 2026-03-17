@@ -204,7 +204,7 @@ function pulseBlobs() {
   const blobs = document.querySelectorAll('.ambient__blob');
   if (!blobs.length) return;
   blobs.forEach((blob, i) => {
-    blob.style.transition = 'transform 600ms cubic-bezier(0.2, 1, 0.4, 1)';
+    blob.style.transition = 'transform 600ms var(--ease-out)';
     blob.style.transform = 'scale(1.12)';
     setTimeout(() => {
       blob.style.transform = '';
