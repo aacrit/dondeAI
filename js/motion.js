@@ -134,7 +134,7 @@ export function cancelAllRafs() {
 export function springPress(el, opts = {}) {
   if (!el || REDUCED.matches) return;
   const root = document.documentElement;
-  const scale = opts.scale ?? parseFloat(getComputedStyle(root).getPropertyValue('--motion-press-scale')) || 0.97;
+  const scale = opts.scale ?? (parseFloat(getComputedStyle(root).getPropertyValue('--motion-press-scale')) || 0.97);
   const dur = opts.duration ?? (getComputedStyle(root).getPropertyValue('--motion-press-return').trim() || '300ms');
 
   el.addEventListener('pointerdown', () => {
@@ -164,7 +164,7 @@ export function springPress(el, opts = {}) {
  */
 export function springStagger(elements, opts = {}) {
   if (!elements || !elements.length) return;
-  const stagger = opts.stagger ?? parseInt(getComputedStyle(document.documentElement).getPropertyValue('--motion-stagger')) || 50;
+  const stagger = opts.stagger ?? (parseInt(getComputedStyle(document.documentElement).getPropertyValue('--motion-stagger')) || 50);
   const dist = opts.distance ?? 8;
   const initialDelay = opts.initialDelay ?? 0;
 
