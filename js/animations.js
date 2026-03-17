@@ -699,12 +699,14 @@ export function renderFactorBars(scoringData, timers = [], restaurantData = null
         d.setAttribute('aria-hidden', 'true');
         if (!REDUCED.matches && d.scrollHeight > 0) {
           // Smooth collapse: set explicit height, then transition to 0
+          d.style.willChange = 'height';
           d.style.height = d.scrollHeight + 'px';
           d.style.transition = 'height var(--dur-expand, 350ms) var(--ease-out, ease-out), opacity var(--dur-expand, 350ms) var(--ease-out, ease-out)';
           requestAnimationFrame(() => {
             d.style.height = '0';
             d.style.opacity = '0';
           });
+          d.addEventListener('transitionend', () => { d.style.willChange = ''; }, { once: true });
         } else {
           d.style.height = '0';
           d.style.opacity = '0';
@@ -716,6 +718,7 @@ export function renderFactorBars(scoringData, timers = [], restaurantData = null
           detail.innerHTML = buildFactorDetail(slot.key, scoring);
         }
         detail.setAttribute('aria-hidden', 'false');
+        detail.style.willChange = 'height';
         detail.style.height = 'auto';
         const measuredHeight = detail.scrollHeight;
         detail.style.height = '0';
@@ -727,6 +730,7 @@ export function renderFactorBars(scoringData, timers = [], restaurantData = null
           detail.style.height = measuredHeight + 'px';
           detail.style.opacity = '1';
         });
+        detail.addEventListener('transitionend', () => { detail.style.willChange = ''; }, { once: true });
       }
     });
 
@@ -747,12 +751,12 @@ export function renderFactorBars(scoringData, timers = [], restaurantData = null
         wrapper.style.transform = 'translateY(0)';
         if (fill) {
           requestAnimationFrame(() => {
-            fill.style.width = fill.dataset.width + '%';
+            fill.style.transform = `scaleX(${parseFloat(fill.dataset.width) / 100})`;
           });
         }
       }, i * 120));
     } else if (fill) {
-      fill.style.width = fill.dataset.width + '%';
+      fill.style.transform = `scaleX(${parseFloat(fill.dataset.width) / 100})`;
     }
   });
 
@@ -1980,4 +1984,60 @@ export function initCursorGlowOptimized() {
     if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
     $glow.style.opacity = '0';
   });
+}
+
+/* ---- First-Time User "Your first match" Welcome Moment ---- */
+/**
+ * Show a brief "Your first match" text above the score ring on the user's
+ * very first result, then fire a celebration regardless of score tier.
+ *
+ * INTEGRATION: transitions.js should call fireFirstTimeWelcome() during
+ * manifestResult(), just before the score ring count-up begins.
+ *
+ * Uses localStorage key `donde_first_result_seen` to track first-time state.
+ * No-op if reduced motion is preferred or if not the first result.
+ */
+export function fireFirstTimeWelcome() {
+  if (REDUCED.matches) return;
+
+  // Check if this is the user's very first result
+  try {
+    if (localStorage.getItem('donde_first_result_seen')) return;
+  } catch { return; } // localStorage unavailable (private browsing, etc.)
+
+  // Find the score ring area to position the text above it
+  const $ringWrap = document.querySelector('.score-hero__ring-wrap');
+  if (!$ringWrap) return;
+
+  // Ensure ring-wrap is positioned for absolute child
+  if (getComputedStyle($ringWrap).position === 'static') {
+    $ringWrap.style.position = 'relative';
+  }
+
+  // Create and insert the "Your first match" text element
+  const $text = document.createElement('span');
+  $text.className = 'first-match-text type-emotional';
+  $text.textContent = 'Your first match';
+  $text.setAttribute('aria-hidden', 'true');
+  $ringWrap.appendChild($text);
+
+  // Trigger the fade-in / hold / fade-out animation
+  requestAnimationFrame(() => {
+    $text.classList.add('first-match-text--visible');
+  });
+
+  // Fire a celebration after the text has been visible briefly (300ms fade-in)
+  setTimeout(() => {
+    fireCelebration(85); // Tier 2 celebration regardless of actual score
+  }, 400);
+
+  // Clean up the element after animation completes
+  $text.addEventListener('animationend', () => {
+    $text.remove();
+  }, { once: true });
+
+  // Mark first result as seen
+  try {
+    localStorage.setItem('donde_first_result_seen', '1');
+  } catch { /* ignore */ }
 }

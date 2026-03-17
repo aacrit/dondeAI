@@ -2103,35 +2103,35 @@ html .craving-input.craving-input--surprising {
    data ink-writes into existence.
    ============================================ */
 
-/* ---- Phase 1: Canvas Morph-Out (staggered ink dissolve) ---- */
-/* Stagger: title(0) → input(60ms) → chips(120ms) → filters(180ms) → surprise/spots(240ms) */
+/* ---- Phase 1: Canvas Morph-Out (staggered ink dissolve, 40ms between groups) ---- */
+/* Stagger: title(0) → input(40ms) → chips(80ms) → occasion(120ms) → filters(160ms) → spots(200ms) */
 .canvas-layout--morphing .step__title {
-  animation: inkDissolve var(--dur-morph) var(--ease-out) 0ms forwards;
+  animation: inkDissolve 200ms var(--ease-out) 0ms forwards;
   pointer-events: none;
 }
 .canvas-layout--morphing .craving-wrap {
-  animation: inkDissolve var(--dur-morph) var(--ease-out) 60ms forwards;
+  animation: inkDissolve 200ms var(--ease-out) 40ms forwards;
   pointer-events: none;
 }
 .canvas-layout--morphing .smart-chips,
 .canvas-layout--morphing .taste-memory {
-  animation: inkDissolve var(--dur-morph) var(--ease-out) 120ms forwards;
+  animation: inkDissolve 200ms var(--ease-out) 80ms forwards;
   pointer-events: none;
 }
 .canvas-layout--morphing .occasion-strip,
 .canvas-layout--morphing .canvas-toggles {
-  animation: inkDissolve var(--dur-morph) var(--ease-out) 140ms forwards;
+  animation: inkDissolve 200ms var(--ease-out) 120ms forwards;
   pointer-events: none;
 }
 .canvas-layout--morphing .filter-narrative,
 .canvas-layout--morphing .filter-drawer,
 .canvas-layout--morphing .cta-hint {
-  animation: inkDissolve var(--dur-morph) var(--ease-out) 180ms forwards;
+  animation: inkDissolve 200ms var(--ease-out) 160ms forwards;
   pointer-events: none;
 }
 .canvas-layout--morphing .saved-spots,
 .canvas-layout--morphing .empty-state {
-  animation: inkDissolve var(--dur-morph) var(--ease-out) 240ms forwards;
+  animation: inkDissolve 200ms var(--ease-out) 200ms forwards;
   pointer-events: none;
 }
 

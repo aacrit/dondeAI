@@ -2333,9 +2333,11 @@
   display: block;
   height: 100%;
   border-radius: 3px;
-  width: 0%;
+  width: 100%;
   background: linear-gradient(90deg, color-mix(in srgb, var(--ac) 70%, transparent), var(--ac));
-  transition: width 600ms cubic-bezier(.34, 1.56, .64, 1);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 600ms cubic-bezier(.34, 1.56, .64, 1);
 }
 
 .factor-row__score {

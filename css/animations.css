@@ -290,7 +290,7 @@
    Canvas → Result morph, scaffold, reveal
    ============================================ */
 
-/* ---- Canvas Dissolve (elements fade downward on submit) ---- */
+/* ---- Canvas Dissolve (staggered fade + subtle drift on submit) ---- */
 @keyframes inkDissolve {
   from {
     opacity: 1;
@@ -298,7 +298,7 @@
   }
   to {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(8px);
   }
 }
 
@@ -343,7 +343,7 @@
 @keyframes inkRestore {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -1650,4 +1650,40 @@
 
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-group(*) { animation-duration: 0ms; }
+}
+
+/* ============================================
+   First-Time User "Your first match" text
+   Fades in, holds, fades out over 1600ms total.
+   ============================================ */
+.first-match-text {
+  position: absolute;
+  top: -28px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-emotional);
+  font-size: var(--text-sm);
+  color: var(--ac);
+  opacity: 0;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.first-match-text--visible {
+  animation: firstMatchReveal 1600ms var(--ease-out) forwards;
+}
+
+@keyframes firstMatchReveal {
+  0% { opacity: 0; transform: translateX(-50%) translateY(4px); }
+  18% { opacity: 1; transform: translateX(-50%) translateY(0); }
+  75% { opacity: 1; transform: translateX(-50%) translateY(0); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-4px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .first-match-text--visible {
+    animation: none;
+    opacity: 0;
+  }
 }
