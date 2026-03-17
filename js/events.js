@@ -57,6 +57,7 @@ let activeIndex = -1;
 let autoAdvanceTimer = null;
 let ctaBreathTimer = null;
 let _chipsPaused = false;
+let _chipListenerAC = null; // AbortController to prevent chip listener leaks (BUG 4.6)
 
 /* ---- Canvas Progressive Disclosure ---- */
 export function startCanvasDisclosure() {
@@ -186,10 +187,13 @@ export function renderSmartChips() {
 /* ---- Chip Rotation ---- */
 export function startChipRotation() {
   stopChipRotation();
+  // Abort old pointer listeners before adding new ones (BUG 4.6: prevents listener leaks)
+  if (_chipListenerAC) _chipListenerAC.abort();
+  _chipListenerAC = new AbortController();
   const $container = document.querySelector('.smart-chips');
   if ($container) {
-    $container.addEventListener('pointerenter', () => { _chipsPaused = true; });
-    $container.addEventListener('pointerleave', () => { _chipsPaused = false; });
+    $container.addEventListener('pointerenter', () => { _chipsPaused = true; }, { signal: _chipListenerAC.signal });
+    $container.addEventListener('pointerleave', () => { _chipsPaused = false; }, { signal: _chipListenerAC.signal });
   }
   chipRotationTimer = setInterval(() => {
     if ($dom.cravingInput && $dom.cravingInput.value.trim().length > 0) return;
@@ -783,7 +787,8 @@ export async function handleSubmit() {
   }
 
   if (getGlobalAbort) getGlobalAbort.abort();
-  setCurrentAbort(new AbortController());
+  const abort = new AbortController();
+  setCurrentAbort(abort);
 
   haptic([20]);
 
@@ -796,6 +801,10 @@ export async function handleSubmit() {
     $cta.classList.add('cta-btn--loading');
     $cta.textContent = 'Searching';
   }
+
+  // aria-busy on result container during loading (WCAG 4.1.3)
+  const $resultStep = document.querySelector('[data-step="1"]');
+  if ($resultStep) $resultStep.setAttribute('aria-busy', 'true');
 
   setState({ loading: true, error: null, result: null });
   clearEmptyState();
@@ -819,7 +828,8 @@ export async function handleSubmit() {
       payload.feedback = s.pendingFeedback;
       setState({ pendingFeedback: null });
     }
-    const data = await fetchRecommendation(payload);
+    // BUG 2.2: Pass the global AbortController's signal so Back button aborts the real fetch
+    const data = await fetchRecommendation(payload, abort.signal);
 
     const cuisine = getCuisineFromResult(data);
     const label = s.craving.slice(0, 30);
@@ -846,6 +856,7 @@ export async function handleSubmit() {
       callback: () => handleSubmit(),
     });
   } finally {
+    if ($resultStep) $resultStep.removeAttribute('aria-busy');
     if ($cta) {
       $cta.classList.remove('cta-btn--loading');
       const labels = getLabels(getState().theme.culture);
@@ -1149,6 +1160,7 @@ export function wireEvents(appCallbacks) {
         btn.appendChild(rippleEl);
         rippleEl.addEventListener('animationend', () => rippleEl.remove(), { once: true });
         updateFilterSummary();
+        announce(!isActive ? 'Open now filter applied' : 'Open now filter removed');
         break;
       }
 

@@ -98,7 +98,7 @@ export async function sendAppFeedback(category, message, userId) {
   } catch { /* fire-and-forget */ }
 }
 
-export async function fetchRecommendation({ special_request, occasion, neighborhood, price_level, exclude, dietary_restrictions, user_id, feedback, open_now }) {
+export async function fetchRecommendation({ special_request, occasion, neighborhood, price_level, exclude, dietary_restrictions, user_id, feedback, open_now }, signal) {
   const body = { special_request, occasion, neighborhood, price_level, skip_claude: true };
   if (exclude?.length) body.exclude = exclude;
   if (dietary_restrictions?.length) body.dietary_restrictions = dietary_restrictions;
@@ -115,8 +115,10 @@ export async function fetchRecommendation({ special_request, occasion, neighborh
   const RETRY_DELAY = 1500;
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+    // Use caller-provided signal if available, otherwise create a local AbortController
+    const controller = signal ? null : new AbortController();
+    const effectiveSignal = signal || controller.signal;
+    const timer = signal ? null : setTimeout(() => controller.abort(), TIMEOUT_MS);
 
     try {
       const res = await fetch(ENDPOINT, {
@@ -127,9 +129,9 @@ export async function fetchRecommendation({ special_request, occasion, neighborh
           'apikey': ANON_KEY,
         },
         body: JSON.stringify(body),
-        signal: controller.signal,
+        signal: effectiveSignal,
       });
-      clearTimeout(timer);
+      if (timer) clearTimeout(timer);
 
       if (res.status === 503 && attempt < MAX_ATTEMPTS) {
         await new Promise(r => setTimeout(r, RETRY_DELAY));
@@ -149,8 +151,9 @@ export async function fetchRecommendation({ special_request, occasion, neighborh
       }
       return data;
     } catch (err) {
-      clearTimeout(timer);
-      if (err.name === 'AbortError') throw new Error('Request timed out. Please try again.');
+      if (timer) clearTimeout(timer);
+      // Re-throw AbortError directly so callers can distinguish user-abort from timeout
+      if (err.name === 'AbortError') throw err;
       const isNetworkError = err.message.includes('Failed to fetch') || err.message.includes('NetworkError');
       if (isNetworkError && attempt < MAX_ATTEMPTS) { await new Promise(r => setTimeout(r, RETRY_DELAY)); continue; }
       if (isNetworkError) throw new Error("Couldn't reach the engine. Check your connection.");
