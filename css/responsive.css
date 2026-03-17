@@ -49,13 +49,6 @@
   }
 }
 
-/* ---- Mobile: Score hero + tier tweaks ---- */
-@media (max-width: 767px) {
-  .tier--leanin.tier--expanded {
-    padding-top: var(--space-sm);
-  }
-}
-
 /* ---- 768px: Tablet ---- */
 @media (min-width: 768px) {
   :root {
@@ -88,7 +81,7 @@
 
   /* Photo strip: sync negative margins with card padding for edge bleed */
   .result-photos {
-    margin: calc(-1 * var(--space-xl)) calc(-1 * var(--space-xl)) var(--space-sm);
+    margin: calc(-1 * var(--space-xl)) calc(-1 * var(--space-xl)) 0;
   }
 
   /* Score Hero: tablet ring sizing */
