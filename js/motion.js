@@ -7,7 +7,8 @@
    readable, cancellable timeline API.
    ============================================ */
 
-const REDUCED = matchMedia('(prefers-reduced-motion: reduce)');
+import { REDUCED_MOTION } from './globals.js';
+const REDUCED = REDUCED_MOTION;
 
 /* ---- Timeline: Sequential animation orchestrator ---- */
 

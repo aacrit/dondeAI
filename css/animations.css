@@ -1017,7 +1017,7 @@
 
 /* Applied via data-factor attribute on .factor-row__icon */
 .factor-row-wrapper.tier-revealed .factor-row[data-factor="food"] .factor-row__icon {
-  animation: factorWobble 400ms ease-out;
+  animation: factorWobble var(--dur-morph) ease-out; /* 400ms — tokenized */
 }
 .factor-row-wrapper.tier-revealed .factor-row[data-factor="vibe"] .factor-row__icon {
   animation: factorBounce 300ms cubic-bezier(.34, 1.56, .64, 1);

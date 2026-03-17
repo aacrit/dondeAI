@@ -3,7 +3,8 @@
    Progressive blur + height shrink on scroll.
    ============================================ */
 
-const REDUCED = matchMedia('(prefers-reduced-motion: reduce)');
+import { REDUCED_MOTION } from './globals.js';
+const REDUCED = REDUCED_MOTION;
 let _observer = null;
 
 /**

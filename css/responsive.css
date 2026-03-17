@@ -266,5 +266,6 @@ a[href],
     transition-duration: 0.01ms !important;
     transition-timing-function: linear !important;
     scroll-behavior: auto !important;
+    will-change: auto !important;
   }
 }
