@@ -41,6 +41,9 @@ import {
 import {
   initNeighborhoodPulse, syncPulseVisibility
 } from './neighborhood-pulse.js';
+import {
+  initFirstBite, syncFirstBiteVisibility
+} from './first-bite.js';
 
 
 /* ---- Initialize ---- */
@@ -125,6 +128,9 @@ function init() {
   // V10: Render combined "Your Spots"
   renderYourSpots();
 
+  // First Bite: ambient onboarding — "Right now in Chicago" before user types
+  initFirstBite();
+
   // Neighborhood Pulse: ambient city intelligence card
   initNeighborhoodPulse();
 
@@ -204,6 +210,7 @@ function init() {
     if (state.step !== prev.step || state.loading !== prev.loading
       || state.result !== prev.result || state.craving !== prev.craving) {
       syncPulseVisibility();
+      syncFirstBiteVisibility();
     }
     if (state.error !== prev.error && state.error) {
       showToast(state.error, true);
