@@ -52,6 +52,13 @@
     </div>
   </header>
 
+  <!-- Anomaly Alert Banner -->
+  <div class="mc-anomaly" id="mc-anomaly" style="display:none" role="alert">
+    <span class="mc-anomaly__icon"></span>
+    <span class="mc-anomaly__text" id="mc-anomaly-text"></span>
+    <button class="mc-anomaly__dismiss" onclick="dismissAnomaly()" aria-label="Dismiss">&times;</button>
+  </div>
+
   <!-- Main Dashboard (full-width scrollable) -->
   <main class="mc-dashboard" id="main-content" style="display:none">
 
@@ -63,7 +70,7 @@
     </div>
 
     <!-- Hero: 5 Pulse Cards — unified grid, all expand on click -->
-    <div class="mc-pulse mc-pulse--5" data-mode="test">
+    <div class="mc-pulse mc-pulse--6-test" data-mode="test">
       <div class="mc-pulse-col">
         <button class="mc-pulse-card" id="pulse-health" role="status" onclick="togglePulseExpand('health')" title="Expand health details">
           <div class="mc-pulse-card__value rag-green" id="pulse-health-val">--</div>
@@ -107,6 +114,18 @@
         </button>
         <div class="mc-pulse-expand" id="pulse-expand-cache"></div>
       </div>
+    </div>
+
+    <!-- Quality Trend Chart -->
+    <div class="mc-section" data-mode="test" id="mc-trend-section" style="display:none">
+      <div class="mc-section__title" style="display:flex;align-items:center;justify-content:space-between">
+        <span>Quality Trend</span>
+        <div class="mc-trend-toggle">
+          <button class="mc-trend-toggle__btn mc-trend-toggle__btn--active" data-runs="10" onclick="setTrendRange(10)">10 runs</button>
+          <button class="mc-trend-toggle__btn" data-runs="20" onclick="setTrendRange(20)">20 runs</button>
+        </div>
+      </div>
+      <div class="mc-trend-chart" id="mc-trend-chart"></div>
     </div>
 
     <!-- Actions -->
@@ -217,6 +236,15 @@
           <div class="mc-pulse-card__label">Pass Rate</div>
         </button>
         <div class="mc-pulse-expand" id="pulse-expand-live-pass"></div>
+      </div>
+    </div>
+
+    <!-- LIVE MODE: Query Volume + Score Distribution -->
+    <div class="mc-section" data-mode="live" style="display:none">
+      <div class="mc-section__title">Query Analytics</div>
+      <div class="mc-live-analytics" id="mc-live-analytics">
+        <div class="mc-live-analytics__chart" id="mc-live-volume-chart"></div>
+        <div class="mc-live-analytics__dist" id="mc-live-score-dist"></div>
       </div>
     </div>
 
@@ -352,7 +380,40 @@
     <span>26 agents</span>
   </footer>
 
+  <!-- Test Progress Ticker -->
+  <div class="cc-ticker" id="cc-ticker" role="status" aria-label="Test progress">
+    <span class="cc-ticker__label">Progress</span>
+    <span class="cc-ticker__val" id="ticker-progress">0/0</span>
+    <span class="cc-ticker__sep">|</span>
+    <span class="cc-ticker__label">DM</span>
+    <span class="cc-ticker__val" id="ticker-dm">--</span>
+    <span class="cc-ticker__sep">|</span>
+    <span class="cc-ticker__label">Gaps</span>
+    <span class="cc-ticker__val" id="ticker-gaps">0</span>
+  </div>
+
   <div class="mc-dark-pulse" id="dark-pulse"></div>
+
+  <!-- Keyboard Shortcuts Overlay -->
+  <div class="mc-shortcuts-overlay" id="mc-shortcuts" style="display:none" onclick="this.style.display='none'">
+    <div class="mc-shortcuts-card" onclick="event.stopPropagation()">
+      <div class="mc-shortcuts-card__header">
+        <span>Keyboard Shortcuts</span>
+        <button onclick="document.getElementById('mc-shortcuts').style.display='none'">&times;</button>
+      </div>
+      <div class="mc-shortcuts-card__body">
+        <div class="mc-shortcut"><kbd>s</kbd><span>Run Quality Scan</span></div>
+        <div class="mc-shortcut"><kbd>r</kbd><span>Run Regression Guard</span></div>
+        <div class="mc-shortcut"><kbd>t</kbd><span>Toggle Agent Drawer</span></div>
+        <div class="mc-shortcut"><kbd>l</kbd><span>Switch to LIVE Mode</span></div>
+        <div class="mc-shortcut"><kbd>/</kbd><span>Focus Terminal Input</span></div>
+        <div class="mc-shortcut"><kbd>?</kbd><span>Show This Help</span></div>
+        <div class="mc-shortcut"><kbd>Esc</kbd><span>Close Panel / Overlay</span></div>
+        <div class="mc-shortcut"><kbd>1-6</kbd><span>Expand Pulse Cards</span></div>
+        <div class="mc-shortcut"><kbd>e</kbd><span>Export Report</span></div>
+      </div>
+    </div>
+  </div>
 
   <script src="js/cc-queries.js"></script>
   <script src="js/cc-config.js"></script>

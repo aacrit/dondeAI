@@ -20,11 +20,30 @@ document.addEventListener('DOMContentLoaded', () => {
   const $qt = document.getElementById('quick-test-input');
   if ($qt) $qt.addEventListener('keydown', (e) => { if (e.key === 'Enter') runQuickTest(); });
 
-  // Escape key closes detail panel
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      const detail = document.getElementById('mc-detail');
-      if (detail?.classList.contains('mc-detail--open')) { closeDetail(); e.preventDefault(); }
+  // Initialize keyboard shortcuts
+  if (typeof initKeyboardShortcuts === 'function') initKeyboardShortcuts();
+
+  // Deep link support: handle URL hash on load
+  if (typeof handleDeepLink === 'function') handleDeepLink();
+
+  // Event delegation for safe click handling (replaces inline onclick with XSS risk)
+  document.addEventListener('click', function(e) {
+    // Handle mc-detail-trigger clicks (showQueryDetail with cached data)
+    var detailEl = e.target.closest('.mc-detail-trigger');
+    if (detailEl) {
+      var idx = detailEl.dataset.detailIdx;
+      if (idx != null && _queryDataCache[idx]) {
+        var d = _queryDataCache[idx];
+        showQueryDetail(d.query, d.dm, d.name, d.sv9, d.blurb, d.fitGrade, d.blurbGrade);
+      }
+      return;
+    }
+    // Handle mc-test-trigger clicks (testAndShowDetail with query string)
+    var testEl = e.target.closest('.mc-test-trigger');
+    if (testEl) {
+      var query = testEl.dataset.testQuery;
+      if (query && typeof testAndShowDetail === 'function') testAndShowDetail(query);
+      return;
     }
   });
 });
@@ -268,7 +287,7 @@ function renderMorningBriefBanner(run) {
     $brief.style.display = '';
     $brief.className = 'mc-brief mc-brief--amber';
     $icon.textContent = '\u26A0';
-    $text.innerHTML = '<strong>' + greeting + ', Aacrit.</strong> No test data yet. Run your first quality scan to see engine health.';
+    $text.innerHTML = '<strong>' + greeting + ', ' + CEO_NAME + '.</strong> No test data yet. Run your first quality scan to see engine health.';
     $action.innerHTML = '<button class="mc-smart-action__btn mc-smart-action__btn--primary" onclick="processCOOInput(\'scan\')">Run First Scan</button>';
     return;
   }
@@ -289,23 +308,23 @@ function renderMorningBriefBanner(run) {
     // GREEN
     ragState = 'green';
     icon = '\u2713';
-    message = '<strong>' + greeting + ', Aacrit.</strong> Engine at ' + grade + ' \u2014 ' + passCount + '/' + total + ' passed, DM ' + avgDm + ', zero issues.';
+    message = '<strong>' + greeting + ', ' + CEO_NAME + '.</strong> Engine at ' + grade + ' \u2014 ' + passCount + '/' + total + ' passed, DM ' + avgDm + ', zero issues.';
     actionHtml = '<button class="mc-smart-action__btn mc-smart-action__btn--success" onclick="processCOOInput(\'regression\')">Run Regression Guard</button>';
   } else if (gapCount > 5 || passRate < 70) {
     // RED
     ragState = 'red';
     icon = '\u2717';
-    message = '<strong>' + greeting + ', Aacrit.</strong> Engine at ' + grade + ' \u2014 ' + gapCount + ' issue' + (gapCount !== 1 ? 's' : '') + ' need attention. DM ' + avgDm + ', ' + passRate + '% pass.';
+    message = '<strong>' + greeting + ', ' + CEO_NAME + '.</strong> Engine at ' + grade + ' \u2014 ' + gapCount + ' issue' + (gapCount !== 1 ? 's' : '') + ' need attention. DM ' + avgDm + ', ' + passRate + '% pass.';
     actionHtml = '<button class="mc-smart-action__btn mc-smart-action__btn--danger" onclick="processCOOInput(\'fix bugs\')">Fix ' + gapCount + ' Issue' + (gapCount !== 1 ? 's' : '') + '</button>';
   } else {
     // AMBER
     ragState = 'amber';
     icon = '\u26A0';
     if (gapCount > 0) {
-      message = '<strong>' + greeting + ', Aacrit.</strong> Engine at ' + grade + ' \u2014 ' + gapCount + ' minor issue' + (gapCount !== 1 ? 's' : '') + '. DM ' + avgDm + ', ' + passRate + '% pass.';
+      message = '<strong>' + greeting + ', ' + CEO_NAME + '.</strong> Engine at ' + grade + ' \u2014 ' + gapCount + ' minor issue' + (gapCount !== 1 ? 's' : '') + '. DM ' + avgDm + ', ' + passRate + '% pass.';
       actionHtml = '<button class="mc-smart-action__btn mc-smart-action__btn--primary" onclick="processCOOInput(\'fix bugs\')">Fix ' + gapCount + ' Issue' + (gapCount !== 1 ? 's' : '') + '</button>';
     } else {
-      message = '<strong>' + greeting + ', Aacrit.</strong> Engine stable at ' + grade + '. DM ' + avgDm + ', ' + passRate + '% pass. Time for a fresh scan?';
+      message = '<strong>' + greeting + ', ' + CEO_NAME + '.</strong> Engine stable at ' + grade + '. DM ' + avgDm + ', ' + passRate + '% pass. Time for a fresh scan?';
       actionHtml = '<button class="mc-smart-action__btn mc-smart-action__btn--primary" onclick="processCOOInput(\'scan\')">Run Quality Scan</button>';
     }
   }
@@ -484,7 +503,7 @@ function renderRunExpandResults(container, results) {
     if (blurbG) grades += (grades ? ' ' : '') + 'Blurb:' + blurbG;
     var gapDot = r.gap_type ? ' \u26A0' : '';
 
-    return '<div class="mc-run-expand__item" onclick="testAndShowDetail(\'' + escapeHtml(query.replace(/'/g, "\\'")) + '\')" title="' + escapeHtml(name) + '">' +
+    return '<div class="mc-run-expand__item mc-test-trigger" data-test-query="' + escapeHtml(query) + '" title="' + escapeHtml(name) + '">' +
       '<span class="mc-run-expand__query">"' + escapeHtml(query.slice(0, 30)) + '"' + gapDot + '</span>' +
       '<span class="mc-run-expand__grades">' + grades + '</span>' +
       '<span class="mc-run-expand__score ' + ragClass(dm) + '">' + dm + '</span>' +
@@ -511,7 +530,7 @@ function renderLiveFeed(queries) {
     var dm = q.donde_match || 0;
     var query = q.special_request || '(empty)';
     var timeStr = q.created_at ? timeAgo(q.created_at) : '';
-    return '<div class="mc-feed-item mc-clickable" onclick="testAndShowDetail(\'' + escapeHtml(query.replace(/'/g, "\\'")) + '\')" title="Click to view details">' +
+    return '<div class="mc-feed-item mc-clickable mc-test-trigger" data-test-query="' + escapeHtml(query) + '" title="Click to view details">' +
       '<span class="mc-feed-item__query" title="' + escapeHtml(query) + '">"' + escapeHtml(query.slice(0, 35)) + '"</span>' +
       (timeStr ? '<span class="mc-feed-item__time">' + timeStr + '</span>' : '') +
       '<span class="mc-feed-item__score ' + ragClass(dm) + '">' + dm + '</span>' +
@@ -788,18 +807,21 @@ async function runQuickTest() {
     if (fit) gradesText += 'Fit: ' + fit.grade;
     if (blurb) gradesText += (gradesText ? ' \u00B7 ' : '') + 'Blurb: ' + blurb.grade;
 
-    $card.innerHTML = '<div class="mc-result-card" onclick="showQueryDetail(\'' + escapeHtml(query.replace(/'/g, "\\'")) + '\', ' + dm + ', \'' + escapeHtml(name.replace(/'/g, "\\'")) + '\', ' + JSON.stringify(sv9).replace(/'/g, "\\'") + ', \'' + escapeHtml((resp.recommendation || '').replace(/'/g, "\\'")) + '\', \'' + (fit?.grade || '') + '\', \'' + (blurb?.grade || '') + '\')">' +
+    var _idx = _storeQueryData({ query: query, dm: dm, name: name, sv9: sv9, blurb: resp.recommendation, fitGrade: fit?.grade, blurbGrade: blurb?.grade });
+    $card.innerHTML = '<div class="mc-result-card mc-detail-trigger" data-detail-idx="' + _idx + '">' +
       '<div class="mc-result-card__score ' + ragClass(dm) + '">' + dm + '</div>' +
       '<div class="mc-result-card__info">' +
         '<div class="mc-result-card__name">' + escapeHtml(name) + '</div>' +
         '<div class="mc-result-card__type">' + escapeHtml(typeText) + '</div>' +
         (gradesText ? '<div class="mc-result-card__grades">' + gradesText + '</div>' : '') +
       '</div>' +
-      '<button class="mc-result-card__detail" onclick="event.stopPropagation()">Details \u2192</button>' +
     '</div>';
 
     // Also open detail panel
     showQueryDetail(query, dm, name, sv9, resp.recommendation, fit?.grade, blurb?.grade);
+
+    // Update deep link for sharing
+    if (typeof updateDeepLink === 'function') updateDeepLink('test', query);
   } catch (e) {
     $card.innerHTML = '<div class="mc-result-card" style="border-color:rgba(239,68,68,0.3)">' +
       '<div class="mc-result-card__score rag-red">!</div>' +
@@ -870,7 +892,8 @@ function updateHeaderAction() {}
 function updateTabBadges() {}
 function renderImpactSimulator() {}
 function evaluateSLAs() {}
-function renderTrendChart() {}
+// renderTrendChart: real implementation at end of file (uses #mc-trend-chart HTML section)
+
 function renderActionCenter() {}
 function renderTestVsProdStrip() {}
 function updateKpiSparklines() {}
@@ -878,17 +901,174 @@ function initKpiClickHandlers() {}
 function renderWave2Components() {}
 function initQuickActionsScroll() {}
 function initWave2Keyboard() {}
-function startFreshnessTicker() {}
-function loadHeatmapData() {}
-function computePerfBaseline() {}
-function checkForAnomalies() {}
+
+function startFreshnessTicker() {
+  // Clear any existing ticker
+  if (state._freshnessTimer) clearInterval(state._freshnessTimer);
+
+  function checkFreshness() {
+    var lastRefresh = state.lastDataRefresh;
+    if (!lastRefresh) return;
+
+    var elapsed = Date.now() - new Date(lastRefresh).getTime();
+    var minutes = elapsed / 60000;
+    var pulseCards = document.querySelectorAll('.mc-pulse-card');
+    var healthDot = document.getElementById('mc-health-dot');
+
+    if (minutes > 30) {
+      // Data very stale: amber health dot
+      if (healthDot) {
+        healthDot.classList.add('mc-health-dot--amber');
+        healthDot.classList.remove('mc-health-dot--red');
+        healthDot.title = 'Data stale (' + Math.round(minutes) + 'm ago)';
+      }
+      pulseCards.forEach(function(card) { card.classList.add('mc-pulse-card--stale'); });
+    } else if (minutes > 5) {
+      // Data slightly stale: add subtle indicator to pulse cards
+      pulseCards.forEach(function(card) { card.classList.add('mc-pulse-card--stale'); });
+      if (healthDot) {
+        healthDot.classList.remove('mc-health-dot--amber');
+        healthDot.title = 'Data ' + Math.round(minutes) + 'm old';
+      }
+    } else {
+      // Data fresh: remove all stale indicators
+      pulseCards.forEach(function(card) { card.classList.remove('mc-pulse-card--stale'); });
+      if (healthDot) {
+        healthDot.classList.remove('mc-health-dot--amber');
+        healthDot.title = 'System health';
+      }
+    }
+  }
+
+  // Run immediately and then every 60 seconds
+  checkFreshness();
+  state._freshnessTimer = setInterval(checkFreshness, 60000);
+}
+
+function loadHeatmapData() {
+  var history = state.runHistory || [];
+  if (!history.length) return;
+  var latestRunId = history[0].run_id;
+  if (!latestRunId || !sbClient) return;
+
+  sbClient.from('gauntlet_results')
+    .select('category, donde_match')
+    .eq('run_id', latestRunId)
+    .limit(200)
+    .then(function(resp) {
+      var results = (resp && resp.data) ? resp.data : [];
+      if (!results.length) return;
+
+      // Group by category and compute avg DM
+      var catMap = {};
+      var cats = ['Food', 'Vibe', 'Service', 'Rep', 'Conv'];
+      cats.forEach(function(c) { catMap[c] = { sum: 0, count: 0 }; });
+
+      results.forEach(function(r) {
+        var cat = r.category || 'Food';
+        // Normalize category names
+        if (cat.toLowerCase().indexOf('food') >= 0 || cat.toLowerCase().indexOf('dish') >= 0 || cat.toLowerCase().indexOf('cuisine') >= 0) cat = 'Food';
+        else if (cat.toLowerCase().indexOf('vibe') >= 0 || cat.toLowerCase().indexOf('atmosphere') >= 0) cat = 'Vibe';
+        else if (cat.toLowerCase().indexOf('service') >= 0 || cat.toLowerCase().indexOf('occasion') >= 0 || cat.toLowerCase().indexOf('group') >= 0) cat = 'Service';
+        else if (cat.toLowerCase().indexOf('rep') >= 0 || cat.toLowerCase().indexOf('prestige') >= 0) cat = 'Rep';
+        else if (cat.toLowerCase().indexOf('conv') >= 0 || cat.toLowerCase().indexOf('convenience') >= 0 || cat.toLowerCase().indexOf('access') >= 0) cat = 'Conv';
+        else cat = 'Food'; // default fallback
+
+        if (!catMap[cat]) catMap[cat] = { sum: 0, count: 0 };
+        var dm = Number(r.donde_match) || 0;
+        catMap[cat].sum += dm;
+        catMap[cat].count++;
+      });
+
+      var heatmap = {};
+      cats.forEach(function(c) {
+        heatmap[c] = catMap[c].count > 0 ? Math.round(catMap[c].sum / catMap[c].count) : 0;
+      });
+      state.heatmapData = heatmap;
+    }).catch(function(e) {
+      console.warn('loadHeatmapData error:', e);
+    });
+}
+
+function renderHeatmapGrid() {
+  var heatmap = state.heatmapData || {};
+  var cats = ['Food', 'Vibe', 'Service', 'Rep', 'Conv'];
+  var catConfig = typeof QUERY_CATEGORIES !== 'undefined' ? QUERY_CATEGORIES : {};
+
+  var html = '<div class="mc-viz__title">Category Heatmap</div>';
+  html += '<div class="mc-heatmap">';
+  cats.forEach(function(cat) {
+    var avg = heatmap[cat] || 0;
+    var bgColor = avg >= 80 ? 'var(--cc-green-soft)' : avg >= 60 ? 'var(--cc-amber-soft)' : avg > 0 ? 'var(--cc-red-soft)' : 'var(--cc-surface2)';
+    var textColor = avg >= 80 ? 'var(--cc-green)' : avg >= 60 ? 'var(--cc-amber)' : avg > 0 ? 'var(--cc-red)' : 'var(--cc-text3)';
+    var catColor = catConfig[cat] ? catConfig[cat].color : 'var(--cc-text2)';
+    html += '<button class="mc-heatmap__cell" style="background:' + bgColor + '" onclick="processCOOInput(\'category ' + cat + '\')" title="Run ' + escapeHtml(cat) + ' category test">' +
+      '<div class="mc-heatmap__label" style="color:' + catColor + '">' + escapeHtml(cat) + '</div>' +
+      '<div class="mc-heatmap__val" style="color:' + textColor + '">' + (avg > 0 ? avg : '--') + '</div>' +
+    '</button>';
+  });
+  html += '</div>';
+  return html;
+}
+
+function computePerfBaseline() {
+  var feed = state.liveFeed || [];
+  var times = [];
+  feed.forEach(function(q) {
+    var rt = q.response_time_ms;
+    if (rt && rt > 0) times.push(rt);
+  });
+
+  if (times.length === 0) {
+    state.perfBaseline = { p50: 0, p90: 0, p99: 0 };
+    return;
+  }
+
+  times.sort(function(a, b) { return a - b; });
+
+  function percentile(arr, p) {
+    var idx = Math.ceil(arr.length * p / 100) - 1;
+    return arr[Math.max(0, Math.min(idx, arr.length - 1))];
+  }
+
+  var p50 = percentile(times, 50);
+  var p90 = percentile(times, 90);
+  var p99 = percentile(times, 99);
+
+  state.perfBaseline = { p50: p50, p90: p90, p99: p99 };
+
+  // Update footer latency display
+  var $latency = document.getElementById('mc-footer-latency');
+  if ($latency) {
+    var displayMs = p50;
+    if (displayMs >= 1000) {
+      $latency.textContent = (displayMs / 1000).toFixed(1) + 's p50';
+    } else {
+      $latency.textContent = displayMs + 'ms p50';
+    }
+    // Color-code the text based on p95
+    if (p90 > 5000) {
+      $latency.style.color = 'var(--cc-red)';
+    } else if (p90 > 3000) {
+      $latency.style.color = 'var(--cc-amber)';
+    } else {
+      $latency.style.color = '';
+    }
+  }
+}
+
+// checkForAnomalies: real implementation at end of file (uses #mc-anomaly HTML banner)
+// dismissAnomaly: real implementation at end of file
+
 function checkSmartSuggestion() {}
 function updateSmartSuggestion() {}
 function renderCustomQueryList() {}
 function loadCustomQueries() { state.customQueries = []; }
 function loadPinnedQueries() { state.pinnedQueries = []; }
 function initPulseClicks() {}
-function initKeyboardShortcuts() {}
+
+// initKeyboardShortcuts: real implementation at end of file (uses #mc-shortcuts overlay)
+// toggleKeyboardHelp: replaced by #mc-shortcuts overlay in HTML
 // ═══════════════════════════════════════════════════════════════════
 // Pulse Card Expansion + Data Visualization Panel
 // ═══════════════════════════════════════════════════════════════════
@@ -1345,6 +1525,11 @@ function buildGradeViz(run, trend) {
       '<span class="mc-viz__hbar-val">' + f.val + '</span></div>';
   });
 
+  // Category heatmap (if data loaded)
+  if (state.heatmapData && Object.keys(state.heatmapData).length > 0) {
+    html += renderHeatmapGrid();
+  }
+
   // Grade trend
   if (trend && trend.length >= 3) {
     html += '<div class="mc-viz__title">Composite Score Trend</div>';
@@ -1766,6 +1951,7 @@ function switchDashboardMode(mode) {
   if (mode === state.dashboardMode) return;
   state.dashboardMode = mode;
   if (typeof saveSession === 'function') saveSession();
+  if (typeof updateDeepLink === 'function') updateDeepLink('mode', mode);
 
   // Body class swap
   document.body.classList.toggle('mc-mode--live', mode === 'live');
@@ -1780,14 +1966,34 @@ function switchDashboardMode(mode) {
     });
   }
 
-  // Load data for the target mode
+  // Show/hide elements with data-mode attributes
+  document.querySelectorAll('[data-mode]').forEach(function(el) {
+    var elMode = el.getAttribute('data-mode');
+    if (elMode === mode) {
+      el.style.display = '';
+      el.removeAttribute('hidden');
+    } else {
+      el.style.display = 'none';
+    }
+  });
+
+  // Load data and manage polling for the target mode
   if (mode === 'live') {
     if (typeof loadLiveKPIs === 'function') loadLiveKPIs();
     if (typeof renderLiveFeedFull === 'function' && state.liveFeed) {
       renderLiveFeedFull(state.liveFeed);
     }
+    // Start live polling
+    if (typeof startLivePolling === 'function') startLivePolling();
     // Update live morning brief
     renderLiveBrief();
+  } else {
+    // Stop live polling when switching to test mode
+    if (state.livePollTimer) {
+      clearInterval(state.livePollTimer);
+      state.livePollTimer = null;
+      state.livePolling = false;
+    }
   }
 
   // Close any open pulse expansion from the other mode
@@ -1813,7 +2019,7 @@ function renderLiveBrief() {
   if (!kpis) {
     $brief.className = 'mc-brief mc-brief--amber';
     if ($icon) $icon.textContent = '\u26A0';
-    $text.innerHTML = '<strong>' + greeting + ', Aacrit.</strong> Loading live production data...';
+    $text.innerHTML = '<strong>' + greeting + ', ' + CEO_NAME + '.</strong> Loading live production data...';
     return;
   }
 
@@ -1824,15 +2030,15 @@ function renderLiveBrief() {
   if (passRate >= 85 && dm >= 75) {
     $brief.className = 'mc-brief mc-brief--green';
     if ($icon) $icon.textContent = '\u2713';
-    $text.innerHTML = '<strong>' + greeting + ', Aacrit.</strong> Production healthy \u2014 ' + count + ' queries today, DM ' + dm + ', ' + passRate + '% passing.';
+    $text.innerHTML = '<strong>' + greeting + ', ' + CEO_NAME + '.</strong> Production healthy \u2014 ' + count + ' queries today, DM ' + dm + ', ' + passRate + '% passing.';
   } else if (passRate < 70 || dm < 60) {
     $brief.className = 'mc-brief mc-brief--red';
     if ($icon) $icon.textContent = '\u2717';
-    $text.innerHTML = '<strong>' + greeting + ', Aacrit.</strong> Production needs attention \u2014 DM ' + dm + ', ' + passRate + '% passing. Check low-score queries.';
+    $text.innerHTML = '<strong>' + greeting + ', ' + CEO_NAME + '.</strong> Production needs attention \u2014 DM ' + dm + ', ' + passRate + '% passing. Check low-score queries.';
   } else {
     $brief.className = 'mc-brief mc-brief--amber';
     if ($icon) $icon.textContent = '\u26A0';
-    $text.innerHTML = '<strong>' + greeting + ', Aacrit.</strong> Production running \u2014 ' + count + ' queries, DM ' + dm + ', ' + passRate + '% passing.';
+    $text.innerHTML = '<strong>' + greeting + ', ' + CEO_NAME + '.</strong> Production running \u2014 ' + count + ' queries, DM ' + dm + ', ' + passRate + '% passing.';
   }
 }
 
@@ -1907,7 +2113,7 @@ function renderLiveFeedFull(queries) {
     var name = (q.restaurants && q.restaurants.name) ? q.restaurants.name : '';
     var cacheTag = q.cache_hit ? '<span class="mc-feed-tag mc-feed-tag--cache">cached</span>' : '';
 
-    return '<div class="mc-feed-item mc-feed-item--live mc-clickable" onclick="testAndShowDetail(\'' + escapeHtml(query.replace(/'/g, "\\'")) + '\')" title="' + escapeHtml(query) + '">' +
+    return '<div class="mc-feed-item mc-feed-item--live mc-clickable mc-test-trigger" data-test-query="' + escapeHtml(query) + '" title="' + escapeHtml(query) + '">' +
       '<span class="mc-feed-item__query">"' + escapeHtml(query.slice(0, 35)) + '"</span>' +
       '<span class="mc-feed-item__meta">' + escapeHtml((name || '').slice(0, 20)) + '</span>' +
       '<span class="mc-feed-item__rt">' + rt + '</span>' +
@@ -1930,7 +2136,7 @@ function viewSlowQueries() {
     html += '<div class="mc-viz__insight mc-viz__insight--success"><span class="mc-viz__insight-icon">\u2713</span> No slow queries. All responses under 5s.</div>';
   } else {
     html += slow.slice(0, 10).map(function(q) {
-      return '<div class="mc-run-expand__item" onclick="testAndShowDetail(\'' + escapeHtml((q.special_request || '').replace(/'/g, "\\'")) + '\')">' +
+      return '<div class="mc-run-expand__item mc-test-trigger" data-test-query="' + escapeHtml(q.special_request || '') + '">' +
         '<span class="mc-run-expand__query">"' + escapeHtml((q.special_request || '').slice(0, 30)) + '"</span>' +
         '<span class="mc-run-expand__grades">' + (q.response_time_ms / 1000).toFixed(1) + 's</span>' +
         '<span class="mc-run-expand__score ' + ragClass(q.donde_match || 0) + '">' + (q.donde_match || 0) + '</span></div>';
@@ -1946,7 +2152,7 @@ function viewLowScoreQueries() {
     html += '<div class="mc-viz__insight mc-viz__insight--success"><span class="mc-viz__insight-icon">\u2713</span> No low-score queries. All production queries above 60.</div>';
   } else {
     html += low.slice(0, 10).map(function(q) {
-      return '<div class="mc-run-expand__item" onclick="testAndShowDetail(\'' + escapeHtml((q.special_request || '').replace(/'/g, "\\'")) + '\')">' +
+      return '<div class="mc-run-expand__item mc-test-trigger" data-test-query="' + escapeHtml(q.special_request || '') + '">' +
         '<span class="mc-run-expand__query">"' + escapeHtml((q.special_request || '').slice(0, 30)) + '"</span>' +
         '<span class="mc-run-expand__grades">' + (q.score_fit_grade || '--') + '</span>' +
         '<span class="mc-run-expand__score rag-red">' + (q.donde_match || 0) + '</span></div>';
@@ -1962,7 +2168,7 @@ function viewFallbacks() {
     html += '<div class="mc-viz__insight mc-viz__insight--success"><span class="mc-viz__insight-icon">\u2713</span> No fallbacks. All queries received full engine responses.</div>';
   } else {
     html += fb.slice(0, 10).map(function(q) {
-      return '<div class="mc-run-expand__item" onclick="testAndShowDetail(\'' + escapeHtml((q.special_request || '').replace(/'/g, "\\'")) + '\')">' +
+      return '<div class="mc-run-expand__item mc-test-trigger" data-test-query="' + escapeHtml(q.special_request || '') + '">' +
         '<span class="mc-run-expand__query">"' + escapeHtml((q.special_request || '').slice(0, 30)) + '"</span>' +
         '<span class="mc-run-expand__grades">fallback</span>' +
         '<span class="mc-run-expand__score rag-amber">' + (q.donde_match || 0) + '</span></div>';
@@ -2013,9 +2219,8 @@ function termLog(type, msg) {
   if (typeof cooLog === 'function') cooLog(type === 'pass' ? 'success' : type === 'fail' ? 'error' : type, msg);
 }
 
-function openTerminal() {}
+function openTerminal() { if (typeof openDrawerForTest === 'function') openDrawerForTest(); }
 function closeTerminal() {}
-function updateTicker() {}
 
 // ═══════════════════════════════════════════════════════════════════
 // Agent Team Detail Panel
@@ -2144,4 +2349,364 @@ function copyAgentCommand(agentId) {
       }
     });
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Live Query Volume Chart + Score Distribution
+// ═══════════════════════════════════════════════════════════════════
+
+function renderLiveAnalytics(queries) {
+  var $chart = document.getElementById('mc-live-volume-chart');
+  var $dist = document.getElementById('mc-live-score-dist');
+  if (!$chart && !$dist) return;
+  if (!queries || queries.length === 0) {
+    if ($chart) $chart.innerHTML = '<div class="mc-empty" style="font-size:11px">No query data</div>';
+    if ($dist) $dist.innerHTML = '<div class="mc-empty" style="font-size:11px">No score data</div>';
+    return;
+  }
+
+  // ── Hourly Volume Bar Chart ──
+  if ($chart) {
+    // Build hourly buckets for the last 24 hours
+    var now = new Date();
+    var hourBuckets = [];
+    for (var h = 23; h >= 0; h--) {
+      var bucketStart = new Date(now.getTime() - h * 60 * 60 * 1000);
+      var bucketEnd = new Date(bucketStart.getTime() + 60 * 60 * 1000);
+      var count = queries.filter(function(q) {
+        var t = new Date(q.created_at).getTime();
+        return t >= bucketStart.getTime() && t < bucketEnd.getTime();
+      }).length;
+      hourBuckets.push({ hour: bucketStart.getHours(), count: count });
+    }
+
+    var maxCount = Math.max.apply(null, hourBuckets.map(function(b) { return b.count; }).concat([1]));
+    var svgW = 320;
+    var svgH = 80;
+    var barW = Math.floor((svgW - 10) / 24) - 1;
+    var padLeft = 5;
+
+    var bars = hourBuckets.map(function(b, i) {
+      var barH = Math.max(1, Math.round((b.count / maxCount) * (svgH - 20)));
+      var x = padLeft + i * (barW + 1);
+      var y = svgH - 14 - barH;
+      var color = b.count === 0 ? 'var(--cc-border)' : b.count >= maxCount * 0.8 ? 'var(--cc-live)' : 'var(--cc-accent)';
+      var label = (i % 4 === 0) ? '<text x="' + (x + barW / 2) + '" y="' + (svgH - 2) + '" fill="var(--cc-text3)" font-size="8" font-family="var(--font-mono)" text-anchor="middle">' + b.hour + '</text>' : '';
+      return '<rect x="' + x + '" y="' + y + '" width="' + barW + '" height="' + barH + '" rx="1" fill="' + color + '" opacity="0.85">' +
+        '<title>' + b.hour + ':00 — ' + b.count + ' queries</title></rect>' + label;
+    }).join('');
+
+    var totalToday = hourBuckets.reduce(function(s, b) { return s + b.count; }, 0);
+    $chart.innerHTML =
+      '<div style="font-size:10px;color:var(--cc-text3);margin-bottom:4px">Hourly Query Volume (24h) — ' + totalToday + ' total</div>' +
+      '<svg width="' + svgW + '" height="' + svgH + '" viewBox="0 0 ' + svgW + ' ' + svgH + '" style="display:block;width:100%;max-width:' + svgW + 'px">' +
+      bars + '</svg>';
+  }
+
+  // ── Score Distribution Chart ──
+  if ($dist) {
+    var tiers = [
+      { label: '90+', min: 90, max: 100, color: 'var(--cc-green)' },
+      { label: '80-89', min: 80, max: 89, color: 'var(--cc-accent)' },
+      { label: '70-79', min: 70, max: 79, color: 'var(--cc-amber)' },
+      { label: '60-69', min: 60, max: 69, color: 'var(--cc-text3)' },
+      { label: '<60', min: 0, max: 59, color: 'var(--cc-red)' }
+    ];
+
+    var total = queries.length;
+    var tierData = tiers.map(function(t) {
+      var count = queries.filter(function(q) {
+        var dm = q.donde_match || 0;
+        return dm >= t.min && dm <= t.max;
+      }).length;
+      return { label: t.label, count: count, pct: total > 0 ? Math.round(count / total * 100) : 0, color: t.color };
+    });
+
+    var distSvgW = 200;
+    var distSvgH = 80;
+    var tierBarH = 12;
+    var tierGap = 3;
+    var labelW = 36;
+    var maxPct = Math.max.apply(null, tierData.map(function(d) { return d.pct; }).concat([1]));
+
+    var distBars = tierData.map(function(d, i) {
+      var y = i * (tierBarH + tierGap);
+      var bw = Math.max(2, Math.round((d.pct / maxPct) * (distSvgW - labelW - 30)));
+      return '<text x="0" y="' + (y + tierBarH - 2) + '" fill="var(--cc-text2)" font-size="9" font-family="var(--font-mono)">' + d.label + '</text>' +
+        '<rect x="' + labelW + '" y="' + y + '" width="' + bw + '" height="' + tierBarH + '" rx="2" fill="' + d.color + '" opacity="0.8">' +
+        '<title>' + d.label + ': ' + d.count + ' (' + d.pct + '%)</title></rect>' +
+        '<text x="' + (labelW + bw + 4) + '" y="' + (y + tierBarH - 2) + '" fill="var(--cc-text3)" font-size="9" font-family="var(--font-mono)">' + d.pct + '%</text>';
+    }).join('');
+
+    $dist.innerHTML =
+      '<div style="font-size:10px;color:var(--cc-text3);margin-bottom:4px">Score Distribution (' + total + ' queries)</div>' +
+      '<svg width="' + distSvgW + '" height="' + distSvgH + '" viewBox="0 0 ' + distSvgW + ' ' + distSvgH + '" style="display:block;width:100%;max-width:' + distSvgW + 'px">' +
+      distBars + '</svg>';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Quality Trend Chart (TEST mode)
+// ═══════════════════════════════════════════════════════════════════
+
+var _trendRange = 10;
+
+function setTrendRange(runs) {
+  _trendRange = runs;
+  var btns = document.querySelectorAll('.mc-trend-toggle__btn');
+  btns.forEach(function(b) {
+    b.classList.toggle('mc-trend-toggle__btn--active', Number(b.dataset.runs) === runs);
+  });
+  renderTrendChart();
+}
+
+function renderTrendChart() {
+  var $section = document.getElementById('mc-trend-section');
+  var $chart = document.getElementById('mc-trend-chart');
+  if (!$chart) return;
+
+  var trend = state.trendData || [];
+  if (trend.length < 3) {
+    if ($section) $section.style.display = 'none';
+    return;
+  }
+
+  if ($section) $section.style.display = '';
+
+  var data = trend.slice(0, _trendRange).reverse();
+  var w = 400;
+  var h = 120;
+  var pad = 30;
+  var plotW = w - pad * 2;
+  var plotH = h - pad - 10;
+
+  // Extract series
+  var dmSeries = data.map(function(r) { return Math.round(Number(r.avg_dm) || 0); });
+  var fitSeries = data.map(function(r) { return Math.round(Number(r.avg_score_fit) || 0); });
+  var blurbSeries = data.map(function(r) { return Math.round(Number(r.avg_blurb_quality) || 0); });
+
+  var allVals = dmSeries.concat(fitSeries).concat(blurbSeries);
+  var minVal = Math.min.apply(null, allVals);
+  var maxVal = Math.max.apply(null, allVals);
+  var range = (maxVal - minVal) || 1;
+
+  function toPoints(series) {
+    return series.map(function(v, i) {
+      var x = pad + (i / Math.max(series.length - 1, 1)) * plotW;
+      var y = 10 + plotH - ((v - minVal) / range) * plotH;
+      return x.toFixed(1) + ',' + y.toFixed(1);
+    }).join(' ');
+  }
+
+  function lastPoint(series) {
+    var v = series[series.length - 1];
+    var x = pad + plotW;
+    var y = 10 + plotH - ((v - minVal) / range) * plotH;
+    return { x: x, y: y, v: v };
+  }
+
+  var dmPts = toPoints(dmSeries);
+  var fitPts = toPoints(fitSeries);
+  var blurbPts = toPoints(blurbSeries);
+  var dmLast = lastPoint(dmSeries);
+  var fitLast = lastPoint(fitSeries);
+  var blurbLast = lastPoint(blurbSeries);
+
+  // Y-axis labels
+  var yLabels = '';
+  for (var yi = 0; yi <= 4; yi++) {
+    var yv = Math.round(minVal + (range * yi / 4));
+    var yy = 10 + plotH - (yi / 4) * plotH;
+    yLabels += '<text x="' + (pad - 4) + '" y="' + (yy + 3) + '" fill="var(--cc-text3)" font-size="8" font-family="var(--font-mono)" text-anchor="end">' + yv + '</text>';
+    yLabels += '<line x1="' + pad + '" y1="' + yy + '" x2="' + (w - pad) + '" y2="' + yy + '" stroke="var(--cc-border)" stroke-width="0.5" stroke-dasharray="2,2"/>';
+  }
+
+  var svg = '<svg width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '" style="display:block;width:100%;max-width:' + w + 'px">' +
+    yLabels +
+    '<polyline points="' + dmPts + '" fill="none" stroke="var(--cc-accent)" stroke-width="2" stroke-linecap="round"/>' +
+    '<polyline points="' + fitPts + '" fill="none" stroke="var(--cc-green)" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="4,2"/>' +
+    '<polyline points="' + blurbPts + '" fill="none" stroke="var(--cc-amber)" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="4,2"/>' +
+    '<circle cx="' + dmLast.x.toFixed(1) + '" cy="' + dmLast.y.toFixed(1) + '" r="3" fill="var(--cc-accent)"/>' +
+    '<circle cx="' + fitLast.x.toFixed(1) + '" cy="' + fitLast.y.toFixed(1) + '" r="2.5" fill="var(--cc-green)"/>' +
+    '<circle cx="' + blurbLast.x.toFixed(1) + '" cy="' + blurbLast.y.toFixed(1) + '" r="2.5" fill="var(--cc-amber)"/>' +
+    '</svg>';
+
+  var legend = '<div style="display:flex;gap:12px;font-size:9px;color:var(--cc-text3);margin-top:4px">' +
+    '<span><span style="display:inline-block;width:12px;height:2px;background:var(--cc-accent);vertical-align:middle;margin-right:4px"></span>DM ' + dmLast.v + '</span>' +
+    '<span><span style="display:inline-block;width:12px;height:2px;background:var(--cc-green);vertical-align:middle;margin-right:4px;border-top:1px dashed var(--cc-green)"></span>Fit ' + fitLast.v + '</span>' +
+    '<span><span style="display:inline-block;width:12px;height:2px;background:var(--cc-amber);vertical-align:middle;margin-right:4px;border-top:1px dashed var(--cc-amber)"></span>Blurb ' + blurbLast.v + '</span>' +
+    '</div>';
+
+  $chart.innerHTML = svg + legend;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Anomaly Alert
+// ═══════════════════════════════════════════════════════════════════
+
+function dismissAnomaly() {
+  var $el = document.getElementById('mc-anomaly');
+  if ($el) $el.style.display = 'none';
+}
+
+function checkForAnomalies(run) {
+  if (!run || !state.trendData || state.trendData.length < 3) return;
+
+  var $el = document.getElementById('mc-anomaly');
+  var $text = document.getElementById('mc-anomaly-text');
+  if (!$el || !$text) return;
+
+  var avgDm = Math.round(Number(run.avg_dm) || 0);
+  var trend = state.trendData.slice(1, 6); // Previous 5 runs
+  var trendAvg = trend.reduce(function(s, r) { return s + (Number(r.avg_dm) || 0); }, 0) / trend.length;
+  var delta = avgDm - Math.round(trendAvg);
+
+  if (delta <= -5) {
+    $el.style.display = 'flex';
+    $el.className = 'mc-anomaly mc-anomaly--red';
+    $text.textContent = 'Score drop detected: DM ' + avgDm + ' is ' + Math.abs(delta) + ' points below recent average (' + Math.round(trendAvg) + '). Consider running regression guard.';
+  } else if (delta >= 8) {
+    $el.style.display = 'flex';
+    $el.className = 'mc-anomaly mc-anomaly--green';
+    $text.textContent = 'Score spike: DM ' + avgDm + ' is ' + delta + ' points above recent average (' + Math.round(trendAvg) + '). Verify with regression guard.';
+  } else {
+    $el.style.display = 'none';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Keyboard Shortcuts
+// ═══════════════════════════════════════════════════════════════════
+
+function initKeyboardShortcuts() {
+  document.addEventListener('keydown', function(e) {
+    // Don't trigger if typing in an input/textarea
+    var tag = (e.target.tagName || '').toLowerCase();
+    if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+
+    // Don't trigger with modifier keys (Ctrl, Alt, Meta) except for specific combos
+    if (e.ctrlKey || e.altKey || e.metaKey) return;
+
+    switch (e.key) {
+      case 's':
+        e.preventDefault();
+        if (typeof processCOOInput === 'function') processCOOInput('scan');
+        break;
+      case 'r':
+        e.preventDefault();
+        if (typeof processCOOInput === 'function') processCOOInput('regression');
+        break;
+      case 't':
+        e.preventDefault();
+        if (typeof toggleDrawer === 'function') toggleDrawer();
+        break;
+      case 'l':
+        e.preventDefault();
+        if (typeof switchDashboardMode === 'function') {
+          switchDashboardMode(state.dashboardMode === 'live' ? 'test' : 'live');
+        }
+        break;
+      case '/':
+        e.preventDefault();
+        var $input = document.getElementById('coo-input');
+        if ($input) {
+          // Open drawer if needed
+          var drawer = document.getElementById('mc-drawer');
+          if (drawer && !drawer.classList.contains('mc-drawer--open')) toggleDrawer();
+          // Open terminal section if needed
+          var termBody = document.getElementById('mc-terminal-body');
+          if (termBody && termBody.style.display === 'none') toggleTerminalInDrawer();
+          $input.focus();
+        }
+        break;
+      case '?':
+        e.preventDefault();
+        var $shortcuts = document.getElementById('mc-shortcuts');
+        if ($shortcuts) $shortcuts.style.display = $shortcuts.style.display === 'none' ? 'flex' : 'none';
+        break;
+      case 'Escape':
+        var $shortcutsEsc = document.getElementById('mc-shortcuts');
+        if ($shortcutsEsc && $shortcutsEsc.style.display !== 'none') {
+          $shortcutsEsc.style.display = 'none';
+          e.preventDefault();
+          return;
+        }
+        var detail = document.getElementById('mc-detail');
+        if (detail && detail.classList.contains('mc-detail--open')) {
+          closeDetail();
+          e.preventDefault();
+          return;
+        }
+        var confirm = document.getElementById('mc-confirm');
+        if (confirm && confirm.style.display !== 'none') {
+          if (typeof cancelTestConfirm === 'function') cancelTestConfirm();
+          e.preventDefault();
+          return;
+        }
+        break;
+      case 'e':
+        e.preventDefault();
+        if (typeof exportCurrentView === 'function') exportCurrentView();
+        break;
+      default:
+        // Number keys 1-6 for pulse card expansion
+        var num = parseInt(e.key);
+        if (num >= 1 && num <= 6) {
+          e.preventDefault();
+          var metrics = state.dashboardMode === 'live'
+            ? ['live-blurb', 'live-fit', 'live-rt', 'live-cache', 'live-dm', 'live-pass']
+            : ['health', 'dm', 'issues', 'grade', 'db', 'cache'];
+          if (metrics[num - 1] && typeof togglePulseExpand === 'function') {
+            togglePulseExpand(metrics[num - 1]);
+          }
+        }
+        break;
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Deep Link Support (URL hash routing)
+// ═══════════════════════════════════════════════════════════════════
+
+function handleDeepLink() {
+  var hash = window.location.hash;
+  if (!hash) return;
+
+  // #mode=live or #mode=test
+  var modeMatch = hash.match(/[#&]mode=(test|live)/);
+  if (modeMatch) {
+    var mode = modeMatch[1];
+    if (typeof switchDashboardMode === 'function') {
+      switchDashboardMode(mode);
+    }
+  }
+
+  // #test=query
+  var testMatch = hash.match(/[#&]test=([^&]+)/);
+  if (testMatch) {
+    var query = decodeURIComponent(testMatch[1]);
+    var $input = document.getElementById('quick-test-input');
+    if ($input) {
+      $input.value = query;
+      // Auto-run after a brief delay to let dashboard init
+      setTimeout(function() {
+        if (typeof runQuickTest === 'function') runQuickTest();
+      }, 500);
+    }
+  }
+}
+
+function updateDeepLink(key, value) {
+  var hash = window.location.hash.replace(/^#/, '');
+  var params = {};
+  if (hash) {
+    hash.split('&').forEach(function(pair) {
+      var parts = pair.split('=');
+      if (parts[0]) params[parts[0]] = parts[1] || '';
+    });
+  }
+  params[key] = encodeURIComponent(value);
+  var newHash = Object.keys(params).map(function(k) { return k + '=' + params[k]; }).join('&');
+  window.location.hash = newHash;
 }

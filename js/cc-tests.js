@@ -108,7 +108,7 @@ function finishTest() {
     if (celebrate) termLog('success', 'Excellent run! Average DM above 85.');
 
     // Remove cursor from terminal
-    const cursor = document.getElementById('terminal-output')?.querySelector('.cc-term-cursor');
+    const cursor = document.getElementById('coo-output')?.querySelector('.cc-term-cursor');
     if (cursor) cursor.remove();
   }
 

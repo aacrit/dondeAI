@@ -301,33 +301,7 @@ function computeBlurbQualityGrade(query, response) {
   const restaurant = response.restaurant || {};
 
   // --- Check 1: Slop-free (25 pts) ---
-  const BANNED_PATTERNS = [
-    'hidden gem', 'best-kept secret', 'culinary journey', 'taste buds', 'flavor explosion',
-    'mouthwatering', 'delectable', 'delightful', 'exquisite', 'impeccable', 'nestled',
-    'tucked away', 'foodie', 'gastronomic', 'epicurean', 'palate', 'tantalizing',
-    'sumptuous', 'delicacy', 'indulge', 'savor every', 'feast for', 'a cut above',
-    'second to none', 'worth every penny', 'not to be missed', 'a must-visit',
-    "you won't regret", 'look no further', 'stands out from', 'elevate your',
-    'take your taste', 'redefine', 'reimagine', 'transcend', 'next level',
-    'game changer', 'game-changer', 'blown away', 'pleasantly surprised',
-    'exceeded expectations', "won't disappoint", 'never disappoints', 'consistently delivers',
-    'truly special', 'something special', 'one-of-a-kind', 'like no other',
-    'in the heart of', 'bustling', 'vibrant scene', 'warm and inviting',
-    'cozy atmosphere', 'welcoming ambiance', 'rustic charm', 'elegant setting',
-    'step into', 'transport you', 'whisk you away', 'escape to',
-    'perfect blend', 'harmonious', 'symphony of', 'dance of flavors',
-    'artfully crafted', 'lovingly prepared', 'passion for', 'dedication to',
-    'attention to detail', 'craft', 'artisan',
-    '\u2014',
-    // V20: Expanded anti-slop patterns
-    "it's worth noting", "it's no surprise", 'pairs perfectly', 'hits different',
-    'chef-driven', 'locally sourced', 'seasonal ingredients', 'warm hospitality',
-    'inviting atmosphere', 'culinary prowess', 'flavor profile', 'price point',
-    'farm-to-table', 'nose-to-tail', 'thoughtfully curated', 'carefully selected',
-    'hand-picked', 'each dish tells', 'every plate is', 'a celebration of',
-    'pays homage', 'takes you on', 'where every bite', 'where every dish', 'where every plate', 'more than just',
-    'the star of the show', 'steal the show', 'take center stage',
-  ];
+  // Uses global BANNED_PATTERNS from cc-config.js (single source of truth)
   const slopHits = BANNED_PATTERNS.filter(p => blurbLower.includes(p.toLowerCase()));
   let slopPoints;
   if (slopHits.length === 0) slopPoints = 25;
@@ -508,6 +482,18 @@ function computeBlurbQualityGrade(query, response) {
 
   const grade = letterGrade(total);
   return { score: total, grade, details, slopHits, wordCount, hasVoice: hasWeOur };
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Engine Grade (weighted composite of DM, Score Fit, Blurb Quality)
+// ═══════════════════════════════════════════════════════════════════
+
+function computeEngineGrade(run) {
+  const avgDm = Number(run.avg_dm) || 0;
+  const avgFit = Number(run.avg_score_fit) || avgDm;
+  const avgBlurb = Number(run.avg_blurb_quality) || avgDm;
+  const score = (avgDm * 0.4) + (avgFit * 0.3) + (avgBlurb * 0.3);
+  return letterGrade(score);
 }
 
 // ═══════════════════════════════════════════════════════════════════

@@ -38,7 +38,7 @@ function loadCCQueries() {
         Object.assign(DIFFICULTY_LEVELS, data.difficulty_levels);
       }
       _queriesLoaded = true;
-      console.log(`[CC] Loaded ${CHICAGO_QUERIES.length} queries from cc-queries.json`);
+      // Queries loaded successfully
     })
     .catch(err => {
       console.warn('[CC] Failed to load cc-queries.json, queries unavailable:', err.message);

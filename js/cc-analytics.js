@@ -19,7 +19,8 @@ async function checkAuth() {
       initDashboard();
 
       // Refresh session every 30 minutes
-      setInterval(async () => {
+      if (state._sessionRefreshTimer) clearInterval(state._sessionRefreshTimer);
+      state._sessionRefreshTimer = setInterval(async () => {
         if (sbClient) {
           try {
             const { error } = await sbClient.auth.refreshSession();
@@ -32,20 +33,9 @@ async function checkAuth() {
     }
   } catch (e) {
     console.warn('Auth check failed:', e);
-    // Show error message to user
     const msg = document.getElementById('auth-message');
-    if (msg) msg.textContent = 'Connection failed. Retrying...';
-    // Still try to initialize
-    try {
-      const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
-      sbClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    } catch (importErr) {
-      console.warn('Supabase import failed:', importErr);
-      const msg2 = document.getElementById('auth-message');
-      if (msg2) msg2.textContent = 'Unable to connect to DondeAI services. Check your network and refresh.';
-      return; // Don't init dashboard without connection
-    }
-    initDashboard();
+    if (msg) msg.textContent = 'Connection failed. Please refresh to retry.';
+    // Do NOT initialize dashboard without verified admin auth
   }
 }
 
@@ -102,6 +92,7 @@ async function initDashboard() {
   if (typeof startFreshnessTicker === 'function') startFreshnessTicker();
   if (typeof loadHeatmapData === 'function') loadHeatmapData();
   if (typeof computePerfBaseline === 'function') computePerfBaseline();
+  if (typeof loadCostData === 'function') loadCostData();
 
   // Dashboard overhaul: render new components
   if (typeof renderActionCenter === 'function') renderActionCenter();
@@ -386,6 +377,7 @@ function applyLiveFilter() {
   updateLiveKPIsFromQueries(filtered);
   if (typeof renderLiveIssues === 'function') renderLiveIssues(filtered);
   if (typeof updateKpiSparklines === 'function') updateKpiSparklines();
+  if (typeof renderLiveAnalytics === 'function') renderLiveAnalytics(filtered);
 }
 
 /** Set filter and re-render (called from UI) */
@@ -1265,6 +1257,104 @@ async function loadLiveKPIs(period) {
 
   } catch (e) {
     console.warn('Failed to load live KPIs:', e);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Cache Dashboard
+// ═══════════════════════════════════════════════════════════════════
+
+async function loadCacheDashboard() {
+  if (!sbClient) return;
+  try {
+    const { data } = await sbClient.rpc('get_cache_dashboard');
+    if (data) {
+      state._cacheStats = data;
+      // Update cache pulse card
+      var $cache = document.getElementById('pulse-cache-val');
+      if ($cache) {
+        var hitRate = Number(data.hit_rate_24h) || 0;
+        var displayRate = hitRate > 1 ? Math.round(hitRate) : Math.round(hitRate * 100);
+        $cache.textContent = displayRate + '%';
+        $cache.className = 'mc-pulse-card__value ' + (displayRate >= 50 ? 'rag-green' : displayRate >= 20 ? 'rag-amber' : 'rag-red');
+      }
+      // Update footer
+      var $footerCache = document.getElementById('mc-footer-cache');
+      if ($footerCache) {
+        var hitRate2 = Number(data.hit_rate_24h) || 0;
+        $footerCache.textContent = 'Cache ' + (hitRate2 > 1 ? Math.round(hitRate2) : Math.round(hitRate2 * 100)) + '%';
+      }
+    }
+  } catch(e) { console.warn('Cache dashboard failed:', e); }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Cost Dashboard
+// ═══════════════════════════════════════════════════════════════════
+
+async function loadCostData() {
+  if (!sbClient) return null;
+  try {
+    // Get current month start in ISO
+    var now = new Date();
+    var monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+
+    // Query all user_queries for this month
+    var { data: queries, error } = await sbClient
+      .from('user_queries')
+      .select('id, source, cache_hit, response_time_ms, created_at')
+      .gte('created_at', monthStart)
+      .order('created_at', { ascending: false })
+      .limit(5000);
+
+    if (error) { console.warn('Cost data query error:', error.message); return null; }
+    if (!queries || queries.length === 0) return null;
+
+    var totalQueries = queries.length;
+    var cacheHits = queries.filter(function(q) { return q.cache_hit === true; }).length;
+    var nonCacheQueries = totalQueries - cacheHits;
+
+    // Estimate API calls: non-cached, non-command-center queries used APIs
+    var liveQueries = queries.filter(function(q) { return q.source !== 'command-center' && !q.cache_hit; });
+    var claudeCalls = liveQueries.length; // Each live query calls Claude once
+    var googleDetailCalls = liveQueries.length; // Each live query calls Google Details once
+    var googlePhotoRefs = liveQueries.length * 5; // ~5 photos per query
+
+    // Cost estimates
+    var googleSpend = (googleDetailCalls * 0.005) + (googlePhotoRefs * 0.007);
+    var claudeSpend = claudeCalls * 0.003; // ~3000 tokens avg per call at Haiku rates
+    var cacheHitRate = totalQueries > 0 ? Math.round(cacheHits / totalQueries * 100) : 0;
+
+    // Cache savings: each cache hit saves one Google + Claude call
+    var cacheSavings = cacheHits * (0.005 + 5 * 0.007 + 0.003);
+
+    // Project monthly based on days elapsed
+    var daysElapsed = Math.max(1, (now.getTime() - new Date(monthStart).getTime()) / (24 * 60 * 60 * 1000));
+    var daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    var projectedMonthly = (googleSpend + claudeSpend) * (daysInMonth / daysElapsed);
+
+    // Budget: $200 free Google credit
+    var budgetUsed = Math.round((googleSpend / 200) * 100);
+
+    var result = {
+      googleSpend: Math.round(googleSpend * 100) / 100,
+      claudeSpend: Math.round(claudeSpend * 100) / 100,
+      cacheHitRate: cacheHitRate,
+      cacheSavings: Math.round(cacheSavings * 100) / 100,
+      projectedMonthly: Math.round(projectedMonthly * 100) / 100,
+      budgetUsed: Math.min(100, budgetUsed),
+      totalQueries: totalQueries,
+      liveQueries: liveQueries.length,
+      cacheHits: cacheHits
+    };
+
+    // Update cache pulse card expand with cost data
+    state._costData = result;
+
+    return result;
+  } catch (e) {
+    console.warn('Cost data load failed:', e);
+    return null;
   }
 }
 

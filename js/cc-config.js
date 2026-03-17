@@ -113,6 +113,14 @@ const BANNED_PATTERNS = [
   'artfully crafted', 'lovingly prepared', 'passion for', 'dedication to',
   'attention to detail', 'craft', 'artisan',
   '\u2014',
+  // V20: Expanded anti-slop patterns
+  "it's worth noting", "it's no surprise", 'pairs perfectly', 'hits different',
+  'chef-driven', 'locally sourced', 'seasonal ingredients', 'warm hospitality',
+  'inviting atmosphere', 'culinary prowess', 'flavor profile', 'price point',
+  'farm-to-table', 'nose-to-tail', 'thoughtfully curated', 'carefully selected',
+  'hand-picked', 'each dish tells', 'every plate is', 'a celebration of',
+  'pays homage', 'takes you on', 'where every bite', 'where every dish', 'where every plate', 'more than just',
+  'the star of the show', 'steal the show', 'take center stage',
 ];
 
 // Edge case probes for Edge Case tests
@@ -180,6 +188,14 @@ const REQUIRED_FIELDS = ['name', 'address', 'cuisine_type', 'google_rating', 'no
 // ═══════════════════════════════════════════════════════════════════
 // Global State (simplified — no agent gamification)
 // ═══════════════════════════════════════════════════════════════════
+
+// Safe storage for query data — used by event delegation instead of inline onclick
+const _queryDataCache = [];
+function _storeQueryData(query) {
+  const idx = _queryDataCache.length;
+  _queryDataCache.push(query);
+  return idx;
+}
 
 let state = {
   activeTab: 'test',
@@ -319,10 +335,10 @@ function gradeColorClass(grade) {
 function pct(n, d) { return d === 0 ? '0' : (n / d * 100).toFixed(1); }
 function r1(n) { return Math.round(n * 10) / 10; }
 
+const _escapeDiv = document.createElement('div');
 function escapeHtml(s) {
-  const d = document.createElement('div');
-  d.textContent = s;
-  return d.innerHTML;
+  _escapeDiv.textContent = s;
+  return _escapeDiv.innerHTML;
 }
 
 function determineGapType(result, dm) {
