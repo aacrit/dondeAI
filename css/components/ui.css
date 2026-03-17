@@ -2228,3 +2228,47 @@ html .craving-input.craving-input--surprising {
   opacity: 0;
   animation: inkRestore var(--dur-morph) var(--ease-out) 100ms forwards;
 }
+
+/* ---- UX-7: Swipe Gesture Hint ---- */
+.swipe-hint {
+  position: absolute;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 400ms var(--ease-out);
+}
+
+.swipe-hint--visible {
+  opacity: 1;
+}
+
+.swipe-hint--exiting {
+  opacity: 0;
+  transition: opacity 300ms var(--ease-out);
+}
+
+.swipe-hint__inner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: var(--glass, rgba(0, 0, 0, 0.6));
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 20px;
+  color: var(--fg, #fff);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.swipe-hint__arrow {
+  animation: swipeHintSlide 1.5s ease-in-out infinite;
+}
+
+@keyframes swipeHintSlide {
+  0%, 100% { transform: translateX(0); opacity: 0.6; }
+  50% { transform: translateX(-8px); opacity: 1; }
+}
