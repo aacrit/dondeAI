@@ -1876,3 +1876,108 @@ function _fireSpectacle(score) {
     }, 600);
   }, 2000);
 }
+
+/* ---- MOTION-4: Theme Wash Consistency (documentation) ---- */
+/**
+ * Theme wash animation currently fires from two places:
+ *   1. Manual theme toggle: events.js `toggle-mode` action calls setTheme() -> applyTheme()
+ *      which triggers the radial clip-path wash via theme-wash overlay.
+ *   2. Result cuisine theme: render.js calls setWashOrigin() + setTheme() after a result loads.
+ *
+ * MISSING: Auto-theme from cuisine typing does NOT fire the wash.
+ *   In events.js line ~898, `setThemeVisualOnly(detected)` uses a simple CSS crossfade
+ *   instead of the radial wash. To add the wash:
+ *
+ *   In theme.js, update setThemeVisualOnly() to call the wash when the culture
+ *   actually changes (prevCulture !== culture). Specifically:
+ *
+ *   1. Import or inline the wash logic from applyTheme().
+ *   2. Before `root.setAttribute('data-theme', culture)`, trigger the wash overlay:
+ *        const wash = document.getElementById('theme-wash');
+ *        if (wash && !REDUCED.matches) {
+ *          wash.setAttribute('data-theme', culture);
+ *          // Origin: center of the craving input field
+ *          const $input = document.getElementById('craving-input');
+ *          const rect = $input?.getBoundingClientRect();
+ *          const ox = rect ? rect.left + rect.width / 2 : window.innerWidth / 2;
+ *          const oy = rect ? rect.top + rect.height / 2 : window.innerHeight / 2;
+ *          wash.style.setProperty('--wash-x', `${ox}px`);
+ *          wash.style.setProperty('--wash-y', `${oy}px`);
+ *          wash.classList.add('theme-wash--active');
+ *          setTimeout(() => {
+ *            root.setAttribute('data-theme', culture);
+ *            wash.classList.remove('theme-wash--active');
+ *          }, 450);
+ *          return; // skip the immediate root swap below
+ *        }
+ *   3. Keep the crossfade as fallback for reduced-motion or missing wash element.
+ *
+ *   Files to edit: theme.js (setThemeVisualOnly function)
+ *   Owner: theme.js agent
+ */
+
+/* ---- MOTION-3: Optimized Cursor Glow ---- */
+/**
+ * Optimized cursor glow that stops the RAF loop when cursor is stationary.
+ * Stops lerp calculations after 100ms of no mousemove, resumes on next move.
+ *
+ * INTEGRATION NOTE: This function replaces initCursorGlow() in app.js.
+ * To integrate, replace the initCursorGlow() function in app.js with:
+ *   import { initCursorGlowOptimized } from './animations.js';
+ * Then call initCursorGlowOptimized() instead of initCursorGlow() in init().
+ */
+export function initCursorGlowOptimized() {
+  const $glow = document.querySelector('.cursor-glow');
+  if (!$glow) return;
+  if (matchMedia('(hover: none)').matches || REDUCED.matches) return;
+
+  let targetX = 0, targetY = 0, currentX = 0, currentY = 0;
+  let active = false;
+  let isMoving = false;
+  let moveTimeout = null;
+  let rafId = null;
+
+  function lerpGlow() {
+    if (!active) return;
+    if (!isMoving) {
+      // Cursor stationary — stop RAF loop, snap to final position
+      currentX = targetX;
+      currentY = targetY;
+      $glow.style.transform = `translate(${currentX - 100}px, ${currentY - 100}px)`;
+      rafId = null;
+      return;
+    }
+    currentX += (targetX - currentX) * 0.15;
+    currentY += (targetY - currentY) * 0.15;
+    $glow.style.transform = `translate(${currentX - 100}px, ${currentY - 100}px)`;
+    rafId = requestAnimationFrame(lerpGlow);
+  }
+
+  document.addEventListener('mousemove', (e) => {
+    targetX = e.clientX;
+    targetY = e.clientY;
+
+    // Mark cursor as moving and reset idle timer
+    isMoving = true;
+    clearTimeout(moveTimeout);
+    moveTimeout = setTimeout(() => { isMoving = false; }, 100);
+
+    if (!active) {
+      active = true;
+      $glow.style.opacity = '0.2';
+    }
+
+    // Resume RAF loop if not already running
+    if (!rafId) {
+      rafId = requestAnimationFrame(lerpGlow);
+    }
+  }, { passive: true });
+
+  document.addEventListener('mouseleave', () => {
+    active = false;
+    isMoving = false;
+    clearTimeout(moveTimeout);
+    if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+    $glow.style.opacity = '0';
+  });
+}

@@ -5,6 +5,7 @@
    ============================================ */
 
 import { $dom, haptic, HAPTICS, REDUCED_MOTION } from './globals.js';
+import { springAnimate, SPRINGS } from './spring.js';
 
 const SWIPE_THRESHOLD = 0.3; // 30% of card width
 const VELOCITY_THRESHOLD = 0.4; // px/ms
@@ -128,19 +129,44 @@ function handleTouchCancel() {
 
 function animateOut($card, direction, callback) {
   const target = direction * window.innerWidth;
+
+  // Outgoing card: smooth ease-out slide (unchanged feel)
   $card.style.transition = 'transform 300ms var(--ease-out), opacity 200ms var(--ease-out)';
   $card.style.transform = `translateX(${target}px) rotate(${direction * 5}deg)`;
   $card.style.opacity = '0';
 
   setTimeout(() => {
+    // Reset for incoming card
     $card.style.transition = 'none';
-    $card.style.transform = `translateX(${-direction * 60}px)`;
+    $card.style.transform = `translateX(${-direction * 60}px) scale(0.97)`;
+    $card.style.opacity = '0';
     callback();
+
     requestAnimationFrame(() => {
-      $card.style.transition = 'transform 400ms var(--spring), opacity 300ms var(--ease-out)';
-      $card.style.transform = '';
+      if (REDUCED_MOTION.matches) {
+        // Reduced motion: snap to final position instantly
+        $card.style.transform = '';
+        $card.style.opacity = '';
+        return;
+      }
+
+      // MOTION-2: Spring physics for incoming card
+      // Animate translateX + scale with bouncy spring preset
       $card.style.opacity = '';
-      setTimeout(() => { $card.style.transition = ''; }, 400);
+      $card.style.transition = 'opacity 200ms var(--ease-out)';
+      springAnimate($card, {
+        transform: 'translateX(0px) scale(1)',
+      }, {
+        spring: SPRINGS.bouncy,
+        duration: 400,
+        easing: 'var(--spring)',
+      });
+
+      // Clean up transition/transform styles after spring settles
+      setTimeout(() => {
+        $card.style.transition = '';
+        $card.style.transform = '';
+      }, 600);
     });
   }, 300);
 }

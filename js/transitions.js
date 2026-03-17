@@ -188,18 +188,26 @@ export async function manifestResult(data) {
       $dom.resultCard.classList.add('result-card--premium-border');
     }
   }
-  // Show score instantly on initial load (no count-up animation)
+  // MOTION-1: Count-up animation on Tier 1 match pill (mirrors Tier 2 score hero)
   const $matchPillScore = document.getElementById('match-pill-score');
   const $matchPillArcFill = document.getElementById('match-pill-arc-fill');
   if ($matchPillScore) {
-    $matchPillScore.textContent = dondeScore;
-    $matchPillScore.style.color = getScoreThresholdColor(dondeScore);
-  }
-  if ($matchPillArcFill) {
-    const arcLen = 2 * Math.PI * 25;
-    $matchPillArcFill.style.strokeDasharray = String(arcLen);
-    $matchPillArcFill.style.strokeDashoffset = String(arcLen - (dondeScore / 100) * arcLen);
-    $matchPillArcFill.style.stroke = getScoreThresholdColor(dondeScore);
+    if (REDUCED_MOTION.matches) {
+      // Reduced motion: set value instantly
+      $matchPillScore.textContent = dondeScore;
+      $matchPillScore.style.color = getScoreThresholdColor(dondeScore);
+      if ($matchPillArcFill) {
+        const arcLen = 2 * Math.PI * 25;
+        $matchPillArcFill.style.strokeDasharray = String(arcLen);
+        $matchPillArcFill.style.strokeDashoffset = String(arcLen - (dondeScore / 100) * arcLen);
+        $matchPillArcFill.style.stroke = getScoreThresholdColor(dondeScore);
+      }
+    } else {
+      // Animated: count up from 0 after card reveal completes (~750ms card reveal + 100ms buffer)
+      _scaffoldTimers.push(setTimeout(() => {
+        animateScoreCountUp($matchPillScore, dondeScore, 1200);
+      }, 850));
+    }
   }
   if (dondeScore >= 80 && $matchPillArcFill) {
     const $ring = $matchPillArcFill.closest('.match-mini__score-wrap');
