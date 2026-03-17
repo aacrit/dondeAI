@@ -4,7 +4,7 @@
    stale-while-revalidate for fonts.
    ============================================ */
 
-const CACHE_VERSION = 'donde-v1';
+const CACHE_VERSION = 'donde-v2-20260316';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const FONT_CACHE = `${CACHE_VERSION}-fonts`;
 const API_CACHE = `${CACHE_VERSION}-api`;
@@ -27,9 +27,38 @@ const PRECACHE_URLS = [
   '/css/components/result.css',
   '/css/components/modals.css',
   '/css/components/ui.css',
+  '/css/components/conversational-search.css',
+  '/css/components/taste-dna.css',
+  '/css/components/first-bite.css',
   '/css/animations.css',
   '/css/responsive.css',
   '/js/app.js',
+  '/js/config.js',
+  '/js/state.js',
+  '/js/globals.js',
+  '/js/router.js',
+  '/js/api.js',
+  '/js/auth.js',
+  '/js/events.js',
+  '/js/render.js',
+  '/js/transitions.js',
+  '/js/spring.js',
+  '/js/motion.js',
+  '/js/animations.js',
+  '/js/audio.js',
+  '/js/theme.js',
+  '/js/utils.js',
+  '/js/persistence.js',
+  '/js/voice.js',
+  '/js/share.js',
+  '/js/offline.js',
+  '/js/accessibility.js',
+  '/js/scroll-header.js',
+  '/js/swipe-cards.js',
+  '/js/taste-dna.js',
+  '/js/conversational-search.js',
+  '/js/neighborhood-pulse.js',
+  '/js/first-bite.js',
   '/img/icons.svg',
 ];
 

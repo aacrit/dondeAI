@@ -5,7 +5,7 @@
 
 import { getState } from './state.js';
 import {
-  $dom, haptic, HAPTICS, pushTimer, clearAnimationTimers,
+  $dom, _escHtml, haptic, HAPTICS, pushTimer, clearAnimationTimers,
   setPendingResultData, getPendingResultData, setPendingCuisine,
   isTier2Prepared, setTier2Prepared,
   incrementSessionResultCount, getSessionResultCount,
@@ -13,6 +13,7 @@ import {
   getArrowBounceTimer, setArrowBounceTimer,
   REDUCED_MOTION
 } from './globals.js';
+import { DEBUG } from './config.js';
 import { getScoreThresholdColor } from './utils.js';
 import { goToStep, goToStepInstant } from './router.js';
 import {
@@ -78,7 +79,7 @@ export function beginCanvasFold() {
     const craving = getState().craving?.trim();
     const $loadingText = $loadingState.querySelector('.loading-state__text');
     if ($loadingText && craving) {
-      $loadingText.innerHTML = `Finding your <em class="loading-state__craving">${craving}</em>...`;
+      $loadingText.innerHTML = `Finding your <em class="loading-state__craving">${_escHtml(craving)}</em>...`;
     }
     /* Progress confidence bar */
     const $progressBar = $loadingState.querySelector('.loading-state__progress');
