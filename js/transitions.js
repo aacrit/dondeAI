@@ -56,6 +56,8 @@ export function _fireTieredCelebration(score) {
 
 /* ---- Phase 1: Canvas Fold ---- */
 export function beginCanvasFold() {
+  haptic(HAPTICS.swipe);
+
   const $canvas = document.querySelector('.canvas-layout');
 
   _scaffoldTimers.forEach(clearTimeout);
@@ -81,13 +83,15 @@ export function beginCanvasFold() {
     if ($loadingText && craving) {
       $loadingText.innerHTML = `Finding your <em class="loading-state__craving">${_escHtml(craving)}</em>...`;
     }
-    /* Progress confidence bar */
+    /* Progress confidence bar — uses scaleX for GPU-composited animation */
     const $progressBar = $loadingState.querySelector('.loading-state__progress');
     if ($progressBar) {
-      $progressBar.style.width = '0%';
+      $progressBar.style.transformOrigin = 'left';
+      $progressBar.style.transform = 'scaleX(0)';
+      $progressBar.style.width = '100%';
       requestAnimationFrame(() => {
-        $progressBar.style.transition = 'width 2.5s cubic-bezier(0.1, 0.7, 0.3, 0.9)';
-        $progressBar.style.width = '72%';
+        $progressBar.style.transition = 'transform 2.5s cubic-bezier(0.1, 0.7, 0.3, 0.9)';
+        $progressBar.style.transform = 'scaleX(0.72)';
       });
     }
     try {
@@ -138,6 +142,14 @@ export async function manifestResult(data) {
   stopParticles();
   const $loadingState = document.getElementById('loading-state');
 
+  /* ---- Progress bar → 100% completion beat ---- */
+  const COMPLETION_DELAY = REDUCED_MOTION.matches ? 0 : 350; // 200ms animate + 150ms hold
+  const $progressBar = $loadingState?.querySelector('.loading-state__progress');
+  if ($progressBar && !REDUCED_MOTION.matches) {
+    $progressBar.style.transition = 'transform 200ms cubic-bezier(0.0, 0.0, 0.2, 1)';
+    $progressBar.style.transform = 'scaleX(1)';
+  }
+
   if (REDUCED_MOTION.matches) {
     if ($loadingState) { $loadingState.style.display = 'none'; cleanupLoadingLogo(); }
     if ($dom.resultCard) {
@@ -146,34 +158,37 @@ export async function manifestResult(data) {
       $dom.resultCard.classList.remove('result-card--scaffold', 'result-card--loading');
     }
   } else {
-    if ($loadingState) {
-      resolveLogoToFound(data?.restaurant?.name);
-      _scaffoldTimers.push(setTimeout(() => {
-        $loadingState.classList.add('loading-state--fading');
-        _scaffoldTimers.push(setTimeout(() => {
-          $loadingState.style.display = 'none';
-          $loadingState.classList.remove('loading-state--fading');
-          cleanupLoadingLogo();
-        }, 300));
-      }, 450));
-    }
-
+    /* Wait for completion beat, then fade out loading and reveal result */
     _scaffoldTimers.push(setTimeout(() => {
-      if ($dom.resultCard) {
-        $dom.resultCard.style.display = '';
-        $dom.resultCard.classList.remove('result-card--scaffold', 'result-card--loading');
-        $dom.resultCard.classList.add('result-card--revealing');
-        $dom.resultCard.style.opacity = '1';
-
-        const $rName = $dom.resultCard.querySelector('.result-name');
-        if ($rName) $rName.classList.add('result-name--animated');
-
+      if ($loadingState) {
+        resolveLogoToFound(data?.restaurant?.name);
         _scaffoldTimers.push(setTimeout(() => {
-          $dom.resultCard.classList.remove('result-card--revealing');
-          if ($rName) $rName.classList.remove('result-name--animated');
-        }, 830));
+          $loadingState.classList.add('loading-state--fading');
+          _scaffoldTimers.push(setTimeout(() => {
+            $loadingState.style.display = 'none';
+            $loadingState.classList.remove('loading-state--fading');
+            cleanupLoadingLogo();
+          }, 300));
+        }, 450));
       }
-    }, 750));
+
+      _scaffoldTimers.push(setTimeout(() => {
+        if ($dom.resultCard) {
+          $dom.resultCard.style.display = '';
+          $dom.resultCard.classList.remove('result-card--scaffold', 'result-card--loading');
+          $dom.resultCard.classList.add('result-card--revealing');
+          $dom.resultCard.style.opacity = '1';
+
+          const $rName = $dom.resultCard.querySelector('.result-name');
+          if ($rName) $rName.classList.add('result-name--animated');
+
+          _scaffoldTimers.push(setTimeout(() => {
+            $dom.resultCard.classList.remove('result-card--revealing');
+            if ($rName) $rName.classList.remove('result-name--animated');
+          }, 830));
+        }
+      }, 750));
+    }, COMPLETION_DELAY));
   }
 
   haptic(HAPTICS.reveal);
@@ -256,7 +271,7 @@ export async function manifestResult(data) {
       });
       renderTier2Animations();
     }
-  }, REDUCED_MOTION.matches ? 0 : 900));
+  }, REDUCED_MOTION.matches ? 0 : 2200));
 
   _revealBlurb(data);
 
@@ -269,6 +284,9 @@ export async function manifestResult(data) {
   const arrowTimer = getArrowBounceTimer();
   if (arrowTimer) clearTimeout(arrowTimer);
   setArrowBounceTimer(setTimeout(() => {
+    /* Only bounce if Tier 2 is still collapsed */
+    const $tier2 = document.getElementById('tier-leanin');
+    if ($tier2 && $tier2.classList.contains('tier--expanded')) return;
     const $tellMore = document.getElementById('tell-more-btn');
     if ($tellMore && $tellMore.style.display !== 'none' && $tellMore.getAttribute('aria-expanded') !== 'true') {
       const $arrow = $tellMore.querySelector('.tell-more-btn__arrow');
