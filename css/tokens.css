@@ -118,18 +118,25 @@
 
   /* E1: Floating (header, footer, toast) */
   --glass-e1-blur:   16px;
+  --glass-e1-border: rgba(0,0,0,0.08); /* fallback for browsers without color-mix() */
   --glass-e1-border: color-mix(in srgb, var(--fg) 8%, transparent);
   --glass-e1-shadow: 0 4px 24px -8px var(--shadow);
 
   /* E2: Popout (badge popout, color popover, suggestions) */
   --glass-e2-blur:   24px;
+  --glass-e2-border: rgba(0,0,0,0.12); /* fallback */
   --glass-e2-border: color-mix(in srgb, var(--fg) 12%, transparent);
+  --glass-e2-shadow: 0 8px 32px -4px var(--shadow),
+                     0 0 0 0.5px rgba(0,0,0,0.06); /* fallback */
   --glass-e2-shadow: 0 8px 32px -4px var(--shadow),
                      0 0 0 0.5px color-mix(in srgb, var(--fg) 6%, transparent);
 
   /* E3: Modal (share sheet, lightbox, tile expand) */
   --glass-e3-blur:   32px;
+  --glass-e3-border: rgba(0,0,0,0.16); /* fallback */
   --glass-e3-border: color-mix(in srgb, var(--fg) 16%, transparent);
+  --glass-e3-shadow: 0 16px 48px -8px var(--shadow),
+                     0 0 0 0.5px rgba(0,0,0,0.10); /* fallback */
   --glass-e3-shadow: 0 16px 48px -8px var(--shadow),
                      0 0 0 0.5px color-mix(in srgb, var(--fg) 10%, transparent);
 
@@ -148,6 +155,7 @@
   --transition-spring: 300ms var(--spring);
 
   /* ---- Muted Foreground (fallback) ---- */
+  --fg4: rgba(128,128,128,0.5); /* fallback for browsers without color-mix() */
   --fg4: color-mix(in srgb, var(--fg3) 70%, var(--bg));
 
   /* ---- Layout ---- */
@@ -187,6 +195,26 @@
   --rag-amber-soft: oklch(0.70 0.17 85 / 0.18);
   --rag-red-soft:   oklch(0.60 0.15 340 / 0.18);
   --star-gold:      hsl(44 85% 52%);
+}
+
+/* ---- oklch() Fallback (Safari <15.4 / older browsers) ---- */
+@supports not (color: oklch(0 0 0)) {
+  [data-mode="light"] {
+    --rag-green: hsl(162 60% 38%);
+    --rag-green-soft: hsl(162 45% 90%);
+    --rag-amber: hsl(50 70% 50%);
+    --rag-amber-soft: hsl(50 55% 90%);
+    --rag-red: hsl(340 60% 45%);
+    --rag-red-soft: hsl(340 45% 90%);
+  }
+  [data-mode="dark"] {
+    --rag-green: hsl(162 50% 45%);
+    --rag-green-soft: hsl(162 30% 20%);
+    --rag-amber: hsl(50 60% 55%);
+    --rag-amber-soft: hsl(50 35% 20%);
+    --rag-red: hsl(340 50% 50%);
+    --rag-red-soft: hsl(340 30% 20%);
+  }
 }
 
 /* ---- Reduced Motion Override ---- */

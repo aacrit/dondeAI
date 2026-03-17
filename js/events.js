@@ -777,6 +777,12 @@ export function updateCtaState() {
   }
   if ($hint) {
     $hint.classList.toggle('cta-hint--visible', isEmpty);
+    // Dynamic hint text: show original prompt when empty, nudge to tap CTA when filled
+    if (isEmpty) {
+      $hint.textContent = "Type what you're craving to get started";
+    } else {
+      $hint.textContent = "Tap Find My Spot";
+    }
   }
 }
 
@@ -1683,6 +1689,9 @@ export function wireEvents(appCallbacks) {
         break;
 
       case 'close-lightbox':
+        // TODO: Lightbox alt text should include restaurant name for accessibility.
+        // Fix needed in render.js (owned by another agent) — pass restaurant name
+        // to lightbox image alt attributes when rendering photo gallery.
         closeLightbox();
         break;
 

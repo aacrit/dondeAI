@@ -543,6 +543,12 @@ export function getScoreThresholdColor(score) {
   // Dark:  red oklch(0.60 0.15 340), amber oklch(0.70 0.17 85), green oklch(0.65 0.15 162)
   const isDark = document.documentElement.dataset.mode === 'dark';
 
+  // Fallback for browsers without oklch() support (Safari <15.4, older Chrome/FF)
+  const supportsOklch = CSS.supports?.('color', 'oklch(0 0 0)') ?? false;
+  if (!supportsOklch) {
+    return _getScoreThresholdColorHsl(score, isDark);
+  }
+
   let L, C, H;
 
   if (score >= 80) {
@@ -576,6 +582,36 @@ export function getScoreThresholdColor(score) {
   }
 
   return `oklch(${L.toFixed(3)} ${C.toFixed(3)} ${H.toFixed(1)})`;
+}
+
+/**
+ * HSL fallback for getScoreThresholdColor when oklch() is unsupported.
+ * Maps the same RAG scale: red (340) -> amber (50) -> green (162).
+ */
+function _getScoreThresholdColorHsl(score, isDark) {
+  let h, s, l;
+
+  if (score >= 80) {
+    // green
+    h = 162;
+    s = isDark ? 50 : 60;
+    l = isDark ? 45 : 38;
+  } else if (score >= 60) {
+    // amber -> green
+    const t = (score - 60) / 20;
+    h = 50 + t * (162 - 50);
+    s = isDark ? (60 + t * (50 - 60)) : (70 + t * (60 - 70));
+    l = isDark ? (55 + t * (45 - 55)) : (50 + t * (38 - 50));
+  } else {
+    // red -> amber
+    const t = score / 60;
+    // Hue: 340 -> 50 (short path through 360/0)
+    h = (340 + t * 70) % 360;
+    s = isDark ? (50 + t * (60 - 50)) : (60 + t * (70 - 60));
+    l = isDark ? (50 + t * (55 - 50)) : (45 + t * (50 - 45));
+  }
+
+  return `hsl(${h.toFixed(0)} ${s.toFixed(0)}% ${l.toFixed(0)}%)`;
 }
 
 /**
