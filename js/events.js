@@ -1744,7 +1744,9 @@ export function wireEvents(appCallbacks) {
             $tier2.style.maxHeight = $tier2.scrollHeight + 'px';
           });
           haptic(HAPTICS.tierExpand);
-          renderTier2Animations();
+          // Delay score ring + factor bar animations until expand transition completes
+          // so the spring fill is visible (not hidden behind max-height: 0)
+          setTimeout(() => renderTier2Animations(), REDUCED_MOTION.matches ? 0 : 350);
           if (!REDUCED_MOTION.matches) {
             const $storyBlock = document.getElementById('restaurant-story');
             if ($storyBlock && $storyBlock.style.display !== 'none') {
