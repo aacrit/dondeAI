@@ -22,7 +22,7 @@ export function startVoice() {
   if (!SpeechRecognition || isListening) return;
 
   recognition = new SpeechRecognition();
-  recognition.lang = 'en-US';
+  recognition.lang = navigator.language || 'en-US';
   recognition.interimResults = false;
   recognition.maxAlternatives = 1;
 
