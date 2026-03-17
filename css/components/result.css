@@ -986,7 +986,7 @@
   line-height: 1.75;
   overflow-wrap: break-word;
   word-break: break-word;
-  padding-left: 0;
+  padding-left: 0.6em;
   min-width: 0;
   position: relative;
   /* V10: Full text flows naturally — no height cap */
@@ -1673,10 +1673,10 @@
 /* ---- Score Info Button ---- */
 .score-tile__info {
   position: absolute;
-  top: var(--space-xs);
-  right: var(--space-xs);
-  width: 24px;
-  height: 24px;
+  top: calc(var(--space-xs) - 10px);
+  right: calc(var(--space-xs) - 10px);
+  min-width: 44px;
+  min-height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1687,7 +1687,7 @@
   border-radius: 50%;
   transition: color var(--dur-fast) var(--ease-out),
               background var(--dur-fast) var(--ease-out);
-  padding: 0;
+  padding: 10px;
 }
 
 .score-tile__info:hover {

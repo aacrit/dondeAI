@@ -66,6 +66,6 @@ ul, ol {
 }
 
 ::selection {
-  background: var(--bg2);
-  color: var(--bg);
+  background: color-mix(in srgb, var(--ac) 25%, transparent);
+  color: var(--fg);
 }
