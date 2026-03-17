@@ -1836,13 +1836,12 @@ export function prepareTier2(data, cuisine) {
 
 /* ---- Tier 2 Animations ---- */
 export function renderTier2Animations() {
-  if (isTier2Animated()) return;
-  setTier2Animated(true);
   haptic(HAPTICS.scoreReveal);
 
   const data = getPendingResultData();
   if (!data) return;
 
+  // Always reset and replay — the score ring animation is the signature moment
   resetBloomState();
 
   renderScoreHero(

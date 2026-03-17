@@ -1789,13 +1789,19 @@ export function wireEvents(appCallbacks) {
   // Match Mini tap → toggle Tier 2
   document.getElementById('match-pill')?.addEventListener('click', () => {
     const $tellMore = document.getElementById('tell-more-btn');
-    if ($tellMore) {
-      $tellMore.click();
-    }
-    if ($tellMore && $tellMore.getAttribute('aria-expanded') === 'true') {
+    const $tier2 = document.getElementById('tier-leanin');
+    const isExpanded = $tier2?.classList.contains('tier--expanded');
+
+    if (isExpanded) {
+      // Already open — replay the score ring animation without toggling
+      resetBloomState();
+      renderTier2Animations();
       setTimeout(() => {
         document.getElementById('score-hero')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }, 300);
+    } else if ($tellMore) {
+      // Closed — expand (which triggers animation via expand-tier-2 handler)
+      $tellMore.click();
     }
     haptic(HAPTICS.tick);
   });
