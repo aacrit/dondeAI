@@ -50,9 +50,17 @@
   filter: blur(60px) saturate(0.85);
 }
 
-[data-theme="southamerican"] .ambient__blob--1 { opacity: 0.7; }
+[data-theme="southamerican"] .ambient__blob--1 {
+  opacity: 0.7;
+  animation: blobDrift 18s ease-in-out infinite alternate, sablorHueBreath 12s ease-in-out infinite;
+}
 [data-theme="southamerican"] .ambient__blob--2 { opacity: 0.6; }
 [data-theme="southamerican"] .ambient__blob--3 { opacity: 0.5; }
+
+@keyframes sablorHueBreath {
+  0%, 100% { filter: blur(60px) saturate(0.85); }
+  50% { filter: blur(60px) saturate(0.85) hue-rotate(8deg); }
+}
 
 /* ---- Dark Mode ---- */
 [data-theme="southamerican"][data-mode="dark"] {
@@ -76,8 +84,8 @@
   --glass:       hsl(340 10% 11% / 0.82);
   --glass-blur:  16px;
   --border:      hsl(340 8% 20%);
-  --shadow:      transparent;
-  --shadow-lg:   transparent;
+  --shadow:      hsl(355 14% 5% / 0.12);
+  --shadow-lg:   hsl(355 14% 5% / 0.18);
   --radius:      14px;
   --radius-sm:   8px;
   --radius-lg:   22px;

@@ -984,7 +984,8 @@
 .donde-blurb__text {
   font-size: clamp(1.0625rem, 2.5vw, 1.1875rem);
   color: var(--fg);
-  line-height: 1.75;
+  line-height: 1.65;
+  font-variant-numeric: oldstyle-nums;
   overflow-wrap: break-word;
   word-break: break-word;
   padding-left: 0.6em;
