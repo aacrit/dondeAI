@@ -57,7 +57,6 @@ const PRECACHE_URLS = [
   '/js/swipe-cards.js',
   '/js/taste-dna.js',
   '/js/conversational-search.js',
-  '/js/first-bite.js',
   '/img/icons.svg',
 ];
 

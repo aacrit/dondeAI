@@ -38,9 +38,10 @@ import {
 import {
   beginCanvasFold, manifestResult
 } from './transitions.js';
-import {
-  initFirstBite, syncFirstBiteVisibility
-} from './first-bite.js';
+// ARCHIVED: First Bite ambient onboarding — hardcoded restaurant cards compete with
+// the craving input and teach "browse" instead of "express." Smart chips serve this
+// role better. Revisit for personalized onboarding powered by taste history.
+// import { initFirstBite, syncFirstBiteVisibility } from './first-bite.js';
 
 
 /* ---- Global Timer Registry (CODE-8) ---- */
@@ -133,8 +134,7 @@ function init() {
   // V10: Render combined "Your Spots"
   renderYourSpots();
 
-  // First Bite: ambient onboarding — "Right now in Chicago" before user types
-  initFirstBite();
+  // ARCHIVED: First Bite — see import comment above
 
   // F9: Initialize anonymous user ID
   getOrCreateUserId();
@@ -231,7 +231,7 @@ function init() {
     }
     if (state.step !== prev.step || state.loading !== prev.loading
       || state.result !== prev.result || state.craving !== prev.craving) {
-      syncFirstBiteVisibility();
+      // syncFirstBiteVisibility(); // ARCHIVED
     }
     if (state.error !== prev.error && state.error) {
       showToast(state.error, true);
