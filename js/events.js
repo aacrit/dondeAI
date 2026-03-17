@@ -8,7 +8,7 @@ import {
   $dom, _escHtml, haptic, HAPTICS, pushTimer, clearAnimationTimers,
   setSwapInFlight, _swapInFlight, setCurrentAbort, currentAbort as getGlobalAbort,
   setPendingResultData, getPendingResultData, setPendingCuisine, getPendingCuisine,
-  isTier2Prepared, setTier2Prepared,
+  isTier2Prepared, setTier2Prepared, setTier2Animated,
   getArrowBounceTimer, setArrowBounceTimer,
   REDUCED_MOTION
 } from './globals.js';
@@ -45,6 +45,7 @@ import {
   beginCanvasFold, manifestResult, settleResult, reverseCanvasFold,
   unfoldResultToCanvas, animateScoreCountUp, _fireTieredCelebration
 } from './transitions.js';
+import { resetBloomState } from './animations.js';
 
 /* ---- Module-local state ---- */
 let _canvasPhase = 'minimal';
@@ -1743,7 +1744,9 @@ export function wireEvents(appCallbacks) {
             $tier2.style.maxHeight = $tier2.scrollHeight + 'px';
           });
           haptic(HAPTICS.tierExpand);
-          renderTier2Animations();
+          // Delay score ring + factor bar animations until expand transition completes
+          // so the spring fill is visible (not hidden behind max-height: 0)
+          setTimeout(() => renderTier2Animations(), REDUCED_MOTION.matches ? 0 : 350);
           if (!REDUCED_MOTION.matches) {
             const $storyBlock = document.getElementById('restaurant-story');
             if ($storyBlock && $storyBlock.style.display !== 'none') {
@@ -1763,6 +1766,9 @@ export function wireEvents(appCallbacks) {
           announce('Showing match details');
         } else {
           haptic(HAPTICS.tick);
+          // Reset animation state so re-expanding replays score ring + factor bars
+          setTier2Animated(false);
+          resetBloomState();
           $tier2.style.willChange = 'max-height, opacity';
           $tier2.style.maxHeight = $tier2.scrollHeight + 'px';
           void $tier2.offsetHeight;
