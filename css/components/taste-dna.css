@@ -710,7 +710,7 @@
 }
 
 /* ---- Responsive ---- */
-@media (max-width: 380px) {
+@media (max-width: 479px) {
   .dna-stats {
     grid-template-columns: repeat(2, 1fr);
   }

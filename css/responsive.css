@@ -40,6 +40,48 @@
   .header__divider {
     height: 16px;
   }
+
+  /* Fix 3.3: Match-mini arc — smaller on very narrow screens */
+  .match-mini__arc {
+    width: 48px;
+    height: 48px;
+  }
+}
+
+/* ---- 480px: Small mobile overrides ---- */
+@media (max-width: 479px) {
+  /* Fix 1.4: Glance context pills — horizontal scroll instead of wrapping */
+  .glance-context {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .glance-context::-webkit-scrollbar { display: none; }
+  .glance-context__pill { flex-shrink: 0; }
+
+  /* Fix 1.5: Quick actions — horizontal scroll instead of wrapping */
+  .quick-actions {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: var(--space-xs);
+  }
+  .quick-actions::-webkit-scrollbar { display: none; }
+
+  /* Fix 2.2: Share sheet grid — 3 columns on mobile */
+  .share-grid { grid-template-columns: repeat(3, 1fr); }
+
+  /* Fix 2.4: Tile expand score ring — smaller on mobile */
+  .tile-expand__content .score-ring-wrap { width: 120px; height: 120px; }
+
+  /* Fix 3.2: Occasion strip — scroll affordance with fade mask */
+  .occasion-strip {
+    justify-content: flex-start;
+    mask-image: linear-gradient(to right, black calc(100% - 32px), transparent);
+    -webkit-mask-image: linear-gradient(to right, black calc(100% - 32px), transparent);
+  }
 }
 
 /* ---- 375px: Primary mobile target ---- */
@@ -234,6 +276,31 @@ a[href],
   min-width: 44px;
 }
 
+/* ---- Mobile layout overrides (max-width: 767px) ---- */
+@media (max-width: 767px) {
+  /* Fix 1.1: Result card — tighter padding to reclaim ~17px per side */
+  .result-card { padding: var(--space-sm); }
+  .result-photos { margin: calc(-1 * var(--space-sm)) calc(-1 * var(--space-sm)) 0; }
+
+  /* Fix 1.2: Restaurant name — cap font size to prevent overflow */
+  .result-name { font-size: var(--text-md); }
+
+  /* Fix 1.6: Canvas layout — tighter padding on mobile */
+  .canvas-layout { padding: var(--space-xs); }
+
+  /* Fix 2.1: Badge popout — viewport-aware max-width */
+  .badge-popout { max-width: min(220px, calc(100vw - 2 * var(--space-md))); }
+
+  /* Fix 3.1: Cuisine chips panel — cap height with scroll */
+  .cuisine-chips__panel--open { max-height: 200px; overflow-y: auto; }
+
+  /* Fix 3.4: Step inner — reduce vertical gap */
+  .step__inner { gap: var(--space-sm); }
+
+  /* Fix 3.5: Tier spacing — tighter on mobile */
+  .tier { gap: var(--space-sm); }
+}
+
 /* ---- F-008: Minimum font size floor on mobile ---- */
 @media (max-width: 767px) {
   .type-data--sm,
@@ -244,7 +311,22 @@ a[href],
   .factor-bar__label,
   .factor-bar__value,
   .profile-fact__label,
-  .profile-fact__value {
+  .profile-fact__value,
+  .glance-context__pill,
+  .info-stream__pill,
+  .cuisine-chips__chip,
+  .cuisine-chips__dish-name,
+  .badge-popout__pill,
+  .badge-popout__item,
+  .hours-table__row,
+  .hours-table__day,
+  .hours-table__time,
+  .utility-pill,
+  .match-mini__verdict,
+  .match-mini__hint,
+  .match-mini__tm,
+  .info-stream__secondary,
+  .info-stream__meta {
     font-size: max(12px, var(--text-xs, 0.75rem));
   }
 }
