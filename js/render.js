@@ -1595,15 +1595,7 @@ function renderCuisineDetails(data) {
     chipDefs.push({ label: 'Awards', icon: 'starFull', body: bodyHTML });
   }
 
-  // --- Similar ---
-  if (dp.comparable_restaurants?.length) {
-    const bodyHTML = `<div class="cuisine-chips__items">${
-      dp.comparable_restaurants.slice(0, 4).map((c, i) =>
-        `<span class="cuisine-chips__item" style="animation-delay:${i * 30}ms">${_escHtml(c)}</span>`
-      ).join('')
-    }</div>`;
-    chipDefs.push({ label: 'Similar', icon: 'heart', body: bodyHTML });
-  }
+  // Similar section removed — declutter
 
   if (chipDefs.length === 0) {
     $container.style.display = 'none';
@@ -1788,12 +1780,7 @@ export function prepareTier2(data, cuisine) {
     data.match_narrative || null
   );
 
-  try {
-    const $formulaContainer = document.getElementById('score-hero-formula');
-    if ($formulaContainer && data.scoring_v9) {
-      renderRelevanceGate(data.scoring_v9, $formulaContainer, [], data.intent_boost || null);
-    }
-  } catch (e) { console.warn('V9 formula row render failed:', e); }
+  // Formula/relevance gate removed — declutter score hero
 
   const $story = document.getElementById('restaurant-story');
   const $storyOrigin = document.getElementById('story-origin-text');
