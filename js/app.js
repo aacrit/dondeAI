@@ -6,6 +6,7 @@
    ============================================ */
 
 import { getState, setState, subscribe } from './state.js';
+import { DEBUG } from './config.js';
 import { initRouter } from './router.js';
 import { loadTheme, loadSound, loadHistory, hasGuestDismissed, hasSeenOnboarding, setOnboardingSeen, getOrCreateUserId } from './persistence.js';
 import { initTheme, getLabels } from './theme.js';
@@ -29,7 +30,6 @@ import { initConversationalSearch, patchVoiceForConversational } from './convers
 import {
   renderSmartChips, closeSuggestions,
   startCanvasDisclosure, wireEvents, wireCravingInput, wireSwipe,
-  updateCtaState
 } from './events.js';
 import {
   renderYourSpots,
@@ -46,8 +46,16 @@ import {
 } from './first-bite.js';
 
 
+/* ---- Global Timer Registry (CODE-8) ---- */
+const _timerRegistry = new Set();
+function registerInterval(fn, delay) { const id = setInterval(fn, delay); _timerRegistry.add(id); return id; }
+function unregisterInterval(id) { if (id != null) { clearInterval(id); _timerRegistry.delete(id); } }
+function clearAllTimers() { for (const id of _timerRegistry) clearInterval(id); _timerRegistry.clear(); }
+
 /* ---- Initialize ---- */
 function init() {
+  // Clean up any prior timers (safe for first init too)
+  clearAllTimers();
   // Initialize cached DOM references (must be first)
   initDomRefs();
 
@@ -192,16 +200,13 @@ function init() {
   }
 
   // Subscribe to state changes
-  let _resultCount = 0;
+  // UX-2: Auth prompt moved to events.js (triggers on bookmark/like/going-here)
   subscribe((state, prev) => {
     if (state.result !== prev.result && state.result) {
       if (prev.loading || $dom.resultCard?.classList.contains('result-card--scaffold')) {
         manifestResult(state.result);
       }
-      _resultCount++;
-      if (_resultCount >= 4 && !isAuthAuthenticated() && !hasGuestDismissed()) {
-        setTimeout(() => openAuthSheet(), 600);
-      }
+      // UX-7: Show swipe hint after first result appears
     }
     if (state.loading !== prev.loading && state.loading) {
       beginCanvasFold();
@@ -297,7 +302,7 @@ let greetingRotationTimer = null;
 
 function startGreetingRotation() {
   stopGreetingRotation();
-  greetingRotationTimer = setInterval(() => {
+  greetingRotationTimer = registerInterval(() => {
     const state = getState();
     if (state.step !== 0 || state.loading || state.craving.trim()) return;
     const $greeting = document.querySelector('[data-step="0"] .step__title');
@@ -315,7 +320,7 @@ function startGreetingRotation() {
 
 function stopGreetingRotation() {
   if (greetingRotationTimer) {
-    clearInterval(greetingRotationTimer);
+    unregisterInterval(greetingRotationTimer);
     greetingRotationTimer = null;
   }
 }
@@ -456,10 +461,14 @@ function showCoachMarks() {
   coachMarkStep = 0;
   showCoachStep();
   const autoDismiss = () => dismissAllCoachMarks();
+  // UX-6: Dismiss on any user interaction (click, tap, or input)
   $dom.cravingInput?.addEventListener('input', autoDismiss, { once: true });
+  document.addEventListener('click', autoDismiss, { once: true });
+  document.addEventListener('touchstart', autoDismiss, { once: true, passive: true });
+  // UX-6: Increased auto-dismiss from 10s to 20s
   setTimeout(() => {
     if (coachMarkStep < COACH_STEPS.length) dismissAllCoachMarks();
-  }, 10000);
+  }, 20000);
 }
 
 function showCoachStep() {
@@ -623,14 +632,14 @@ function initLivingPlaceholder() {
     }, 300);
   };
 
-  _placeholderTimer = setInterval(cycle, 4000);
+  _placeholderTimer = registerInterval(cycle, 4000);
 
   // Stop cycling on focus, resume on blur
   $input.addEventListener('focus', () => {
-    if (_placeholderTimer) { clearInterval(_placeholderTimer); _placeholderTimer = null; }
+    if (_placeholderTimer) { _placeholderTimer != null && unregisterInterval(_placeholderTimer); _placeholderTimer = null; }
   });
   $input.addEventListener('blur', () => {
-    if (!_placeholderTimer) _placeholderTimer = setInterval(cycle, 4000);
+    if (!_placeholderTimer) _placeholderTimer = registerInterval(cycle, 4000);
   });
 }
 

@@ -6,10 +6,9 @@
    ============================================ */
 
 import { getAccessToken } from './auth.js';
+import { SUPABASE_URL, ANON_KEY } from './config.js';
 
-const ENDPOINT = 'https://vwbzkgsxmgwcvmvuxnbe.supabase.co/functions/v1/recommend';
-const SUPABASE_URL = 'https://vwbzkgsxmgwcvmvuxnbe.supabase.co';
-const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3YnprZ3N4bWd3Y3ZtdnV4bmJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk5NjUzNTYsImV4cCI6MjA4NTU0MTM1Nn0.YBhmusYxc28TD5FOZv4TBpFpDVHHk1V894wUkNtJtcc';
+const ENDPOINT = SUPABASE_URL + '/functions/v1/recommend';
 const TIMEOUT_MS = 15000;
 
 // I3: Map frontend time periods to backend time_of_day values
@@ -30,7 +29,6 @@ export async function sendFeedback(restaurantId, feedback, userId) {
   let authToken = null;
   try { authToken = await getAccessToken(); } catch { /* ok */ }
   const bearerToken = authToken || ANON_KEY;
-  // Use Supabase REST API to update user_queries directly
   try {
     await fetch(
       `${SUPABASE_URL}/rest/v1/user_queries?recommended_restaurant_id=eq.${restaurantId}&user_id=eq.${userId}&order=created_at.desc&limit=1`,
@@ -45,7 +43,7 @@ export async function sendFeedback(restaurantId, feedback, userId) {
         body: JSON.stringify({ feedback }),
       }
     );
-  } catch { /* fire-and-forget — localStorage is the fallback */ }
+  } catch { /* fire-and-forget */ }
 }
 
 /**
@@ -95,11 +93,7 @@ export async function sendAppFeedback(category, message, userId) {
         'apikey': ANON_KEY,
         'Prefer': 'return=minimal',
       },
-      body: JSON.stringify({
-        user_id: userId,
-        category,
-        message,
-      }),
+      body: JSON.stringify({ user_id: userId, category, message }),
     });
   } catch { /* fire-and-forget */ }
 }
@@ -111,14 +105,12 @@ export async function fetchRecommendation({ special_request, occasion, neighborh
   if (user_id) body.user_id = user_id;
   if (feedback) body.feedback = feedback;
   if (open_now === true) body.open_now = true;
-  body.time_of_day = getBackendTimeOfDay(); // I3/B2: Send client time context
+  body.time_of_day = getBackendTimeOfDay();
 
-  // SSO: Use user JWT when authenticated, anon key otherwise
   let authToken = null;
   try { authToken = await getAccessToken(); } catch { /* auth module not loaded yet */ }
   const bearerToken = authToken || ANON_KEY;
 
-  // Single retry for transient network failures
   const MAX_ATTEMPTS = 2;
   const RETRY_DELAY = 1500;
 
@@ -137,67 +129,36 @@ export async function fetchRecommendation({ special_request, occasion, neighborh
         body: JSON.stringify(body),
         signal: controller.signal,
       });
-
       clearTimeout(timer);
 
-      // Retry on 503 (Edge Function cold start / boot failure)
       if (res.status === 503 && attempt < MAX_ATTEMPTS) {
         await new Promise(r => setTimeout(r, RETRY_DELAY));
         continue;
       }
-
-      if (!res.ok) {
-        throw new Error(`Server returned ${res.status}. Please try again.`);
-      }
+      if (!res.ok) throw new Error(`Server returned ${res.status}. Please try again.`);
 
       const data = await res.json();
+      if (!data.success) throw new Error(data.recommendation || 'Something went wrong. Please try again.');
 
-      if (!data.success) {
-        throw new Error(data.recommendation || 'Something went wrong. Please try again.');
-      }
-
-      // V9: Normalize scoring
-      if (data.scoring_v9) {
-        data.scoring = data.scoring_v9;
-      }
-
-      // V9: Parse intent_boost (default to inactive)
-      if (!data.intent_boost) {
-        data.intent_boost = { active: false };
-      }
-
-      // V9: Extract ranked queue for instant "Try Again"
+      if (data.scoring_v9) data.scoring = data.scoring_v9;
+      if (!data.intent_boost) data.intent_boost = { active: false };
       if (data.ranked_queue && Array.isArray(data.ranked_queue)) {
         for (const item of data.ranked_queue) {
           if (item.scoring_v9) item.scoring = item.scoring_v9;
         }
       }
-
       return data;
     } catch (err) {
       clearTimeout(timer);
-
-      if (err.name === 'AbortError') {
-        throw new Error('Request timed out. Please try again.');
-      }
-
+      if (err.name === 'AbortError') throw new Error('Request timed out. Please try again.');
       const isNetworkError = err.message.includes('Failed to fetch') || err.message.includes('NetworkError');
-      if (isNetworkError && attempt < MAX_ATTEMPTS) {
-        await new Promise(r => setTimeout(r, RETRY_DELAY));
-        continue;
-      }
-      if (isNetworkError) {
-        throw new Error("Couldn't reach the engine. Check your connection.");
-      }
+      if (isNetworkError && attempt < MAX_ATTEMPTS) { await new Promise(r => setTimeout(r, RETRY_DELAY)); continue; }
+      if (isNetworkError) throw new Error("Couldn't reach the engine. Check your connection.");
       throw err;
     }
   }
 }
 
-/**
- * V8.8: Fetch a fresh Claude blurb for a Try Again queue item.
- * Lazy API call — fires on Try Again click, ~500ms response time.
- */
 const BLURB_ENDPOINT = ENDPOINT + '/blurb';
 const BLURB_TIMEOUT_MS = 8000;
 
@@ -220,18 +181,10 @@ export async function fetchBlurb({ restaurant_data, context }) {
       body: JSON.stringify({ restaurant_data, context }),
       signal: controller.signal,
     });
-
     clearTimeout(timer);
-
-    if (!res.ok) {
-      throw new Error(`Blurb API returned ${res.status}`);
-    }
-
+    if (!res.ok) throw new Error(`Blurb API returned ${res.status}`);
     const data = await res.json();
-    if (!data.success) {
-      throw new Error(data.error || 'Blurb generation failed');
-    }
-
+    if (!data.success) throw new Error(data.error || 'Blurb generation failed');
     return data;
   } catch (err) {
     clearTimeout(timer);
