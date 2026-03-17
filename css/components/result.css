@@ -97,13 +97,13 @@
 .tier--leanin.tier--expanded {
   opacity: 1;
   pointer-events: auto;
-  padding-top: var(--space-md);
-  margin-top: var(--space-sm);
+  padding-top: var(--space-sm);
+  margin-top: 0;
 }
 
 /* Spacing between Tier 2 sections — consistent rhythm */
 .tier--leanin > * + * {
-  margin-top: var(--space-sm);
+  margin-top: var(--space-md);
 }
 
 /* ── Glance Hero — badge left, name+oneliner right ── */
@@ -518,7 +518,6 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-xs);
-  padding-top: var(--space-xs);
 }
 
 /* ---- Chip Row ---- */
@@ -919,7 +918,6 @@
   flex-wrap: wrap;
   justify-content: flex-start;
   gap: var(--space-2xs);
-  padding-top: var(--space-xs);
 }
 .utility-pill {
   display: inline-flex;
@@ -956,11 +954,11 @@
 
 /* ── Match Signal — strongest factor callout (Ink Rule: neutral, no accent) ── */
 .match-signal {
-  color: var(--text-secondary);
-  font-size: 0.75rem;
+  color: var(--fg3);
+  font-size: var(--text-xs);
   letter-spacing: 0.02em;
-  padding: 0 var(--space-md);
-  margin: calc(-1 * var(--space-xs)) 0 var(--space-xs);
+  padding: 0;
+  margin: calc(-1 * var(--space-xs)) 0 0;
   opacity: 0.7;
 }
 
@@ -969,7 +967,6 @@
   position: relative;
   display: block;
   padding: 0;
-  padding-bottom: var(--space-xs);
   background: none;
   border: none;
   border-radius: 0;
@@ -988,7 +985,7 @@
   font-variant-numeric: oldstyle-nums;
   overflow-wrap: break-word;
   word-break: break-word;
-  padding-left: 0.6em;
+  padding-left: 0.75em;
   min-width: 0;
   position: relative;
   /* V10: Full text flows naturally — no height cap */
@@ -1159,8 +1156,8 @@
   align-items: center;
   align-self: center;
   gap: var(--space-2xs);
-  padding: var(--space-xs) var(--space-md);
-  margin-top: var(--space-sm);
+  padding: var(--space-sm) var(--space-lg);
+  margin-top: 0;
   background: var(--bg2);
   border: 1px solid var(--border);
   border-radius: var(--radius-pill);
@@ -1437,9 +1434,6 @@
 .reserve-popout__phone:hover {
   color: var(--fg2);
 }
-.glance-context__pill--static::after {
-  display: none;
-}
 
 /* ---- Unique Selling Point ---- */
 .result-usp {
@@ -1458,8 +1452,7 @@
 .info-stream {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3xs);
-  padding-top: var(--space-xs);
+  gap: var(--space-2xs);
 }
 
 /* ── Primary row: interactive context pills ── */
@@ -1526,7 +1519,7 @@
   font-size: var(--text-2xs);
   font-family: var(--font-data);
   color: var(--fg3);
-  line-height: 1.6;
+  line-height: 1.5;
   overflow: hidden;
 }
 
@@ -1887,7 +1880,7 @@
 .score-hero__signals {
   display: flex;
   flex-wrap: wrap;
-  justify-content: flex-start;
+  justify-content: center;
   gap: 6px;
   max-width: 360px;
 }
@@ -1927,7 +1920,7 @@
 .v9-formula-row {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: center;
   gap: var(--space-2xs);
   margin: 0;
   overflow: visible;
@@ -2106,7 +2099,6 @@
   opacity: 0;
   transition: opacity 250ms var(--ease-out);
 }
-}
 
 /* (Brand, center, callout CSS removed — replaced by ring-wrap layout above) */
 
@@ -2213,7 +2205,7 @@
 }
 
 .factor-bars__list {
-  padding-top: var(--space-sm);
+  padding-top: var(--space-xs);
   display: grid;
   grid-template-columns: 1fr;
   gap: 0;
@@ -2803,7 +2795,7 @@
 /* ---- Restaurant Story (merged Insider Tip + Origin) ---- */
 /* ---- Story & Insider Tip (facelift) ---- */
 .restaurant-story {
-  padding: var(--space-xs) 0;
+  padding: 0;
 }
 
 .restaurant-story__label {
@@ -2811,7 +2803,7 @@
   color: var(--ac);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  margin-bottom: var(--space-sm);
+  margin-bottom: var(--space-xs);
   font-size: var(--text-2xs, 10px);
 }
 
@@ -2826,7 +2818,7 @@
   color: var(--fg2);
   font-family: var(--font-emotional);
   font-style: normal;
-  line-height: 1.8;
+  line-height: 1.65;
   font-size: var(--text-sm);
   position: relative;
   padding-left: var(--space-md);
@@ -2877,7 +2869,7 @@
 .restaurant-story__tip {
   font-size: var(--text-xs);
   color: var(--fg2);
-  line-height: 1.6;
+  line-height: 1.5;
   margin: 0;
   transition: opacity 400ms var(--ease-out), transform 400ms var(--ease-out);
 }
@@ -2923,9 +2915,6 @@
 }
 
 @media (max-width: 767px) {
-  .restaurant-story {
-    padding: var(--space-xs) 0;
-  }
   .restaurant-story__origin {
     padding-left: var(--space-sm);
   }
@@ -3089,9 +3078,10 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-xs);
+  gap: var(--space-sm);
   width: 100%;
-  padding-top: var(--space-sm);
+  padding-top: var(--space-xs);
+  border-top: 1px solid var(--border);
 }
 
 /* Secondary row: feedback + start over */
