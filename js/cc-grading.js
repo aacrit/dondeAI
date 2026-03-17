@@ -130,17 +130,29 @@ function computeScoreFitGrade(query, response) {
   const relType = (scoring.relevance_type || '').toLowerCase();
   let relPoints = 0;
 
+  // V19: bug-fixer — detect reputation keywords in query to accept reputation rel_type
+  // for dish/cuisine queries. "best burger" has both dish AND reputation intent;
+  // the engine correctly routes through the reputation path, so grading should not penalize.
+  const queryHasReputation = /\bbest\b|\btop rated\b|\bmichelin\b|\bjames beard\b|\baward/i.test(query);
+
   if (intent.type === 'dish') {
     if (relType === 'dish' || relType === 'dish_match') relPoints = 30;
     else if (relType === 'cuisine' || relType === 'cuisine_match') relPoints = 15;
+    // V19: bug-fixer — "best burger" → reputation type is valid (dish + reputation intent)
+    else if (relType === 'reputation' && queryHasReputation) relPoints = 20;
     else relPoints = 5;
   } else if (intent.type === 'cuisine') {
     if (relType === 'cuisine' || relType === 'cuisine_match') relPoints = 30;
     else if (relType === 'dish' || relType === 'dish_match') relPoints = 15;
+    // V19: bug-fixer — "best pasta in the city" → reputation type is valid
+    else if (relType === 'reputation' && queryHasReputation) relPoints = 20;
     else relPoints = 5;
   } else if (intent.type === 'vibe') {
     if (relType === 'vibe' || relType.includes('vibe') || relType.includes('atmosphere')) relPoints = 30;
     else if (relType.includes('semantic') || relType.includes('concept')) relPoints = 20;
+    // V19: bug-fixer — "wine bar", "tiki bar" are both vibe AND cuisine concepts;
+    // the engine may return cuisine rel_type which is partially valid for vibe queries
+    else if (relType === 'cuisine' || relType === 'cuisine_match') relPoints = 20;
     else relPoints = 10;
   } else if (intent.type === 'service') {
     // V17: Accept "vibe" as valid for service queries — the engine's CONCEPT_MAP treats
@@ -289,8 +301,34 @@ function computeBlurbQualityGrade(query, response) {
   const restaurant = response.restaurant || {};
 
   // --- Check 1: Slop-free (25 pts) ---
-  const slopHits = (typeof BANNED_PATTERNS !== 'undefined' ? BANNED_PATTERNS : [])
-    .filter(p => blurbLower.includes(p.toLowerCase()));
+  const BANNED_PATTERNS = [
+    'hidden gem', 'best-kept secret', 'culinary journey', 'taste buds', 'flavor explosion',
+    'mouthwatering', 'delectable', 'delightful', 'exquisite', 'impeccable', 'nestled',
+    'tucked away', 'foodie', 'gastronomic', 'epicurean', 'palate', 'tantalizing',
+    'sumptuous', 'delicacy', 'indulge', 'savor every', 'feast for', 'a cut above',
+    'second to none', 'worth every penny', 'not to be missed', 'a must-visit',
+    "you won't regret", 'look no further', 'stands out from', 'elevate your',
+    'take your taste', 'redefine', 'reimagine', 'transcend', 'next level',
+    'game changer', 'game-changer', 'blown away', 'pleasantly surprised',
+    'exceeded expectations', "won't disappoint", 'never disappoints', 'consistently delivers',
+    'truly special', 'something special', 'one-of-a-kind', 'like no other',
+    'in the heart of', 'bustling', 'vibrant scene', 'warm and inviting',
+    'cozy atmosphere', 'welcoming ambiance', 'rustic charm', 'elegant setting',
+    'step into', 'transport you', 'whisk you away', 'escape to',
+    'perfect blend', 'harmonious', 'symphony of', 'dance of flavors',
+    'artfully crafted', 'lovingly prepared', 'passion for', 'dedication to',
+    'attention to detail', 'craft', 'artisan',
+    '\u2014',
+    // V20: Expanded anti-slop patterns
+    "it's worth noting", "it's no surprise", 'pairs perfectly', 'hits different',
+    'chef-driven', 'locally sourced', 'seasonal ingredients', 'warm hospitality',
+    'inviting atmosphere', 'culinary prowess', 'flavor profile', 'price point',
+    'farm-to-table', 'nose-to-tail', 'thoughtfully curated', 'carefully selected',
+    'hand-picked', 'each dish tells', 'every plate is', 'a celebration of',
+    'pays homage', 'takes you on', 'where every bite', 'where every dish', 'where every plate', 'more than just',
+    'the star of the show', 'steal the show', 'take center stage',
+  ];
+  const slopHits = BANNED_PATTERNS.filter(p => blurbLower.includes(p.toLowerCase()));
   let slopPoints;
   if (slopHits.length === 0) slopPoints = 25;
   else if (slopHits.length === 1) slopPoints = 15;
@@ -304,7 +342,7 @@ function computeBlurbQualityGrade(query, response) {
   const stopWords = [
     'best', 'good', 'great', 'nice', 'find', 'want', 'looking', 'near',
     'restaurant', 'food', 'place', 'chicago', 'partnership', 'close',
-    'financial', 'area', 'spot', 'around', 'dinner', 'lunch', 'breakfast',
+    'financial', 'area', 'spot', 'around', 'dinner', 'lunch',
     'meal', 'dining', 'really', 'like', 'just', 'that', 'this', 'with',
     'from', 'have', 'very', 'some', 'what', 'where', 'here', 'there',
     // V15: Additional stop words — too generic to expect in blurbs
@@ -313,20 +351,24 @@ function computeBlurbQualityGrade(query, response) {
     'vegan', 'gluten', 'free', 'outdoor', 'patio', 'byob',
     // V17: Additional stop words — generic qualifiers and common query terms
     'open', 'sunday', 'walk', 'star', 'michelin', 'james', 'beard',
-    'celebration', 'birthday', 'date', 'prix', 'fixe',
+    'celebration', 'birthday', 'date',
     // V18: Additional stop words for common query patterns
-    'quick', 'fast', 'large', 'party', 'private', 'room', 'bottomless',
-    'style', 'power', 'craft', 'bar', 'wrigley', 'field', 'loop',
+    'quick', 'fast', 'large', 'party', 'private', 'room',
+    'style', 'power', 'wrigley', 'field', 'loop',
     'korean', 'cuban', 'taiwanese', 'szechuan', 'somali', 'nepalese',
     'nigerian', 'senegalese', 'eritrean',
-    // V19: bug-fixer — additional stop words for golden dataset query patterns
-    'tiki', 'dive', 'sports', 'jazz', 'karaoke', 'speakeasy',
-    'rooftop', 'river', 'north', 'logan', 'square', 'west',
-    'smash', 'deep', 'dish', 'soup', 'hand', 'rolls', 'grain',
-    'bowl', 'lobster', 'bisque', 'charcuterie', 'board', 'truffle',
-    'jerk', 'chicken', 'acai', 'fondue', 'hot',
+    // V19: stop words for golden dataset query patterns
+    'river', 'north', 'logan', 'square', 'west',
+    'deep', 'hand', 'rolls',
+    'board',
     'valet', 'wifi', 'friendly', 'seating', 'parking',
-    'tasting', 'menu', 'brunch', 'omakase',
+    // V20: Removed from stop words to FIX 4 golden dataset WARNs:
+    // "brunch", "tasting", "menu", "prix", "fixe", "bottomless", "fried", "chicken",
+    // "breakfast", "omakase" — these are specific enough to expect in blurbs.
+    // Also removed: "bar", "craft", "dive", "sports", "jazz", "karaoke", "speakeasy",
+    // "rooftop", "tiki", "smash", "dish", "soup", "grain", "bowl", "lobster",
+    // "bisque", "charcuterie", "truffle", "jerk", "acai", "fondue", "hot"
+    // These domain-specific terms SHOULD count toward query relevance.
   ];
   let significantWords = queryWords.filter(w => !stopWords.includes(w));
 
@@ -432,11 +474,26 @@ function computeBlurbQualityGrade(query, response) {
   total += specificityPoints;
   details.push({ check: 'Specificity', points: specificityPoints, max: 20, note: specificitySignals.join(', ') || 'generic' });
 
-  // --- Check 4: Voice compliance — "we"/"our" (15 pts) ---
-  const hasVoice = /\bwe\b|\bour\b/i.test(blurb);
-  const voicePoints = hasVoice ? 15 : 0;
+  // --- Check 4: Voice compliance — flexible Donde voice identity (15 pts) ---
+  // V21: Flexible voice — "we/our" is the primary signal, but strong Donde personality
+  // markers also count (imperatives, opinionated closers, attitude phrases).
+  const hasWeOur = /\bwe\b|\bour\b/i.test(blurb);
+  const DONDE_VOICE_MARKERS = [
+    'worth the trip', 'worth the drive', 'worth the wait', 'worth the line',
+    'go.', 'come hungry', 'bring someone', 'bring people', "don't skip",
+    "don't miss", "don't argue", "don't overthink", 'order two',
+    'trust us', 'the move', 'the call', 'the one',
+    'come back', 'keep coming back', 'keep sending people',
+    'not the prettiest', "doesn't need to be", "that's the pitch",
+    "that's the review", "that's the compliment",
+  ];
+  const hasVoiceMarkers = DONDE_VOICE_MARKERS.some(m => blurbLower.includes(m));
+  let voicePoints;
+  if (hasWeOur) voicePoints = 15;
+  else if (hasVoiceMarkers) voicePoints = 10;
+  else voicePoints = 0;
   total += voicePoints;
-  details.push({ check: 'Voice (we/our)', points: voicePoints, max: 15, note: hasVoice ? 'compliant' : 'missing' });
+  details.push({ check: 'Voice (we/our)', points: voicePoints, max: 15, note: hasWeOur ? 'compliant' : hasVoiceMarkers ? 'voice markers' : 'missing' });
 
   // --- Check 5: Word count (15 pts) ---
   const wordCount = blurb.split(/\s+/).filter(w => w.length > 0).length;
@@ -450,7 +507,7 @@ function computeBlurbQualityGrade(query, response) {
   details.push({ check: 'Word count', points: wordPoints, max: 15, note: `${wordCount} words` });
 
   const grade = letterGrade(total);
-  return { score: total, grade, details, slopHits, wordCount, hasVoice };
+  return { score: total, grade, details, slopHits, wordCount, hasVoice: hasWeOur };
 }
 
 // ═══════════════════════════════════════════════════════════════════
