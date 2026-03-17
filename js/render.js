@@ -34,6 +34,33 @@ const BLURB_REVEAL_GATE_MS = 1200;
 let _peekShown = false;
 let toastTimer = null;
 
+/* ---- Late Night Sympathy Loading Prefix (1:00 AM – 4:59 AM Chicago time) ---- */
+const _lateNightPhrases = [
+  "Still up? Same. Finding your",
+  "3 AM hunger is real. Finding your",
+  "The best decisions happen now. Finding your",
+  "The city sleeps. Your hunger doesn't. Finding your"
+];
+
+/**
+ * Returns the loading text for the search state.
+ * Between 1:00 AM and 4:59 AM (local time), returns a late-night sympathy
+ * prefix instead of the standard "Finding your". Also truncates long
+ * cravings (>50 chars) with ellipsis to prevent overflow on narrow screens.
+ *
+ * @param {string} craving - The user's search query
+ * @returns {string} HTML string for the loading text
+ */
+export function getLoadingText(craving) {
+  const displayCraving = craving.length > 50 ? craving.substring(0, 47) + '...' : craving;
+  const hour = new Date().getHours();
+  let prefix = 'Finding your';
+  if (hour >= 1 && hour < 5) {
+    prefix = _lateNightPhrases[Math.floor(Math.random() * _lateNightPhrases.length)];
+  }
+  return `${prefix} <em class="loading-state__craving">${_escHtml(displayCraving)}</em>...`;
+}
+
 /* ---- Culture-Aware Toast Strings ---- */
 export function toasts() {
   return getLabels(getState().theme.culture).toasts;

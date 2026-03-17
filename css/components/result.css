@@ -1057,9 +1057,9 @@
   opacity: 1;
 }
 
-/* Ink-reveal for blurb text (first appearance) */
+/* Ink-reveal for blurb text (first appearance) — 1200ms ink-write reveal */
 .donde-blurb__text--revealing {
-  animation: inkReveal 600ms cubic-bezier(0.2, 1, 0.4, 1) forwards;
+  animation: inkReveal 1200ms var(--ease-out, cubic-bezier(0.2, 1, 0.4, 1)) forwards;
 }
 
 @media (prefers-reduced-motion: reduce) {

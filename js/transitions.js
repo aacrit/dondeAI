@@ -21,7 +21,7 @@ import {
   stopWordRotation, resolveLogoToFound, cleanupLoadingLogo, fireCelebration
 } from './animations.js';
 import { playChime, playCelebrationChime, playSettleChime, playGlowChime, playSpectacleChime } from './audio.js';
-import { renderResult, prepareTier2, renderTier2Animations, _revealBlurb } from './render.js';
+import { renderResult, prepareTier2, renderTier2Animations, _revealBlurb, getLoadingText } from './render.js';
 import { announce } from './accessibility.js';
 import { getLabels } from './theme.js';
 
@@ -77,11 +77,11 @@ export function beginCanvasFold() {
     $loadingState.style.display = '';
     $loadingState.classList.remove('loading-state--fading');
     $loadingState.style.opacity = '';
-    /* Branded loading: show the user's craving in the loading state */
+    /* Branded loading: show the user's craving with late-night sympathy (1-5 AM) */
     const craving = getState().craving?.trim();
     const $loadingText = $loadingState.querySelector('.loading-state__text');
     if ($loadingText && craving) {
-      $loadingText.innerHTML = `Finding your <em class="loading-state__craving">${_escHtml(craving)}</em>...`;
+      $loadingText.innerHTML = getLoadingText(craving);
     }
     /* Progress confidence bar — uses scaleX for GPU-composited animation */
     const $progressBar = $loadingState.querySelector('.loading-state__progress');
