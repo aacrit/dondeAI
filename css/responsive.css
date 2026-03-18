@@ -326,8 +326,89 @@ a[href],
   .match-mini__hint,
   .match-mini__tm,
   .info-stream__secondary,
-  .info-stream__meta {
+  .info-stream__meta,
+  .occasion-tile__label {
     font-size: max(12px, var(--text-xs, 0.75rem));
+  }
+}
+
+/* ---- F-009: Auth/feedback button height floor (43px → 44px) ---- */
+@media (max-width: 767px) {
+  .auth-provider-btn,
+  .auth-guest-btn,
+  .feedback-cat-pill,
+  .feedback-sheet__submit {
+    min-height: 44px;
+  }
+}
+
+/* ---- F-010: Header button gap on mobile (0px → 8px min) ---- */
+@media (max-width: 767px) {
+  .header__actions {
+    gap: max(8px, var(--space-xs));
+  }
+}
+
+/* ---- F-011: Occasion strip scroll mask for wider mobile (480-767px) ---- */
+@media (min-width: 480px) and (max-width: 767px) {
+  .occasion-strip {
+    justify-content: flex-start;
+    mask-image: linear-gradient(to right, black calc(100% - 32px), transparent);
+    -webkit-mask-image: linear-gradient(to right, black calc(100% - 32px), transparent);
+  }
+}
+
+/* ---- F-012: Glance context tag strip overflow fix ---- */
+@media (max-width: 767px) {
+  .glance-context {
+    max-width: 100%;
+    overflow: hidden;
+  }
+  .glance-context__pill {
+    flex-shrink: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+/* ---- F-013: Small mobile (320px) tighter layout ---- */
+@media (max-width: 340px) {
+  .coach-mark {
+    font-size: 11px;
+    padding: 8px 12px;
+  }
+
+  .smart-chip {
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+
+  .occasion-tile {
+    min-width: 52px;
+    padding: var(--space-2xs) var(--space-xs);
+  }
+
+  .step__title {
+    font-size: clamp(1.25rem, 7vw, var(--text-2xl));
+  }
+}
+
+/* ---- F-014: Landscape sticky CTA visibility ---- */
+@media (max-height: 500px) and (orientation: landscape) {
+  .filter-drawer {
+    display: none;
+  }
+
+  .cta-btn {
+    position: sticky;
+    bottom: var(--space-sm);
+    z-index: 5;
+  }
+
+  .canvas-layout {
+    gap: var(--space-xs);
+    padding: var(--space-xs);
   }
 }
 

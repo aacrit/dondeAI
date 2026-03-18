@@ -2148,6 +2148,49 @@ body.mc-mode--live .mc-detail__header {
   .mc-agent-div__grid { justify-content: center; }
   .mc-pulse-expand--open { max-height: 200px; }
   .mc-viz__metrics { grid-template-columns: 1fr; }
+
+  /* Mobile UX fixes: mode toggle tap target */
+  .mc-mode-toggle {
+    height: 44px;
+  }
+  .mc-mode-toggle__option {
+    padding: 8px 16px;
+    font-size: max(12px, var(--text-xs));
+  }
+
+  /* Mobile UX fixes: detail close button */
+  .mc-detail__close {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Mobile UX fixes: edge tab width */
+  .mc-edge-tab {
+    width: 44px;
+  }
+  .mc-edge-tab:hover {
+    width: 48px;
+  }
+
+  /* Mobile UX fixes: drawer header/body constrain to viewport */
+  .mc-drawer__header {
+    min-width: 0;
+  }
+  .mc-drawer__body {
+    min-width: 0;
+  }
+
+  /* Mobile UX fixes: font floor for CC text */
+  .mc-mode-toggle__option,
+  .mc-drawer__agent-count,
+  .mc-footer__sep,
+  .cc-ticker__label,
+  .cc-ticker__val,
+  .mc-drawer__terminal-chevron {
+    font-size: max(12px, var(--text-xs));
+  }
 }
 
 @media (max-width: 480px) {

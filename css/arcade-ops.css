@@ -962,8 +962,16 @@ body {
   .arena__agents { grid-template-columns: 1fr; }
   .controls { flex-wrap: wrap; }
   .controls__buttons { width: 100%; justify-content: center; }
-  .arcade-btn { min-width: 90px; height: 36px; font-size: 12px; }
+  .arcade-btn { min-width: 90px; height: 44px; font-size: 12px; }
   .header { flex-wrap: wrap; gap: 12px; }
+
+  /* Reduce splash whitespace on mobile */
+  .splash {
+    padding: 2rem 1rem;
+  }
+  .splash__tagline {
+    margin-bottom: 16px;
+  }
 }
 
 /* ─── Scrollbar ─────────────────────────────────────────────────── */

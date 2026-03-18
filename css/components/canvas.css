@@ -758,6 +758,8 @@
 .filter-section__title {
   color: var(--fg3);
   padding-left: var(--space-2xs);
+  font-size: max(14px, var(--text-sm));
+  font-weight: 600;
 }
 
 /* ---- Filter Pills (compact inline) ---- */
@@ -967,7 +969,7 @@
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
   padding: var(--space-2xs) 0;
-  justify-content: center;
+  justify-content: flex-start;
 }
 .occasion-strip::-webkit-scrollbar { display: none; }
 
@@ -1019,7 +1021,7 @@
 }
 
 .occasion-tile__label {
-  font-size: var(--text-xs, 11px);
+  font-size: max(12px, var(--text-xs, 11px));
   white-space: nowrap;
   text-align: center;
   line-height: 1.2;
