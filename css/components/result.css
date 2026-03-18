@@ -1104,9 +1104,9 @@
 /* ── Glance Actions (inside card-footer) ── */
 .glance-actions {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: center;
   gap: var(--space-sm);
   width: 100%;
 }
