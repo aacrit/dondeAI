@@ -121,7 +121,6 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-2xs);
-  overflow: hidden;
 }
 
 /* ── Match Mini — compact stacked badge (brand + arc + score) ── */
@@ -846,15 +845,12 @@
 /* ── Result Meta (cuisine + open/closed pills — inline with name) ── */
 .result-meta {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   gap: var(--space-2xs);
   align-items: center;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
+  width: 100%;
   max-width: 100%;
 }
-.result-meta::-webkit-scrollbar { display: none; }
 
 .result-meta__pill {
   display: inline-flex;
@@ -870,7 +866,6 @@
   cursor: pointer;
   text-decoration: none;
   white-space: nowrap;
-  flex-shrink: 0;
   transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
   position: relative;
 }
@@ -929,15 +924,12 @@
 /* ── Quick Actions (Reserve, Share, Website, Phone — subtle row in tier 1) ── */
 .quick-actions {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   gap: var(--space-2xs);
   align-items: center;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
+  width: 100%;
   max-width: 100%;
 }
-.quick-actions::-webkit-scrollbar { display: none; }
 
 /* ── Utility Pills (shared style for subtle action items) ── */
 .utility-pills {
@@ -1051,8 +1043,13 @@
     padding: 0;
   }
   .donde-blurb__text {
-    font-size: 0.9375rem;
-    line-height: 1.55;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    padding-left: 0.5em;
+  }
+  .donde-blurb__text::before {
+    font-size: 130%;
+    left: -0.35em;
   }
 }
 
@@ -1315,15 +1312,12 @@
 /* ── Glance Context — Cuisine + Open/Closed below name ── */
 .glance-context {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   gap: var(--space-2xs);
   align-items: center;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
+  width: 100%;
   max-width: 100%;
 }
-.glance-context::-webkit-scrollbar { display: none; }
 .glance-context:empty { display: none; }
 
 .glance-context__pill {
@@ -1338,7 +1332,6 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-pill);
   white-space: nowrap;
-  flex-shrink: 0;
   cursor: pointer;
   user-select: none;
   transition: border-color var(--dur-fast) var(--ease-out),
@@ -1496,15 +1489,12 @@
 /* ── Primary row: interactive context pills ── */
 .info-stream__primary {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   gap: var(--space-2xs);
   align-items: center;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
+  width: 100%;
   max-width: 100%;
 }
-.info-stream__primary::-webkit-scrollbar { display: none; }
 
 .info-stream__pill {
   display: inline-flex;
