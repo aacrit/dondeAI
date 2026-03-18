@@ -314,10 +314,15 @@ a[href],
   /* Fix 4.4: Match signal — tighter negative margin */
   .match-signal { margin-top: calc(-1 * var(--space-2xs)); }
 
-  /* Fix 4.5: Glance hero — smaller match badge on mobile */
+  /* Fix 4.5: Glance hero — compact match badge on mobile */
   .match-mini__arc { width: 48px; height: 48px; }
-  .match-mini { padding: var(--space-2xs); }
-  .match-mini__score { font-size: 1rem; }
+  .match-mini { padding: var(--space-2xs); gap: 1px; }
+  .match-mini__score { font-size: 0.9rem; }
+  .match-mini__verdict { font-size: 0.5rem; opacity: 0.7; }
+  .match-mini__hint { font-size: 0.5rem; opacity: 0.4; }
+  .match-mini__brand { gap: 1px; }
+  .match-mini__brand-logo { width: 12px; height: 16px; }
+  .match-mini__tm { font-size: 0.5rem; }
 
   /* Fix 4.6: Tell-more/See-Match button — tighter */
   .tell-more-btn { padding: var(--space-xs) var(--space-md); }
