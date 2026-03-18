@@ -112,6 +112,7 @@
   align-items: center;
   gap: var(--space-sm);
   width: 100%;
+  min-width: 0;
 }
 
 .glance-hero__info {
@@ -120,6 +121,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-2xs);
+  overflow: hidden;
 }
 
 /* ── Match Mini — compact stacked badge (brand + arc + score) ── */
@@ -844,10 +846,15 @@
 /* ── Result Meta (cuisine + open/closed pills — inline with name) ── */
 .result-meta {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: var(--space-2xs);
   align-items: center;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  max-width: 100%;
 }
+.result-meta::-webkit-scrollbar { display: none; }
 
 .result-meta__pill {
   display: inline-flex;
@@ -862,6 +869,8 @@
   border-radius: var(--radius-pill);
   cursor: pointer;
   text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
   transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
   position: relative;
 }
@@ -920,10 +929,15 @@
 /* ── Quick Actions (Reserve, Share, Website, Phone — subtle row in tier 1) ── */
 .quick-actions {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: var(--space-2xs);
   align-items: center;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  max-width: 100%;
 }
+.quick-actions::-webkit-scrollbar { display: none; }
 
 /* ── Utility Pills (shared style for subtle action items) ── */
 .utility-pills {
@@ -1035,6 +1049,10 @@
 @media (max-width: 767px) {
   .donde-blurb {
     padding: 0;
+  }
+  .donde-blurb__text {
+    font-size: 0.9375rem;
+    line-height: 1.55;
   }
 }
 
@@ -1257,6 +1275,7 @@
   text-wrap: balance;
   overflow-wrap: break-word;
   word-break: break-word;
+  min-width: 0;
   cursor: pointer;
   text-decoration-line: underline;
   text-decoration-color: color-mix(in srgb, var(--ac) 20%, transparent);
@@ -1296,10 +1315,15 @@
 /* ── Glance Context — Cuisine + Open/Closed below name ── */
 .glance-context {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: var(--space-2xs);
   align-items: center;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  max-width: 100%;
 }
+.glance-context::-webkit-scrollbar { display: none; }
 .glance-context:empty { display: none; }
 
 .glance-context__pill {
@@ -1314,6 +1338,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-pill);
   white-space: nowrap;
+  flex-shrink: 0;
   cursor: pointer;
   user-select: none;
   transition: border-color var(--dur-fast) var(--ease-out),
@@ -1471,10 +1496,15 @@
 /* ── Primary row: interactive context pills ── */
 .info-stream__primary {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: var(--space-2xs);
   align-items: center;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  max-width: 100%;
 }
+.info-stream__primary::-webkit-scrollbar { display: none; }
 
 .info-stream__pill {
   display: inline-flex;
@@ -1488,6 +1518,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-pill);
   white-space: nowrap;
+  flex-shrink: 0;
   cursor: default;
   user-select: none;
   transition: border-color var(--dur-fast) var(--ease-out),
