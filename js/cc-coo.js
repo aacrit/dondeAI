@@ -82,7 +82,7 @@ const COO_COMMANDS = [
   },
   {
     id: 'coo',
-    patterns: [/coo/i, /brief/i, /report/i],
+    patterns: [/coo/i, /brief/i],
     action: cmdCOO,
     description: 'Generate COO briefing CLI command',
     chip: null,
@@ -126,7 +126,21 @@ const COO_COMMANDS = [
     id: 'export',
     patterns: [/export/i, /download/i, /share/i],
     action: cmdExport,
-    description: 'Export latest run results as CSV',
+    description: 'Export comprehensive engine report to clipboard',
+    chip: null,
+  },
+  {
+    id: 'cost',
+    patterns: [/cost/i, /spend/i, /budget/i, /billing/i],
+    action: cmdCost,
+    description: 'Show API cost summary',
+    chip: null,
+  },
+  {
+    id: 'report',
+    patterns: [/report/i, /weekly/i, /summary/i, /digest/i],
+    action: cmdReport,
+    description: 'Generate weekly CEO report',
     chip: null,
   },
   {
@@ -403,6 +417,16 @@ function renderAgentStatus() {
       card:    s+'<rect x="1" y="4" width="14" height="9" rx="1"/><path d="M1 7h14"/></svg>',
       map:     s+'<path d="M1 3l5 2v10l-5-2z"/><path d="M6 5l5-2v10l-5 2z"/><path d="M11 3l4-1v10l-4 1z"/></svg>',
       phone:   s+'<rect x="4" y="1" width="8" height="14" rx="1.5"/><path d="M7 12h2"/></svg>',
+      spring:  s+'<path d="M4 2c4 0 4 3 0 3s-4 3 0 3 4 3 0 3 4 3 0 3"/><path d="M12 2v12"/></svg>',
+      globe:   s+'<circle cx="8" cy="8" r="6"/><path d="M2 8h12"/><path d="M8 2c2.5 2 2.5 10 0 12M8 2c-2.5 2-2.5 10 0 12"/></svg>',
+      group:   s+'<circle cx="5" cy="5" r="2.5"/><circle cx="11" cy="5" r="2.5"/><path d="M1 14c0-2.5 2-4.5 4-4.5s4 2 4 4.5"/><path d="M8 14c0-2.5 2-4.5 4-4.5s4 2 4 4.5"/></svg>',
+      brain:   s+'<path d="M8 14V8"/><path d="M5 8c-2 0-3-1.5-3-3s1.5-3 3-3c0-1 1-2 3-2s3 1 3 2c1.5 0 3 1.5 3 3s-1 3-3 3"/><path d="M5 8c-1.5 1-2 3-2 4h10c0-1-.5-3-2-4"/></svg>',
+      trophy:  s+'<path d="M5 2h6v5c0 2-1.5 3-3 3s-3-1-3-3z"/><path d="M5 3H3c0 2 1 3 2 3"/><path d="M11 3h2c0 2-1 3-2 3"/><path d="M8 10v2M5 12h6"/></svg>',
+      sparkle: s+'<path d="M8 1l1.5 4.5L14 7l-4.5 1.5L8 13l-1.5-4.5L2 7l4.5-1.5z"/></svg>',
+      a11y:    s+'<circle cx="8" cy="3" r="2"/><path d="M8 6v4"/><path d="M4 7h8"/><path d="M6 14l2-4 2 4"/></svg>',
+      story:   s+'<path d="M2 2h5v12H2z"/><path d="M7 2h5v12H7z"/><path d="M12 4h2v8h-2"/><path d="M4 5h1M4 7h1M4 9h1"/></svg>',
+      mic:     s+'<rect x="5" y="1" width="6" height="8" rx="3"/><path d="M3 8c0 3 2.5 5 5 5s5-2 5-5"/><path d="M8 13v2"/></svg>',
+      star:    s+'<path d="M8 1l2 5h5l-4 3.5 1.5 5L8 11.5 3.5 14.5 5 9.5 1 6h5z"/></svg>',
     };
     return icons[type] || icons.check;
   }
@@ -423,7 +447,8 @@ function renderAgentStatus() {
         { id: 'analytics-expert', name: 'Analytics', iconType: 'chart', role: 'Chief Analytics Officer', skills: ['Engine benchmarking', 'Quick-win implementation', 'Scoring optimization', 'Golden dataset analysis'], trigger: 'Manual or auto on scoring changes', defaultPrompt: 'Benchmark the scoring engine, run golden tests, and implement any quick-wins found' },
         { id: 'bug-fixer', name: 'Bug Fixer', iconType: 'bug', role: 'Post-test bug fixer', skills: ['Root cause analysis', 'Scoring/blurb/grading fixes', 'Grouped issue resolution', 'Regression prevention'], trigger: 'Auto after test failures', defaultPrompt: 'Analyze the latest test results, root-cause every FAIL/WARN, and implement targeted fixes' },
         { id: 'gen-test-queries', name: 'Test Gen', iconType: 'dice', role: 'Test query generator', skills: ['Persona-driven queries', 'Demographic diversity', 'Edge case generation', 'Cultural coverage'], trigger: 'Manual', defaultPrompt: 'Generate 10 diverse persona-driven test queries covering different demographics and occasions' },
-        { id: 'continuous-tester', name: 'Tester', iconType: 'check', role: 'Automated test runner', skills: ['Golden dataset testing', 'Regression guard', 'Result persistence', 'Auto bug-fixer spawn'], trigger: 'After deploys', defaultPrompt: 'Run the golden dataset test and regression guard, then report results' }
+        { id: 'continuous-tester', name: 'Tester', iconType: 'check', role: 'Automated test runner', skills: ['Golden dataset testing', 'Regression guard', 'Result persistence', 'Auto bug-fixer spawn'], trigger: 'After deploys', defaultPrompt: 'Run the golden dataset test and regression guard, then report results' },
+        { id: 'subjective-engine-tester', name: 'Subjective', iconType: 'search', role: 'Subjective quality auditor', skills: ['Ground-truth testing', 'Expert consensus comparison', 'Multi-round testing', 'Root cause analysis'], trigger: 'Manual', defaultPrompt: 'Run 25 diverse ground-truth queries, compare against expert consensus, identify failures, and implement fixes' }
       ],
       color: 'var(--cc-green)'
     },
@@ -466,6 +491,21 @@ function renderAgentStatus() {
         { id: 'social-reviews-specialist', name: 'Social', iconType: 'phone', role: 'Social/review specialist', skills: ['Yelp Fusion API', 'Instagram integration', 'Trending detection', 'Social proof features'], trigger: 'Manual', defaultPrompt: 'Design social proof and trending detection features using Yelp, Instagram, and TikTok APIs' }
       ],
       color: 'var(--cc-live)'
+    },
+    'R&I': {
+      agents: [
+        { id: 'motion-physics-designer', name: 'Motion', iconType: 'spring', role: 'Motion & Physics Design', skills: ['Spring physics', 'Gesture interactions', 'Haptic feedback', 'Choreographed motion'], trigger: 'Manual', defaultPrompt: 'Design spring physics animations and gesture interactions for DondeAI mobile experience' },
+        { id: 'spatial-map-innovator', name: 'Spatial', iconType: 'globe', role: 'Spatial & Map Innovation', skills: ['AR wayfinding', 'Neighborhood exploration', 'Spatial discovery', 'Map interactions'], trigger: 'Manual', defaultPrompt: 'Design revolutionary map interactions and spatial restaurant discovery features' },
+        { id: 'social-community-designer', name: 'Social', iconType: 'group', role: 'Social & Community Design', skills: ['Food circles', 'Shared lists', 'Dining streaks', 'Community discovery'], trigger: 'Manual', defaultPrompt: 'Design social dining features including food circles, shared lists, and dining streaks' },
+        { id: 'personalization-ai-architect', name: 'AI Personalize', iconType: 'brain', role: 'Personalization & AI', skills: ['Taste fingerprints', 'Mood discovery', 'Learning loops', 'Hyper-personalization'], trigger: 'Manual', defaultPrompt: 'Design taste fingerprint engine and mood-based restaurant discovery for personalization' },
+        { id: 'gamification-engagement-designer', name: 'Gamification', iconType: 'trophy', role: 'Gamification & Engagement', skills: ['Dining challenges', 'Explorer badges', 'Streak mechanics', 'Progression systems'], trigger: 'Manual', defaultPrompt: 'Design gamification mechanics including dining challenges, badges, and progression systems' },
+        { id: 'micro-interaction-designer', name: 'Micro UX', iconType: 'sparkle', role: 'Micro-Interactions & Delight', skills: ['Easter eggs', 'Celebrations', 'Tactile feedback', 'Surprise moments'], trigger: 'Manual', defaultPrompt: 'Design micro-interactions, easter eggs, and celebratory animations that delight users' },
+        { id: 'accessibility-inclusivity-lead', name: 'A11y', iconType: 'a11y', role: 'Accessibility & Inclusivity', skills: ['WCAG 2.2 compliance', 'Cultural sensitivity', 'Language inclusivity', 'Screen reader optimization'], trigger: 'Manual', defaultPrompt: 'Audit DondeAI for accessibility compliance and cultural inclusivity across all user segments' },
+        { id: 'data-storytelling-designer', name: 'Data Story', iconType: 'story', role: 'Data Visualization & Storytelling', skills: ['Dining Wrapped', 'Taste maps', 'Year-in-review', 'Data narratives'], trigger: 'Manual', defaultPrompt: 'Design data storytelling features like Dining Wrapped, personal taste maps, and year-in-review' },
+        { id: 'voice-conversational-designer', name: 'Voice', iconType: 'mic', role: 'Voice & Conversational UX', skills: ['Voice search', 'Conversational UI', 'Natural language refinement', 'Audio interactions'], trigger: 'Manual', defaultPrompt: 'Design voice-first dining discovery and conversational recommendation flows' },
+        { id: 'premium-experience-architect', name: 'Premium XP', iconType: 'star', role: 'Premium & Luxury Experience', skills: ['VIP tiers', 'Concierge features', 'Exclusive access', 'White-glove quality'], trigger: 'Manual', defaultPrompt: 'Design premium VIP experience with concierge-level features and exclusive restaurant access' }
+      ],
+      color: '#f472b6'
     }
   };
 
@@ -480,7 +520,7 @@ function renderAgentStatus() {
   '</div>';
 
   // Division groups
-  var divOrder = ['Quality', 'Infrastructure', 'Frontend', 'Product', 'Security', 'Integrations'];
+  var divOrder = ['Quality', 'Infrastructure', 'Frontend', 'Product', 'Security', 'Integrations', 'R&I'];
   divOrder.forEach(function(divName) {
     var div = AGENT_TEAM[divName];
     if (!div) return;
@@ -768,7 +808,7 @@ async function cmdDiscovery() {
 // Command Handlers — Compare Runs
 // ═══════════════════════════════════════════════════════════════════
 
-function cmdCompare() {
+async function cmdCompare() {
   if (!state.runHistory || state.runHistory.length < 2) {
     cooLog('warn', 'Need at least 2 runs to compare. Run more tests first.');
     return;
@@ -801,6 +841,111 @@ function cmdCompare() {
     cooLog('warn', 'Latest run regressed. Consider investigating.');
   } else {
     cooLog('info', 'Runs are equivalent.');
+  }
+
+  // Load per-query results for both runs and show detailed diff
+  cooLog('action', 'Loading per-query results for diff view...');
+  try {
+    const [aResults, bResults] = await Promise.all([
+      loadRunResults(a.run_id),
+      loadRunResults(b.run_id),
+    ]);
+
+    if (!aResults.length && !bResults.length) {
+      cooLog('warn', 'No per-query results available for detailed diff.');
+      return;
+    }
+
+    // Build lookup maps by query text
+    const aMap = {};
+    aResults.forEach(function(r) { aMap[r.query] = r; });
+    const bMap = {};
+    bResults.forEach(function(r) { bMap[r.query] = r; });
+    const allQueries = new Set([...Object.keys(aMap), ...Object.keys(bMap)]);
+
+    const improved = [];
+    const regressed = [];
+    const unchanged = [];
+    const newInLatest = [];
+    const removedFromLatest = [];
+
+    allQueries.forEach(function(q) {
+      const inA = aMap[q];
+      const inB = bMap[q];
+      if (inA && inB) {
+        const delta = (inA.donde_match || 0) - (inB.donde_match || 0);
+        if (delta > 0) {
+          improved.push({ query: q, delta: delta, now: inA.donde_match || 0, was: inB.donde_match || 0, restaurant: inA.restaurant_name });
+        } else if (delta < 0) {
+          regressed.push({ query: q, delta: delta, now: inA.donde_match || 0, was: inB.donde_match || 0, restaurant: inA.restaurant_name });
+        } else {
+          unchanged.push({ query: q, dm: inA.donde_match || 0 });
+        }
+      } else if (inA && !inB) {
+        newInLatest.push({ query: q, dm: inA.donde_match || 0, restaurant: inA.restaurant_name });
+      } else {
+        removedFromLatest.push({ query: q, dm: inB.donde_match || 0 });
+      }
+    });
+
+    improved.sort(function(x, y) { return y.delta - x.delta; });
+    regressed.sort(function(x, y) { return x.delta - y.delta; });
+
+    // Terminal summary
+    cooLog('info', `${improved.length} improved, ${regressed.length} regressed, ${unchanged.length} unchanged`);
+    if (newInLatest.length > 0) cooLog('info', `${newInLatest.length} new queries in latest run`);
+    if (removedFromLatest.length > 0) cooLog('info', `${removedFromLatest.length} queries removed from latest run`);
+
+    // Build detail panel HTML
+    let html = '<div class="mc-diff">';
+    html += '<div class="mc-diff__summary" style="display:flex;gap:12px;margin-bottom:12px;font-size:13px">' +
+      '<span style="color:var(--cc-green)">' + improved.length + ' improved</span> ' +
+      '<span style="color:var(--cc-red)">' + regressed.length + ' regressed</span> ' +
+      '<span style="color:var(--cc-text2)">' + unchanged.length + ' unchanged</span>' +
+      '</div>';
+
+    if (improved.length > 0) {
+      html += '<h4 style="color:var(--cc-green);margin:12px 0 6px;font-size:12px;text-transform:uppercase;letter-spacing:0.5px">Improved (' + improved.length + ')</h4>';
+      improved.forEach(function(item) {
+        html += '<div class="mc-diff__item mc-diff__item--improved" style="display:flex;justify-content:space-between;align-items:center;padding:4px 8px;margin:2px 0;border-radius:4px;background:rgba(34,197,94,0.08);font-size:12px">' +
+          '<span style="flex:1;color:var(--cc-text1)">"' + escapeHtml(item.query) + '"</span>' +
+          '<span style="color:var(--cc-text2);margin:0 8px;font-size:11px">' + escapeHtml(item.restaurant || '') + '</span>' +
+          '<span style="white-space:nowrap;font-size:11px;color:var(--cc-text2)">' + item.was + ' -> ' + item.now + '</span>' +
+          '<span style="color:var(--cc-green);font-weight:600;min-width:36px;text-align:right">+' + item.delta + '</span>' +
+          '</div>';
+      });
+    }
+
+    if (regressed.length > 0) {
+      html += '<h4 style="color:var(--cc-red);margin:12px 0 6px;font-size:12px;text-transform:uppercase;letter-spacing:0.5px">Regressed (' + regressed.length + ')</h4>';
+      regressed.forEach(function(item) {
+        html += '<div class="mc-diff__item mc-diff__item--regressed" style="display:flex;justify-content:space-between;align-items:center;padding:4px 8px;margin:2px 0;border-radius:4px;background:rgba(239,68,68,0.08);font-size:12px">' +
+          '<span style="flex:1;color:var(--cc-text1)">"' + escapeHtml(item.query) + '"</span>' +
+          '<span style="color:var(--cc-text2);margin:0 8px;font-size:11px">' + escapeHtml(item.restaurant || '') + '</span>' +
+          '<span style="white-space:nowrap;font-size:11px;color:var(--cc-text2)">' + item.was + ' -> ' + item.now + '</span>' +
+          '<span style="color:var(--cc-red);font-weight:600;min-width:36px;text-align:right">' + item.delta + '</span>' +
+          '</div>';
+      });
+    }
+
+    if (newInLatest.length > 0) {
+      html += '<h4 style="color:var(--cc-blue);margin:12px 0 6px;font-size:12px;text-transform:uppercase;letter-spacing:0.5px">New in Latest (' + newInLatest.length + ')</h4>';
+      newInLatest.forEach(function(item) {
+        html += '<div class="mc-diff__item" style="display:flex;justify-content:space-between;align-items:center;padding:4px 8px;margin:2px 0;border-radius:4px;background:rgba(59,130,246,0.08);font-size:12px">' +
+          '<span style="flex:1;color:var(--cc-text1)">"' + escapeHtml(item.query) + '"</span>' +
+          '<span style="color:var(--cc-text2);margin:0 8px;font-size:11px">' + escapeHtml(item.restaurant || '') + '</span>' +
+          '<span style="color:var(--cc-blue);font-weight:600;min-width:36px;text-align:right">DM ' + item.dm + '</span>' +
+          '</div>';
+      });
+    }
+
+    html += '</div>';
+
+    if (typeof openDetail === 'function') {
+      openDetail('Run Comparison: ' + timeAgo(b.created_at) + ' -> ' + timeAgo(a.created_at), html);
+    }
+  } catch (e) {
+    cooLog('error', 'Failed to load per-query diff: ' + e.message);
   }
 }
 
@@ -921,15 +1066,17 @@ function cmdHelp() {
   cooLog('info', 'test food     Run category-focused test');
   cooLog('info', 'status        Show current engine health & KPIs');
   cooLog('info', 'issues        List open quality issues');
+  cooLog('info', 'compare       Compare last 2 test runs (with diff view)');
+  cooLog('info', 'edge          Run edge case probes');
+  cooLog('info', 'export        Export engine report to clipboard + print');
+  cooLog('info', 'cost          Show API cost & budget summary');
+  cooLog('info', 'report        Generate weekly CEO report (new window)');
   cooLog('info', 'fix           Generate bug-fixer CLI command');
   cooLog('info', 'security      Generate security audit CLI command');
   cooLog('info', 'coo briefing  Generate COO briefing CLI command');
   cooLog('info', 'cache         Show cache health metrics');
   cooLog('info', 'warm cache    Trigger cache warmer pipeline');
   cooLog('info', 'db health     Show database overview');
-  cooLog('info', 'compare       Compare last 2 test runs');
-  cooLog('info', 'edge          Run edge case probes');
-  cooLog('info', 'export        Export latest run report to clipboard');
   cooLog('info', 'deploy        Show deploy command');
   cooLog('info', 'live feed     Show recent production queries');
   cooLog('info', 'clear         Clear terminal');
@@ -978,9 +1125,9 @@ async function cmdExport() {
   const run = state.latestRun;
   if (!run) { cooLog('warn', 'No run data to export.'); return; }
 
-  cooLog('action', 'Generating export...');
+  cooLog('action', 'Generating comprehensive report...');
 
-  // Build summary text
+  // Core metrics
   const avgDm = Math.round(Number(run.avg_dm) || 0);
   const avgFit = Math.round(Number(run.avg_score_fit) || 0);
   const avgBlurb = Math.round(Number(run.avg_blurb_quality) || 0);
@@ -988,29 +1135,406 @@ async function cmdExport() {
   const total = run.total || 1;
   const passRate = Math.round(passCount / total * 100);
   const grade = computeEngineGrade(run);
-  const date = new Date(run.created_at).toISOString().split('T')[0];
+  const composite = Math.round(avgDm * 0.4 + avgFit * 0.3 + avgBlurb * 0.3);
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 
-  const summary = [
-    `DondeAI Mission Control — Report`,
-    `Date: ${date}`,
-    `Run: ${run.run_id}`,
-    ``,
-    `Engine Grade: ${grade}`,
-    `Avg DondeMatch: ${avgDm}`,
-    `Avg Score Fit: ${avgFit}`,
-    `Avg Blurb Quality: ${avgBlurb}`,
-    `Pass Rate: ${passRate}% (${passCount}/${total})`,
-    `Gaps: ${run.gap_count || 0}`,
-    `Mode: ${run.mode || 'test'}`,
-  ].join('\n');
+  // Delta from previous run
+  let deltaSection = '';
+  if (state.trendData && state.trendData.length >= 2) {
+    const prev = state.trendData[1];
+    const prevDm = Math.round(Number(prev.avg_dm) || 0);
+    const prevFit = Math.round(Number(prev.avg_score_fit) || 0);
+    const prevBlurb = Math.round(Number(prev.avg_blurb_quality) || 0);
+    const fmtD = (d) => (d >= 0 ? '+' + d : String(d));
+    deltaSection = [
+      '',
+      '## Delta from Previous Run',
+      `- DondeMatch: ${fmtD(avgDm - prevDm)} (${prevDm} -> ${avgDm})`,
+      `- Score Fit: ${fmtD(avgFit - prevFit)} (${prevFit} -> ${avgFit})`,
+      `- Blurb Quality: ${fmtD(avgBlurb - prevBlurb)} (${prevBlurb} -> ${avgBlurb})`,
+    ].join('\n');
+  }
+
+  // Top 3 improvements from trend comparison
+  let improvementsSection = '';
+  if (state.trendData && state.trendData.length >= 2) {
+    const curr = state.trendData[0];
+    const prev = state.trendData[1];
+    try {
+      const [currResults, prevResults] = await Promise.all([
+        loadRunResults(curr.run_id),
+        loadRunResults(prev.run_id),
+      ]);
+      const prevMap = {};
+      prevResults.forEach(function(r) { prevMap[r.query] = r.donde_match || 0; });
+      const improvements = currResults
+        .filter(function(r) { return prevMap[r.query] !== undefined && (r.donde_match || 0) > prevMap[r.query]; })
+        .map(function(r) { return { query: r.query, delta: (r.donde_match || 0) - prevMap[r.query], now: r.donde_match || 0 }; })
+        .sort(function(a, b) { return b.delta - a.delta; })
+        .slice(0, 3);
+      if (improvements.length > 0) {
+        improvementsSection = '\n## Top Improvements\n' +
+          improvements.map(function(i, idx) { return (idx + 1) + '. "' + i.query + '" +' + i.delta + ' (now DM ' + i.now + ')'; }).join('\n');
+      }
+    } catch (_) {}
+  }
+
+  // Top 3 remaining issues
+  let issuesSection = '';
+  const openIssues = (state.issues || [])
+    .filter(function(i) { return !i.status || i.status === 'open'; })
+    .sort(function(a, b) {
+      const sa = (a.gap_severity || 'P9').replace('P', '');
+      const sb = (b.gap_severity || 'P9').replace('P', '');
+      return Number(sa) - Number(sb);
+    })
+    .slice(0, 3);
+  if (openIssues.length > 0) {
+    issuesSection = '\n## Remaining Issues\n' +
+      openIssues.map(function(i, idx) {
+        return (idx + 1) + '. [' + (i.gap_severity || '??') + '] "' + (i.query || i.special_request || 'unknown') + '" - DM ' + (i.donde_match || 0);
+      }).join('\n');
+  }
+
+  // Cost summary
+  let costSection = '';
+  const costData = state._costData;
+  if (costData) {
+    costSection = [
+      '',
+      '## Cost Summary',
+      '- Total queries this month: ' + costData.totalQueries,
+      '- Google spend: $' + costData.googleSpend.toFixed(2),
+      '- Claude spend: $' + costData.claudeSpend.toFixed(2),
+      '- Cache savings: $' + costData.cacheSavings.toFixed(2),
+      '- Projected monthly: $' + costData.projectedMonthly.toFixed(2),
+      '- Google budget used: ' + costData.budgetUsed + '% of $200',
+    ].join('\n');
+  }
+
+  // Cache health
+  let cacheSection = '';
+  const cacheStats = state._cacheStats;
+  if (cacheStats) {
+    const hitRate = Number(cacheStats.hit_rate_24h) || 0;
+    const displayRate = hitRate > 1 ? Math.round(hitRate) : Math.round(hitRate * 100);
+    cacheSection = [
+      '',
+      '## Cache Health',
+      '- Hit rate (24h): ' + displayRate + '%',
+      '- Cache entries: ' + (cacheStats.cache_size || 0),
+      '- Savings (24h): $' + ((cacheStats.savings_24h_dollars || 0).toFixed(2)),
+    ].join('\n');
+  }
+
+  // Assemble full report
+  const report = [
+    '# DondeAI Engine Report',
+    '',
+    '**' + dateStr + ' at ' + timeStr + '**',
+    'Run: `' + (run.run_id || 'N/A') + '`',
+    '',
+    '## Engine Health',
+    '- Grade: **' + grade + '** (Composite: ' + composite + ')',
+    '- Avg DondeMatch: ' + avgDm,
+    '- Avg Score Fit: ' + avgFit,
+    '- Avg Blurb Quality: ' + avgBlurb,
+    '- Pass Rate: ' + passRate + '% (' + passCount + '/' + total + ')',
+    '- Open Gaps: ' + (run.gap_count || 0),
+    deltaSection,
+    improvementsSection,
+    issuesSection,
+    costSection,
+    cacheSection,
+    '',
+    '---',
+    'Generated by DondeAI Mission Control',
+  ].filter(Boolean).join('\n');
 
   // Copy to clipboard
   try {
-    await navigator.clipboard.writeText(summary);
+    await navigator.clipboard.writeText(report);
+    if (typeof showToast === 'function') showToast('Report copied to clipboard');
     cooLog('success', 'Report copied to clipboard.');
   } catch (e) {
-    cooLog('info', summary);
-    cooLog('info', '(Select and copy the above text)');
+    cooLog('warn', 'Clipboard write failed. Opening in new window instead.');
+  }
+
+  // Offer to open as printable window
+  cooLog('info', 'Opening report in new window for printing/PDF...');
+  const printWindow = window.open('', '_blank', 'width=800,height=900');
+  if (printWindow) {
+    printWindow.document.write(
+      '<!DOCTYPE html><html><head><meta charset="utf-8"><title>DondeAI Engine Report</title>' +
+      '<style>body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:720px;margin:40px auto;padding:0 20px;color:#1a1a2e;line-height:1.6}' +
+      'h1{color:#e94560;border-bottom:2px solid #e94560;padding-bottom:8px}h2{color:#0f3460;margin-top:24px}' +
+      'code{background:#f0f0f0;padding:2px 6px;border-radius:3px;font-size:0.9em}' +
+      'hr{border:none;border-top:1px solid #ddd;margin:24px 0}strong{color:#e94560}' +
+      'ul,ol{padding-left:24px}li{margin-bottom:4px}' +
+      '@media print{body{color:#000}h1{color:#c0392b}h2{color:#2c3e50}}</style></head><body>' +
+      report
+        .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+        .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/`(.+?)`/g, '<code>$1</code>')
+        .replace(/^- (.+)$/gm, '<li>$1</li>')
+        .replace(/^(\d+)\. (.+)$/gm, '<li>$2</li>')
+        .replace(/(<li>.*<\/li>\n?)+/g, function(m) { return '<ul>' + m + '</ul>'; })
+        .replace(/^---$/gm, '<hr>')
+        .replace(/\n\n/g, '<br>') +
+      '</body></html>'
+    );
+    printWindow.document.close();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Command Handlers — Cost
+// ═══════════════════════════════════════════════════════════════════
+
+async function cmdCost() {
+  cooLog('action', 'Calculating API cost summary...');
+
+  // Today's queries from live feed
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const todayQueries = (state.liveFeed || []).filter(function(q) {
+    return new Date(q.created_at) >= todayStart;
+  });
+  const todayCount = todayQueries.length;
+
+  // Count cache hits vs misses for today
+  const cacheHitsToday = todayQueries.filter(function(q) { return q.cache_hit === true; }).length;
+  const cacheMissesToday = todayCount - cacheHitsToday;
+
+  // Estimate costs: queries without skip_google * $0.04 per query
+  // Live queries (not from command center, not cache hits) incur API costs
+  const liveQueries = todayQueries.filter(function(q) {
+    return q.source !== 'command-center' && !q.cache_hit;
+  });
+  const googleCostToday = liveQueries.length * 0.04;
+  const claudeCostToday = liveQueries.length * 0.003;
+  const totalCostToday = googleCostToday + claudeCostToday;
+
+  // Cache savings: each cache hit saves a full API call cost
+  const cacheSavingsToday = cacheHitsToday * 0.04;
+
+  cooLog('info', '── API Cost Summary ──');
+  cooLog('info', `Queries today: ${todayCount}`);
+  cooLog('info', `  Cache hits: ${cacheHitsToday} | Misses: ${cacheMissesToday}`);
+  cooLog('info', `  Live API calls: ${liveQueries.length}`);
+  cooLog('info', '');
+  cooLog('info', `Google cost: $${googleCostToday.toFixed(2)} (${liveQueries.length} queries x $0.04)`);
+  cooLog('info', `Claude cost: $${claudeCostToday.toFixed(2)} (${liveQueries.length} queries x $0.003)`);
+  cooLog('info', `Total today: $${totalCostToday.toFixed(2)}`);
+  cooLog('success', `Cache savings: $${cacheSavingsToday.toFixed(2)} (${cacheHitsToday} hits x $0.04)`);
+
+  // Monthly data if available from loadCostData
+  const costData = state._costData;
+  if (costData) {
+    cooLog('info', '');
+    cooLog('info', '── Monthly Projection ──');
+    cooLog('info', `Month-to-date: $${(costData.googleSpend + costData.claudeSpend).toFixed(2)} (Google $${costData.googleSpend.toFixed(2)} + Claude $${costData.claudeSpend.toFixed(2)})`);
+    cooLog('info', `Projected monthly: $${costData.projectedMonthly.toFixed(2)}`);
+    cooLog('info', `Total cache savings: $${costData.cacheSavings.toFixed(2)}`);
+
+    // Google $200 monthly credit usage bar
+    const budgetPct = costData.budgetUsed;
+    const barLen = 20;
+    const filled = Math.round(barLen * budgetPct / 100);
+    const bar = '\u2588'.repeat(filled) + '\u2591'.repeat(barLen - filled);
+    const barType = budgetPct > 80 ? 'warn' : budgetPct > 50 ? 'info' : 'success';
+    cooLog(barType, `Google credit: [${bar}] ${budgetPct}% of $200`);
+  } else {
+    cooLog('info', '');
+    cooLog('info', 'Monthly data not loaded. Switch to Live mode for full cost tracking.');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Command Handlers — Report
+// ═══════════════════════════════════════════════════════════════════
+
+async function cmdReport() {
+  cooLog('action', 'Generating weekly CEO report...');
+
+  const run = state.latestRun;
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+
+  // Engine health
+  const avgDm = run ? Math.round(Number(run.avg_dm) || 0) : 0;
+  const avgFit = run ? Math.round(Number(run.avg_score_fit) || 0) : 0;
+  const avgBlurb = run ? Math.round(Number(run.avg_blurb_quality) || 0) : 0;
+  const passCount = run ? (run.grade_pass_count || run.passed_60 || 0) : 0;
+  const total = run ? (run.total || 1) : 1;
+  const passRate = Math.round(passCount / total * 100);
+  const grade = run ? computeEngineGrade(run) : '--';
+  const composite = Math.round(avgDm * 0.4 + avgFit * 0.3 + avgBlurb * 0.3);
+
+  // Quality trend text
+  let trendText = 'No trend data available.';
+  if (state.trendData && state.trendData.length >= 2) {
+    const pts = state.trendData.slice(0, 5).map(function(r) {
+      return Math.round(Number(r.avg_dm) || 0);
+    });
+    trendText = 'DM trend (recent first): ' + pts.join(' -> ');
+  }
+
+  // Cost summary
+  const costData = state._costData;
+  let costHtml = '<p>No cost data loaded.</p>';
+  let costMd = 'No cost data loaded.';
+  if (costData) {
+    const totalSpend = (costData.googleSpend + costData.claudeSpend).toFixed(2);
+    costHtml = '<ul>' +
+      '<li>Month-to-date: $' + totalSpend + '</li>' +
+      '<li>Projected monthly: $' + costData.projectedMonthly.toFixed(2) + '</li>' +
+      '<li>Cache savings: $' + costData.cacheSavings.toFixed(2) + '</li>' +
+      '<li>Google budget: ' + costData.budgetUsed + '% of $200</li>' +
+      '</ul>';
+    costMd = '- Month-to-date: $' + totalSpend + '\n' +
+      '- Projected monthly: $' + costData.projectedMonthly.toFixed(2) + '\n' +
+      '- Cache savings: $' + costData.cacheSavings.toFixed(2) + '\n' +
+      '- Google budget: ' + costData.budgetUsed + '% of $200';
+  }
+
+  // Cache metrics
+  const cacheStats = state._cacheStats;
+  let cacheHtml = '<p>No cache data.</p>';
+  let cacheMd = 'No cache data.';
+  if (cacheStats) {
+    const hitRate = Number(cacheStats.hit_rate_24h) || 0;
+    const displayRate = hitRate > 1 ? Math.round(hitRate) : Math.round(hitRate * 100);
+    cacheHtml = '<ul>' +
+      '<li>Hit rate (24h): ' + displayRate + '%</li>' +
+      '<li>Entries: ' + (cacheStats.cache_size || 0) + '</li>' +
+      '<li>Savings: $' + ((cacheStats.savings_24h_dollars || 0).toFixed(2)) + '</li>' +
+      '</ul>';
+    cacheMd = '- Hit rate (24h): ' + displayRate + '%\n' +
+      '- Entries: ' + (cacheStats.cache_size || 0) + '\n' +
+      '- Savings: $' + ((cacheStats.savings_24h_dollars || 0).toFixed(2));
+  }
+
+  // Issues
+  const openIssues = (state.issues || [])
+    .filter(function(i) { return !i.status || i.status === 'open'; })
+    .sort(function(a, b) {
+      return Number((a.gap_severity || 'P9').replace('P', '')) - Number((b.gap_severity || 'P9').replace('P', ''));
+    })
+    .slice(0, 5);
+  let issuesHtml = '<p>No open issues.</p>';
+  let issuesMd = 'No open issues.';
+  if (openIssues.length > 0) {
+    issuesHtml = '<ol>' + openIssues.map(function(i) {
+      return '<li>[' + (i.gap_severity || '??') + '] "' + escapeHtml(i.query || i.special_request || 'unknown') + '" - DM ' + (i.donde_match || 0) + '</li>';
+    }).join('') + '</ol>';
+    issuesMd = openIssues.map(function(i, idx) {
+      return (idx + 1) + '. [' + (i.gap_severity || '??') + '] "' + (i.query || i.special_request || 'unknown') + '" - DM ' + (i.donde_match || 0);
+    }).join('\n');
+  }
+
+  // Recent improvements (from trend data)
+  let improvementsHtml = '';
+  let improvementsMd = '';
+  if (state.trendData && state.trendData.length >= 2) {
+    const curr = state.trendData[0];
+    const prev = state.trendData[1];
+    const prevGrade = computeEngineGrade(prev);
+    const currGrade = computeEngineGrade(curr);
+    const dmDelta = Math.round(Number(curr.avg_dm) || 0) - Math.round(Number(prev.avg_dm) || 0);
+    improvementsHtml = '<ul>' +
+      '<li>Grade: ' + prevGrade + ' -> ' + currGrade + '</li>' +
+      '<li>DM delta: ' + (dmDelta >= 0 ? '+' : '') + dmDelta + '</li>' +
+      '<li>Last run: ' + timeAgo(curr.created_at) + '</li>' +
+      '</ul>';
+    improvementsMd = '- Grade: ' + prevGrade + ' -> ' + currGrade + '\n' +
+      '- DM delta: ' + (dmDelta >= 0 ? '+' : '') + dmDelta + '\n' +
+      '- Last run: ' + timeAgo(curr.created_at);
+  }
+
+  // Build styled HTML document
+  const htmlDoc = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>DondeAI CEO Report - ' + dateStr + '</title>' +
+    '<style>' +
+    ':root{--bg:#0a0a1a;--surface:#12122a;--border:#1e1e3a;--text1:#e8e8f0;--text2:#8888aa;--accent:#e94560;--green:#22c55e;--blue:#3b82f6;--amber:#eab308;--red:#ef4444}' +
+    'body{background:var(--bg);color:var(--text1);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;max-width:760px;margin:0 auto;padding:40px 24px;line-height:1.7}' +
+    'h1{color:var(--accent);font-size:24px;margin-bottom:4px;border-bottom:2px solid var(--accent);padding-bottom:8px}' +
+    'h2{color:var(--blue);font-size:16px;margin-top:28px;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px}' +
+    '.subtitle{color:var(--text2);font-size:13px;margin-bottom:24px}' +
+    '.grade-badge{display:inline-block;background:var(--accent);color:#fff;padding:4px 16px;border-radius:20px;font-size:20px;font-weight:700;margin-right:12px}' +
+    '.metric-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:16px 0}' +
+    '.metric{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center}' +
+    '.metric-value{font-size:22px;font-weight:700;color:var(--text1)}' +
+    '.metric-label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-top:4px}' +
+    'ul,ol{padding-left:20px;color:var(--text2)}li{margin-bottom:4px}' +
+    'p{color:var(--text2);font-size:14px}' +
+    '.section{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px;margin:12px 0}' +
+    '.footer{margin-top:32px;padding-top:16px;border-top:1px solid var(--border);color:var(--text2);font-size:12px;text-align:center}' +
+    '@media print{body{background:#fff;color:#222}h1{color:#c0392b}h2{color:#2c3e50}.grade-badge{background:#c0392b}.metric{border-color:#ddd}.section{border-color:#ddd;background:#f9f9f9}ul,ol,p,.subtitle,.footer{color:#555}.metric-value{color:#222}}' +
+    '</style></head><body>' +
+    '<h1>DondeAI Engine Report</h1>' +
+    '<div class="subtitle">' + dateStr + ' at ' + timeStr + '</div>' +
+    '<h2>Engine Health</h2>' +
+    '<div><span class="grade-badge">' + grade + '</span><span style="color:var(--text2)">Composite: ' + composite + '</span></div>' +
+    '<div class="metric-grid">' +
+    '<div class="metric"><div class="metric-value">' + avgDm + '</div><div class="metric-label">Avg DM</div></div>' +
+    '<div class="metric"><div class="metric-value">' + avgFit + '</div><div class="metric-label">Score Fit</div></div>' +
+    '<div class="metric"><div class="metric-value">' + avgBlurb + '</div><div class="metric-label">Blurb Quality</div></div>' +
+    '<div class="metric"><div class="metric-value">' + passRate + '%</div><div class="metric-label">Pass Rate</div></div>' +
+    '</div>' +
+    '<h2>Quality Trend</h2><div class="section"><p>' + trendText + '</p>' + improvementsHtml + '</div>' +
+    '<h2>Cost Summary</h2><div class="section">' + costHtml + '</div>' +
+    '<h2>Cache Metrics</h2><div class="section">' + cacheHtml + '</div>' +
+    '<h2>Top Issues</h2><div class="section">' + issuesHtml + '</div>' +
+    '<div class="footer">Generated by DondeAI Mission Control</div>' +
+    '</body></html>';
+
+  // Open in new window
+  const reportWindow = window.open('', '_blank', 'width=850,height=1000');
+  if (reportWindow) {
+    reportWindow.document.write(htmlDoc);
+    reportWindow.document.close();
+    cooLog('success', 'Report opened in new window.');
+  } else {
+    cooLog('warn', 'Popup blocked. Check your browser settings.');
+  }
+
+  // Also copy markdown version to clipboard
+  const mdReport = [
+    '# DondeAI CEO Report',
+    dateStr + ' at ' + timeStr,
+    '',
+    '## Engine Health',
+    '- Grade: ' + grade + ' (Composite: ' + composite + ')',
+    '- Avg DM: ' + avgDm + ' | Score Fit: ' + avgFit + ' | Blurb: ' + avgBlurb,
+    '- Pass Rate: ' + passRate + '% (' + passCount + '/' + total + ')',
+    '',
+    '## Quality Trend',
+    trendText,
+    improvementsMd,
+    '',
+    '## Cost Summary',
+    costMd,
+    '',
+    '## Cache Metrics',
+    cacheMd,
+    '',
+    '## Top Issues',
+    issuesMd,
+    '',
+    '---',
+    'Generated by DondeAI Mission Control',
+  ].filter(function(l) { return l !== undefined; }).join('\n');
+
+  try {
+    await navigator.clipboard.writeText(mdReport);
+    if (typeof showToast === 'function') showToast('Markdown report copied to clipboard');
+    cooLog('success', 'Markdown version copied to clipboard.');
+  } catch (e) {
+    cooLog('info', '(Clipboard write failed. Report is in the new window.)');
   }
 }
 
