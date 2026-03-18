@@ -279,7 +279,7 @@ a[href],
 /* ---- Mobile layout overrides (max-width: 767px) ---- */
 @media (max-width: 767px) {
   /* Fix 1.1: Result card — tighter padding + gap to reclaim vertical space */
-  .result-card { padding: var(--space-sm); gap: var(--space-xs); }
+  .result-card { padding: var(--space-sm); gap: var(--space-xs); overflow-x: hidden; }
   .result-photos { margin: calc(-1 * var(--space-sm)) calc(-1 * var(--space-sm)) 0; }
 
   /* Fix 1.2: Restaurant name — cap font size to prevent overflow */
@@ -304,13 +304,21 @@ a[href],
   .glance-hero { gap: var(--space-xs); }
 
   /* Fix 4.2: Photo strip — shorter on mobile to save viewport height */
-  .result-photos__img { height: 160px; }
+  .result-photos__img { height: 140px; max-width: 280px; }
 
   /* Fix 4.3: Card footer — reduce top padding */
   .card-footer { padding-top: var(--space-2xs); }
 
   /* Fix 4.4: Match signal — tighter negative margin */
   .match-signal { margin-top: calc(-1 * var(--space-2xs)); }
+
+  /* Fix 4.5: Glance hero — smaller match badge on mobile */
+  .match-mini__arc { width: 48px; height: 48px; }
+  .match-mini { padding: var(--space-2xs); }
+  .match-mini__score { font-size: 1rem; }
+
+  /* Fix 4.6: Tell-more/See-Match button — tighter */
+  .tell-more-btn { padding: var(--space-xs) var(--space-md); }
 }
 
 /* ---- F-008: Minimum font size floor on mobile ---- */
