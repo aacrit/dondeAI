@@ -2083,6 +2083,7 @@ body.mc-mode--live .mc-detail__header {
 .mc-drawer__agents .mc-agent-div:nth-child(5) { animation-delay: 200ms; }
 .mc-drawer__agents .mc-agent-div:nth-child(6) { animation-delay: 250ms; }
 .mc-drawer__agents .mc-agent-div:nth-child(7) { animation-delay: 300ms; }
+.mc-drawer__agents .mc-agent-div:nth-child(8) { animation-delay: 350ms; }
 
 /* Terminal collapsed at bottom of drawer */
 .mc-drawer__terminal-section {

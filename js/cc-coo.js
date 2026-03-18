@@ -411,61 +411,72 @@ function renderAgentStatus() {
     'COO': {
       agents: [{
         id: 'donde-coo', name: 'COO', iconType: 'coo',
-        role: 'Chief Operating Officer',
-        skills: ['Multi-agent orchestration', 'Quality cycles', 'Cross-division coordination', 'CEO briefings'],
-        trigger: 'Auto on significant changes',
-        defaultPrompt: 'Run a full quality cycle across all divisions and report findings to CEO'
+        role: 'System Health Assessor',
+        skills: ['System-wide health checks', 'CEO briefings', 'RAG status per division', 'Cross-division reporting'],
+        trigger: 'System health check or CEO briefing request',
+        defaultPrompt: 'Assess system health across all 7 divisions and deliver a structured CEO briefing with RAG status. Do NOT delegate — report what needs attention so I can invoke the right agents directly.'
       }],
       color: 'var(--cc-accent)'
     },
     'Quality': {
       agents: [
-        { id: 'analytics-expert', name: 'Analytics', iconType: 'chart', role: 'Chief Analytics Officer', skills: ['Engine benchmarking', 'Quick-win implementation', 'Scoring optimization', 'Golden dataset analysis'], trigger: 'Manual or auto on scoring changes', defaultPrompt: 'Benchmark the scoring engine, run golden tests, and implement any quick-wins found' },
-        { id: 'bug-fixer', name: 'Bug Fixer', iconType: 'bug', role: 'Post-test bug fixer', skills: ['Root cause analysis', 'Scoring/blurb/grading fixes', 'Grouped issue resolution', 'Regression prevention'], trigger: 'Auto after test failures', defaultPrompt: 'Analyze the latest test results, root-cause every FAIL/WARN, and implement targeted fixes' },
-        { id: 'gen-test-queries', name: 'Test Gen', iconType: 'dice', role: 'Test query generator', skills: ['Persona-driven queries', 'Demographic diversity', 'Edge case generation', 'Cultural coverage'], trigger: 'Manual', defaultPrompt: 'Generate 10 diverse persona-driven test queries covering different demographics and occasions' },
-        { id: 'continuous-tester', name: 'Tester', iconType: 'check', role: 'Automated test runner', skills: ['Golden dataset testing', 'Regression guard', 'Result persistence', 'Auto bug-fixer spawn'], trigger: 'After deploys', defaultPrompt: 'Run the golden dataset test and regression guard, then report results' }
+        { id: 'analytics-expert', name: 'Analytics', iconType: 'chart', role: 'Scoring engine analyst', skills: ['Engine benchmarking', 'DondeMatch calibration', 'Golden dataset analysis', 'Ranking quality audits'], trigger: 'Scoring changes or manual', defaultPrompt: 'Benchmark the scoring engine against the golden dataset. Identify the bottom 5 queries, implement safe quick-wins, and deliver a CEO report with before/after metrics.' },
+        { id: 'bug-fixer', name: 'Bug Fixer', iconType: 'bug', role: 'Post-test bug fixer', skills: ['Root cause grouping', 'Scoring/blurb/grading fixes', 'Surgical code changes', 'Regression prevention'], trigger: 'After test failures', defaultPrompt: 'Read the latest golden dataset results. Root-cause every FAIL/WARN, group by shared cause, implement targeted fixes in scoring/blurb/grading code, and spot-check 3-5 queries to verify.' },
+        { id: 'gen-test-queries', name: 'Test Gen', iconType: 'dice', role: 'Test query generator', skills: ['Persona-driven queries', 'Demographic diversity', 'Edge case generation', 'Cultural coverage'], trigger: 'Manual', defaultPrompt: 'Generate 10 diverse persona-driven test queries covering underrepresented demographics, occasions, and cuisine types. Append to tests/generated-queries.json.' },
+        { id: 'continuous-tester', name: 'Tester', iconType: 'check', role: 'Automated test runner', skills: ['Golden dataset testing', 'Regression guard', 'Result persistence', 'Delta comparison'], trigger: 'After deploys', defaultPrompt: 'Run ./tests/golden-dataset-test.sh and ./tests/regression-guard.sh. Compare against previous baseline. Report PASS/FAIL/WARN counts, avg DM, and any new failures.' },
+        { id: 'subjective-engine-tester', name: 'Subjective', iconType: 'search', role: 'Subjective quality auditor', skills: ['Ground-truth comparison', 'Expert consensus via web', 'Multi-round fix cycles', 'ML training data'], trigger: 'Manual', defaultPrompt: 'Run 1 round of subjective testing: 25 diverse queries, compare engine results against expert consensus (Michelin, Eater, Infatuation), fix failures, retest, and update boost table.' }
       ],
       color: 'var(--cc-green)'
     },
     'Infrastructure': {
       agents: [
-        { id: 'perf-optimizer', name: 'Perf', iconType: 'bolt', role: 'Response time optimizer', skills: ['Latency profiling', 'Timeout prevention', 'Bottleneck identification', 'Safe optimizations'], trigger: 'Manual or auto on latency', defaultPrompt: 'Profile the recommendation engine latency, identify bottlenecks, and implement safe optimizations' },
-        { id: 'db-reviewer', name: 'DB Review', iconType: 'db', role: 'Database quality auditor', skills: ['Data accuracy audit', 'Freshness checks', 'Cross-field consistency', 'Enrichment planning'], trigger: 'Manual or auto after enrichment', defaultPrompt: 'Audit all restaurants for data accuracy, freshness, and completeness. Deliver prioritized enrichment plan' },
-        { id: 'update-docs', name: 'Docs', iconType: 'doc', role: 'Documentation updater', skills: ['Codebase scanning', 'CLAUDE.md updates', 'Architecture docs', 'API documentation'], trigger: 'Auto on significant changes', defaultPrompt: 'Scan the codebase for changes and update all documentation files to reflect current state' },
-        { id: 'prod-sentinel', name: 'Sentinel', iconType: 'radar', role: 'Production monitor', skills: ['Error rate monitoring', 'Cache health checks', 'Response time tracking', 'Anomaly detection'], trigger: 'Scheduled or manual', defaultPrompt: 'Check production error rates, cache hit ratios, and response times. Flag any anomalies' }
+        { id: 'perf-optimizer', name: 'Perf', iconType: 'bolt', role: 'Performance engineer', skills: ['Latency profiling', 'Timeout prevention', 'Bottleneck identification', 'Safe optimizations'], trigger: 'Latency issues or manual', defaultPrompt: 'Profile the recommendation pipeline latency. Map every await in index.ts, identify the top 3 bottlenecks, and implement safe optimizations. Report P50/P95/P99 before and after.' },
+        { id: 'db-reviewer', name: 'DB Review', iconType: 'db', role: 'Data quality auditor', skills: ['NULL coverage audit', 'Freshness checks', 'Cross-field consistency', 'Enrichment planning'], trigger: 'After enrichment or manual', defaultPrompt: 'Audit all 2,719 restaurants for data accuracy, freshness, and completeness. Run NULL counts, outlier checks, and cross-field consistency. Deliver a prioritized enrichment plan.' },
+        { id: 'update-docs', name: 'Docs', iconType: 'doc', role: 'Documentation updater', skills: ['Codebase scanning', 'CLAUDE.md updates', 'Drift detection', 'Date stamping'], trigger: 'After significant code changes', defaultPrompt: 'Scan the codebase for changes since the last update. Compare against CLAUDE.md and docs/*.md. Update any drifted documentation to reflect current state.' },
+        { id: 'prod-sentinel', name: 'Sentinel', iconType: 'radar', role: 'Production monitor', skills: ['API error rates', 'DondeCache hit ratios', 'Response time P95', 'Anomaly detection'], trigger: 'Scheduled or manual', defaultPrompt: 'Query user_queries for error rates (last 24h), check DondeCache hit ratios, monitor response time trends from gauntlet_runs, and flag any anomalies with RAG thresholds.' }
       ],
       color: 'var(--cc-blue)'
     },
     'Product': {
       agents: [
-        { id: 'ceo-advisor', name: 'CEO Advisor', iconType: 'crown', role: 'Strategic product advisor', skills: ['Board-level strategy', 'Prioritized recommendations', 'Competitive analysis', 'Growth opportunities'], trigger: 'Manual', defaultPrompt: 'Provide top 10 prioritized strategic recommendations for DondeAI product growth' },
-        { id: 'donde-premium-advisor', name: 'Premium', iconType: 'gem', role: 'Premium app advisor', skills: ['$50B caliber assessment', 'UI/UX polish audit', 'Marketing psychology', 'Premium feature design'], trigger: 'Manual', defaultPrompt: 'Audit DondeAI as a premium product. Deliver concrete recommendations across UI/UX, backend, and marketing' }
+        { id: 'ceo-advisor', name: 'CEO Advisor', iconType: 'crown', role: 'Strategic product advisor', skills: ['Prioritized recommendations', 'Competitive positioning', 'Roadmap decisions', 'Growth strategy'], trigger: 'Manual', defaultPrompt: 'Read both repos (backend CLAUDE.md + frontend CLAUDE.md). Assess the current product state. Deliver exactly 10 recommendations ranked by impact x feasibility. End with "The One Thing."' },
+        { id: 'donde-premium-advisor', name: 'Premium', iconType: 'gem', role: 'Premium quality assessor', skills: ['$50B caliber assessment', 'UI/UX polish audit', 'Backend optimization', 'Behavioral psychology'], trigger: 'Manual', defaultPrompt: 'Audit both repos for premium app quality. Score across animation polish, design system, mobile UX, backend quality, onboarding, retention, and performance. End with "If you do ONE thing today."' }
       ],
       color: 'var(--cc-amber)'
     },
     'Security': {
       agents: [
-        { id: 'donde-ciso', name: 'CISO', iconType: 'shield', role: 'Chief Information Security Officer', skills: ['Vulnerability scanning', 'API exposure audit', 'Auth gap detection', 'Supply chain review'], trigger: 'Manual or auto on security changes', defaultPrompt: 'Run a full security audit across all repositories. Deliver severity-ranked findings with remediation plan' }
+        { id: 'donde-ciso', name: 'CISO', iconType: 'shield', role: 'Security auditor', skills: ['Secrets scanning', 'RLS policy review', 'Input validation', 'OWASP assessment'], trigger: 'Manual or security changes', defaultPrompt: 'Run a full 10-domain security audit across both repos. Check secrets, API security, injection vulnerabilities, auth, frontend security, supply chain, AI security, and compliance. Deliver severity-ranked findings.' }
       ],
       color: 'var(--cc-red)'
     },
     'Frontend': {
       agents: [
-        { id: 'uat-tester', name: 'UAT', iconType: 'search', role: 'UAT browser tester', skills: ['Playwright automation', 'Bug detection', 'UX audit', 'Accessibility testing'], trigger: 'Manual', defaultPrompt: 'Run a comprehensive UAT of donde.lat covering core journey, edge cases, accessibility, and mobile responsiveness' },
-        { id: 'frontend-builder', name: 'Builder', iconType: 'build', role: 'Component engineer', skills: ['Component architecture', 'Design system compliance', 'Performance optimization', 'Animation engineering'], trigger: 'Manual', defaultPrompt: 'Build the requested frontend component following the DondeAI design system and coding standards' },
-        { id: 'frontend-fixer', name: 'Fixer', iconType: 'wrench', role: 'UI bug remediation', skills: ['CSS debugging', 'Layout fixes', 'Cross-browser issues', 'Responsive design'], trigger: 'Manual', defaultPrompt: 'Fix the reported UI bugs in the frontend application' },
-        { id: 'css-theme-specialist', name: 'Themes', iconType: 'palette', role: 'Theme variant designer', skills: ['10 theme variants', 'Color system design', 'Dark/light modes', 'Seasonal themes'], trigger: 'Manual', defaultPrompt: 'Design and implement a new theme variant for the DondeAI app' }
+        { id: 'uat-tester', name: 'UAT', iconType: 'search', role: 'Browser UAT tester', skills: ['Playwright automation', 'Click-through QA', 'Accessibility audit', 'Responsive testing'], trigger: 'Manual', defaultPrompt: 'Run a 7-phase UAT of donde.lat via Playwright: page load audit, core journey testing, theme/mode testing (10 variants), responsive testing (5 breakpoints), accessibility audit, edge cases, and command center testing. Deliver severity-ranked findings.' },
+        { id: 'frontend-builder', name: 'Builder', iconType: 'build', role: 'UI component engineer', skills: ['Ink & Momentum design system', 'Vanilla HTML+CSS+JS', 'Theme compliance', 'WCAG 2.1 AA'], trigger: 'Manual', defaultPrompt: 'Read CLAUDE.md, docs/DESIGN-SYSTEM.md, and the frontenddesign skill. Build the requested component following Ink & Momentum rules. Verify across 3 theme variants and run the 10-point smoke test.' },
+        { id: 'frontend-fixer', name: 'Fixer', iconType: 'wrench', role: 'UI bug fixer', skills: ['Root cause grouping', 'Theme break fixes', 'Ink Rule compliance', 'Responsive debugging'], trigger: 'After UAT failures', defaultPrompt: 'Read the latest UAT results. Group bugs by root cause (theme_break, ink_violation, animation_jank, accessibility_gap, responsive_break). Implement fixes in priority order and verify across 3 theme variants.' },
+        { id: 'css-theme-specialist', name: 'Themes', iconType: 'palette', role: 'Theme coverage auditor', skills: ['10 theme variants', 'Token file updates', 'Wash transition verify', 'Contrast compliance'], trigger: 'After new components or theme bugs', defaultPrompt: 'Audit theme coverage for all components across 10 variants (5 cultures x 2 modes). Check token overrides, contrast ratios (>=4.5:1), radial clip-path wash transition, and hardcoded values. Deliver coverage matrix.' }
       ],
       color: '#a855f7'
     },
     'Integrations': {
       agents: [
-        { id: 'reservation-integration-specialist', name: 'Reservations', iconType: 'cal', role: 'Reservation API specialist', skills: ['Resy/OpenTable/Tock APIs', 'Deep link generation', 'Affiliate integration', '$0 implementation'], trigger: 'Manual', defaultPrompt: 'Design the reservation integration strategy using Resy, OpenTable, and Tock APIs with $0 deep links' },
-        { id: 'payments-ordering-specialist', name: 'Payments', iconType: 'card', role: 'Ordering/payment specialist', skills: ['Toast/DoorDash APIs', 'UberEats integration', 'Square payments', 'Order flow design'], trigger: 'Manual', defaultPrompt: 'Design the ordering and payment integration with Toast, DoorDash, and UberEats APIs' },
-        { id: 'maps-location-specialist', name: 'Maps', iconType: 'map', role: 'Mapping/location specialist', skills: ['Google Maps optimization', 'Mapbox integration', 'Cost analysis', 'Location features'], trigger: 'Manual', defaultPrompt: 'Optimize mapping integration costs and design enhanced location features' },
-        { id: 'social-reviews-specialist', name: 'Social', iconType: 'phone', role: 'Social/review specialist', skills: ['Yelp Fusion API', 'Instagram integration', 'Trending detection', 'Social proof features'], trigger: 'Manual', defaultPrompt: 'Design social proof and trending detection features using Yelp, Instagram, and TikTok APIs' }
+        { id: 'reservation-integration-specialist', name: 'Reservations', iconType: 'cal', role: 'Reservation platform specialist', skills: ['Resy/OpenTable/Tock deep links', 'Affiliate programs', '$0 URL construction', 'Chicago coverage mapping'], trigger: 'Manual', defaultPrompt: 'Assess reservation platform coverage for DondeAI restaurants. Design $0 deep link integrations for Resy, OpenTable, and Tock. Deliver coverage matrix, URL templates, and implementation plan.' },
+        { id: 'payments-ordering-specialist', name: 'Payments', iconType: 'card', role: 'Ordering/delivery specialist', skills: ['Toast/DoorDash/UberEats deep links', 'Square integration', '$0 ordering paths', 'Affiliate revenue'], trigger: 'Manual', defaultPrompt: 'Map ordering platform coverage for Chicago restaurants. Design $0 deep link integrations for DoorDash, UberEats, Grubhub, and Toast. Prioritize direct ordering over marketplace.' },
+        { id: 'maps-location-specialist', name: 'Maps', iconType: 'map', role: 'Maps/location specialist', skills: ['Google Maps cost optimization', 'Mapbox/Apple MapKit', 'Directions deep links', 'Travel time calculation'], trigger: 'Manual', defaultPrompt: 'Audit current Google Maps API usage. Recommend optimal provider per use case (maps display, directions, geocoding, travel time). Design $0 deep link integrations and cost projections at 1K/10K/100K users.' },
+        { id: 'social-reviews-specialist', name: 'Social', iconType: 'phone', role: 'Social/review specialist', skills: ['Yelp Fusion API', 'Review aggregation', 'Trending detection', 'Social proof deep links'], trigger: 'Manual', defaultPrompt: 'Audit current review data freshness. Design $0 social proof integrations: Google review links, Yelp links, Instagram/TikTok/Reddit search links. Assess trending detection feasibility.' }
       ],
       color: 'var(--cc-live)'
+    },
+    'R&I': {
+      agents: [
+        { id: 'motion-physics-designer', name: 'Motion', iconType: 'bolt', role: 'Motion & physics designer', skills: ['Spring physics', 'Gesture interactions', 'Haptic feedback', 'Choreographed motion'], trigger: 'Manual', defaultPrompt: 'Review the current animation system in the frontend repo. Propose 3 high-impact motion improvements: score reveal animation, card choreography, and pull-to-discover physics. Specify spring constants and CSS implementation.' },
+        { id: 'spatial-map-innovator', name: 'Spatial', iconType: 'map', role: 'Map innovation designer', skills: ['Walk-time rings', 'L-line discovery', 'Cuisine heatmaps', 'Neighborhood intelligence'], trigger: 'Manual', defaultPrompt: 'Design 3 spatial features for DondeAI: walk-time rings around user location, Chicago L-line restaurant discovery mode, and cuisine density heatmap. Specify data requirements and frontend implementation approach.' },
+        { id: 'personalization-ai-architect', name: 'Personal', iconType: 'chart', role: 'Personalization architect', skills: ['Taste fingerprints', 'Mood-based discovery', 'Cold-start calibration', 'Learning loops'], trigger: 'Manual', defaultPrompt: 'Design the next phase of the learning flywheel: implicit signal harvesting (dwell time, scroll velocity, direction taps), taste fingerprint computation, and cold-start taste calibration (5-card swipe). Specify signal quality hierarchy.' },
+        { id: 'gamification-engagement-designer', name: 'Gamify', iconType: 'crown', role: 'Gamification designer', skills: ['Cuisine passport', 'Neighborhood badges', 'Dining streaks', 'Anti-addictive design'], trigger: 'Manual', defaultPrompt: 'Design the Chicago Cuisine Passport (30 cuisines, stamp mechanics, Bronze/Silver/Gold levels) and Neighborhood Explorer Badges (33 neighborhoods). Specify database schema and frontend components.' },
+        { id: 'accessibility-inclusivity-lead', name: 'A11y', iconType: 'check', role: 'Accessibility lead', skills: ['WCAG 2.2 AA+', 'VoiceOver optimization', 'Cultural sensitivity', 'Chicago inclusivity'], trigger: 'Manual', defaultPrompt: 'Run a WCAG 2.2 accessibility audit of the frontend. Check color contrast across all 10 themes, keyboard navigation, screen reader compatibility, dynamic type support, and sensory-friendly restaurant data. Deliver severity-ranked findings.' }
+      ],
+      color: '#06b6d4'
     }
   };
 
@@ -480,7 +491,7 @@ function renderAgentStatus() {
   '</div>';
 
   // Division groups
-  var divOrder = ['Quality', 'Infrastructure', 'Frontend', 'Product', 'Security', 'Integrations'];
+  var divOrder = ['Quality', 'Infrastructure', 'Frontend', 'Product', 'Security', 'Integrations', 'R&I'];
   divOrder.forEach(function(divName) {
     var div = AGENT_TEAM[divName];
     if (!div) return;
@@ -630,25 +641,26 @@ function cmdFix() {
 
   cooLog('info', `${count} open issue${count > 1 ? 's' : ''}. Generating fix command...`);
   const cliCmd =
-    'claude --agent bug-fixer --prompt "Fix scoring gaps from latest test run"';
+    'claude --agent bug-fixer --prompt "Read the latest golden dataset results. Root-cause every FAIL/WARN, group by shared cause, implement targeted fixes in scoring/blurb/grading code, and spot-check 3-5 queries to verify."';
   cooLog('cli', cliCmd);
-  cooLog('info', 'Copy and paste this into your terminal to start the bug-fixer agent.');
+  cooLog('info', 'Invoke bug-fixer directly — it will fix issues and report back. Then run continuous-tester to verify.');
 }
 
 function cmdSecurity() {
   cooLog('info', 'Generating security audit command...');
   const cliCmd =
-    'claude --agent donde-ciso --prompt "Run full security audit"';
+    'claude --agent donde-ciso --prompt "Run a full 10-domain security audit across both repos. Check secrets, API security, injection vulnerabilities, auth, frontend security, supply chain, AI security, and compliance. Deliver severity-ranked findings with The One Fix."';
   cooLog('cli', cliCmd);
-  cooLog('info', 'Copy and paste this into your terminal to start the CISO agent.');
+  cooLog('info', 'Invoke CISO directly — it will audit and report back with severity-ranked findings.');
 }
 
 function cmdCOO() {
-  cooLog('info', 'Generating COO briefing command...');
+  cooLog('info', 'Generating COO health assessment command...');
+  cooLog('info', 'Note: COO is a read-only assessor. It reports health status but does NOT delegate to other agents. Invoke specialists directly based on its findings.');
   const cliCmd =
-    'claude --agent donde-coo --prompt "Run quality cycle and generate CEO briefing"';
+    'claude --agent donde-coo --prompt "Assess system health across all 7 divisions. Read both repos, check latest test results, and deliver a structured CEO briefing with RAG status per division. End with recommended next actions listing which agents I should invoke."';
   cooLog('cli', cliCmd);
-  cooLog('info', 'Copy and paste this into your terminal to start the COO agent.');
+  cooLog('info', 'Copy and paste this into your terminal to start the COO health assessment.');
 }
 
 function cmdDeploy() {
@@ -921,9 +933,9 @@ function cmdHelp() {
   cooLog('info', 'test food     Run category-focused test');
   cooLog('info', 'status        Show current engine health & KPIs');
   cooLog('info', 'issues        List open quality issues');
-  cooLog('info', 'fix           Generate bug-fixer CLI command');
-  cooLog('info', 'security      Generate security audit CLI command');
-  cooLog('info', 'coo briefing  Generate COO briefing CLI command');
+  cooLog('info', 'fix           Generate bug-fixer CLI command (invoke directly)');
+  cooLog('info', 'security      Generate security audit CLI command (invoke directly)');
+  cooLog('info', 'coo briefing  Generate COO health assessment (read-only, no delegation)');
   cooLog('info', 'cache         Show cache health metrics');
   cooLog('info', 'warm cache    Trigger cache warmer pipeline');
   cooLog('info', 'db health     Show database overview');
