@@ -49,19 +49,17 @@ AI restaurant recommendations for Chicago. One craving in, one perfect spot out.
 
 Frontend design review checklist (7 points): accent usage, type voice, motion curve + symmetry, theme coverage, keyboard nav, reduced-motion, badge neutrality.
 
-## Agent Hierarchy
+## Agent Routing Rules
 
-The COO (`donde-coo`) orchestrates all agents across **5 divisions**. Frontend execution agents (`frontend-builder`, `frontend-fixer`, `css-theme-specialist`) are the Frontend Division. Backend agents (11 total) handle Quality, Infrastructure, Product, and Security. COO canonical definition: `../dondeBackend/.claude/agents/donde-coo.md`.
+See `../dondeBackend/CLAUDE.md` for the full routing table. Frontend-specific agents:
 
-```
-CEO (Aacrit)
-  └── COO
-        ├── Quality ———— analytics-expert, bug-fixer, gen-test-queries, continuous-tester
-        ├── Infrastructure — perf-optimizer, db-reviewer, update-docs, prod-sentinel
-        ├── Frontend ———— frontend-builder, frontend-fixer, css-theme-specialist, uat-tester, frontenddesign
-        ├── Product ————— ceo-advisor, donde-premium-advisor
-        └── Security ———— donde-ciso
-```
+| Task | Agent |
+|---|---|
+| Build UI components, features, pages | `frontend-builder` |
+| Fix UI bugs, theme breaks, visual regressions | `frontend-fixer` |
+| Theme coverage, token audit, wash transition | `css-theme-specialist` |
+
+All agents are invoked directly by name. Do NOT route through `donde-coo` for delegation — subagents cannot spawn other subagents. The COO is a read-only health assessor only.
 
 ## Design Philosophy — "Ink & Momentum" (V10, Locked)
 
