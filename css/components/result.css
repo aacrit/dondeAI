@@ -79,6 +79,7 @@
   gap: var(--space-md);
   width: 100%;
   min-width: 0;
+  overflow-x: hidden;
 }
 
 .tier--leanin {
@@ -118,9 +119,11 @@
 .glance-hero__info {
   flex: 1;
   min-width: 0;
+  max-width: 100%;
   display: flex;
   flex-direction: column;
   gap: var(--space-2xs);
+  overflow: hidden;
 }
 
 /* ── Match Mini — compact stacked badge (brand + arc + score) ── */
@@ -1317,6 +1320,7 @@
   align-items: center;
   width: 100%;
   max-width: 100%;
+  overflow: hidden;
 }
 .glance-context:empty { display: none; }
 
@@ -1332,6 +1336,9 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-pill);
   white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
   cursor: pointer;
   user-select: none;
   transition: border-color var(--dur-fast) var(--ease-out),
