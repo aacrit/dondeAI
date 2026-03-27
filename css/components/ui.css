@@ -1289,7 +1289,7 @@
 
 .origin-story__text {
   color: var(--fg2);
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-emotional);
   font-style: italic;
   line-height: 1.7;
   font-size: clamp(0.9375rem, 2.2vw, 1.0625rem);

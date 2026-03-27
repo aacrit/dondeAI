@@ -499,7 +499,7 @@
 .badge-popout__sentiment-dot--neg { background: var(--rag-red); opacity: 0.85; }
 /* "Powered by Google" attribution inside popout */
 .badge-popout__google-attr {
-  font-family: 'Roboto', var(--font-structural);
+  font-family: var(--font-structural);
   font-size: 0.625rem;
   color: var(--fg3);
   opacity: 0.6;

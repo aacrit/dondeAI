@@ -1722,7 +1722,7 @@ export function wireEvents(appCallbacks) {
         if ($btnText) {
           $btnText.classList.add('tell-more-btn__text--fading');
           setTimeout(() => {
-            $btnText.textContent = isExpanded ? 'See Match Details' : 'Hide Details';
+            $btnText.textContent = isExpanded ? 'Show More' : 'Show Less';
             $btnText.classList.remove('tell-more-btn__text--fading');
           }, 100);
         }
