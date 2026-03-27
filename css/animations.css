@@ -426,7 +426,7 @@
 }
 
 .score-tile--celebrating {
-  animation: scoreGlow 800ms var(--ease-out);
+  animation: scoreGlow var(--dur-bloom) var(--ease-out);
 }
 
 /* ---- Focus Ring Spring-In ---- */
@@ -499,7 +499,7 @@
 }
 
 .filter-content--closing {
-  animation: drawerClose 300ms var(--ease-out) forwards;
+  animation: drawerClose var(--dur-normal) var(--ease-out) forwards;
   pointer-events: none;
 }
 
@@ -603,7 +603,7 @@
 }
 
 .color-popover--open .color-popover__dot {
-  animation: colorDotIn 250ms var(--spring) backwards;
+  animation: colorDotIn var(--dur-normal) var(--spring) backwards;
 }
 
 .color-popover--open .color-popover__dot:nth-child(1) { animation-delay: 30ms; }
@@ -623,7 +623,7 @@
 }
 
 .cta-btn--boosted:not(:disabled) {
-  animation: ctaBoost 500ms var(--spring);
+  animation: ctaBoost var(--dur-slow) var(--spring);
 }
 
 /* ---- Score Bloom Keyframes ---- */
@@ -709,7 +709,7 @@
 }
 
 .score-hero__ring-wrap--celebrating {
-  animation: ringCelebrate 800ms ease-out;
+  animation: ringCelebrate var(--dur-bloom) var(--ease-out);
 }
 
 /* ---- Heart Pop (bookmark/like feedback — spring overshoot settle) ---- */
@@ -1085,15 +1085,16 @@
    ============================================ */
 .score-hero__ink-dot {
   position: absolute;
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: var(--ac);
-  box-shadow: 0 0 6px var(--ac);
+  box-shadow: 0 0 8px 2px color-mix(in srgb, var(--ac) 60%, transparent);
   opacity: 0;
   pointer-events: none;
   z-index: 3;
-  transition: opacity 200ms ease-out;
+  transition: opacity var(--dur-fast) var(--ease-out);
+  transform: translate(-50%, -50%);
 }
 
 .score-hero__ink-dot--active {
@@ -1114,7 +1115,7 @@
    ============================================ */
 .score-hero__ring-wrap--glow {
   border-radius: 50%;
-  transition: box-shadow 600ms ease-out;
+  transition: box-shadow var(--dur-slow) var(--ease-out);
 }
 
 /* ============================================
@@ -1484,14 +1485,14 @@
    ============================================ */
 .score-ring-particle {
   position: absolute;
-  width: 5px;
-  height: 5px;
   border-radius: 50%;
   background: var(--ac);
+  box-shadow: 0 0 4px 1px color-mix(in srgb, var(--ac) 40%, transparent);
   pointer-events: none;
-  z-index: 10;
+  z-index: var(--z-above);
   opacity: 0;
   will-change: transform, opacity;
+  transform: translate(-50%, -50%);
 }
 
 /* ============================================

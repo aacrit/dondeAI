@@ -12,7 +12,7 @@ import { loadTheme, loadSound, loadHistory, hasGuestDismissed, hasSeenOnboarding
 import { initTheme, getLabels } from './theme.js';
 import { initAudio } from './audio.js';
 import { initSpring } from './spring.js';
-import { magneticHover } from './motion.js';
+import { magneticHover, trackedRaf, cancelRaf } from './motion.js';
 import { initVoice } from './voice.js';
 import { initShare } from './share.js';
 import { initOffline } from './offline.js';
@@ -343,9 +343,10 @@ function pulseAmbient() {
 
   setTimeout(() => {
     blobs.forEach(blob => {
+      blob.style.transition = 'transform 800ms var(--ease-out), opacity 800ms var(--ease-out)';
       blob.style.transform = '';
       blob.style.opacity = '';
-      setTimeout(() => { blob.style.transition = ''; }, 600);
+      setTimeout(() => { blob.style.transition = ''; }, 800);
     });
   }, 600);
 }
@@ -412,22 +413,21 @@ function initCursorGlow() {
     if (!active) {
       active = true;
       $dom.cursorGlow.style.opacity = '0.2';
-      lerpGlow();
+      trackedRaf('cursorGlow', () => {
+        if (!active) return false; // stop loop
+        currentX += (targetX - currentX) * 0.15;
+        currentY += (targetY - currentY) * 0.15;
+        $dom.cursorGlow.style.transform = `translate(${currentX - 100}px, ${currentY - 100}px)`;
+        return true; // continue loop
+      });
     }
   }, { passive: true });
 
   document.addEventListener('mouseleave', () => {
     active = false;
+    cancelRaf('cursorGlow');
     $dom.cursorGlow.style.opacity = '0';
   });
-
-  function lerpGlow() {
-    if (!active) return;
-    currentX += (targetX - currentX) * 0.15;
-    currentY += (targetY - currentY) * 0.15;
-    $dom.cursorGlow.style.transform = `translate(${currentX - 100}px, ${currentY - 100}px)`;
-    requestAnimationFrame(lerpGlow);
-  }
 }
 
 /* ---- Coach Marks ---- */

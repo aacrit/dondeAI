@@ -148,8 +148,11 @@ export async function manifestResult(data) {
   const COMPLETION_DELAY = REDUCED_MOTION.matches ? 0 : 350; // 200ms animate + 150ms hold
   const $progressBar = $loadingState?.querySelector('.loading-state__progress');
   if ($progressBar && !REDUCED_MOTION.matches) {
-    $progressBar.style.transition = 'transform 200ms cubic-bezier(0.0, 0.0, 0.2, 1)';
-    $progressBar.style.transform = 'scaleX(1)';
+    // Smooth handoff: cancel any in-flight transition, then snap to completion
+    $progressBar.style.transition = 'transform 250ms cubic-bezier(0.0, 0.0, 0.2, 1)';
+    requestAnimationFrame(() => {
+      $progressBar.style.transform = 'scaleX(1)';
+    });
   }
 
   if (REDUCED_MOTION.matches) {
@@ -315,7 +318,10 @@ export function settleResult() {
     cleanupLoadingLogo();
   }
   const $restName = document.getElementById('result-name');
-  if ($restName) $restName.focus({ preventScroll: true });
+  if ($restName) {
+    $restName.focus({ preventScroll: true });
+    announce(`Result: ${$restName.textContent}`);
+  }
 }
 
 /* ---- Reverse Canvas Fold ---- */
@@ -373,9 +379,9 @@ export function unfoldResultToCanvas() {
       }
       setTimeout(() => {
         if ($canvas) $canvas.classList.remove('canvas-layout--restoring');
-      }, 400);
-    }, 350);
-  }, 250);
+      }, 450); // Match --dur-step for symmetric timing
+    }, 400);
+  }, 200); // Slightly faster initiation for snappier back feel
 }
 
 /* ---- Legacy toggleLoading ---- */

@@ -154,15 +154,15 @@
 /* Compact header on scroll — shrinks + intensifies blur */
 .header--compact {
   height: calc(var(--header-h) - 8px);
-  backdrop-filter: blur(20px) saturate(140%);
-  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  backdrop-filter: blur(var(--glass-e2-blur)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--glass-e2-blur)) saturate(140%);
   border-bottom-color: var(--border);
 }
 
 .header--compact .header__logo .logo-wordmark {
   font-size: var(--text-sm);
   letter-spacing: -0.02em;
-  transition: font-size 300ms var(--spring), letter-spacing 300ms var(--ease-out);
+  transition: font-size var(--dur-normal) var(--spring), letter-spacing var(--dur-normal) var(--ease-out);
 }
 
 .header > * {

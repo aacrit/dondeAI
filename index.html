@@ -292,7 +292,7 @@
             </div>
 
             <!-- Filter Narrative — natural language summary of active filters -->
-            <p class="filter-narrative type-structural" id="filter-narrative" style="display: none;" data-action="toggle-filters" role="button" tabindex="0" aria-label="Edit filters"></p>
+            <button type="button" class="filter-narrative type-structural" id="filter-narrative" style="display: none;" data-action="toggle-filters" aria-label="Edit filters"></button>
 
             <!-- Culture Whisper — brief label when auto-theme detects a cuisine -->
             <div class="culture-whisper" id="culture-whisper" aria-hidden="true"></div>
@@ -415,7 +415,7 @@
             </div>
 
             <!-- CTA Button -->
-            <button class="cta-btn type-structural--bold" data-action="submit" data-label="cta" disabled aria-disabled="true">
+            <button type="button" class="cta-btn type-structural--bold" data-action="submit" data-label="cta" disabled>
               Find My Spot
             </button>
             <p class="cta-hint type-data--sm" id="cta-hint" aria-live="polite">
@@ -639,7 +639,7 @@
 
       <!-- Loading State Overlay: Particle canvas + Donde logo draw-loop + rotating word -->
       <div class="loading-state" id="loading-state" style="display: none;" role="status" aria-label="Finding your spot">
-        <canvas class="particle-canvas" id="particle-canvas" aria-hidden="true"></canvas>
+        <canvas class="particle-canvas" id="particle-canvas" width="800" height="600" aria-hidden="true"></canvas>
         <div class="loading-logo" id="loading-logo" aria-hidden="true">
           <svg class="logo-mark logo-mark--loading" viewBox="0 0 32 44" width="48" height="66">
             <path class="logo-mark__tine logo-mark__tine--left logo-mark__tine--draw"

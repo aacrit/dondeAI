@@ -121,6 +121,7 @@ const MODAL_CONFIG = [
   { id: 'tile-expand',       openClass: 'tile-expand--open' },
   { id: 'lightbox',          openClass: 'lightbox--open' },
   { id: 'user-menu',         openClass: 'user-menu--open' },
+  { id: 'color-popover',     openClass: 'color-popover--open' },
 ];
 
 function observeModals() {

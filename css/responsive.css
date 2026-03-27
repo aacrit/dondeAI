@@ -260,6 +260,33 @@
     transform: scale(1.03);
     background: var(--ac-soft);
   }
+
+  /* Factor bars: subtle row highlight on desktop hover */
+  .factor-row:hover {
+    background-color: color-mix(in srgb, var(--fg) 4%, transparent);
+  }
+
+  /* Factor bars: bar glow on hover */
+  .factor-row:hover .factor-row__bar-fill {
+    filter: brightness(1.1);
+  }
+
+  /* Result card: subtle lift on desktop */
+  .result-card {
+    transition: box-shadow var(--dur-normal) var(--ease-out);
+  }
+
+  /* Going button: scale lift on hover */
+  .going-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px color-mix(in srgb, var(--color-success) 25%, transparent);
+  }
+
+  /* Try Again button: accent border glow */
+  .try-again-btn:hover {
+    border-color: var(--ac);
+    box-shadow: 0 0 0 1px var(--ac-soft);
+  }
 }
 
 /* ---- F-007: Minimum touch targets (44x44px per WCAG 2.1 AA) ---- */
@@ -318,11 +345,11 @@ a[href],
   .match-mini__arc { width: 48px; height: 48px; }
   .match-mini { padding: var(--space-2xs); gap: 1px; }
   .match-mini__score { font-size: 0.9rem; }
-  .match-mini__verdict { font-size: 0.5rem; opacity: 0.7; }
-  .match-mini__hint { font-size: 0.5rem; opacity: 0.4; }
+  .match-mini__verdict { font-size: max(0.5rem, 10px); opacity: 0.7; }
+  .match-mini__hint { font-size: max(0.5rem, 10px); opacity: 0.4; }
   .match-mini__brand { gap: 1px; }
   .match-mini__brand-logo { width: 12px; height: 16px; }
-  .match-mini__tm { font-size: 0.5rem; }
+  .match-mini__tm { font-size: max(0.5rem, 10px); }
 
   /* Fix 4.6: Tell-more/See-Match button — tighter */
   .tell-more-btn { padding: var(--space-xs) var(--space-md); }
@@ -390,13 +417,13 @@ a[href],
 /* ---- F-013: Small mobile (320px) tighter layout ---- */
 @media (max-width: 340px) {
   .coach-mark {
-    font-size: 11px;
-    padding: 8px 12px;
+    font-size: max(11px, var(--text-2xs));
+    padding: var(--space-2xs) var(--space-xs);
   }
 
   .smart-chip {
-    font-size: 11px;
-    padding: 4px 8px;
+    font-size: max(11px, var(--text-2xs));
+    padding: var(--space-2xs) var(--space-xs);
   }
 
   .occasion-tile {
@@ -418,7 +445,7 @@ a[href],
   .cta-btn {
     position: sticky;
     bottom: var(--space-sm);
-    z-index: 5;
+    z-index: var(--z-above);
   }
 
   .canvas-layout {

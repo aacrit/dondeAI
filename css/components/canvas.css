@@ -9,7 +9,7 @@
   opacity: 0;
 }
 .step__title {
-  transition: opacity 300ms var(--ease-out);
+  transition: opacity var(--dur-normal) var(--ease-out);
 }
 
 /* ---- Step Title ---- */
@@ -22,7 +22,7 @@
 
 .step__title--typing {
   min-height: 2.4em;
-  transition: min-height 200ms var(--ease-out);
+  transition: min-height var(--dur-fast) var(--ease-out);
 }
 
 .step__subtitle {
@@ -37,13 +37,13 @@
   width: 100%;
   position: relative;
   border-radius: var(--radius-sm, 8px);
-  transition: box-shadow 300ms var(--ease-out);
+  transition: box-shadow var(--dur-normal) var(--ease-out);
 }
 
 /* Focus glow — halo of attention (fast acquire, slow release) */
 .craving-wrap:focus-within {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ac) 12%, transparent);
-  transition: box-shadow 200ms var(--ease-out);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ac) 15%, transparent);
+  transition: box-shadow var(--dur-fast) var(--ease-out);
 }
 
 /* Ink underline draw-in — "pen touching paper" metaphor */
@@ -76,7 +76,7 @@
   border: 1px solid var(--border);
   border-top: none;
   border-radius: 0 0 var(--radius-sm) var(--radius-sm);
-  box-shadow: 0 4px 16px -4px var(--shadow);
+  box-shadow: var(--glass-e2-shadow, 0 4px 16px -4px var(--shadow));
 }
 
 .craving-suggestions[hidden] {
@@ -145,7 +145,7 @@
 
 /* Ink pulse on keystroke — brief width overshoot for tactile feedback */
 .craving-wrap--pulse::after {
-  animation: inkKeystrokePulse 200ms var(--spring);
+  animation: inkKeystrokePulse var(--dur-fast) var(--spring);
 }
 
 @keyframes inkKeystrokePulse {
@@ -267,13 +267,13 @@
 }
 
 .smart-chips--visible .smart-chip {
-  animation: chipReveal 200ms var(--ease-out) forwards;
+  animation: chipReveal var(--dur-fast) var(--ease-out) forwards;
 }
 
-.smart-chips--visible .smart-chip:nth-child(1) { animation-delay: 100ms; }
-.smart-chips--visible .smart-chip:nth-child(2) { animation-delay: 125ms; }
-.smart-chips--visible .smart-chip:nth-child(3) { animation-delay: 150ms; }
-.smart-chips--visible .smart-chip:nth-child(4) { animation-delay: 175ms; }
+.smart-chips--visible .smart-chip:nth-child(1) { animation-delay: 80ms; }
+.smart-chips--visible .smart-chip:nth-child(2) { animation-delay: 120ms; }
+.smart-chips--visible .smart-chip:nth-child(3) { animation-delay: 160ms; }
+.smart-chips--visible .smart-chip:nth-child(4) { animation-delay: 200ms; }
 .smart-chips--visible .smart-chip:nth-child(5) { animation-delay: 200ms; }
 
 .smart-chip {
@@ -313,7 +313,7 @@
 }
 
 .smart-chip:active {
-  transform: scale(0.95);
+  transform: scale(var(--motion-press-scale, 0.97));
 }
 
 .smart-chip--active {
@@ -322,7 +322,7 @@
   -webkit-backdrop-filter: blur(4px);
   color: var(--ac);
   border-color: var(--ac);
-  animation: chipPop 350ms var(--spring);
+  animation: chipPop var(--dur-expand) var(--spring);
 }
 
 .smart-chip__icon {
@@ -359,11 +359,11 @@
   overflow: hidden;
   perspective: 800px;
   transform-style: preserve-3d;
-  transition: background 200ms cubic-bezier(0.2, 0, 0, 1),
-              color 200ms cubic-bezier(0.2, 0, 0, 1),
-              border-color 200ms cubic-bezier(0.2, 0, 0, 1),
-              box-shadow 200ms var(--ease-out),
-              transform 300ms var(--spring);
+  transition: background var(--dur-fast) var(--ease-out),
+              color var(--dur-fast) var(--ease-out),
+              border-color var(--dur-fast) var(--ease-out),
+              box-shadow var(--dur-fast) var(--ease-out),
+              transform var(--motion-press-return, 300ms) var(--spring);
 }
 
 /* Radial glow that follows cursor position */
@@ -388,7 +388,7 @@
 
 /* Enable glow — pulse on disabled→enabled transition */
 .cta-btn--glow-pulse {
-  animation: ctaGlowPulse 600ms var(--ease-out);
+  animation: ctaGlowPulse var(--dur-slow) var(--ease-out);
 }
 
 @keyframes ctaGlowPulse {
@@ -404,7 +404,7 @@
 }
 
 .cta-btn:not(:disabled):active {
-  transform: scale(0.96);
+  transform: scale(var(--motion-press-scale, 0.97));
   transition: transform 80ms var(--ease-out);
 }
 
@@ -430,7 +430,7 @@
   inset: 0;
   background: var(--ac);
   clip-path: inset(0 100% 0 0);
-  animation: inkReveal 400ms cubic-bezier(0.2, 1, 0.4, 1) forwards;
+  animation: inkReveal var(--dur-morph) cubic-bezier(0.2, 1, 0.4, 1) forwards;
   z-index: -1;
 }
 @media (prefers-reduced-motion: reduce) {
@@ -500,7 +500,7 @@
 }
 
 .taste-memory--visible .taste-memory__chip {
-  animation: chipReveal 200ms var(--ease-out) forwards;
+  animation: chipReveal var(--dur-fast) var(--ease-out) forwards;
 }
 
 .taste-memory--visible .taste-memory__chip:nth-child(1) { animation-delay: 0ms; }
@@ -698,7 +698,7 @@
   line-height: 16px;
   text-align: center;
   flex-shrink: 0;
-  animation: badgePop 300ms var(--spring);
+  animation: badgePop var(--dur-normal) var(--spring);
 }
 
 @keyframes badgePop {
@@ -728,7 +728,7 @@
   gap: var(--space-sm);
   width: 100%;
   transform-origin: top center;
-  animation: drawerOpen 300ms var(--ease-out) forwards;
+  animation: drawerOpen var(--dur-normal) var(--ease-out) forwards;
 }
 
 .filter-content[hidden] {
@@ -742,7 +742,7 @@
   gap: var(--space-xs);
   opacity: 0;
   transform: translateY(8px);
-  animation: sectionReveal 250ms cubic-bezier(0.2, 0, 0, 1) forwards;
+  animation: sectionReveal var(--dur-normal) var(--ease-out) forwards;
   padding-bottom: var(--space-xs);
   border-bottom: 1px solid var(--border);
 }
@@ -889,7 +889,7 @@
   flex-wrap: wrap;
   gap: var(--space-2xs);
   padding: var(--space-2xs) 0 var(--space-xs) var(--space-xs);
-  animation: hoodExpand 200ms var(--ease-out);
+  animation: hoodExpand var(--dur-fast) var(--ease-out);
 }
 
 /* Auto-open group when a pill inside is selected */
@@ -1036,7 +1036,7 @@
   border-radius: inherit;
   background: var(--ac);
   opacity: 0.15;
-  animation: filterPillRipple 600ms ease-out forwards;
+  animation: filterPillRipple var(--dur-slow) var(--ease-out) forwards;
   pointer-events: none;
 }
 
@@ -1091,7 +1091,8 @@
   font-size: var(--text-sm);
   color: var(--fg2);
   cursor: pointer;
-  transition: background 200ms var(--ease-out);
+  font-family: inherit;
+  transition: background var(--dur-fast) var(--ease-out);
 }
 
 .filter-narrative:hover {

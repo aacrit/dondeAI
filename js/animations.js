@@ -85,7 +85,7 @@ export function animateScoreRing(rawScore) {
 /* ---- Imports ---- */
 import { svgIcon, buildVibeSummary, getScoreThresholdColor, getScoreTier, getFactorColor, humanizeSnake, humanizeSignal, getFactorLabel, strengthDots } from './utils.js';
 import { springValue, springAnimate, SPRINGS, hasMotion } from './spring.js';
-import { _escHtml, REDUCED_MOTION } from './globals.js';
+import { _escHtml, REDUCED_MOTION, pushTimer } from './globals.js';
 
 /** V5 Factor dimensions */
 const FACTOR_DIMS = [
@@ -206,8 +206,9 @@ function _emitSettleParticles($hero, score) {
       particle.style.opacity = '0';
     });
 
-    // Cleanup after animation
-    setTimeout(() => particle.remove(), 800 + delay);
+    // Cleanup after animation (registered for cancellation)
+    const cleanupId = setTimeout(() => particle.remove(), 800 + delay);
+    if (typeof pushTimer === 'function') pushTimer(cleanupId);
   }
 }
 
@@ -489,11 +490,18 @@ export function renderRelevanceGate(scoringV9, container, timers = [], intentBoo
     popout.classList.toggle('v9-gate-popout--open', !isOpen);
   });
 
-  // Close popout when clicking outside
-  document.addEventListener('click', () => {
+  // Close popout when clicking outside (use { once: true } to prevent listener accumulation)
+  const closePopout = () => {
     gateBtn.setAttribute('aria-expanded', 'false');
     popout.classList.remove('v9-gate-popout--open');
-  }, { once: false });
+  };
+  document.addEventListener('click', closePopout, { once: true });
+  // Re-attach listener when popout opens
+  gateBtn.addEventListener('click', () => {
+    if (gateBtn.getAttribute('aria-expanded') === 'true') {
+      document.addEventListener('click', closePopout, { once: true });
+    }
+  });
 
   container.innerHTML = '';
   container.appendChild(row);

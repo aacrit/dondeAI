@@ -74,13 +74,14 @@ function handleTouchMove(e) {
   const $card = $dom.resultCard;
   if (!$card) return;
 
-  // Rubber-band: dampen displacement beyond card width
-  const dampened = dx > 0
-    ? Math.sqrt(Math.abs(dx)) * 8
-    : -Math.sqrt(Math.abs(dx)) * 8;
+  // Rubber-band: dampen displacement beyond card width with progressive resistance
+  const sign = dx > 0 ? 1 : -1;
+  const absDx = Math.abs(dx);
+  // Stronger damping for larger displacements — feels more physical
+  const dampened = sign * (Math.sqrt(absDx) * 7 + absDx * 0.05);
 
-  $card.style.transform = `translateX(${dampened}px) rotate(${dampened * 0.015}deg)`;
-  $card.style.opacity = String(1 - Math.abs(dampened) / 400);
+  $card.style.transform = `translateX(${dampened}px) rotate(${dampened * 0.012}deg)`;
+  $card.style.opacity = String(Math.max(0.3, 1 - Math.abs(dampened) / 350));
 }
 
 function handleTouchEnd() {
@@ -133,8 +134,8 @@ function animateOut($card, direction, callback) {
   // Velocity-dependent exit: faster swipe = faster exit + more rotation
   const elapsed = (Date.now() - _startTime) || 1;
   const dx = Math.abs(_currentX - _startX);
-  const velocity = dx / elapsed; // px/ms
-  const exitDuration = Math.max(150, 300 - velocity * 200);
+  const velocity = Math.min(dx / elapsed, 1.5); // px/ms, capped to prevent visual glitches
+  const exitDuration = Math.max(150, Math.min(300 - velocity * 200, 400));
   const exitRotation = direction * Math.min(12, 3 + velocity * 8);
 
   // Outgoing card: velocity-scaled ease-out slide
@@ -158,14 +159,14 @@ function animateOut($card, direction, callback) {
       }
 
       // MOTION-2: Spring physics for incoming card
-      // Cards are rigid objects that settle, not bounce — use smooth preset
+      // Smooth preset for a confident, weighted settle — no excessive bounce
       $card.style.opacity = '';
-      $card.style.transition = 'opacity 200ms var(--ease-out)';
+      $card.style.transition = 'opacity 250ms var(--ease-out)';
       springAnimate($card, {
         transform: 'translateX(0px) scale(1)',
       }, {
         spring: SPRINGS.smooth,
-        duration: 400,
+        duration: 450,
         easing: 'var(--spring)',
       });
 
@@ -173,7 +174,7 @@ function animateOut($card, direction, callback) {
       setTimeout(() => {
         $card.style.transition = '';
         $card.style.transform = '';
-      }, 600);
+      }, 650);
     });
   }, exitDuration);
 }
