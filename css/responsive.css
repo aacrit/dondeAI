@@ -126,6 +126,27 @@
     margin: calc(-1 * var(--space-xl)) calc(-1 * var(--space-xl)) 0;
   }
 
+  /* Glance hero: more breathing room on wider screens */
+  .glance-hero {
+    gap: var(--space-md);
+  }
+
+  .glance-hero__info {
+    gap: var(--space-xs);
+  }
+
+  /* Context pills: slightly larger on tablet+ */
+  .glance-context__pill,
+  .info-stream__pill {
+    padding: var(--space-2xs) var(--space-sm);
+    gap: 5px;
+  }
+
+  /* Info stream: wider gap between pills */
+  .info-stream__primary {
+    gap: var(--space-xs);
+  }
+
   /* Score Hero: tablet ring sizing */
   .score-hero__ring-wrap {
     width: clamp(140px, 30vw, 180px);
@@ -313,6 +334,32 @@ a[href],
 
   /* Fix 1.2: Restaurant name — cap font size to prevent overflow */
   .result-name { font-size: var(--text-md); }
+
+  /* Fix: Glance hero alignment on mobile — tighter, top-aligned */
+  .glance-hero { gap: var(--space-xs); align-items: flex-start; }
+  .glance-hero__info { gap: var(--space-2xs); }
+
+  /* Fix: Context pills — compact on mobile, nowrap with scroll */
+  .glance-context {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    mask-image: linear-gradient(to right, black calc(100% - 24px), transparent);
+    -webkit-mask-image: linear-gradient(to right, black calc(100% - 24px), transparent);
+  }
+  .glance-context::-webkit-scrollbar { display: none; }
+  .glance-context__pill { flex-shrink: 0; }
+
+  /* Fix: Info stream primary pills — horizontal scroll on mobile */
+  .info-stream__primary {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .info-stream__primary::-webkit-scrollbar { display: none; }
+  .info-stream__pill { flex-shrink: 0; }
 
   /* Fix 1.6: Canvas layout — tighter padding on mobile */
   .canvas-layout { padding: var(--space-xs); }
